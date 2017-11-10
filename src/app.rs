@@ -1,11 +1,13 @@
 extern crate glib;
 extern crate gtk;
+extern crate gtk_sys;
 extern crate gio;
 extern crate gdk_pixbuf;
 extern crate secret_service;
 extern crate libnotify;
 extern crate chrono;
 extern crate gdk;
+extern crate libappindicator;
 
 use util::*;
 use self::chrono::prelude::*;
@@ -13,6 +15,7 @@ use self::chrono::prelude::*;
 use self::secret_service::SecretService;
 use self::secret_service::EncryptionType;
 
+use std::borrow::Borrow;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender, Receiver};
@@ -22,6 +25,7 @@ use std::process::Command;
 use self::gio::ApplicationExt;
 use self::gdk_pixbuf::Pixbuf;
 use self::gtk::prelude::*;
+use self::libappindicator::{AppIndicator, AppIndicatorStatus};
 
 use backend::Backend;
 use backend::BKCommand;
@@ -1380,11 +1384,38 @@ impl App {
         window.show_all();
 
         let op = self.op.clone();
-        window.connect_delete_event(move |_, _| {
+
+        let mut indicator = AppIndicator::new("Fractal", "");
+
+        indicator.set_status(AppIndicatorStatus::APP_INDICATOR_STATUS_ACTIVE);
+        indicator.set_icon_full(&config::datadir("fractal.svg"), "icon");
+
+        let mut i_menu = gtk::Menu::new();
+        let i_menu_item_quit = gtk::ImageMenuItem::new_from_stock("Quit", None);
+        let i_menu_item_show = gtk::ImageMenuItem::new_from_stock("Show Fractal", None);
+        
+        i_menu_item_quit.connect_activate(move |_| {
             op.lock().unwrap().cache_rooms();
             op.lock().unwrap().disconnect();
             gtk::main_quit();
-            Inhibit(false)
+            Inhibit(false);
+        });
+
+        let window_clone = window.clone();
+
+        i_menu_item_show.connect_activate(move |_| {
+            window_clone.show_all();
+        });
+
+        i_menu.append(&i_menu_item_show);
+        i_menu.append(&i_menu_item_quit);
+        indicator.set_menu(&mut i_menu);
+        i_menu.show_all();
+
+        let window_clone_del = window.clone();
+        window.connect_delete_event(move |_, _| {
+            window_clone_del.set_visible(false);
+            Inhibit(true)
         });
 
         self.gtk_app.connect_startup(move |app| { window.set_application(app); });

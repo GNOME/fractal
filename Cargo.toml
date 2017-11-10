@@ -20,6 +20,9 @@ serde_json = "1.0.5"
 time = "0.1.38"
 tree_magic = "0.2.0"
 url = "1.6.0"
+xdg = "2.1.0"
+gtk-sys = "0.4.0"
+libappindicator = { git = "https://github.com/BrainBlasted/libappindicator-rs", branch = "deps_update" }
 
 [dependencies.cairo-rs]
 features = ["png"]
