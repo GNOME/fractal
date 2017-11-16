@@ -1267,20 +1267,17 @@ impl AppOp {
                 bar.pack_end(&okbtn);
                 bar.show_all();
 
-                let d = dialog.clone();
-                closebtn.connect_clicked(move |_| {
-                    d.destroy();
-                });
-                let d = dialog.clone();
+                closebtn.connect_clicked(clone!(dialog => move |_| {
+                    dialog.destroy();
+                }));
                 let room = self.active_room.clone();
                 let bk = self.backend.clone();
-                let pix = pixb.clone();
-                okbtn.connect_clicked(move |_| {
-                    if let Ok(data) = get_pixbuf_data(&pix) {
+                okbtn.connect_clicked(clone!(pixb, dialog => move |_| {
+                    if let Ok(data) = get_pixbuf_data(&pixb) {
                         bk.send(BKCommand::AttachImage(room.clone(), data)).unwrap();
                     }
-                    d.destroy();
-                });
+                    dialog.destroy();
+                }));
 
                 okbtn.grab_focus();
             }
@@ -1426,19 +1423,17 @@ impl App {
             .get_object::<gtk::Button>("room_leave_button")
             .expect("Can't find room_leave_button in ui file.");
         op = self.op.clone();
-        let d = dialog.clone();
-        btn.connect_clicked(move |_| {
+        btn.connect_clicked(clone!(dialog => move |_| {
             op.lock().unwrap().leave_active_room();
-            d.hide();
-        });
+            dialog.hide();
+        }));
 
         btn = self.gtk_builder
             .get_object::<gtk::Button>("room_dialog_close")
             .expect("Can't find room_dialog_close in ui file.");
-        let d = dialog.clone();
-        btn.connect_clicked(move |_| {
-            d.hide();
-        });
+        btn.connect_clicked(clone!(dialog => move |_| {
+            dialog.hide();
+        }));
 
         let avatar = self.gtk_builder
             .get_object::<gtk::Image>("room_avatar_image")
@@ -1461,12 +1456,11 @@ impl App {
         btn = self.gtk_builder
             .get_object::<gtk::Button>("room_dialog_set")
             .expect("Can't find room_dialog_set in ui file.");
-        let d = dialog.clone();
         op = self.op.clone();
-        btn.connect_clicked(move |_| {
+        btn.connect_clicked(clone!(dialog => move |_| {
             op.lock().unwrap().change_room_config();
-            d.hide();
-        });
+            dialog.hide();
+        }));
     }
 
     fn connect_directory(&self) {
