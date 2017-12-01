@@ -104,7 +104,7 @@ impl<'a> RoomBox<'a> {
 
         w.pack_start(&b, true, true, 0);
 
-        let members = gtk::Label::new(&format!("{}", r.members)[..]);
+        let members = gtk::Label::new(&format!("{}", r.n_members)[..]);
         w.pack_start(&members, false, false, 5);
 
         h.add(&w);

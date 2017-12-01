@@ -38,6 +38,7 @@ use error::Error;
 use types::Message;
 use types::Room;
 use types::Event;
+use types::Member;
 
 use self::reqwest::header::ContentType;
 use self::mime::Mime;
@@ -223,6 +224,17 @@ pub fn get_rooms_from_json(r: JsonValue, userid: &str, baseu: &Url) -> Result<Ve
             r.messages.push(msg);
         }
 
+        let mevents = stevents.as_array().unwrap()
+            .iter()
+            .filter(|x| x["type"] == "m.room.member");
+
+        for ev in mevents {
+            let member = parse_room_member(ev);
+            if let Some(m) = member {
+                r.members.insert(m.uid.clone(), m.clone());
+            }
+        }
+
         rooms.push(r);
     }
 
@@ -352,8 +364,8 @@ pub fn dw_media(base: &Url,
         }
 
         let moddate = p.metadata()?.modified()?;
-        // one hour cached
-        if moddate.elapsed()?.as_secs() < 60 * 60 {
+        // one minute cached
+        if moddate.elapsed()?.as_secs() < 60 {
             return Ok(fname);
         }
     }
@@ -433,6 +445,16 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
         }
         Err(_) => Ok((String::from(userid), identicon!(userid, String::from(&userid[1..2]))?)),
     }
+}
+
+pub fn get_user_avatar_img(baseu: &Url, userid: String, alias: String, avatar: String) -> Result<String, Error> {
+    if avatar.is_empty() {
+        return identicon!(&userid, alias);
+    }
+
+    let dest = cache_path(&userid)?;
+    let img = dw_media(baseu, &avatar, true, Some(&dest), 64, 64)?;
+    Ok(circle_image(img)?)
 }
 
 pub fn get_room_st(base: &Url, tk: &str, roomid: &str) -> Result<JsonValue, Error> {
@@ -617,6 +639,25 @@ pub fn parse_room_message(baseu: &Url, roomid: String, msg: &JsonValue) -> Messa
         thumb: thumb,
         id: String::from(id),
     }
+}
+
+pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
+    let sender = msg["sender"].as_str().unwrap_or("");
+
+    let c = &msg["content"];
+
+    let displayname = c["displayname"].as_str().unwrap_or("");
+    let avatar_url = c["avatar_url"].as_str().unwrap_or("");
+
+    if c["membership"].as_str().is_none() {
+        return None;
+    }
+
+    Some(Member {
+        uid: strn!(sender),
+        alias: strn!(displayname),
+        avatar: strn!(avatar_url),
+    })
 }
 
 pub fn markup(s: &str) -> String {

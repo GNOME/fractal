@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
     pub alias: String,
     pub uid: String,
@@ -12,6 +12,16 @@ impl Member {
         match self.alias {
             ref a if a.is_empty() => self.uid.clone(),
             ref a => a.clone(),
+        }
+    }
+}
+
+impl Clone for Member {
+    fn clone(&self) -> Member {
+        Member {
+            alias: self.alias.clone(),
+            uid: self.uid.clone(),
+            avatar: self.avatar.clone(),
         }
     }
 }

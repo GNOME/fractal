@@ -66,6 +66,7 @@ pub enum BKCommand {
     GetMessageContext(Message),
     GetRoomAvatar(String),
     GetThumbAsync(String, Sender<String>),
+    GetAvatarAsync(Option<Member>, Sender<String>),
     GetMedia(String),
     GetUserInfoAsync(String, Sender<(String, String)>),
     SendMsg(Message),
@@ -101,7 +102,10 @@ pub enum BKResponse {
     RoomMessages(Vec<Message>),
     RoomMessagesInit(Vec<Message>),
     RoomMessagesTo(Vec<Message>),
+
+    #[allow(dead_code)]
     RoomMembers(Vec<Member>),
+
     SendMsg,
     DirectoryProtocols(Vec<Protocol>),
     DirectorySearch(Vec<Room>),
@@ -129,7 +133,10 @@ pub enum BKResponse {
     RoomDetailError(Error),
     RoomAvatarError(Error),
     RoomMessagesError(Error),
+
+    #[allow(dead_code)]
     RoomMembersError(Error),
+
     SendMsgError(Error),
     SetRoomError(Error),
     CommandError(Error),
@@ -242,6 +249,10 @@ impl Backend {
                 let r = self.get_thumb_async(media, ctx);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
+            Ok(BKCommand::GetAvatarAsync(member, ctx)) => {
+                let r = self.get_avatar_async(member, ctx);
+                bkerror!(r, tx, BKResponse::CommandError);
+            }
             Ok(BKCommand::GetMedia(media)) => {
                 let r = self.get_media(media);
                 bkerror!(r, tx, BKResponse::CommandError);
@@ -347,7 +358,6 @@ impl Backend {
     pub fn set_room(&self, room: Room) -> Result<(), Error> {
         self.get_room_detail(room.id.clone(), String::from("m.room.topic"))?;
         self.get_room_avatar(room.id.clone())?;
-        self.get_room_members(room.id.clone())?;
 
         Ok(())
     }
@@ -710,6 +720,7 @@ impl Backend {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn get_room_members(&self, roomid: String) -> Result<(), Error> {
         let url = self.url(&format!("rooms/{}/members", roomid), vec![])?;
 
@@ -795,6 +806,34 @@ impl Backend {
                     tx.send(String::from("")).unwrap();
                 }
             };
+        });
+
+        Ok(())
+    }
+
+    pub fn get_avatar_async(&self, member: Option<Member>, tx: Sender<String>) -> Result<(), Error> {
+        let baseu = self.get_base_url()?;
+
+        if member.is_none() {
+            tx.send(String::new()).unwrap();
+            return Ok(());
+        }
+
+        let m = member.unwrap();
+
+        let uid = m.uid.clone();
+        let alias = m.get_alias().clone();
+        let avatar = m.avatar.clone();
+
+        thread::spawn(move || {
+            match get_user_avatar_img(&baseu, uid, alias, avatar) {
+                Ok(fname) => {
+                    tx.send(fname.clone()).unwrap();
+                }
+                Err(_) => {
+                    tx.send(String::new()).unwrap();
+                }
+            }
         });
 
         Ok(())
@@ -926,7 +965,7 @@ impl Backend {
                     r.alias = alias;
                     r.avatar = String::from(room["avatar_url"].as_str().unwrap_or(""));
                     r.topic = String::from(room["topic"].as_str().unwrap_or(""));
-                    r.members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
+                    r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
                     r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
                     r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
                     rooms.push(r);

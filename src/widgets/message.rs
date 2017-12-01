@@ -8,6 +8,7 @@ use self::gtk::prelude::*;
 
 use types::Message;
 use types::Member;
+use types::Room;
 
 use self::chrono::prelude::*;
 
@@ -23,15 +24,20 @@ use app::AppOp;
 
 // Room Message item
 pub struct MessageBox<'a> {
+    room: &'a Room,
     msg: &'a Message,
     op: &'a AppOp,
     username: gtk::Label,
 }
 
 impl<'a> MessageBox<'a> {
-    pub fn new(msg: &'a Message, op: &'a AppOp) -> MessageBox<'a> {
+    pub fn new(room: &'a Room, msg: &'a Message, op: &'a AppOp) -> MessageBox<'a> {
         let username = gtk::Label::new("");
-        MessageBox { msg: msg, op: op, username }
+        MessageBox {
+            msg: msg,
+            room: room,
+            op: op, username
+        }
     }
 
     pub fn widget(&self) -> gtk::Box {
@@ -106,6 +112,11 @@ impl<'a> MessageBox<'a> {
         let backend = self.op.backend.clone();
         let avatar;
 
+        let m = self.room.members.get(&sender);
+        if let Some(member) = m {
+            self.username.set_markup(&format!("<b>{}</b>", member.get_alias()));
+        }
+
         let fname = util::cache_path(&sender).unwrap_or(strn!(""));
 
         let pathname = fname.clone();
@@ -113,24 +124,20 @@ impl<'a> MessageBox<'a> {
         if p.is_file() {
             avatar = gtk::Image::new_from_file(&fname);
         } else {
-            avatar = gtk::Image::new_from_icon_name("image-missing", 5);
+            println!("default: {:?}", m);
+            avatar = gtk::Image::new_from_icon_name("avatar-default-symbolic", 40);
         }
 
         let a = avatar.clone();
-        let u = self.username.clone();
 
-        let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-        backend.send(BKCommand::GetUserInfoAsync(sender, tx)).unwrap();
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        backend.send(BKCommand::GetAvatarAsync(m.cloned(), tx)).unwrap();
         gtk::timeout_add(50, move || match rx.try_recv() {
             Err(_) => gtk::Continue(true),
-            Ok((name, avatar)) => {
+            Ok(avatar) => {
                 if let Ok(pixbuf) = Pixbuf::new_from_file_at_scale(&avatar, 40, 40, false) {
                     a.set_from_pixbuf(&pixbuf);
                 }
-                if !name.is_empty() {
-                    u.set_markup(&format!("<b>{}</b>", name));
-                }
-
                 gtk::Continue(false)
             }
         });
@@ -242,7 +249,7 @@ impl<'a> MessageBox<'a> {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let member = self.op.members.get(&msg.sender);
+        let member = self.room.members.get(&msg.sender);
         let username = self.build_room_msg_username(&msg.sender, member);
         let date = self.build_room_msg_date(&msg.date);
 
