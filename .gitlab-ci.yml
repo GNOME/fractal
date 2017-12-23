@@ -19,6 +19,8 @@ test:stable:
   image: "rust"
   script:
   - rustc --version && cargo --version
+  # Force regeneration of gresources regardless of artifacts chage
+  - cd hammond-gtk/resources/ && glib-compile-resources --generate resources.xml && cd ../../
   - cargo build --all
   - cargo test --all --verbose
   cache:
@@ -32,6 +34,8 @@ test:nightly:
   image: "rustlang/rust:nightly"
   script:
   - rustc --version && cargo --version
+  # Force regeneration of gresources regardless of artifacts chage
+  - cd hammond-gtk/resources/ && glib-compile-resources --generate resources.xml && cd ../../
   - cargo build --all
   - cargo test --all --verbose
   # - cargo bench
@@ -60,6 +64,8 @@ lint:clippy:
   image: "rustlang/rust:nightly"
   script:
   - rustc --version && cargo --version
+  # Force regeneration of gresources regardless of artifacts chage
+  - cd hammond-gtk/resources/ && glib-compile-resources --generate resources.xml && cd ../../
   - cargo install clippy
   - cargo clippy --all
   cache:
