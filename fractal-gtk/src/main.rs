@@ -1,6 +1,9 @@
 #![deny(unused_extern_crates)]
 extern crate glib;
 extern crate gio;
+extern crate send_cell;
+#[macro_use]
+extern crate lazy_static;
 
 #[macro_use]
 extern crate failure;
