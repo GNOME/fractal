@@ -7,6 +7,9 @@ pub use self::gtk::DrawingArea;
 use self::gdk_pixbuf::Pixbuf;
 use self::gdk::ContextExt;
 
+use std::collections::HashMap;
+use std::sync::Mutex;
+use send_cell::SendCell;
 
 pub type Avatar = gtk::Box;
 
@@ -109,7 +112,7 @@ impl AvatarExt for gtk::Box {
         let da = self.create_da(size);
         let s = size.unwrap_or(40);
 
-        let pixbuf = Pixbuf::new_from_file_at_scale(&path, s, -1, true);
+        let pixbuf = get_pixbuf_from_cache(&path, s);
 
         da.connect_draw(move |da, g| {
             use std::f64::consts::PI;
@@ -121,7 +124,7 @@ impl AvatarExt for gtk::Box {
 
             gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-            if let Ok(ref pb) = pixbuf {
+            if let Some(ref pb) = pixbuf {
                 let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
 
                 g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
@@ -135,4 +138,28 @@ impl AvatarExt for gtk::Box {
             Inhibit(false)
         });
     }
+}
+
+lazy_static! {
+    static ref CACHED_PIXBUFS: Mutex<HashMap<(String, i32), Mutex<SendCell<Pixbuf>>>> = {
+        Mutex::new(HashMap::new())
+    };
+}
+
+fn get_pixbuf_from_cache(path: &str, width: i32) -> Option<Pixbuf> {
+    let mut hashmap = CACHED_PIXBUFS.lock().unwrap();
+    {
+        let res = hashmap.get(&(path.to_owned(), width));
+        if let Some(px) = res {
+            let m = px.lock().unwrap();
+            return Some(m.clone().into_inner());
+        }
+    }
+
+    let px = Pixbuf::new_from_file_at_scale(path, width as i32, -1, true).ok();
+    if let Some(px) = px {
+        hashmap.insert((path.to_owned(), width), Mutex::new(SendCell::new(px.clone())));
+        return Some(px);
+    }
+    None
 }
