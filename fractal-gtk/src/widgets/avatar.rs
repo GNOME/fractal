@@ -146,9 +146,18 @@ lazy_static! {
     };
 }
 
+// Since gdk_pixbuf::Pixbuf is refference counted and every avatar,
+// use the cover of the cached image, We can only create a Pixbuf
+// cover per person and pass around the Rc pointer.
+//
+// GObjects do not implement Send trait, so SendCell is a way around that.
+// Note: SendCell will panic at runtime if it's accessed from any other thread than
+// the one it was created.
+// Also lazy_static requires Sync trait, so that's what the mutexes are.
 fn get_pixbuf_from_cache(path: &str, width: i32) -> Option<Pixbuf> {
     let mut hashmap = CACHED_PIXBUFS.lock().unwrap();
     {
+        // Query the cached hashmap
         let res = hashmap.get(&(path.to_owned(), width));
         if let Some(px) = res {
             let m = px.lock().unwrap();
@@ -156,8 +165,10 @@ fn get_pixbuf_from_cache(path: &str, width: i32) -> Option<Pixbuf> {
         }
     }
 
+    // Else, create the pixbuf
     let px = Pixbuf::new_from_file_at_scale(path, width as i32, -1, true).ok();
     if let Some(px) = px {
+        // Insert it into the Hashmap cache
         hashmap.insert((path.to_owned(), width), Mutex::new(SendCell::new(px.clone())));
         return Some(px);
     }
