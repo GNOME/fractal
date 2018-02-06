@@ -42,8 +42,17 @@
     margin: 3px;
 }
 
+.message-entry {
+   margin-top:7px;
+}
+
 .username {
-    font-weight: bold;
+   font-weight: bold;
+   margin-top:4px;
+}
+.message-list > row {
+	padding-top:0;
+	padding-bottom:0;
 }
 
 .room-title {

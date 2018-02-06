@@ -54,6 +54,9 @@ impl<'a> MessageBox<'a> {
         // | avatar | content |
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        if let Some(style) = msg_widget.get_style_context() {
+            style.add_class("message-entry");
+        }
 
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
