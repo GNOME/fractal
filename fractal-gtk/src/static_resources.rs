@@ -6,7 +6,7 @@ pub fn init() -> Result<(), Error> {
     let res_bytes = include_bytes!("../res/resources.gresource");
 
     // Create Resource, it will live as long the value lives.
-    let gbytes = Bytes::from_static(res_bytes.as_ref());
+    let gbytes = Bytes::from(res_bytes.as_ref());
     let resource = Resource::new_from_data(&gbytes)?;
 
     // Register the resource so It wont be dropped and will continue to live in memory.
