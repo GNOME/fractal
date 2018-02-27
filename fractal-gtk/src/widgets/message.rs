@@ -189,6 +189,10 @@ impl<'a> MessageBox<'a> {
             if msg.mtype == "m.emote" {
                 style.add_class("msg-emote");
             }
+            // new messages
+            if msg > self.op.last_viewed_messages.get(&self.room.id).unwrap() {
+                style.add_class("msg-new");
+            }
         }
 
         w.set_line_wrap(true);
