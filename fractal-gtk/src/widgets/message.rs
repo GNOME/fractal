@@ -189,6 +189,12 @@ impl<'a> MessageBox<'a> {
             if msg.mtype == "m.emote" {
                 style.add_class("msg-emote");
             }
+            // new messages
+            if let Some(last_viewed_msg) = self.op.last_viewed_messages.get(&self.room.id) {
+                if msg.date > last_viewed_msg.date {
+                    style.add_class("msg-new");
+                }
+            }
         }
 
         w.set_line_wrap(true);
