@@ -1,9 +1,11 @@
 extern crate gtk;
+extern crate gdk;
 extern crate gdk_pixbuf;
 extern crate chrono;
 extern crate pango;
 
 use self::gdk_pixbuf::Pixbuf;
+use self::gdk::ContextExt;
 use self::gtk::prelude::*;
 
 use types::Message;
@@ -18,6 +20,8 @@ use fractal_api as api;
 use util;
 
 use std::path::Path;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use app::AppOp;
 use globals;
@@ -211,30 +215,72 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_image(&self) -> gtk::Box {
+        const MAX_HEIGHT : i32 = 300;
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let image = gtk::Image::new();
-
-        if let Ok(pixbuf) = Pixbuf::new_from_file_at_scale(&msg.thumb.clone().unwrap_or_default(), 200, 200, true) {
-            image.set_from_pixbuf(&pixbuf);
-        } else {
-            image.set_from_file(&msg.thumb.clone().unwrap_or_default());
+        let image = gtk::DrawingArea::new();
+        let width: &mut i32 = &mut 0;
+        let height: &mut i32 = &mut 0;
+        Pixbuf::get_file_info(&msg.thumb.clone().unwrap_or_default(), width, height);
+        let cache_height = if height < &mut MAX_HEIGHT {
+            -1
         }
+        else {
+            MAX_HEIGHT
+        };
 
-        let viewbtn = gtk::Button::new();
-        let url = msg.url.clone().unwrap_or_default();
-        let backend = self.op.backend.clone();
-        //let img = image.clone();
-        viewbtn.connect_clicked(move |_| {
-            //let spin = gtk::Spinner::new();
-            //spin.start();
-            //btn.add(&spin);
-            backend.send(BKCommand::GetMedia(url.clone())).unwrap();
-        });
+        if let Ok(base) = Pixbuf::new_from_file_at_scale(&msg.thumb.clone().unwrap_or_default(), -1, cache_height, true) {
+            let cache: Rc<RefCell<Pixbuf>> = Rc::new(RefCell::new(base.clone()));
 
-        viewbtn.set_image(&image);
+            image.set_hexpand(true);
+            image.set_vexpand(true);
+            let base = base.clone();
+            let cache_clone = cache.clone();
+            let on_size_allocate = move |w: &gtk::DrawingArea, space: &gdk::Rectangle| {
+                let width = base.get_width();
+                let height = base.get_height();
+                let ratio = width as f32 / height as f32;
+                let mut new_width = if width < space.width {
+                    width
+                }
+                else {
+                    space.width
+                };
+                let mut new_height = (new_width as f32 / ratio) as i32;
+                if new_height > MAX_HEIGHT {
+                    new_height = MAX_HEIGHT;
+                    new_width = (new_height as f32 * ratio) as i32;
+                }
+                if new_height != space.height {
+                    w.set_size_request (-1, new_height);
+                    *cache_clone.borrow_mut() = base.scale_simple (new_width, new_height, 2).unwrap();
+                }
+                w.queue_draw();
+            };
 
-        bx.add(&viewbtn);
+            image.connect_size_allocate(on_size_allocate);
+
+            image.connect_draw(move |w, cr| {
+                cr.set_source_pixbuf(&cache.borrow(), 0.0, 0.0);
+                cr.paint();
+                Inhibit(false)
+            });
+
+            let click_bx = gtk::EventBox::new();
+            let url = msg.url.clone().unwrap_or_default();
+            let backend = self.op.backend.clone();
+            //let img = image.clone();
+            click_bx.connect_button_press_event(move |_, _| {
+                backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+                Inhibit(false)
+            });
+            click_bx.add(&image);
+            bx.add(&click_bx);
+        }
+        else {
+            let label = gtk::Label::new(Some("Uploading image..."));
+            bx.add(&label);
+        }
         bx
     }
 
@@ -301,7 +347,7 @@ impl<'a> MessageBox<'a> {
         let body: &str = &msg.body;
 
         msg_label.set_markup(&format!("<i>* {} {}</i>",
-            sname.unwrap_or_default(), util::markup(body)));
+                                      sname.unwrap_or_default(), util::markup(body)));
 
         self.set_msg_styles(&msg_label);
 
