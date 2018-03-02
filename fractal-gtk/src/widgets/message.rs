@@ -58,6 +58,22 @@ impl<'a> MessageBox<'a> {
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
 
+        if let Some(ref lvm) = self.op.tmp_last_viewed_message {
+            if let Some(ref last_msg) = self.op.last_viewed_messages.get(&self.room.id) {
+                let msg_id = self.msg.id.clone().unwrap_or_default();
+                let lvm_id = lvm.id.clone().unwrap_or_default();
+                let last_msg_id = last_msg.id.clone().unwrap_or_default();
+
+                if !msg_id.is_empty() && !lvm_id.is_empty() && !last_msg_id.is_empty() {
+                    if msg_id == lvm_id && lvm_id != last_msg_id {
+                        if let Some(style) = msg_widget.get_style_context() {
+                            style.add_class("msg-last-viewed-widget");
+                        }
+                    }
+                }
+            }
+        }
+
         msg_widget.set_margin_top(2);
         msg_widget.set_margin_bottom(2);
 
