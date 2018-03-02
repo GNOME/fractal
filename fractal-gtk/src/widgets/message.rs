@@ -197,6 +197,13 @@ impl<'a> MessageBox<'a> {
             if msg.mtype == "m.emote" {
                 style.add_class("msg-emote");
             }
+            // new messages
+            if let Some(ref lvm) = self.op.tmp_last_viewed_message {
+                let uid = self.op.uid.clone().unwrap_or_default();
+                if msg.date > lvm.date && msg.room == lvm.room && msg.sender != uid {
+                    style.add_class("msg-new");
+                }
+            }
         }
 
         w.set_line_wrap(true);
