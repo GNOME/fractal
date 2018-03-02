@@ -101,6 +101,9 @@ row .timestamp {
     color: alpha(@theme_fg_color, 0.85);
     padding: 12px 0px;
 }
+.msg-last-viewed-widget {
+    border-bottom: 1px solid @borders;
+}
 
 .messages-history row:selected .msg-mention,
 .messages-history row:selected .msg-emote

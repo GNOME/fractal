@@ -58,6 +58,14 @@ impl<'a> MessageBox<'a> {
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
 
+        if let Some(ref lvm) = self.op.tmp_last_viewed_message {
+            if self.msg == lvm {
+                if let Some(style) = msg_widget.get_style_context() {
+                    style.add_class("msg-last-viewed-widget");
+                }
+            }
+        }
+
         msg_widget.set_margin_top(2);
         msg_widget.set_margin_bottom(2);
 
