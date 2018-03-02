@@ -928,6 +928,9 @@ impl AppOp {
                                                           i == msgs.len() - 1);
             self.internal.send(command).unwrap();
         }
+        if let Some(last_message) = msgs.first() {
+            self.last_viewed_messages.insert(room.id.clone(), (*last_message).clone());
+        }
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
         if !room.messages.is_empty() {
@@ -1252,6 +1255,9 @@ impl AppOp {
 
 
         self.add_tmp_room_message(m.clone());
+        if let Some(room) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+            self.last_viewed_messages.insert(room.id.clone(), m.clone());
+        }
         self.backend.send(BKCommand::SendMsg(m)).unwrap();
     }
 
