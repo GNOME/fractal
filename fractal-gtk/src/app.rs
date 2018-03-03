@@ -918,6 +918,7 @@ impl AppOp {
 
         let mut getmessages = true;
         self.shown_messages = 0;
+        println!("[DEBUG] Message that was marked before:\n{:?}", self.last_viewed_messages.get(&room.id));
         let msgs = room.messages.iter().rev()
                                 .take(globals::INITIAL_MESSAGES)
                                 .collect::<Vec<&Message>>();
@@ -931,6 +932,7 @@ impl AppOp {
         if let Some(last_message) = msgs.first() {
             self.last_viewed_messages.insert(room.id.clone(), (*last_message).clone());
         }
+        println!("[DEBUG] Message updated to:\n{:?}", self.last_viewed_messages.get(&room.id));
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
         if !room.messages.is_empty() {

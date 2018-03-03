@@ -191,7 +191,9 @@ impl<'a> MessageBox<'a> {
             }
             // new messages
             if let Some(last_viewed_msg) = self.op.last_viewed_messages.get(&self.room.id) {
+                println!("[DEBUG] Testing:\n{:?}\nAgainst:\n{:?}", msg, last_viewed_msg);
                 if msg.date > last_viewed_msg.date {
+                    println!("[DEBUG] Test passed");
                     style.add_class("msg-new");
                 }
             }
