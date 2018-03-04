@@ -481,14 +481,45 @@
                                 <property name="vscroll_policy">natural</property>
                                 <property name="shadow_type">none</property>
                                 <child>
-                                  <object class="GtkListBox" id="message_list">
-                                    <property name="width_request">300</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="vexpand">True</property>
-                                    <style>
-                                      <class name="messages-history"/>
-                                    </style>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                          <object class="GtkListBox" id="message_list">
+                                            <property name="width_request">300</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="vexpand">True</property>
+                                            <style>
+                                              <class name="messages-history"/>
+                                            </style>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="pack_type">end</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -1789,7 +1820,7 @@ Join a room to start to chat</property>
                 <property name="label" translatable="yes">Name</property>
                 <accessibility>
                   <relation type="label-for" target="new_room_name" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1804,7 +1835,7 @@ Join a room to start to chat</property>
                 <property name="label" translatable="yes">Privacy</property>
                 <accessibility>
                   <relation type="label-for" target="new_room_preset" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1818,7 +1849,7 @@ Join a room to start to chat</property>
                 <property name="hexpand">True</property>
                 <accessibility>
                   <relation type="labelled-by" target="new_room_name_label" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -1839,7 +1870,7 @@ Join a room to start to chat</property>
                 </child>
                 <accessibility>
                   <relation type="labelled-by" target="new_room_preset_label" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -1997,7 +2028,7 @@ Join a room to start to chat</property>
                 </attributes>
                 <accessibility>
                   <relation type="label-for" target="room_id" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -2015,7 +2046,7 @@ Join a room to start to chat</property>
                 </attributes>
                 <accessibility>
                   <relation type="label-for" target="room_name_entry" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -2033,7 +2064,7 @@ Join a room to start to chat</property>
                 </attributes>
                 <accessibility>
                   <relation type="label-for" target="room_topic_entry" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -2047,7 +2078,7 @@ Join a room to start to chat</property>
                 <property name="can_focus">True</property>
                 <accessibility>
                   <relation type="labelled-by" target="room_name_label" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -2060,7 +2091,7 @@ Join a room to start to chat</property>
                 <property name="can_focus">True</property>
                 <accessibility>
                   <relation type="labelled-by" target="room_topic_label" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -2076,7 +2107,7 @@ Join a room to start to chat</property>
                 <property name="label" translatable="yes">#</property>
                 <accessibility>
                   <relation type="labelled-by" target="room_id_label" />
-               </accessibility>
+                </accessibility>
               </object>
               <packing>
                 <property name="left_attach">1</property>
