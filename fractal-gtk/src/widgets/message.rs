@@ -203,6 +203,8 @@ impl<'a> MessageBox<'a> {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let msg = gtk::Label::new("");
 
+        msg.set_width_chars (50);
+        msg.set_max_width_chars (50);
         msg.set_markup(&util::markup(body));
         self.set_msg_styles(&msg);
 

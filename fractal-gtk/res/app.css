@@ -25,6 +25,10 @@
     font-weight: bold;
 }
 
+viewport {
+    background-color: white;
+}
+
 .room-row {
     padding: 8px 0px;
 }
