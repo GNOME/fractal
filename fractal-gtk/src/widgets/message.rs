@@ -190,10 +190,9 @@ impl<'a> MessageBox<'a> {
                 style.add_class("msg-emote");
             }
             // new messages
-            if let Some(last_viewed_msg) = self.op.last_viewed_messages.get(&self.room.id) {
-                println!("[DEBUG] Testing:\n{:?}\nAgainst:\n{:?}", msg, last_viewed_msg);
-                if msg.date > last_viewed_msg.date {
-                    println!("[DEBUG] Test passed");
+            if let Some(ref lvm) = self.op.tmp_last_viewed_message {
+                let uid = self.op.uid.clone().unwrap_or_default();
+                if msg.date > lvm.date && msg.room == lvm.room && msg.sender != uid {
                     style.add_class("msg-new");
                 }
             }
