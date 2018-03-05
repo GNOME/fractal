@@ -82,6 +82,8 @@ pub struct AppOp {
     pub syncing: bool,
     tmp_msgs: Vec<TmpMsg>,
     shown_messages: usize,
+    pub last_viewed_messages: HashMap<String, Message>,
+    pub tmp_last_viewed_message: Option<Message>,
 
     pub username: Option<String>,
     pub uid: Option<String>,
@@ -176,6 +178,8 @@ impl AppOp {
             syncing: false,
             tmp_msgs: vec![],
             shown_messages: 0,
+            last_viewed_messages: HashMap::new(),
+            tmp_last_viewed_message: None,
             state: AppState::Login,
             roomlist: widgets::RoomList::new(None),
             since: None,
