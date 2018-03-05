@@ -922,6 +922,10 @@ impl AppOp {
 
         let mut getmessages = true;
         self.shown_messages = 0;
+        // Save the last viewed message before it is updated
+        if let Some(lvm) = self.last_viewed_messages.get(&room.id) {
+            self.tmp_last_viewed_message = Some((*lvm).clone());
+        }
         let msgs = room.messages.iter().rev()
                                 .take(globals::INITIAL_MESSAGES)
                                 .collect::<Vec<&Message>>();
@@ -931,6 +935,10 @@ impl AppOp {
                                                           None,
                                                           i == msgs.len() - 1);
             self.internal.send(command).unwrap();
+        }
+        // Update the last viewed message for this room
+        if let Some(last_message) = msgs.first() {
+            self.last_viewed_messages.insert(room.id.clone(), (*last_message).clone());
         }
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
@@ -1258,6 +1266,12 @@ impl AppOp {
             m.mtype = strn!("m.emote");
         };
 
+
+        // Update the last viewed message for this room
+        if let Some(room) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+            self.last_viewed_messages.insert(room.id.clone(), m.clone());
+            self.tmp_last_viewed_message = Some(m.clone());
+        }
 
         self.add_tmp_room_message(m.clone());
         self.backend.send(BKCommand::SendMsg(m)).unwrap();
