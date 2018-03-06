@@ -34,7 +34,7 @@
     color: @theme_selected_bg_color;
 }
 
-.room-list.sidebar {
+.sidebar {
     border: none;
 }
 
@@ -117,4 +117,16 @@ row .timestamp {
   animation-timing-function: ease;
   animation-iteration-count: infinite;
   animation-direction: alternate;
+}
+
+/*#FIXME css style to remove round corners in the header*/
+stack headerbar:last-child:not(:only-child) {
+  border-top-left-radius: 0px;
+}
+stack headerbar:first-child:not(:only-child) {
+  border-top-right-radius: 0px;
+}
+
+stack.titlebar:not(headerbar) > box > separator {
+  background-color: #b6b6b3;
 }

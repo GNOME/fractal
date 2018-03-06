@@ -1032,13 +1032,13 @@ impl AppOp {
             .expect("Can't find room_avatar_image in ui file.");
 
         if avatar.is_some() && !avatar.clone().unwrap().is_empty() {
-            image.add(&widgets::Avatar::circle_avatar(avatar.clone().unwrap(), Some(40)));
+            image.add(&widgets::Avatar::circle_avatar(avatar.clone().unwrap(), Some(16)));
             if let Ok(pixbuf) = Pixbuf::new_from_file_at_size(&avatar.clone().unwrap(), 100, 100) {
                 config.set_from_pixbuf(&pixbuf);
             }
         } else {
-            let w = widgets::Avatar::avatar_new(Some(40));
-            w.default(String::from("camera-photo-symbolic"), Some(40));
+            let w = widgets::Avatar::avatar_new(Some(16));
+            w.default(String::from("camera-photo-symbolic"), Some(16));
             image.add(&w);
             config.set_from_icon_name("camera-photo-symbolic", 5);
         }
