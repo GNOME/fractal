@@ -228,36 +228,22 @@
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkModelButton" id="directory_menu">
-            <property name="visible">True</property>
+          <object class="GtkModelButton" id="account_settings_menu">
+            <property name="visible">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="action_name">app.directory</property>
-            <property name="text" translatable="yes">Room Directory</property>
+            <property name="action_name">app.account_settings</property>
+            <property name="text" translatable="yes">Account Settings</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="new_room_menu">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="action_name">app.new_room</property>
-            <property name="text" translatable="yes">Create new room</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
           <object class="GtkSeparator">
-            <property name="visible">True</property>
+            <property name="visible">False</property>
             <property name="can_focus">False</property>
             <property name="margin_top">6</property>
             <property name="margin_bottom">6</property>
@@ -265,7 +251,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -279,7 +265,54 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="pack_type">end</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkPopoverMenu" id="add_room_popover">
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="margin_left">6</property>
+        <property name="margin_right">6</property>
+        <property name="margin_top">6</property>
+        <property name="margin_bottom">6</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkModelButton" id="directory_menu">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="action_name">app.directory</property>
+            <property name="text" translatable="yes">Room directory</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="new_room_menu">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="action_name">app.new_room</property>
+            <property name="text" translatable="yes">Create new room</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
@@ -585,7 +618,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">No room selected
-    Join a room to start to chat</property>
+                          Join a room to start to chat</property>
                         <property name="justify">center</property>
                       </object>
                       <packing>
@@ -1177,16 +1210,34 @@
                     </child>
                   </object>
                 </child>
-                <child type="title">
-                  <object class="GtkLabel" id="fractal-label">
+                <child>
+                  <object class="GtkMenuButton" id="add_room_menu">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Fractal</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="popover">add_room_popover</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="icon_name">list-add-symbolic</property>
+                      </object>
+                    </child>
+                    <accessibility>
+
+                    </accessibility>
+                    <child internal-child="accessible">
+                      <object class="AtkObject" id="a11y-add_room_menu">
+                        <property name="AtkObject::accessible_name" translatable="yes">User</property>
+                      </object>
+                    </child>
                   </object>
+                  <packing>
+                    <property name="pack_type">end</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
+
                 <child>
                   <object class="GtkToggleButton" id="room_search_button">
                     <property name="visible">True</property>
@@ -1214,6 +1265,7 @@
                   </object>
                   <packing>
                     <property name="pack_type">end</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
               </object>

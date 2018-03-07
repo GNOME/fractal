@@ -191,17 +191,9 @@ impl AppOp {
     }
 
     pub fn initial_sync(&self, show: bool) {
-        let label: gtk::Label = self.gtk_builder
-            .get_object("fractal-label")
-            .expect("Can't find fractal-label in ui file.");
-
         if show {
-            label.get_style_context().unwrap().add_class("syncing");
-            label.set_tooltip_text("Initial sync, this can take some time");
             self.inapp_notify("Initial sync, this can take some time");
         } else {
-            label.get_style_context().unwrap().remove_class("syncing");
-            label.set_tooltip_text("");
             self.hide_inapp_notify();
         }
     }
