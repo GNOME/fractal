@@ -619,7 +619,19 @@
                               <object class="GtkBox" id="inapp_box">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="spacing">20</property>
+                                <property name="spacing">10</property>
+                                <child>
+                                  <object class="GtkSpinner" id="inapp_spinner">
+                                    <property name="visible">True</property>
+                                    <property name="active">True</property>
+                                    <property name="can_focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
                                 <child>
                                   <object class="GtkLabel" id="inapp_label">
                                     <property name="visible">True</property>
@@ -629,6 +641,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
+                                    <property name="pack_type">end</property>
                                     <property name="position">0</property>
                                   </packing>
                                 </child>
