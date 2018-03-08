@@ -83,7 +83,6 @@ pub struct AppOp {
     tmp_msgs: Vec<TmpMsg>,
     shown_messages: usize,
     pub last_viewed_messages: HashMap<String, Message>,
-    pub tmp_last_viewed_message: Option<Message>,
 
     pub username: Option<String>,
     pub uid: Option<String>,
@@ -179,7 +178,6 @@ impl AppOp {
             tmp_msgs: vec![],
             shown_messages: 0,
             last_viewed_messages: HashMap::new(),
-            tmp_last_viewed_message: None,
             state: AppState::Login,
             roomlist: widgets::RoomList::new(None),
             since: None,
@@ -922,22 +920,16 @@ impl AppOp {
 
         let mut getmessages = true;
         self.shown_messages = 0;
-        // Save the last viewed message before it is updated
-        if let Some(lvm) = self.last_viewed_messages.get(&room.id) {
-            self.tmp_last_viewed_message = Some((*lvm).clone());
-        }
+
         let msgs = room.messages.iter().rev()
                                 .take(globals::INITIAL_MESSAGES)
                                 .collect::<Vec<&Message>>();
-        // Update the last viewed message for this room
-        if let Some(last_message) = msgs.first() {
-            self.last_viewed_messages.insert(room.id.clone(), (*last_message).clone());
-        }
         for (i, msg) in msgs.iter().enumerate() {
             let command = InternalCommand::AddRoomMessage((*msg).clone(),
                                                           MsgPos::Top,
                                                           None,
-                                                          i == msgs.len() - 1);
+                                                          i == msgs.len() - 1,
+                                                          self.is_last_viewed(&msg));
             self.internal.send(command).unwrap();
         }
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
@@ -1093,11 +1085,19 @@ impl AppOp {
         }
     }
 
+    pub fn is_last_viewed(&self, msg: &Message) -> bool {
+        match self.last_viewed_messages.get(&msg.room) {
+            Some(lvm) if lvm == msg => true,
+            _ => false,
+        }
+    }
+
     pub fn add_room_message(&mut self,
                             msg: Message,
                             msgpos: MsgPos,
                             prev: Option<Message>,
-                            force_full: bool) {
+                            force_full: bool,
+                            last: bool) {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -1137,6 +1137,12 @@ impl AppOp {
                         Some(ref p) if self.should_group(&msg, p) => mb.small_widget(),
                         Some(_) if self.has_small_mtype(&msg) => mb.small_widget(),
                         _ => { is_small_widget = false; mb.widget()},
+                    }
+                }
+
+                if last {
+                    if let Some(style) = m.get_style_context() {
+                        style.add_class("msg-last-viewed-widget");
                     }
                 }
 
@@ -1220,7 +1226,8 @@ impl AppOp {
         }
     }
 
-    pub fn mark_as_read(&self, msg: &Message) {
+    pub fn mark_as_read(&mut self, msg: &Message) {
+        self.last_viewed_messages.insert(msg.room.clone(), msg.clone());
         self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
                                                 msg.id.clone().unwrap_or_default())).unwrap();
     }
@@ -1325,7 +1332,8 @@ impl AppOp {
                     let command = InternalCommand::AddRoomMessage((*msg).clone(),
                                                                   MsgPos::Top,
                                                                   None,
-                                                                  i == msgs.len() - 1);
+                                                                  i == msgs.len() - 1,
+                                                                  self.is_last_viewed(&msg));
                     self.internal.send(command).unwrap();
                 }
                 self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
@@ -1510,7 +1518,8 @@ impl AppOp {
                 self.notify(msg);
             }
 
-            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, prev, false);
+            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, prev, false,
+                                                          self.is_last_viewed(&msg));
             self.internal.send(command).unwrap();
             prev = Some(msg.clone());
 
@@ -1521,7 +1530,8 @@ impl AppOp {
         }
 
         if !msgs.is_empty() {
-            let fs = msgs.iter().filter(|x| x.room == self.active_room.clone().unwrap_or_default());
+            let active_room = self.active_room.clone().unwrap_or_default();
+            let fs = msgs.iter().filter(|x| x.room == active_room);
             if let Some(msg) = fs.last() {
                 if self.autoscroll {
                     self.scroll_down();
@@ -1558,7 +1568,8 @@ impl AppOp {
                 _ => None
             };
 
-            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Top, prev, false);
+            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Top, prev, false,
+                                                          self.is_last_viewed(&msg));
             self.internal.send(command).unwrap();
 
         }
@@ -3075,7 +3086,7 @@ fn backend_loop(rx: Receiver<BKResponse>) {
 
 #[derive(Debug)]
 pub enum InternalCommand {
-    AddRoomMessage(Message, MsgPos, Option<Message>, bool),
+    AddRoomMessage(Message, MsgPos, Option<Message>, bool, bool),
     SetPanel(RoomPanel),
     NotifyClicked(Message),
     SelectRoom(Room),
@@ -3092,8 +3103,8 @@ fn appop_loop(rx: Receiver<InternalCommand>) {
         loop {
             let recv = rx.recv();
             match recv {
-                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full)) => {
-                    APPOP!(add_room_message, (msg, pos, prev, force_full));
+                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, last)) => {
+                    APPOP!(add_room_message, (msg, pos, prev, force_full, last));
                 }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));
