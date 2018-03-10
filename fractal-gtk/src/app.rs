@@ -85,6 +85,7 @@ pub struct AppOp {
 
     pub username: Option<String>,
     pub uid: Option<String>,
+    pub avatar: Option<String>,
     pub server_url: String,
 
     pub autoscroll: bool,
@@ -172,6 +173,7 @@ impl AppOp {
             rooms: HashMap::new(),
             username: None,
             uid: None,
+            avatar: None,
             server_url: String::from("https://matrix.org"),
             syncing: false,
             tmp_msgs: vec![],
@@ -204,7 +206,8 @@ impl AppOp {
 
         self.set_state(AppState::Chat);
         self.set_uid(Some(uid.clone()));
-        self.set_username(Some(uid));
+        /* Do we need to set the username to uid
+        self.set_username(Some(uid));*/
         self.get_username();
 
         // initial sync, we're shoing some feedback to the user
@@ -454,25 +457,52 @@ impl AppOp {
         self.backend.send(BKCommand::GetAvatar).unwrap();
     }
 
-    pub fn set_username(&mut self, username: Option<String>) {
-        self.username = username;
-    }
+    pub fn show_user_info (&self) {
+        let stack = self.gtk_builder
+            .get_object::<gtk::Stack>("user_info")
+            .expect("Can't find user_info_avatar in ui file.");
 
-    pub fn set_uid(&mut self, uid: Option<String>) {
-        self.uid = uid;
-    }
+        /* Show user infos inside the popover but wait for all data to arrive */
+        if self.avatar.is_some() && self.username.is_some() && self.uid.is_some() {
+            let avatar = self.gtk_builder
+                .get_object::<gtk::Container>("user_info_avatar")
+                .expect("Can't find user_info_avatar in ui file.");
 
-    pub fn set_avatar(&self, fname: Option<String>) {
+            let name = self.gtk_builder
+                .get_object::<gtk::Label>("user_info_username")
+                .expect("Can't find user_info_avatar in ui file.");
+
+            let uid = self.gtk_builder
+                .get_object::<gtk::Label>("user_info_uid")
+                .expect("Can't find user_info_avatar in ui file.");
+
+            uid.set_text(&self.uid.clone().unwrap_or_default());
+            name.set_text(&self.username.clone().unwrap_or_default());
+
+            /* remove all old avatar from the popover */
+            for w in avatar.get_children().iter() {
+                avatar.remove(w);
+            }
+
+            let w = widgets::Avatar::circle_avatar(self.avatar.clone().unwrap_or_default(), Some(40));
+            avatar.add(&w);
+            stack.set_visible_child_name("info");
+        }
+        else {
+            stack.set_visible_child_name("spinner");
+        }
+
+        /* update user menu button avatar */
         let button = self.gtk_builder
             .get_object::<gtk::MenuButton>("user_menu_button")
             .expect("Can't find user_menu_button in ui file.");
 
         let eb = gtk::EventBox::new();
-        match fname {
-            Some(s) => {
-                let w = widgets::Avatar::circle_avatar(s, Some(20));
-                eb.add(&w);
-            }
+            match self.avatar.clone() {
+                Some(s) => {
+                    let w = widgets::Avatar::circle_avatar(s.clone(), Some(20));
+                    eb.add(&w);
+                }
             None => {
                 let w = gtk::Spinner::new();
                 w.show();
@@ -483,6 +513,21 @@ impl AppOp {
 
         eb.connect_button_press_event(move |_, _| { Inhibit(false) });
         button.set_image(&eb);
+    }
+
+    pub fn set_username(&mut self, username: Option<String>) {
+        self.username = username;
+        self.show_user_info();
+    }
+
+    pub fn set_uid(&mut self, uid: Option<String>) {
+        self.uid = uid;
+        self.show_user_info();
+    }
+
+    pub fn set_avatar(&mut self, fname: Option<String>) {
+        self.avatar = fname;
+        self.show_user_info();
     }
 
     pub fn disconnect(&self) {
