@@ -502,7 +502,7 @@ impl AppOp {
         let eb = gtk::EventBox::new();
             match self.avatar.clone() {
                 Some(s) => {
-                    let w = widgets::Avatar::circle_avatar(s.clone(), Some(20));
+                    let w = widgets::Avatar::circle_avatar(s.clone(), Some(24));
                     eb.add(&w);
                 }
             None => {
