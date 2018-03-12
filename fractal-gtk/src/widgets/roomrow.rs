@@ -19,7 +19,7 @@ use widgets;
 use widgets::AvatarExt;
 
 
-const ICON_SIZE: i32 = 20;
+const ICON_SIZE: i32 = 24;
 
 
 // Room row for the room sidebar. This widget shows the room avatar, the room name and the unread
@@ -170,6 +170,8 @@ impl RoomRow {
         if self.room.direct {
             b.pack_start(&self.direct, false, false, 0);
         }
+        self.text.set_valign(gtk::Align::Center);
+        self.notifications.set_valign(gtk::Align::Center);
         b.pack_start(&self.text, true, true, 0);
         b.pack_start(&self.notifications, false, false, 5);
         self.widget.show_all();
