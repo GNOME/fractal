@@ -1295,18 +1295,16 @@ impl AppOp {
                     }
                 }
 
-                if last {
-                    if let Some(style) = m.get_style_context() {
-                        style.add_class("msg-last-viewed-widget");
-                    }
-                }
-
                 match msgpos {
                     MsgPos::Bottom => messages.add(&m),
                     MsgPos::Top => messages.insert(&m, 1),
                 };
                 if !is_small_widget {
                     m.get_parent().unwrap().set_margin_top(12);
+                }
+                if last {
+                    let divider: gtk::Box = widgets::divider::new("New Messages");
+                    messages.add(&divider);
                 }
                 self.shown_messages += 1;
             }
