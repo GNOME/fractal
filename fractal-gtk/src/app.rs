@@ -981,7 +981,13 @@ impl AppOp {
             getmessages = false;
             if let Some(msg) = room.messages.iter().last() {
                 self.scroll_down();
-                self.mark_as_read(msg);
+
+                let window: gtk::Window = self.gtk_builder
+                    .get_object("main_window")
+                    .expect("Can't find main_window in ui file.");
+                if window.is_active() {
+                    self.mark_as_read(msg);
+                }
             }
         }
 
@@ -1283,6 +1289,7 @@ impl AppOp {
     }
 
     pub fn mark_as_read(&mut self, msg: &Message) {
+        println!("[DEBUG] Marked {:?} as read.", msg);
         self.last_viewed_messages.insert(msg.room.clone(), msg.clone());
         self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
                                                 msg.id.clone().unwrap_or_default())).unwrap();
@@ -1592,7 +1599,13 @@ impl AppOp {
                 if self.autoscroll {
                     self.scroll_down();
                 }
-                self.mark_as_read(msg);
+
+                let window: gtk::Window = self.gtk_builder
+                    .get_object("main_window")
+                    .expect("Can't find main_window in ui file.");
+                if window.is_active() {
+                    self.mark_as_read(msg);
+                }
             }
         }
 
