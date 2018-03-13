@@ -72,6 +72,12 @@ struct TmpMsg {
     pub widget: gtk::Widget,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LastViewed {
+    Inline,
+    Last,
+    No,
+}
 
 pub struct AppOp {
     pub gtk_builder: gtk::Builder,
@@ -1240,10 +1246,21 @@ impl AppOp {
         }
     }
 
-    pub fn is_last_viewed(&self, msg: &Message) -> bool {
+    pub fn is_last_viewed(&self, msg: &Message) -> LastViewed {
         match self.last_viewed_messages.get(&msg.room) {
-            Some(lvm) if lvm == msg => true,
-            _ => false,
+            Some(lvm) if lvm == msg => {
+                match self.rooms.get(&msg.room) {
+                    Some(r) => {
+                        let lastm = r.messages.last();
+                        match lastm {
+                            Some(m) if m == msg => LastViewed::Last,
+                            _ => LastViewed::Inline,
+                        }
+                    },
+                    _ => LastViewed::Inline,
+                }
+            },
+            _ => LastViewed::No,
         }
     }
 
@@ -1252,7 +1269,7 @@ impl AppOp {
                             msgpos: MsgPos,
                             prev: Option<Message>,
                             force_full: bool,
-                            last: bool) {
+                            last: LastViewed) {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -1295,18 +1312,16 @@ impl AppOp {
                     }
                 }
 
-                if last {
-                    if let Some(style) = m.get_style_context() {
-                        style.add_class("msg-last-viewed-widget");
-                    }
-                }
-
                 match msgpos {
                     MsgPos::Bottom => messages.add(&m),
                     MsgPos::Top => messages.insert(&m, 1),
                 };
                 if !is_small_widget {
                     m.get_parent().unwrap().set_margin_top(12);
+                }
+                if last == LastViewed::Inline {
+                    let divider: gtk::Box = widgets::divider::new("New Messages");
+                    messages.add(&divider);
                 }
                 self.shown_messages += 1;
             }
@@ -3249,7 +3264,7 @@ fn backend_loop(rx: Receiver<BKResponse>) {
 
 #[derive(Debug)]
 pub enum InternalCommand {
-    AddRoomMessage(Message, MsgPos, Option<Message>, bool, bool),
+    AddRoomMessage(Message, MsgPos, Option<Message>, bool, LastViewed),
     SetPanel(RoomPanel),
     NotifyClicked(Message),
     SelectRoom(Room),
