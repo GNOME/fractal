@@ -972,7 +972,7 @@ impl AppOp {
                                                           MsgPos::Top,
                                                           None,
                                                           i == msgs.len() - 1,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new_message(&msg));
             self.internal.send(command).unwrap();
         }
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
@@ -1141,9 +1141,34 @@ impl AppOp {
         }
     }
 
-    pub fn is_last_viewed(&self, msg: &Message) -> bool {
+    pub fn is_first_new_message(&self, msg: &Message) -> bool {
         match self.last_viewed_messages.get(&msg.room) {
-            Some(lvm) if lvm == msg => true,
+            Some(lvm) => {
+                if let Some(active_room_id) = self.active_room.clone() {
+                    let mut room = None;
+                    if let Some(r) = self.rooms.get(&active_room_id) {
+                        room = Some(r.clone());
+                    }
+
+                    if let Some(r) = room {
+                        if !r.messages.is_empty() {
+                            if let Some(first_new) = r.messages.iter()
+                                .filter(|x| {x.date > lvm.date}).rev().last()
+                            {
+                                first_new == msg
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            },
             _ => false,
         }
     }
@@ -1153,7 +1178,7 @@ impl AppOp {
                             msgpos: MsgPos,
                             prev: Option<Message>,
                             force_full: bool,
-                            last: bool) {
+                            first_new: bool) {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -1196,15 +1221,23 @@ impl AppOp {
                     }
                 }
 
-                if last {
-                    if let Some(style) = m.get_style_context() {
-                        style.add_class("msg-last-viewed-widget");
-                    }
-                }
-
                 match msgpos {
-                    MsgPos::Bottom => messages.add(&m),
-                    MsgPos::Top => messages.insert(&m, 1),
+                    MsgPos::Bottom => {
+                        if first_new {
+                            let new_msg_divider = gtk::Label::new("====New messages====");
+                            new_msg_divider.show();
+                            messages.add(&new_msg_divider);
+                        }
+                        messages.add(&m)
+                    },
+                    MsgPos::Top => {
+                        if first_new {
+                            let new_msg_divider = gtk::Label::new("====New messages====");
+                            new_msg_divider.show();
+                            messages.insert(&new_msg_divider, 1);
+                        }
+                        messages.insert(&m, 1)
+                    },
                 };
                 if !is_small_widget {
                     m.get_parent().unwrap().set_margin_top(12);
@@ -1389,7 +1422,7 @@ impl AppOp {
                                                                   MsgPos::Top,
                                                                   None,
                                                                   i == msgs.len() - 1,
-                                                                  self.is_last_viewed(&msg));
+                                                                  self.is_first_new_message(&msg));
                     self.internal.send(command).unwrap();
                 }
                 self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
@@ -1575,7 +1608,7 @@ impl AppOp {
             }
 
             let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, prev, false,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new_message(&msg));
             self.internal.send(command).unwrap();
             prev = Some(msg.clone());
 
@@ -1625,7 +1658,7 @@ impl AppOp {
             };
 
             let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Top, prev, false,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new_message(&msg));
             self.internal.send(command).unwrap();
 
         }
@@ -3167,8 +3200,8 @@ fn appop_loop(rx: Receiver<InternalCommand>) {
         loop {
             let recv = rx.recv();
             match recv {
-                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, last)) => {
-                    APPOP!(add_room_message, (msg, pos, prev, force_full, last));
+                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, first_new)) => {
+                    APPOP!(add_room_message, (msg, pos, prev, force_full, first_new));
                 }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));
