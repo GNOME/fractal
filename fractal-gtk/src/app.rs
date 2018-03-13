@@ -1382,9 +1382,14 @@ impl AppOp {
     }
 
     pub fn mark_as_read(&mut self, msg: &Message) {
-        self.last_viewed_messages.insert(msg.room.clone(), msg.clone());
-        self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
-                                                msg.id.clone().unwrap_or_default())).unwrap();
+        let window: gtk::Window = self.gtk_builder
+            .get_object("main_window")
+            .expect("Can't find main_window in ui file.");
+        if window.is_active() {
+            self.last_viewed_messages.insert(msg.room.clone(), msg.clone());
+            self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
+                                                    msg.id.clone().unwrap_or_default())).unwrap();
+        }
     }
 
     pub fn add_room_member(&mut self, m: Member) {
