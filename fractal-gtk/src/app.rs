@@ -1120,6 +1120,23 @@ impl AppOp {
         }
     }
 
+    pub fn mark_active_room_messages(&mut self) {
+        if let Some(active_room_id) = self.active_room.clone() {
+            let mut room = None;
+            if let Some(r) = self.rooms.get(&active_room_id) {
+                room = Some(r.clone());
+            }
+
+            if let Some(r) = room {
+                if !r.messages.is_empty() {
+                    if let Some(msg) = r.messages.iter().last() {
+                        self.mark_as_read(msg);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn set_room_detail(&mut self, roomid: String, key: String, value: Option<String>) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
             let k: &str = &key;
@@ -2822,6 +2839,12 @@ impl App {
         let op = self.op.clone();
         s.connect_edge_overshot(move |_, dir| if dir == gtk::PositionType::Top {
             op.lock().unwrap().load_more_messages();
+        });
+
+        let op = self.op.clone();
+        s.connect_scroll_event(move |_, _| {
+            op.lock().unwrap().mark_active_room_messages();
+            gtk::Inhibit(false)
         });
 
         let op = self.op.clone();
