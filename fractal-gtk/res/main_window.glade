@@ -700,12 +700,27 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_markup">True</property>
-                        <property name="label" translatable="yes">No room selected<br>Join a room to start to chat</property>
-                        <property name="justify">center</property>
+                        <property name="orientation">vertical</property>
+                        <property name="valign">center</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">No room selected</property>
+                            <property name="justify">center</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Join a room to start to chat</property>
+                            <property name="justify">center</property>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="name">noroom</property>
