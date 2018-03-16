@@ -4,6 +4,7 @@ mod member;
 mod roomrow;
 mod roomlist;
 mod avatar;
+pub mod divider;
 
 pub use self::message::MessageBox;
 pub use self::room::RoomBox;
