@@ -3,3 +3,6 @@ members = [
     "fractal-api",
     "fractal-gtk",
 ]
+
+[patch.crates-io]
+secret-service = { git = "https://github.com/jhaye/secret-service-rs", rev = "3c265527e43376fe8e00ddfa645a70813c35f449" }
