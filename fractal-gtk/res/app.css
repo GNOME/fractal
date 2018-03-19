@@ -29,6 +29,16 @@
     padding: 6px 0px;
 }
 
+.noroom-title {
+    font-size: larger;
+    opacity: 0.5;
+}
+
+.noroom-description {
+    font-size: smaller;
+    opacity: 0.5;
+}
+
 .room-list list row:selected .notify-badge {
     background-color: white;
     color: @theme_selected_bg_color;
