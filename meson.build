@@ -20,7 +20,6 @@ subdir('fractal-gtk/res')
 
 cargo = find_program('cargo', required: false)
 gresource = find_program('glib-compile-resources', required: false)
-cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 grabber = find_program('scripts/grabber.sh')
 cargo_release = find_program('scripts/release.sh')
