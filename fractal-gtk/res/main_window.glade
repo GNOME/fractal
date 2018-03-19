@@ -732,21 +732,40 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <property name="margin_bottom">30</property>
                         <property name="valign">center</property>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">No room selected</property>
-                            <property name="justify">center</property>
+                            <property name="margin_bottom">16</property>
+                            <property name="resource">/org/gnome/Fractal/icons/chat-icon.svg</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Join a room to start to chat</property>
+                            <property name="label" translatable="yes">No room selected</property>
+                            <property name="margin_bottom">3</property>
                             <property name="justify">center</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                            <style>
+                              <class name="noroom-title"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Join a room to start chatting</property>
+                            <property name="justify">center</property>
+                            <style>
+                              <class name="noroom-description"/>
+                            </style>
                           </object>
                         </child>
                       </object>

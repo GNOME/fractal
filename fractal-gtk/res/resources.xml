@@ -5,6 +5,7 @@
       <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
       <file preprocess="xml-stripblanks">main_window.glade</file>
       <file preprocess="xml-stripblanks">icons/org.gnome.Fractal.svg</file>
+      <file preprocess="xml-stripblanks">icons/chat-icon.svg</file>
       <file>app.css</file>
   </gresource>
 </gresources>
