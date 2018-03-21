@@ -2614,6 +2614,12 @@ impl App {
                 .expect("Couldn't find main_window in ui file.");
             window.set_application(gtk_app);
 
+            /* we have to overwrite the default behavior for valign of the title widget
+             * since it is force to be centered */
+            gtk_builder
+            .get_object::<gtk::MenuButton>("room_menu_button")
+            .expect("Can't find back_button in ui file.").set_valign(gtk::Align::Fill);
+
             let op = Arc::new(Mutex::new(
                 AppOp::new(gtk_app.clone(), gtk_builder.clone(), apptx, itx)
             ));
