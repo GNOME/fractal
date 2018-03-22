@@ -2571,24 +2571,31 @@ impl AppOp {
                 popover.popdown();
                 return;
             }
-            Some(ref t) if t.len() < 3 => {
+            Some(ref t) if t.len() < 3  && !t.starts_with("@") => {
                 popover.popdown();
                 return;
             }
             Some(txt) => {
                 if let Some(last) = txt.split(' ').last() {
                     let n = last.len();
-                    if n < 3 {
+                    if n < 3 && !last.starts_with("@") {
                         popover.popdown();
                         return;
                     }
 
                     let mut show = false;
-                    let w = last.to_lowercase();
+                    /*remove @ from string*/
+                    let w = if last.starts_with("@") {
+                        last[1..].to_lowercase()
+                    }
+                    else {
+                        last.to_lowercase()
+                    };
 
-                    // going too deep...
+                    /* Maybe search for the 5 most recent active users */
                     if let Some(aroom) = self.active_room.clone() {
                         if let Some(r) = self.rooms.get(&aroom) {
+                            let mut count = 0;
                             for (_, m) in r.members.iter() {
                                 let alias = m.alias.clone().unwrap_or_default();
                                 if alias.to_lowercase().starts_with(&w) {
@@ -2609,6 +2616,11 @@ impl AppOp {
 
                                     listbox.add(&widget);
                                     show = true;
+                                    count = count + 1;
+                                    /* Search only for 5 matching users */
+                                    if count > 4 {
+                                        break;
+                                    }
                                 }
                             }
                         }
