@@ -740,6 +740,8 @@ pub fn parse_room_message(baseu: &Url, roomid: String, msg: &JsonValue) -> Messa
     let c = &msg["content"];
     let mtype = c["msgtype"].as_str().unwrap_or("");
     let body = c["body"].as_str().unwrap_or("");
+    let formatted_body = c["formatted_body"].as_str().unwrap_or("");
+    let format = c["format"].as_str().unwrap_or("");
 
     let mut url = String::new();
     let mut thumb = String::new();
@@ -765,6 +767,8 @@ pub fn parse_room_message(baseu: &Url, roomid: String, msg: &JsonValue) -> Messa
         url: Some(url),
         thumb: Some(thumb),
         id: Some(String::from(id)),
+        formatted_body: Some(String::from(formatted_body)),
+        format: Some(String::from(format)),
     }
 }
 

@@ -22,6 +22,7 @@ url = "1.7.0"
 rand = "0.4.2"
 html2pango = { git = "https://gitlab.gnome.org/World/html2pango" }
 unicode-segmentation = "1.2.0"
+comrak = "0.2"
 
 # newer stuff do not compile inside flatpak
 html5ever = "=0.22.0"
