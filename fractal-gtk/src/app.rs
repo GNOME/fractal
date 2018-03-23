@@ -5,6 +5,7 @@ extern crate chrono;
 extern crate gdk;
 extern crate notify_rust;
 extern crate rand;
+extern crate comrak;
 
 use self::notify_rust::Notification;
 
@@ -17,6 +18,8 @@ use self::secret_service::SecretService;
 use self::secret_service::EncryptionType;
 
 use self::rand::{thread_rng, Rng};
+
+use self::comrak::{markdown_to_html,ComrakOptions};
 
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
@@ -1542,13 +1545,21 @@ impl AppOp {
             thumb: None,
             url: None,
             id: None,
+            formatted_body: None,
+            format: None,
         };
 
         if msg.starts_with("/me ") {
             m.body = msg.trim_left_matches("/me ").to_owned();
             m.mtype = strn!("m.emote");
-        };
+        }
 
+        let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
+
+        if !(md_parsed_msg.replace("<p>","").replace("</p>","") == msg.clone() + "\n") {
+            m.formatted_body = Some(md_parsed_msg);
+            m.format = Some(String::from("org.matrix.custom.html"));
+        }
 
         self.add_tmp_room_message(m.clone());
         self.backend.send(BKCommand::SendMsg(m)).unwrap();
