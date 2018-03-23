@@ -1,4 +1,5 @@
 extern crate gtk;
+extern crate pango;
 extern crate gdk_pixbuf;
 extern crate secret_service;
 extern crate chrono;
@@ -36,6 +37,7 @@ use self::gdk_pixbuf::Pixbuf;
 use self::gdk_pixbuf::PixbufExt;
 use self::gio::prelude::*;
 use self::gtk::prelude::*;
+use app::pango::LayoutExt;
 
 use globals;
 
@@ -2619,6 +2621,12 @@ impl AppOp {
 
                     popover.set_relative_to(Some(&msg_entry));
                     popover.set_modal(false);
+                    /* calculate position for popover */
+                    if last.ends_with("@") {
+                        let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
+                        popover.set_pointing_to(&gdk::Rectangle{x: position.0, y: 0, width: 0, height: 0});
+                    }
+
                     if show {
                         popover.popup();
                     } else {
