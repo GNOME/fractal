@@ -1,5 +1,4 @@
 extern crate chrono;
-
 use self::chrono::prelude::*;
 
 #[derive(Debug)]
@@ -14,6 +13,8 @@ pub struct Message {
     pub thumb: Option<String>,
     pub url: Option<String>,
     pub id: Option<String>,
+    pub formatted_body: Option<String>,
+    pub format: Option<String>,
 }
 
 impl Clone for Message {
@@ -27,6 +28,8 @@ impl Clone for Message {
             thumb: self.thumb.clone(),
             url: self.url.clone(),
             id: self.id.clone(),
+            formatted_body: self.formatted_body.clone(),
+            format: self.format.clone(),
         }
     }
 }
@@ -42,6 +45,8 @@ impl Default for Message {
             thumb: None,
             url: None,
             id: None,
+            formatted_body: None,
+            format: None,
         }
     }
 }
