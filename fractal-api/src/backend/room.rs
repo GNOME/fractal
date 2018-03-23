@@ -216,7 +216,10 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
 
     let mut attrs = json!({
         "body": msg.body.clone(),
-        "msgtype": msg.mtype.clone()
+        "msgtype": msg.mtype.clone(),
+        "url": msg.url.clone(),
+        "formatted_body": msg.formatted_body.clone(),
+        "format": msg.format.clone(),
     });
 
     if let Some(u) = msg.url {
@@ -389,6 +392,8 @@ pub fn attach_send(bk: &Backend, roomid: String, body: String, contents: Vec<u8>
         thumb: None,
         url: None,
         id: None,
+        formatted_body: None,
+        format: None,
     };
 
     let tx = bk.tx.clone();
