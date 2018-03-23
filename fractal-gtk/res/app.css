@@ -111,8 +111,11 @@ row .timestamp {
     font-size: x-small;
 }
 
-.member-uid {
+row:not(:selected) .member-uid {
     color: @insensitive_fg_color;
+}
+
+.member-uid {
     font-size: x-small;
 }
 
@@ -139,6 +142,24 @@ row .timestamp {
 .messages-history row:selected .msg-emote
 { color: @theme_selected_fg_color; }
 
+.autocomplete {
+  margin-left: 150px;
+}
+
+.autocomplete,
+.autocomplete list,
+.autocomplete row:not(:hover):not(:selected) {
+  background-color: @theme_bg_color;
+}
+
+.autocomplete .frame {
+ border: 0;
+}
+
+.autocomplete row {
+  border-radius: 3px;
+  padding: 6px;
+}
 
 .invite-selected,
 .invite-selected row {
