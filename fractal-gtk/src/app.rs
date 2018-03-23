@@ -2546,9 +2546,20 @@ impl AppOp {
             .get_object::<gtk::ListBox>("autocomplete_listbox")
             .expect("Can't find autocomplete_listbox in ui file.");
 
-        if let Some(row) = listbox.get_row_at_index(0) {
+        if let Some(row) = listbox.get_selected_row() {
             if let Some(w) = row.get_children().first() {
                 let _ = w.emit("button-press-event", &[ev]);
+            }
+        }
+    }
+
+    pub fn autocomplete_select(&self, direction: i32) {
+        let listbox = self.gtk_builder
+            .get_object::<gtk::ListBox>("autocomplete_listbox")
+            .expect("Can't find autocomplete_listbox in ui file.");
+        if let Some(row) = listbox.get_selected_row() {
+            if let Some(row) = listbox.get_row_at_index(row.get_index() + direction) {
+                listbox.select_row(&row);
             }
         }
     }
@@ -2616,6 +2627,13 @@ impl AppOp {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    listbox.set_selection_mode(gtk::SelectionMode::Browse);
+                    if listbox.get_selected_row().is_none() {
+                        if let Some(row) = listbox.get_row_at_index(0) {
+                            listbox.select_row(&row);
                         }
                     }
 
@@ -3090,16 +3108,26 @@ impl App {
 
         op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
-            if ev.get_keyval() == 65289 {
-                op.lock().unwrap().autocomplete_tab(ev);
-                return Inhibit(true);
+            match ev.get_keyval() {
+                65289 => {
+                    op.lock().unwrap().autocomplete_tab(ev);
+                },
+                65362 => {
+                    op.lock().unwrap().autocomplete_select(-1);
+                },
+                65364 => {
+                    op.lock().unwrap().autocomplete_select(1);
+                }
+                _ => return glib::signal::Inhibit(false),
             }
-            Inhibit(false)
+            return glib::signal::Inhibit(true);
         });
 
         op = self.op.clone();
-        msg_entry.connect_key_release_event(move |e, _| {
-            op.lock().unwrap().autocomplete(e.get_text());
+        msg_entry.connect_key_release_event(move |e, ev| {
+            if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 {
+                op.lock().unwrap().autocomplete(e.get_text());
+            }
             Inhibit(false)
         });
     }
