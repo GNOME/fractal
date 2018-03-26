@@ -2541,16 +2541,23 @@ impl AppOp {
         dialog.resize(300, 200);
     }
 
-    pub fn autocomplete_tab(&self, ev: &gdk::Event) {
+    pub fn autocomplete_tab(&self, ev: &gdk::Event) -> bool {
+        let popover = self.gtk_builder
+            .get_object::<gtk::Popover>("autocomplete_popover")
+            .expect("Can't find autocomplete_popover in ui file.");
         let listbox = self.gtk_builder
             .get_object::<gtk::ListBox>("autocomplete_listbox")
             .expect("Can't find autocomplete_listbox in ui file.");
 
-        if let Some(row) = listbox.get_selected_row() {
-            if let Some(w) = row.get_children().first() {
-                let _ = w.emit("button-press-event", &[ev]);
+        if popover.is_visible() {
+            if let Some(row) = listbox.get_selected_row() {
+                if let Some(w) = row.get_children().first() {
+                    let _ = w.emit("button-press-event", &[ev]);
+                }
             }
+            return true;
         }
+        return false;
     }
 
     pub fn autocomplete_select(&self, direction: i32) {
@@ -3109,12 +3116,19 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
+                /* Enter key */
+                65293 => {
+                    return glib::signal::Inhibit(op.lock().unwrap().autocomplete_tab(ev));
+                },
+                /* Tab key */
                 65289 => {
                     op.lock().unwrap().autocomplete_tab(ev);
                 },
+                /* Arrow key */
                 65362 => {
                     op.lock().unwrap().autocomplete_select(-1);
                 },
+                /* Arrow key */
                 65364 => {
                     op.lock().unwrap().autocomplete_select(1);
                 }
