@@ -814,7 +814,7 @@ impl AppOp {
                     ch.show();
                 }
 
-                let msg_entry: gtk::Entry = self.gtk_builder
+                let msg_entry: gtk::TextView = self.gtk_builder
                     .get_object("msg_entry")
                     .expect("Couldn't find msg_entry in ui file.");
                 msg_entry.grab_focus();
@@ -823,8 +823,10 @@ impl AppOp {
                 let msg = self.unsent_messages
                     .get(&active_room_id).cloned()
                     .unwrap_or((String::new(), 0));
-                msg_entry.set_text(&msg.0);
-                msg_entry.set_position(msg.1);
+                if let Some(buffer) = msg_entry.get_buffer() {
+                    buffer.set_text(&msg.0);
+                    buffer.place_cursor(&buffer.get_end_iter());
+                }
             },
             _ => {
                 for ch in headerbar.get_children().iter() {
@@ -1126,15 +1128,19 @@ impl AppOp {
         self.member_limit = 50;
         self.room_panel(RoomPanel::Loading);
 
-        let msg_entry: gtk::Entry = self.gtk_builder
+        let msg_entry: gtk::TextView = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
-        if let Some(msg) = msg_entry.get_text() {
-            let active_room_id = self.active_room.clone().unwrap_or_default();
-            if msg.len() > 0 {
-                self.unsent_messages.insert(active_room_id, (msg, msg_entry.get_position()));
-            } else {
-                self.unsent_messages.remove(&active_room_id);
+        if let Some(buffer) = msg_entry.get_buffer() {
+            if let Some(msg) = buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), true) {
+                let active_room_id = self.active_room.clone().unwrap_or_default();
+                if msg.len() > 0 {
+                    if let Some(cursor) = buffer.get_insert() {
+                        self.unsent_messages.insert(active_room_id, (msg, buffer.get_iter_at_mark(&cursor).get_offset()));
+                    }
+                } else {
+                    self.unsent_messages.remove(&active_room_id);
+                }
             }
         }
 
@@ -1367,7 +1373,7 @@ impl AppOp {
                             prev: Option<Message>,
                             force_full: bool,
                             last: LastViewed) {
-        let msg_entry: gtk::Entry = self.gtk_builder
+        let msg_entry: gtk::TextView = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
         let messages = self.gtk_builder
@@ -1395,8 +1401,9 @@ impl AppOp {
                         if let Some(label) = eb.get_children().iter().nth(0) {
                             if let Ok(l) = label.clone().downcast::<gtk::Label>() {
                                 if let Some(t) = l.get_text() {
-                                    let mut pos = entry.get_position();
-                                    entry.insert_text(&t[..], &mut pos);
+                                    if let Some(buffer) = entry.get_buffer() {
+                                        buffer.insert_at_cursor(&t[..]);
+                                    }
                                 }
                             }
                         }
@@ -2328,7 +2335,7 @@ impl AppOp {
             .get_object("member_list")
             .expect("Couldn't find member_list in ui file.");
 
-        let msg_entry: gtk::Entry = self.gtk_builder
+        let msg_entry: gtk::TextView = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
@@ -2345,8 +2352,9 @@ impl AppOp {
             let msg = msg_entry.clone();
             w.connect_button_press_event(move |_, _| {
                 if let Some(ref a) = m.alias {
-                    let mut pos = msg.get_position();
-                    msg.insert_text(&a.clone(), &mut pos);
+                    if let Some(buffer) = msg.get_buffer() {
+                        buffer.insert_at_cursor(&a.clone());
+                    }
                 }
                 glib::signal::Inhibit(true)
             });
@@ -2552,7 +2560,7 @@ impl AppOp {
     }
 
     pub fn autocomplete(&self, text: Option<String>) {
-        let msg_entry: gtk::Entry = self.gtk_builder
+        let msg_entry: gtk::TextView = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
         let popover = self.gtk_builder
@@ -2597,10 +2605,15 @@ impl AppOp {
                                     }
 
                                     widget.connect_button_press_event(clone!(w, alias, msg_entry, popover => move |_, _| {
-                                        let mut pos = msg_entry.get_position();
-                                        msg_entry.delete_text(pos - w.len() as i32, -1);
-                                        msg_entry.insert_text(&alias, &mut pos);
-                                        msg_entry.set_position(pos);
+                                        if let Some(buffer) = msg_entry.get_buffer() {
+                                            if let Some(cursor) = buffer.get_insert() {
+                                                let mut cursor_iter = buffer.get_iter_at_mark(&cursor);
+                                                cursor_iter.backward_chars(w.len() as i32);
+                                                buffer.delete(&mut cursor_iter, &mut buffer.get_end_iter());
+                                                buffer.insert_at_cursor(&alias);
+                                                buffer.place_cursor(&cursor_iter);
+                                            }
+                                        }
                                         popover.popdown();
                                         glib::signal::Inhibit(true)
                                     }));
@@ -3065,35 +3078,69 @@ impl App {
     }
 
     fn connect_send(&self) {
-        let msg_entry: gtk::Entry = self.gtk_builder
+        let msg_entry: gtk::TextView = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
-        let mut op = self.op.clone();
-        msg_entry.connect_activate(move |entry| if let Some(text) = entry.get_text() {
-            op.lock().unwrap().send_message(text);
-            entry.set_text("");
-        });
-
-        op = self.op.clone();
+        let op = self.op.clone();
         msg_entry.connect_paste_clipboard(move |_| {
             op.lock().unwrap().paste();
         });
 
-        op = self.op.clone();
-        msg_entry.connect_key_press_event(move |_, ev| {
+        let mut op = self.op.clone();
+        msg_entry.connect_key_press_event(move |en, ev| {
             if ev.get_keyval() == 65289 {
                 op.lock().unwrap().autocomplete_tab(ev);
                 return Inhibit(true);
+            } else if ev.get_keyval() == 0xff0d { // Enter key was pressed
+                if !ev.get_state()
+                    .intersects(gdk::ModifierType::SHIFT_MASK
+                        | gdk::ModifierType::LOCK_MASK
+                        | gdk::ModifierType::SUPER_MASK
+                        | gdk::ModifierType::META_MASK
+                        | gdk::ModifierType::MOD1_MASK) { // There should be a better way to choose the modifiers we want to block
+                    if ev.get_state().contains(gdk::ModifierType::CONTROL_MASK) {
+                        return Inhibit(false); // Propagate the event to add a new line
+                    } else {
+                        if let Some(buffer) = en.get_buffer() {
+                            if let Some(mut message) = buffer.get_text(&buffer.get_iter_at_offset(0), &buffer.get_iter_at_offset(-1), true) {
+                                message.push('\n');
+                                op.lock().unwrap().send_message(message);
+                                buffer.set_text("");
+                            }
+                        }
+                    }
+                }
+                return Inhibit(true); // Stop propagating Enter key press event in any other case
             }
             Inhibit(false)
         });
 
         op = self.op.clone();
-        msg_entry.connect_key_release_event(move |e, _| {
-            op.lock().unwrap().autocomplete(e.get_text());
+        msg_entry.connect_key_release_event(move |e, ev| {
+            if let Some(buffer) = e.get_buffer() {
+                let msg = buffer.get_text(&buffer.get_iter_at_offset(0), &buffer.get_iter_at_offset(-1), true);
+                op.lock().unwrap().autocomplete(msg);
+            }
+            if ev.get_keyval() == 0xff0d { // Enter key was released
+                if ev.get_state() == gdk::ModifierType::empty() {
+                    if let Some(buffer) = e.get_buffer() {
+                        buffer.set_text("");
+                    }
+                }
+                return Inhibit(true);
+            }
             Inhibit(false)
         });
+
+        let accel_group = gtk::AccelGroup::new();
+        let window: gtk::Window = self.gtk_builder
+            .get_object("main_window")
+            .expect("Can't find main_window in ui file.");
+        window.add_accel_group(&accel_group);
+        let accel = gtk::accelerator_parse("<Control>Return");
+        let (key, modifiers) = accel;
+        msg_entry.add_accelerator("key-press-event", &accel_group, key, modifiers, gtk::AccelFlags::VISIBLE);
     }
 
     fn connect_attach(&self) {

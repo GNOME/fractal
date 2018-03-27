@@ -674,6 +674,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">start</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
@@ -694,10 +695,10 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="msg_entry">
+                                  <object class="GtkTextView" id="msg_entry">
+                                    <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="valign">center</property>
-                                    <property name="show_emoji_icon">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
