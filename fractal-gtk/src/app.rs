@@ -107,6 +107,8 @@ pub struct AppOp {
     pub more_members_btn: gtk::Button,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
+    pub highlighted_entry: Vec<String>,
+
     pub state: AppState,
     pub since: Option<String>,
     pub member_limit: usize,
@@ -202,6 +204,8 @@ impl AppOp {
             since: None,
             member_limit: 50,
             unsent_messages: HashMap::new(),
+
+            highlighted_entry: vec![],
 
             logged_in: false,
             loading_more: false,
@@ -2541,7 +2545,7 @@ impl AppOp {
         dialog.resize(300, 200);
     }
 
-    pub fn autocomplete_tab(&self, ev: &gdk::Event) -> bool {
+    pub fn autocomplete_tab(&self, _ev: &gdk::Event) -> bool {
         let popover = self.gtk_builder
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
@@ -2551,13 +2555,47 @@ impl AppOp {
 
         if popover.is_visible() {
             if let Some(row) = listbox.get_selected_row() {
-                if let Some(w) = row.get_children().first() {
-                    let _ = w.emit("button-press-event", &[ev]);
+                if let Some(_w) = row.get_children().first() {
+                    // We need to release the look before emit the event (return w and emit in
+                    // parent)
+                    //let _ = w.emit("button-press-event", &[ev]);
                 }
             }
             return true;
         }
         return false;
+    }
+
+    pub fn autocomplete_enter(&mut self, alias: String) {
+        let msg_entry: gtk::Entry = self.gtk_builder
+            .get_object("msg_entry")
+            .expect("Couldn't find msg_entry in ui file.");
+        let popover = self.gtk_builder
+            .get_object::<gtk::Popover>("autocomplete_popover")
+            .expect("Can't find autocomplete_popover in ui file.");
+        let mut pos = msg_entry.get_position();
+        if let Some(start_pos) = msg_entry.get_text().unwrap().rfind('@') {
+            msg_entry.delete_text(start_pos as i32, -1);
+            msg_entry.insert_text(&alias, &mut pos);
+            msg_entry.set_position(pos);
+            /* highlight member inside the entry */
+            /* we need to set the highlight here the first time
+             * because the ui changes are blocked as long we hold the look */
+            let attr = if let Some(attr) = msg_entry.get_attributes() {
+                attr
+            }
+            else {
+                pango::AttrList::new()
+            };
+            let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
+            color.set_start_index(start_pos as u32);
+            let end_pos = start_pos as u32 + alias.len() as u32;
+            color.set_end_index(end_pos);
+            attr.insert(color);
+            msg_entry.set_attributes(&attr);
+            self.highlighted_entry.push(alias);
+        }
+        popover.popdown();
     }
 
     pub fn autocomplete_select(&self, direction: i32) {
@@ -2571,7 +2609,7 @@ impl AppOp {
         }
     }
 
-    pub fn autocomplete(&self, text: Option<String>) {
+    pub fn autocomplete_show_popover(&self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -2586,80 +2624,83 @@ impl AppOp {
             listbox.remove(ch);
         }
 
+        let mut widget_list : HashMap<String, gtk::EventBox> = HashMap::new();
+
+        if list.len() > 0 {
+            for m in list.iter() {
+                let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
+                let widget;
+                {
+                    let mb = widgets::MemberBox::new(&m, &self);
+                    widget = mb.widget(true);
+                }
+
+                let w = widget.clone();
+                let a = alias.clone();
+                widget_list.insert(a, w);
+                listbox.add(&widget);
+            }
+
+            listbox.set_selection_mode(gtk::SelectionMode::Browse);
+            if listbox.get_selected_row().is_none() {
+            if let Some(row) = listbox.get_row_at_index(0) {
+                listbox.select_row(&row);
+            }
+        }
+
+        popover.set_relative_to(Some(&msg_entry));
+        popover.set_modal(false);
+        /* calculate position for popover */
+
+        //if last.ends_with("@") {
+            let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
+            popover.set_pointing_to(&gdk::Rectangle{x: position.0, y: 0, width: 0, height: 0});
+        //}
+
+            popover.popup();
+        }
+        else {
+            popover.popdown();
+        }
+        return widget_list;
+    }
+
+    pub fn autocomplete(&self, text: Option<String>) -> Vec<Member> {
+        let mut list: Vec<Member> = vec![];
+        let rooms = &self.rooms;
         match text {
             None => {
-                popover.popdown();
-                return;
+                //return;
             }
             Some(txt) => {
                 if let Some(last) = txt.split(' ').last() {
-                    if !last.starts_with("@") {
-                        popover.popdown();
-                        return;
-                    }
+                    if last.starts_with("@") {
+                        /*remove @ from string*/
+                        let w = last[1..].to_lowercase();
 
-                    let mut show = false;
-                    /*remove @ from string*/
-                    let w = last[1..].to_lowercase();
-
-                    /* Maybe search for the 5 most recent active users */
-                    if let Some(aroom) = self.active_room.clone() {
-                        if let Some(r) = self.rooms.get(&aroom) {
-                            let mut count = 0;
-                            for (_, m) in r.members.iter() {
-                                let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
-                                let uid = &m.uid.clone().to_lowercase()[1..];
-                                if alias.to_lowercase().starts_with(&w) || uid.starts_with(&w) {
-                                    let widget;
-                                    {
-                                        let mb = widgets::MemberBox::new(&m, &self);
-                                        widget = mb.widget(true);
-                                    }
-
-                                    widget.connect_button_press_event(clone!(w, alias, msg_entry, popover => move |_, _| {
-                                        let mut pos = msg_entry.get_position();
-                                        msg_entry.delete_text(pos - w.len() as i32, -1);
-                                        msg_entry.insert_text(&alias, &mut pos);
-                                        msg_entry.set_position(pos);
-                                        popover.popdown();
-                                        glib::signal::Inhibit(true)
-                                    }));
-
-                                    listbox.add(&widget);
-                                    show = true;
-                                    count = count + 1;
-                                    /* Search only for 5 matching users */
-                                    if count > 4 {
-                                        break;
+                        /* Maybe search for the 5 most recent active users */
+                        if let Some(aroom) = self.active_room.clone() {
+                            if let Some(r) = rooms.get(&aroom) {
+                                let mut count = 0;
+                                for (_, m) in r.members.iter() {
+                                    let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
+                                    let uid = &m.uid.clone().to_lowercase()[1..];
+                                    if alias.starts_with(&w) || uid.starts_with(&w) {
+                                        list.push(m.clone());
+                                        count = count + 1;
+                                        /* Search only for 5 matching users */
+                                        if count > 4 {
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-
-                    listbox.set_selection_mode(gtk::SelectionMode::Browse);
-                    if listbox.get_selected_row().is_none() {
-                        if let Some(row) = listbox.get_row_at_index(0) {
-                            listbox.select_row(&row);
-                        }
-                    }
-
-                    popover.set_relative_to(Some(&msg_entry));
-                    popover.set_modal(false);
-                    /* calculate position for popover */
-                    if last.ends_with("@") {
-                        let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
-                        popover.set_pointing_to(&gdk::Rectangle{x: position.0, y: 0, width: 0, height: 0});
-                    }
-
-                    if show {
-                        popover.popup();
-                    } else {
-                        popover.popdown();
-                    }
                 }
             }
         };
+        return list;
     }
 }
 
@@ -2773,6 +2814,7 @@ impl App {
 
         self.connect_send();
         self.connect_attach();
+        self.connect_autocompletion();
 
         self.connect_directory();
         self.connect_room_config();
@@ -3112,7 +3154,62 @@ impl App {
         msg_entry.connect_paste_clipboard(move |_| {
             op.lock().unwrap().paste();
         });
+    }
 
+    fn connect_attach(&self) {
+        let attach_button: gtk::Button = self.gtk_builder
+            .get_object("attach_button")
+            .expect("Couldn't find attach_button in ui file.");
+
+        let op = self.op.clone();
+        attach_button.connect_clicked(move |_| {
+            op.lock().unwrap().attach_file();
+        });
+    }
+
+    fn connect_autocompletion(&self) {
+        let msg_entry: gtk::Entry = self.gtk_builder
+            .get_object("msg_entry")
+            .expect("Couldn't find msg_entry in ui file.");
+
+        let mut op = self.op.clone();
+        msg_entry.connect_changed(move |w| {
+            let attr = pango::AttrList::new();
+
+            let lock = op.try_lock();
+            if let Ok(ref guard) = lock {
+                for (_, alias) in guard.highlighted_entry.iter().enumerate() {
+                    let mut input = w.get_text().unwrap();
+                    let mut removed_char = 0;
+                    let mut found = false;
+                    while input.contains(alias) {
+                        let pos = {
+                            let start = input.find(alias).unwrap() as i32;
+                            (start, start + alias.len() as i32)
+                        };
+                        /* FIXME: Get theme color */
+                        let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
+                        color.set_start_index(removed_char + pos.0 as u32);
+                        color.set_end_index(removed_char + pos.1 as u32);
+                        attr.insert(color);
+                        {
+                            let end = pos.1 as usize;
+                            input.drain(0..end);
+                        }
+                        removed_char = pos.1 as u32;
+                        found = true;
+                    }
+                    if !found {
+                        //guard.highlighted_entry.remove(i);
+                        println!("Should remove {} form store", alias);
+                    }
+                }
+                w.set_attributes(&attr);
+
+            } else {
+                /* Can not update UI because somebody else has the look" */
+            }
+        });
         op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
@@ -3140,20 +3237,25 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
             if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 {
-                op.lock().unwrap().autocomplete(e.get_text());
+                let list = {
+                    let own = op.lock().unwrap();
+                    own.autocomplete(e.get_text())
+                };
+                let widget_list = {
+                    let own = op.lock().unwrap();
+                    own.autocomplete_show_popover(list)
+                };
+                for (alias, widget) in widget_list.iter() {
+                    widget.connect_button_press_event(clone!(op, alias => move |_, _| {
+                        op.lock().unwrap().autocomplete_enter(alias.clone());
+                        Inhibit(true)
+                    }));
+                }
+                for element in op.lock().unwrap().highlighted_entry.iter() {
+                    println!("String {}", element);
+                }
             }
             Inhibit(false)
-        });
-    }
-
-    fn connect_attach(&self) {
-        let attach_button: gtk::Button = self.gtk_builder
-            .get_object("attach_button")
-            .expect("Couldn't find attach_button in ui file.");
-
-        let op = self.op.clone();
-        attach_button.connect_clicked(move |_| {
-            op.lock().unwrap().attach_file();
         });
     }
 
@@ -3171,7 +3273,6 @@ impl App {
         self.connect_login_button();
         self.set_login_focus_chain();
     }
-
     fn set_login_focus_chain(&self) {
         let focus_chain = [
             "login_username",
