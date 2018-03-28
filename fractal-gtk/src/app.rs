@@ -2574,8 +2574,13 @@ impl AppOp {
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
         let mut pos = msg_entry.get_position();
-        if let Some(start_pos) = msg_entry.get_text().unwrap().rfind('@') {
-            msg_entry.delete_text(start_pos as i32, -1);
+        let text = msg_entry.get_text().unwrap();
+        let (first, _) = text.split_at(pos as usize);
+        if let Some(start_pos) = first.rfind('@') {
+            let end_pos = msg_entry.get_position();
+            msg_entry.delete_text(start_pos as i32, end_pos);
+            //msg_entry.set_position(start_pos);
+            pos = start_pos as i32;
             msg_entry.insert_text(&alias, &mut pos);
             msg_entry.set_position(pos);
             /* highlight member inside the entry */
@@ -2652,12 +2657,13 @@ impl AppOp {
         popover.set_modal(false);
         /* calculate position for popover */
 
-        if msg_entry.get_text().unwrap().ends_with("@") {
+        if !popover.is_visible() {
+            let offset = msg_entry.get_layout_offsets().0;
             let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
-            popover.set_pointing_to(&gdk::Rectangle{x: position.0, y: 0, width: 0, height: 0});
-        }
+            popover.set_pointing_to(&gdk::Rectangle{x: position.0 + offset, y: 0, width: 0, height: 0});
+        } 
 
-            popover.popup();
+        popover.popup();
         }
         else {
             popover.popdown();
@@ -2665,7 +2671,7 @@ impl AppOp {
         return widget_list;
     }
 
-    pub fn autocomplete(&self, text: Option<String>) -> Vec<Member> {
+    pub fn autocomplete(&self, text: Option<String>, pos : i32) -> Vec<Member> {
         let mut list: Vec<Member> = vec![];
         let rooms = &self.rooms;
         match text {
@@ -2673,25 +2679,34 @@ impl AppOp {
                 //return;
             }
             Some(txt) => {
-                if let Some(last) = txt.split(' ').last() {
-                    if last.starts_with("@") {
-                        /*remove @ from string*/
-                        let w = last[1..].to_lowercase();
+                let (first, _) = txt.split_at(pos as usize);
+                if let Some(at_pos) = first.rfind("@") {
+                    let (_, last) = txt.split_at(at_pos);
+                    let last = last.split_whitespace().next().unwrap();
+                    let last = if last.len() > (pos as usize - at_pos) {
+                        let (first, _) = last.split_at(pos as usize - at_pos);
+                        first
+                    }
+                    else {
+                        last
+                    };
+                    println!("Matching string {}", last);
+                    /*remove @ from string*/
+                    let w = last[1..].to_lowercase();
 
-                        /* Maybe search for the 5 most recent active users */
-                        if let Some(aroom) = self.active_room.clone() {
-                            if let Some(r) = rooms.get(&aroom) {
-                                let mut count = 0;
-                                for (_, m) in r.members.iter() {
-                                    let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
-                                    let uid = &m.uid.clone().to_lowercase()[1..];
-                                    if alias.starts_with(&w) || uid.starts_with(&w) {
-                                        list.push(m.clone());
-                                        count = count + 1;
-                                        /* Search only for 5 matching users */
-                                        if count > 4 {
-                                            break;
-                                        }
+                    /* Maybe search for the 5 most recent active users */
+                    if let Some(aroom) = self.active_room.clone() {
+                        if let Some(r) = rooms.get(&aroom) {
+                            let mut count = 0;
+                            for (_, m) in r.members.iter() {
+                                let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
+                                let uid = &m.uid.clone().to_lowercase()[1..];
+                                if alias.starts_with(&w) || uid.starts_with(&w) {
+                                    list.push(m.clone());
+                                    count = count + 1;
+                                    /* Search only for 5 matching users */
+                                    if count > 4 {
+                                        break;
                                     }
                                 }
                             }
@@ -3239,7 +3254,7 @@ impl App {
             if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 {
                 let list = {
                     let own = op.lock().unwrap();
-                    own.autocomplete(e.get_text())
+                    own.autocomplete(e.get_text(), e.get_position())
                 };
                 let widget_list = {
                     let own = op.lock().unwrap();
