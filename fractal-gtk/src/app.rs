@@ -2652,10 +2652,10 @@ impl AppOp {
         popover.set_modal(false);
         /* calculate position for popover */
 
-        //if last.ends_with("@") {
+        if msg_entry.get_text().unwrap().ends_with("@") {
             let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
             popover.set_pointing_to(&gdk::Rectangle{x: position.0, y: 0, width: 0, height: 0});
-        //}
+        }
 
             popover.popup();
         }
