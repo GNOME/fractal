@@ -2585,22 +2585,44 @@ impl AppOp {
             msg_entry.set_position(pos);
             /* highlight member inside the entry */
             /* we need to set the highlight here the first time
-             * because the ui changes are blocked as long we hold the look */
-            let attr = if let Some(attr) = msg_entry.get_attributes() {
-                attr
-            }
-            else {
-                pango::AttrList::new()
-            };
-            let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
-            color.set_start_index(start_pos as u32);
-            let end_pos = start_pos as u32 + alias.len() as u32;
-            color.set_end_index(end_pos);
-            attr.insert(color);
-            msg_entry.set_attributes(&attr);
+             * because the ui changes from others are blocked as long we hold the look */
+            let input = msg_entry.get_text().unwrap();
             self.highlighted_entry.push(alias);
+            let attr = self.add_highlight(input);
+            msg_entry.set_attributes(&attr);
         }
         popover.popdown();
+    }
+
+    pub fn add_highlight (&self, input: String) -> pango::AttrList {
+        let attr = pango::AttrList::new();
+        for (_, alias) in self.highlighted_entry.iter().enumerate() {
+            let mut input = input.clone();
+            let mut removed_char = 0;
+            let mut found = false;
+            while input.contains(alias) {
+                let pos = {
+                    let start = input.find(alias).unwrap() as i32;
+                    (start, start + alias.len() as i32)
+                };
+                /* FIXME: Get theme color */
+                let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
+                color.set_start_index(removed_char + pos.0 as u32);
+                color.set_end_index(removed_char + pos.1 as u32);
+                attr.insert(color);
+                {
+                    let end = pos.1 as usize;
+                    input.drain(0..end);
+                }
+                removed_char = removed_char + pos.1 as u32;
+                found = true;
+            }
+            if !found {
+                //guard.highlighted_entry.remove(i);
+                println!("Should remove {} form store", alias);
+            }
+        }
+        return attr;
     }
 
     pub fn autocomplete_select(&self, direction: i32) {
@@ -3189,42 +3211,17 @@ impl App {
 
         let mut op = self.op.clone();
         msg_entry.connect_changed(move |w| {
-            let attr = pango::AttrList::new();
 
             let lock = op.try_lock();
             if let Ok(ref guard) = lock {
-                for (_, alias) in guard.highlighted_entry.iter().enumerate() {
-                    let mut input = w.get_text().unwrap();
-                    let mut removed_char = 0;
-                    let mut found = false;
-                    while input.contains(alias) {
-                        let pos = {
-                            let start = input.find(alias).unwrap() as i32;
-                            (start, start + alias.len() as i32)
-                        };
-                        /* FIXME: Get theme color */
-                        let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
-                        color.set_start_index(removed_char + pos.0 as u32);
-                        color.set_end_index(removed_char + pos.1 as u32);
-                        attr.insert(color);
-                        {
-                            let end = pos.1 as usize;
-                            input.drain(0..end);
-                        }
-                        removed_char = pos.1 as u32;
-                        found = true;
-                    }
-                    if !found {
-                        //guard.highlighted_entry.remove(i);
-                        println!("Should remove {} form store", alias);
-                    }
-                }
-                w.set_attributes(&attr);
-
+                    let input = w.get_text().unwrap();
+                    let attr = guard.add_highlight(input);
+                    w.set_attributes(&attr);
             } else {
                 /* Can not update UI because somebody else has the look" */
             }
         });
+
         op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
@@ -3267,7 +3264,7 @@ impl App {
                     }));
                 }
                 for element in op.lock().unwrap().highlighted_entry.iter() {
-                    println!("String {}", element);
+                    println!("Saved aliases {}", element);
                 }
             }
             Inhibit(false)
