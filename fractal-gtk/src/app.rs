@@ -2698,6 +2698,10 @@ impl AppOp {
             popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset, y: 0, width: 0, height: 0});
         } 
 
+        if let Some(row) = listbox.get_row_at_index(0) {
+            listbox.select_row(&row);
+        }
+
         popover.popup();
         }
         else {
@@ -3240,6 +3244,7 @@ impl App {
                 /* Enter key */
                 65293 => {
                     op.lock().unwrap().autocomplete_enter();
+                    return glib::signal::Inhibit(false),
                 },
                 /* Tab key */
                 65289 => {
