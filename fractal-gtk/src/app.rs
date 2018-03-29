@@ -2681,8 +2681,12 @@ impl AppOp {
 
         if !popover.is_visible() {
             let offset = msg_entry.get_layout_offsets().0;
-            let position = pango::Layout::get_pixel_size (&msg_entry.get_layout().unwrap());
-            popover.set_pointing_to(&gdk::Rectangle{x: position.0 + offset, y: 0, width: 0, height: 0});
+            let text_index = msg_entry.get_position();
+            let layout_index = msg_entry.text_index_to_layout_index(text_index);
+            let layout = msg_entry.get_layout().unwrap();
+            let (_, index) = layout.get_cursor_pos(layout_index);
+            pango::extents_to_pixels(Some(&index), None);
+            popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset, y: 0, width: 0, height: 0});
         } 
 
         popover.popup();
