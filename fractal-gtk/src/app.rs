@@ -108,6 +108,7 @@ pub struct AppOp {
     pub unsent_messages: HashMap<String, (String, i32)>,
 
     pub highlighted_entry: Vec<String>,
+    pub popover_position: Option<i32>,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -206,6 +207,7 @@ impl AppOp {
             unsent_messages: HashMap::new(),
 
             highlighted_entry: vec![],
+            popover_position: None,
 
             logged_in: false,
             loading_more: false,
@@ -2545,49 +2547,35 @@ impl AppOp {
         dialog.resize(300, 200);
     }
 
-    pub fn autocomplete_tab(&self, _ev: &gdk::Event) -> bool {
-        let popover = self.gtk_builder
-            .get_object::<gtk::Popover>("autocomplete_popover")
-            .expect("Can't find autocomplete_popover in ui file.");
-        let listbox = self.gtk_builder
-            .get_object::<gtk::ListBox>("autocomplete_listbox")
-            .expect("Can't find autocomplete_listbox in ui file.");
-
-        if popover.is_visible() {
-            if let Some(row) = listbox.get_selected_row() {
-                if let Some(_w) = row.get_children().first() {
-                    // We need to release the look before emit the event (return w and emit in
-                    // parent)
-                    //let _ = w.emit("button-press-event", &[ev]);
-                }
+    pub fn autocomplete_insert(&mut self, alias: String) {
+        let msg_entry: gtk::Entry = self.gtk_builder
+            .get_object("msg_entry")
+            .expect("Couldn't find msg_entry in ui file.");
+        if let Some(start_pos) = self.popover_position {
+            let mut start_pos = start_pos as i32;
+            let end_pos = msg_entry.get_position();
+            msg_entry.delete_text(start_pos, end_pos);
+            msg_entry.insert_text(&alias, &mut start_pos);
+            msg_entry.set_position(start_pos);
+            /* highlight member inside the entry */
+            /* we need to set the highlight here the first time
+             * because the ui changes from others are blocked as long we hold the look */
+            if let Some(input) = msg_entry.get_text() {
+                self.highlighted_entry.push(alias);
+                let attr = self.add_highlight(input);
+                msg_entry.set_attributes(&attr);
             }
-            return true;
         }
-        return false;
     }
 
-    pub fn autocomplete_enter(&mut self, alias: String) {
+    pub fn autocomplete_enter(&mut self) {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
         let popover = self.gtk_builder
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
-        let mut pos = msg_entry.get_position();
-        let text = msg_entry.get_text().unwrap();
-        let (first, _) = text.split_at(pos as usize);
-        if let Some(start_pos) = first.rfind('@') {
-            let end_pos = msg_entry.get_position();
-            msg_entry.delete_text(start_pos as i32, end_pos);
-            //msg_entry.set_position(start_pos);
-            pos = start_pos as i32;
-            msg_entry.insert_text(&alias, &mut pos);
-            msg_entry.set_position(pos);
-            /* highlight member inside the entry */
-            /* we need to set the highlight here the first time
-             * because the ui changes from others are blocked as long we hold the look */
-            let input = msg_entry.get_text().unwrap();
-            self.highlighted_entry.push(alias);
+        if let Some(input) = msg_entry.get_text() {
             let attr = self.add_highlight(input);
             msg_entry.set_attributes(&attr);
         }
@@ -2625,15 +2613,44 @@ impl AppOp {
         return attr;
     }
 
-    pub fn autocomplete_select(&self, direction: i32) {
+    pub fn autocomplete_arrow(&self, direction: i32) -> Option<gtk::Widget> {
         let listbox = self.gtk_builder
             .get_object::<gtk::ListBox>("autocomplete_listbox")
             .expect("Can't find autocomplete_listbox in ui file.");
+        let mut result = None;
         if let Some(row) = listbox.get_selected_row() {
-            if let Some(row) = listbox.get_row_at_index(row.get_index() + direction) {
-                listbox.select_row(&row);
+            let index = row.get_index() + direction;
+            if index >= 0 {
+                let row = listbox.get_row_at_index(row.get_index() + direction);
+                match row {
+                    None => {
+                        if let Some(row) = listbox.get_row_at_index(0) {
+                            listbox.select_row(&row);
+                            result = Some(row.get_children().first().unwrap().clone());
+                        }
+                    }
+                    Some(row) => {
+                        listbox.select_row(&row);
+                        result = Some(row.get_children().first().unwrap().clone());
+                    }
+                };
+            }
+            else {
+                if let Some(row) = listbox.get_children().last() {
+                    if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
+                        listbox.select_row(&row);
+                        result = Some(row.get_children().first().unwrap().clone());
+                    }
+                }
             }
         }
+        else {
+            if let Some(row) = listbox.get_row_at_index(0) {
+                listbox.select_row(&row);
+                result = Some(row.get_children().first().unwrap().clone());
+            }
+        }
+        return result;
     }
 
     pub fn autocomplete_show_popover(&self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
@@ -2668,20 +2685,12 @@ impl AppOp {
                 listbox.add(&widget);
             }
 
-            listbox.set_selection_mode(gtk::SelectionMode::Browse);
-            if listbox.get_selected_row().is_none() {
-            if let Some(row) = listbox.get_row_at_index(0) {
-                listbox.select_row(&row);
-            }
-        }
-
         popover.set_relative_to(Some(&msg_entry));
         popover.set_modal(false);
         /* calculate position for popover */
 
-        if !popover.is_visible() {
+        if let Some(text_index) = self.popover_position {
             let offset = msg_entry.get_layout_offsets().0;
-            let text_index = msg_entry.get_position();
             let layout_index = msg_entry.text_index_to_layout_index(text_index);
             let layout = msg_entry.get_layout().unwrap();
             let (_, index) = layout.get_cursor_pos(layout_index);
@@ -2705,12 +2714,11 @@ impl AppOp {
                 //return;
             }
             Some(txt) => {
-                let (first, _) = txt.split_at(pos as usize);
-                if let Some(at_pos) = first.rfind("@") {
-                    let (_, last) = txt.split_at(at_pos);
+                if let Some(at_pos) = self.popover_position {
+                    let (_, last) = txt.split_at(at_pos as usize);
                     let last = last.split_whitespace().next().unwrap();
-                    let last = if last.len() > (pos as usize - at_pos) {
-                        let (first, _) = last.split_at(pos as usize - at_pos);
+                    let last = if last.len() > (pos as usize - at_pos as usize) {
+                        let (first, _) = last.split_at(pos as usize - at_pos as usize);
                         first
                     }
                     else {
@@ -3231,19 +3239,44 @@ impl App {
             match ev.get_keyval() {
                 /* Enter key */
                 65293 => {
-                    return glib::signal::Inhibit(op.lock().unwrap().autocomplete_tab(ev));
+                    op.lock().unwrap().autocomplete_enter();
                 },
                 /* Tab key */
                 65289 => {
-                    op.lock().unwrap().autocomplete_tab(ev);
+                    let widget = {
+                        let lock = op.lock().unwrap();
+                        lock.autocomplete_arrow(1)
+                    };
+                    if let Some(w) = widget {
+                        println!("Call Event");
+                        let ev: &gdk::Event = ev;
+                        let _ = w.emit("button-press-event", &[ev]);
+                    }
                 },
                 /* Arrow key */
                 65362 => {
-                    op.lock().unwrap().autocomplete_select(-1);
+                    let widget = {
+                        let lock = op.lock().unwrap();
+                        lock.autocomplete_arrow(-1)
+                    };
+                    if let Some(w) = widget {
+                        println!("Call Event");
+                        let ev: &gdk::Event = ev;
+                        let _ = w.emit("button-press-event", &[ev]);
+                    }
                 },
                 /* Arrow key */
                 65364 => {
-                    op.lock().unwrap().autocomplete_select(1);
+                    let widget = {
+                        let lock = op.lock().unwrap();
+                        lock.autocomplete_arrow(1)
+                    };
+
+                    if let Some(w) = widget {
+                        println!("Call Event");
+                        let ev: &gdk::Event = ev;
+                        let _ = w.emit("button-press-event", &[ev]);
+                    }
                 }
                 _ => return glib::signal::Inhibit(false),
             }
@@ -3252,18 +3285,32 @@ impl App {
 
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
-            if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 {
+            if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65289 && ev.get_keyval() != 65293 {
+                let text = e.get_text();
+                let pos = e.get_position();
+                if let Some(text) = text.clone() {
+                    let (first, _) = text.split_at(pos as usize);
+                    if let Some(at_pos) = first.rfind("@") {
+                        op.lock().unwrap().popover_position = Some(at_pos as i32);
+                    }
+                    else {
+                        op.lock().unwrap().popover_position = None;
+                    }
+                }
                 let list = {
                     let own = op.lock().unwrap();
-                    own.autocomplete(e.get_text(), e.get_position())
+                    own.autocomplete(text, e.get_position())
                 };
                 let widget_list = {
                     let own = op.lock().unwrap();
                     own.autocomplete_show_popover(list)
                 };
                 for (alias, widget) in widget_list.iter() {
-                    widget.connect_button_press_event(clone!(op, alias => move |_, _| {
-                        op.lock().unwrap().autocomplete_enter(alias.clone());
+                    widget.connect_button_press_event(clone!(op, alias => move |_, ev| {
+                        op.lock().unwrap().autocomplete_insert(alias.clone());
+                        if ev.is::<gdk::EventButton>() {
+                            op.lock().unwrap().autocomplete_enter();
+                        }
                         Inhibit(true)
                     }));
                 }
