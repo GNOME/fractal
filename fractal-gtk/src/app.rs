@@ -3356,7 +3356,7 @@ impl App {
         msg_entry.connect_key_release_event(move |e, ev| {
             let is_tab = ev.get_keyval() == 65289;
             if (is_tab && op.lock().unwrap().popover_position.is_none()) ||
-               (ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
+               (ev.get_keyval() != gdk::enums::key::Escape && ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
                 let text = e.get_text();
                 let pos = e.get_position();
                 if let Some(text) = text.clone() {
