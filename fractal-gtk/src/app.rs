@@ -2674,6 +2674,7 @@ impl AppOp {
         let mut widget_list : HashMap<String, gtk::EventBox> = HashMap::new();
 
         if list.len() > 0 {
+            println!("List is not empty");
             for m in list.iter() {
                 let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
                 let widget;
@@ -2729,7 +2730,7 @@ impl AppOp {
                         txt.get(start..end)
                     };
                     if let Some(last) = last {
-                        println!("Matching string {}", last);
+                        println!("Matching string '{}'", last);
                         /*remove @ from string*/
                         let w = if last.starts_with("@") {
                             last[1..].to_lowercase()
@@ -3250,7 +3251,7 @@ impl App {
             if let Ok(ref mut guard) = lock {
                 if let Some(pos) = guard.popover_position {
                     println!("Start {} end {}, current {}", start, end, pos);
-                    if end <= pos + 1 {
+                    if end <= pos + 1 || (start <= pos && end > pos){
                         guard.autocomplete_enter();
                     }
                 }
@@ -3324,7 +3325,7 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
             let is_tab = ev.get_keyval() == 65289;
-            println!("Popover position {}", op.lock().unwrap().popover_position.is_none());
+            println!("Popover position is set: {}", !op.lock().unwrap().popover_position.is_none());
             if (is_tab && op.lock().unwrap().popover_position.is_none()) || (ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
                 let text = e.get_text();
                 let pos = e.get_position();
@@ -3337,7 +3338,13 @@ impl App {
                             }
                         }
                         else {
-                            op.lock().unwrap().popover_position = Some(pos as i32);
+                            if let Some(space_pos) = first.rfind(" ") {
+                                op.lock().unwrap().popover_position = Some(space_pos as i32 + 1);
+                                println!("New popover positon is {}", space_pos + 1);
+                            }
+                            else {
+                                op.lock().unwrap().popover_position = Some(0);
+                            }
                         }
                     }
                 }
