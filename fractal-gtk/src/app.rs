@@ -2568,7 +2568,7 @@ impl AppOp {
         }
     }
 
-    pub fn autocomplete_enter(&mut self) {
+    pub fn autocomplete_enter(&mut self) -> bool {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -2579,7 +2579,10 @@ impl AppOp {
             let attr = self.add_highlight(input);
             msg_entry.set_attributes(&attr);
         }
+        self.popover_position = None;
+        let visible = popover.is_visible();
         popover.popdown();
+        return visible;
     }
 
     pub fn add_highlight (&self, input: String) -> pango::AttrList {
@@ -2607,7 +2610,7 @@ impl AppOp {
             }
             if !found {
                 //guard.highlighted_entry.remove(i);
-                println!("Should remove {} form store", alias);
+                //println!("Should remove {} form store", alias);
             }
         }
         return attr;
@@ -2653,7 +2656,7 @@ impl AppOp {
         return result;
     }
 
-    pub fn autocomplete_show_popover(&self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
+    pub fn autocomplete_show_popover(&mut self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
         let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -2685,27 +2688,28 @@ impl AppOp {
                 listbox.add(&widget);
             }
 
-        popover.set_relative_to(Some(&msg_entry));
-        popover.set_modal(false);
-        /* calculate position for popover */
+            popover.set_relative_to(Some(&msg_entry));
+            popover.set_modal(false);
+            /* calculate position for popover */
 
-        if let Some(text_index) = self.popover_position {
-            let offset = msg_entry.get_layout_offsets().0;
-            let layout_index = msg_entry.text_index_to_layout_index(text_index);
-            let layout = msg_entry.get_layout().unwrap();
-            let (_, index) = layout.get_cursor_pos(layout_index);
-            pango::extents_to_pixels(Some(&index), None);
-            popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset, y: 0, width: 0, height: 0});
-        } 
+            if let Some(text_index) = self.popover_position {
+                let offset = msg_entry.get_layout_offsets().0;
+                let layout_index = msg_entry.text_index_to_layout_index(text_index);
+                let layout = msg_entry.get_layout().unwrap();
+                let (_, index) = layout.get_cursor_pos(layout_index);
+                pango::extents_to_pixels(Some(&index), None);
+                popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset, y: 0, width: 0, height: 0});
+            }
 
-        if let Some(row) = listbox.get_row_at_index(0) {
-            listbox.select_row(&row);
-        }
+            if let Some(row) = listbox.get_row_at_index(0) {
+                listbox.select_row(&row);
+            }
 
-        popover.popup();
+            popover.popup();
         }
         else {
-            popover.popdown();
+            self.autocomplete_enter();
+        //    popover.popdown();
         }
         return widget_list;
     }
@@ -2719,32 +2723,35 @@ impl AppOp {
             }
             Some(txt) => {
                 if let Some(at_pos) = self.popover_position {
-                    let (_, last) = txt.split_at(at_pos as usize);
-                    let last = last.split_whitespace().next().unwrap();
-                    let last = if last.len() > (pos as usize - at_pos as usize) {
-                        let (first, _) = last.split_at(pos as usize - at_pos as usize);
-                        first
-                    }
-                    else {
-                        last
+                    let last = {
+                        let start = at_pos as usize;
+                        let end = pos as usize;
+                        txt.get(start..end)
                     };
-                    println!("Matching string {}", last);
-                    /*remove @ from string*/
-                    let w = last[1..].to_lowercase();
+                    if let Some(last) = last {
+                        println!("Matching string {}", last);
+                        /*remove @ from string*/
+                        let w = if last.starts_with("@") {
+                            last[1..].to_lowercase()
+                        }
+                        else {
+                            last.to_lowercase()
+                        };
 
-                    /* Maybe search for the 5 most recent active users */
-                    if let Some(aroom) = self.active_room.clone() {
-                        if let Some(r) = rooms.get(&aroom) {
-                            let mut count = 0;
-                            for (_, m) in r.members.iter() {
-                                let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
-                                let uid = &m.uid.clone().to_lowercase()[1..];
-                                if alias.starts_with(&w) || uid.starts_with(&w) {
-                                    list.push(m.clone());
-                                    count = count + 1;
-                                    /* Search only for 5 matching users */
-                                    if count > 4 {
-                                        break;
+                        /* Maybe search for the 5 most recent active users */
+                        if let Some(aroom) = self.active_room.clone() {
+                            if let Some(r) = rooms.get(&aroom) {
+                                let mut count = 0;
+                                for (_, m) in r.members.iter() {
+                                    let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
+                                    let uid = &m.uid.clone().to_lowercase()[1..];
+                                    if alias.starts_with(&w) || uid.starts_with(&w) {
+                                        list.push(m.clone());
+                                        count = count + 1;
+                                        /* Search only for 5 matching users */
+                                        if count > 4 {
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -3227,7 +3234,6 @@ impl App {
 
         let mut op = self.op.clone();
         msg_entry.connect_changed(move |w| {
-
             let lock = op.try_lock();
             if let Ok(ref guard) = lock {
                     let input = w.get_text().unwrap();
@@ -3239,12 +3245,39 @@ impl App {
         });
 
         op = self.op.clone();
+        msg_entry.connect_delete_text(move |w,start , end| {
+            let mut lock = op.try_lock();
+            if let Ok(ref mut guard) = lock {
+                if let Some(pos) = guard.popover_position {
+                    println!("Start {} end {}, current {}", start, end, pos);
+                    if end <= pos + 1 {
+                        guard.autocomplete_enter();
+                    }
+                }
+            } else {
+                /* Can not update UI because somebody else has the look" */
+            }
+        });
+
+        op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
                 /* Enter key */
                 65293 => {
-                    op.lock().unwrap().autocomplete_enter();
-                    return glib::signal::Inhibit(false);
+                    if op.lock().unwrap().popover_position.is_some() {
+                        let widget = {
+                            let lock = op.lock().unwrap();
+                            lock.autocomplete_arrow(0)
+                        };
+                        if let Some(w) = widget {
+                            println!("Call Event");
+                            let ev: &gdk::Event = ev;
+                            let _ = w.emit("button-press-event", &[ev]);
+                        }
+                    }
+                    else {
+                        return glib::signal::Inhibit(false);
+                    }
                 },
                 /* Tab key */
                 65289 => {
@@ -3290,38 +3323,57 @@ impl App {
 
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
-            if ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65289 && ev.get_keyval() != 65293 {
+            let is_tab = ev.get_keyval() == 65289;
+            println!("Popover position {}", op.lock().unwrap().popover_position.is_none());
+            if (is_tab && op.lock().unwrap().popover_position.is_none()) || (ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
                 let text = e.get_text();
                 let pos = e.get_position();
                 if let Some(text) = text.clone() {
                     let (first, _) = text.split_at(pos as usize);
-                    if let Some(at_pos) = first.rfind("@") {
-                        op.lock().unwrap().popover_position = Some(at_pos as i32);
-                    }
-                    else {
-                        op.lock().unwrap().popover_position = None;
+                    if op.lock().unwrap().popover_position.is_none() {
+                        if !is_tab { 
+                            if let Some(at_pos) = first.rfind("@") {
+                                op.lock().unwrap().popover_position = Some(at_pos as i32);
+                            }
+                        }
+                        else {
+                            op.lock().unwrap().popover_position = Some(pos as i32);
+                        }
                     }
                 }
-                let list = {
-                    let own = op.lock().unwrap();
-                    own.autocomplete(text, e.get_position())
-                };
-                let widget_list = {
-                    let own = op.lock().unwrap();
-                    own.autocomplete_show_popover(list)
-                };
-                for (alias, widget) in widget_list.iter() {
-                    widget.connect_button_press_event(clone!(op, alias => move |_, ev| {
-                        op.lock().unwrap().autocomplete_insert(alias.clone());
-                        if ev.is::<gdk::EventButton>() {
-                            op.lock().unwrap().autocomplete_enter();
-                        }
-                        Inhibit(true)
+                if op.lock().unwrap().popover_position.is_some() {
+                    let list = {
+                        let own = op.lock().unwrap();
+                        own.autocomplete(text, e.get_position())
+                    };
+                    let widget_list = {
+                        let mut own = op.lock().unwrap();
+                        own.autocomplete_show_popover(list)
+                    };
+                    for (alias, widget) in widget_list.iter() {
+                        widget.connect_button_press_event(clone!(op, alias => move |_, ev| {
+                            op.lock().unwrap().autocomplete_insert(alias.clone());
+                            if ev.is::<gdk::EventKey>() {
+                                let ev = {
+                                    let ev: &gdk::Event = ev;
+                                    ev.clone().downcast::<gdk::EventKey>().unwrap()
+                                };
+                                /* Submit on enter */
+                                if ev.get_keyval() == 65293 {
+                                    op.lock().unwrap().autocomplete_enter();
+                                }
+                            }
+                            else if ev.is::<gdk::EventButton>() {
+                                op.lock().unwrap().autocomplete_enter();
+                            }
+                            Inhibit(true)
                     }));
                 }
-                for element in op.lock().unwrap().highlighted_entry.iter() {
+                /*for element in op.lock().unwrap().highlighted_entry.iter() {
                     println!("Saved aliases {}", element);
                 }
+                */
+                    }
             }
             Inhibit(false)
         });
