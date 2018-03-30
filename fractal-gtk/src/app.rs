@@ -109,6 +109,7 @@ pub struct AppOp {
 
     pub highlighted_entry: Vec<String>,
     pub popover_position: Option<i32>,
+    pub popover_selected: bool,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -208,6 +209,7 @@ impl AppOp {
 
             highlighted_entry: vec![],
             popover_position: None,
+            popover_selected: false,
 
             logged_in: false,
             loading_more: false,
@@ -2580,6 +2582,7 @@ impl AppOp {
             msg_entry.set_attributes(&attr);
         }
         self.popover_position = None;
+        self.popover_selected = false;
         let visible = popover.is_visible();
         popover.popdown();
         return visible;
@@ -2616,7 +2619,7 @@ impl AppOp {
         return attr;
     }
 
-    pub fn autocomplete_arrow(&self, direction: i32) -> Option<gtk::Widget> {
+    pub fn autocomplete_arrow(&mut self, direction: i32) -> Option<gtk::Widget> {
         let listbox = self.gtk_builder
             .get_object::<gtk::ListBox>("autocomplete_listbox")
             .expect("Can't find autocomplete_listbox in ui file.");
@@ -2653,6 +2656,7 @@ impl AppOp {
                 result = Some(row.get_children().first().unwrap().clone());
             }
         }
+        self.popover_selected = true;
         return result;
     }
 
@@ -3246,7 +3250,7 @@ impl App {
         });
 
         op = self.op.clone();
-        msg_entry.connect_delete_text(move |w,start , end| {
+        msg_entry.connect_delete_text(move |_, start, end| {
             let mut lock = op.try_lock();
             if let Ok(ref mut guard) = lock {
                 if let Some(pos) = guard.popover_position {
@@ -3261,13 +3265,30 @@ impl App {
         });
 
         op = self.op.clone();
+        msg_entry.connect_key_release_event(move |_, k| {
+            match k.get_keyval() {
+                gdk::enums::key::Escape => {
+                    if op.lock().unwrap().popover_position.is_some() {
+                        let mut lock = op.lock().unwrap();
+                        lock.autocomplete_enter();
+                        Inhibit(true)
+                    }
+                    else {
+                        return Inhibit(false);
+                    }
+                },
+                _ => Inhibit(false)
+            }
+        });
+
+        op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
                 /* Enter key */
                 65293 => {
                     if op.lock().unwrap().popover_position.is_some() {
                         let widget = {
-                            let lock = op.lock().unwrap();
+                            let mut lock = op.lock().unwrap();
                             lock.autocomplete_arrow(0)
                         };
                         if let Some(w) = widget {
@@ -3283,11 +3304,16 @@ impl App {
                 /* Tab key */
                 65289 => {
                     let widget = {
-                        let lock = op.lock().unwrap();
-                        lock.autocomplete_arrow(1)
+                        let mut lock = op.lock().unwrap();
+                        let widget = if lock.popover_selected {
+                            lock.autocomplete_arrow(1)
+                        }
+                        else {
+                            lock.autocomplete_arrow(0)
+                        };
+                        widget
                     };
                     if let Some(w) = widget {
-                        println!("Call Event");
                         let ev: &gdk::Event = ev;
                         let _ = w.emit("button-press-event", &[ev]);
                     }
@@ -3295,11 +3321,10 @@ impl App {
                 /* Arrow key */
                 65362 => {
                     let widget = {
-                        let lock = op.lock().unwrap();
+                        let mut lock = op.lock().unwrap();
                         lock.autocomplete_arrow(-1)
                     };
                     if let Some(w) = widget {
-                        println!("Call Event");
                         let ev: &gdk::Event = ev;
                         let _ = w.emit("button-press-event", &[ev]);
                     }
@@ -3307,12 +3332,11 @@ impl App {
                 /* Arrow key */
                 65364 => {
                     let widget = {
-                        let lock = op.lock().unwrap();
+                        let mut lock = op.lock().unwrap();
                         lock.autocomplete_arrow(1)
                     };
 
                     if let Some(w) = widget {
-                        println!("Call Event");
                         let ev: &gdk::Event = ev;
                         let _ = w.emit("button-press-event", &[ev]);
                     }
@@ -3325,8 +3349,8 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
             let is_tab = ev.get_keyval() == 65289;
-            println!("Popover position is set: {}", !op.lock().unwrap().popover_position.is_none());
-            if (is_tab && op.lock().unwrap().popover_position.is_none()) || (ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
+            if (is_tab && op.lock().unwrap().popover_position.is_none()) ||
+               (ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
                 let text = e.get_text();
                 let pos = e.get_position();
                 if let Some(text) = text.clone() {
@@ -3340,7 +3364,6 @@ impl App {
                         else {
                             if let Some(space_pos) = first.rfind(" ") {
                                 op.lock().unwrap().popover_position = Some(space_pos as i32 + 1);
-                                println!("New popover positon is {}", space_pos + 1);
                             }
                             else {
                                 op.lock().unwrap().popover_position = Some(0);
