@@ -2588,10 +2588,11 @@ impl AppOp {
         return visible;
     }
 
-    pub fn add_highlight (&self, input: String) -> pango::AttrList {
+    pub fn add_highlight(&self, input: String) -> pango::AttrList {
         let attr = pango::AttrList::new();
         for (_, alias) in self.highlighted_entry.iter().enumerate() {
-            let mut input = input.clone();
+            let mut input = input.clone().to_lowercase();
+            let alias = &alias.to_lowercase();
             let mut removed_char = 0;
             let mut found = false;
             while input.contains(alias) {
