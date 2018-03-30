@@ -3305,13 +3305,18 @@ impl App {
                 65289 => {
                     let widget = {
                         let mut lock = op.lock().unwrap();
-                        let widget = if lock.popover_selected {
-                            lock.autocomplete_arrow(1)
+                        if lock.popover_position.is_some() { 
+                            let widget = if lock.popover_selected {
+                                lock.autocomplete_arrow(1)
+                            }
+                            else {
+                                lock.autocomplete_arrow(0)
+                            };
+                            widget
                         }
                         else {
-                            lock.autocomplete_arrow(0)
-                        };
-                        widget
+                            None
+                        }
                     };
                     if let Some(w) = widget {
                         let ev: &gdk::Event = ev;
