@@ -150,7 +150,8 @@ row .timestamp {
 }
 
 .autocomplete row {
-  border-radius: 6px;
+  border-radius: 3px;
+  padding: 6px;
 }
 
 .invite-selected,
