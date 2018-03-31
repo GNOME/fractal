@@ -111,8 +111,11 @@ row .timestamp {
     font-size: x-small;
 }
 
-.member-uid {
+row:not(:selected) .member-uid {
     color: @insensitive_fg_color;
+}
+
+.member-uid {
     font-size: x-small;
 }
 

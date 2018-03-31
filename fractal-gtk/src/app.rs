@@ -2588,7 +2588,26 @@ impl AppOp {
         return visible;
     }
 
+    pub fn add_selected_highlight(&self, start: u32, end: u32) -> pango::Attribute {
+        let msg_entry: gtk::Widget = self.gtk_builder
+            .get_object("msg_entry")
+            .expect("Couldn't find msg_entry in ui file.");
+        let context = gtk::Widget::get_style_context (&msg_entry).unwrap();
+        let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_fg_color").unwrap();
+
+        let red = fg.red * 65535. + 0.5;
+        let green = fg.green * 65535. + 0.5;
+        let blue = fg.blue * 65535. + 0.5;
+        let mut color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
+        color.set_start_index(start);
+        color.set_end_index(end);
+        color
+    }
+
     pub fn add_highlight(&self, input: String) -> pango::AttrList {
+        let msg_entry: gtk::Widget = self.gtk_builder
+            .get_object("msg_entry")
+            .expect("Couldn't find msg_entry in ui file.");
         let attr = pango::AttrList::new();
         for (_, alias) in self.highlighted_entry.iter().enumerate() {
             let mut input = input.clone().to_lowercase();
@@ -2600,8 +2619,13 @@ impl AppOp {
                     let start = input.find(alias).unwrap() as i32;
                     (start, start + alias.len() as i32)
                 };
-                /* FIXME: Get theme color */
-                let mut color = pango::Attribute::new_foreground(0, 0, 65535).unwrap();
+                let context = gtk::Widget::get_style_context (&msg_entry).unwrap();
+                let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_bg_color").unwrap();
+
+                let red = fg.red * 65535. + 0.5;
+                let green = fg.green * 65535. + 0.5;
+                let blue = fg.blue * 65535. + 0.5;
+                let mut color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
                 color.set_start_index(removed_char + pos.0 as u32);
                 color.set_end_index(removed_char + pos.1 as u32);
                 attr.insert(color);
@@ -2679,7 +2703,6 @@ impl AppOp {
         let mut widget_list : HashMap<String, gtk::EventBox> = HashMap::new();
 
         if list.len() > 0 {
-            println!("List is not empty");
             for m in list.iter() {
                 let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
                 let widget;
@@ -2700,11 +2723,12 @@ impl AppOp {
 
             if let Some(text_index) = self.popover_position {
                 let offset = msg_entry.get_layout_offsets().0;
-                let layout_index = msg_entry.text_index_to_layout_index(text_index);
                 let layout = msg_entry.get_layout().unwrap();
+                let layout_index = msg_entry.text_index_to_layout_index(text_index);
                 let (_, index) = layout.get_cursor_pos(layout_index);
+
                 pango::extents_to_pixels(Some(&index), None);
-                popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset, y: 0, width: 0, height: 0});
+                popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset + 10, y: 0, width: 0, height: 0});
             }
 
             if let Some(row) = listbox.get_row_at_index(0) {
@@ -2715,7 +2739,7 @@ impl AppOp {
         }
         else {
             self.autocomplete_enter();
-        //    popover.popdown();
+            //    popover.popdown();
         }
         return widget_list;
     }
@@ -3239,6 +3263,22 @@ impl App {
             .expect("Couldn't find msg_entry in ui file.");
 
         let mut op = self.op.clone();
+        msg_entry.connect_property_cursor_position_notify(move |w| {
+            let lock = op.try_lock();
+            if let Ok(ref guard) = lock {
+                    let input = w.get_text().unwrap();
+                    let attr = guard.add_highlight(input);
+                    /*Event doesn't get fired for selections*/
+                    if let Some((start, end)) = w.get_selection_bounds() {
+                        attr.insert(guard.add_selected_highlight(start as u32, end as u32));
+                    }
+                    w.set_attributes(&attr);
+            } else {
+                /* Can not update UI because somebody else has the look" */
+            }
+        });
+
+        op = self.op.clone();
         msg_entry.connect_changed(move |w| {
             let lock = op.try_lock();
             if let Ok(ref guard) = lock {
@@ -3255,7 +3295,6 @@ impl App {
             let mut lock = op.try_lock();
             if let Ok(ref mut guard) = lock {
                 if let Some(pos) = guard.popover_position {
-                    println!("Start {} end {}, current {}", start, end, pos);
                     if end <= pos + 1 || (start <= pos && end > pos){
                         guard.autocomplete_enter();
                     }
