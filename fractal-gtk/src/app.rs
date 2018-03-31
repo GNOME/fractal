@@ -1349,7 +1349,7 @@ impl AppOp {
         }
     }
 
-    pub fn send_message(&mut self, msg: String) {
+    pub fn send_message(&mut self, mut msg: String) {
         if msg.is_empty() {
             // Not sending empty messages
             return;
@@ -1374,7 +1374,8 @@ impl AppOp {
         };
 
         if msg.starts_with("/me ") {
-            m.body = msg.trim_left_matches("/me ").to_owned();
+            msg = msg.trim_left_matches("/me ").to_owned();
+            m.body = msg.to_string();
             m.mtype = strn!("m.emote");
         }
 
@@ -1382,7 +1383,7 @@ impl AppOp {
         self.autoscroll = true;
         let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
-        if !(md_parsed_msg.replace("<p>","").replace("</p>","") == msg.clone() + "\n") {
+        if md_parsed_msg.replace("<p>","").replace("</p>","") != msg.clone() + "\n" {
             m.formatted_body = Some(md_parsed_msg);
             m.format = Some(String::from("org.matrix.custom.html"));
         }
@@ -2906,7 +2907,8 @@ impl App {
 
         let mut op = self.op.clone();
         msg_entry.connect_activate(move |entry| if let Some(text) = entry.get_text() {
-            op.lock().unwrap().send_message(text);
+            let mut mut_text = text;
+            op.lock().unwrap().send_message(mut_text);
             entry.set_text("");
         });
 
