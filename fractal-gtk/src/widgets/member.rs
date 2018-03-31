@@ -62,7 +62,7 @@ impl<'a> MemberBox<'a> {
         avatar.default(String::from("avatar-default-symbolic"),
                        Some(globals::USERLIST_ICON_SIZE));
         get_member_info(backend.clone(), avatar.clone(), username.clone(), self.member.uid.clone(), globals::USERLIST_ICON_SIZE, 10);
-        avatar.set_margin_start(5);
+        avatar.set_margin_start(3);
         avatar.set_valign(gtk::Align::Center);
 
         v.set_margin_start(3);

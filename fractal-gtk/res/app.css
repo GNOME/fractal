@@ -142,6 +142,10 @@ row:not(:selected) .member-uid {
 .messages-history row:selected .msg-emote
 { color: @theme_selected_fg_color; }
 
+.autocomplete {
+  margin-left: 150px;
+}
+
 .autocomplete,
 .autocomplete list,
 .autocomplete row:not(:hover):not(:selected) {
