@@ -1558,8 +1558,12 @@ impl AppOp {
         let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
         if md_parsed_msg.replace("<p>","").replace("</p>","") != msg.clone() + "\n" {
-            m.formatted_body = Some(md_parsed_msg);
-            m.format = Some(String::from("org.matrix.custom.html"));
+            // Riot does not properly show emotes with Markdown;
+            // Emotes with markdown have a newline after the username
+            if m.mtype != "m.emote" {
+                m.formatted_body = Some(md_parsed_msg);
+                m.format = Some(String::from("org.matrix.custom.html"));
+            }
         }
 
         self.add_tmp_room_message(m.clone());
