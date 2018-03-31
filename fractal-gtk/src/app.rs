@@ -110,6 +110,7 @@ pub struct AppOp {
     pub highlighted_entry: Vec<String>,
     pub popover_position: Option<i32>,
     pub popover_selected: bool,
+    pub popover_search: Option<String>,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -210,6 +211,7 @@ impl AppOp {
             highlighted_entry: vec![],
             popover_position: None,
             popover_selected: false,
+            popover_search: None,
 
             logged_in: false,
             loading_more: false,
@@ -2581,7 +2583,9 @@ impl AppOp {
             let attr = self.add_highlight(input);
             msg_entry.set_attributes(&attr);
         }
+        println!("Close popover");
         self.popover_position = None;
+        self.popover_search = None;
         self.popover_selected = false;
         let visible = popover.is_visible();
         popover.popdown();
@@ -2762,7 +2766,6 @@ impl AppOp {
         }
         else {
             self.autocomplete_enter();
-            //    popover.popdown();
         }
         return widget_list;
     }
@@ -3456,9 +3459,17 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
             let is_tab = ev.get_keyval() == 65289;
+            let text = e.get_text();
+            if let Some(ref text) = text {
+                if let Some(ref old) = op.lock().unwrap().popover_search {
+                    if text == old {
+                        return Inhibit(false);
+                    }
+                }
+            }
             if (is_tab && op.lock().unwrap().popover_position.is_none()) ||
                (ev.get_keyval() != gdk::enums::key::Escape && ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
-                let text = e.get_text();
+                op.lock().unwrap().popover_search = text.clone();
                 let pos = e.get_position();
                 if let Some(text) = text.clone() {
                     let (first, _) = text.split_at(pos as usize);
