@@ -2588,29 +2588,29 @@ impl AppOp {
         return visible;
     }
 
-    pub fn add_selected_highlight(&self, start: u32, end: u32) -> pango::Attribute {
-        let msg_entry: gtk::Widget = self.gtk_builder
+    pub fn add_highlight(&self, input: String) -> pango::AttrList {
+        let msg_entry: gtk::Entry = self.gtk_builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
-        let context = gtk::Widget::get_style_context (&msg_entry).unwrap();
-        let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_fg_color").unwrap();
-
+        fn contains((start, end): (i32, i32), item: i32) -> bool {
+            if start <= end {
+                return start <= item && end > item;
+            } else {
+                return start <= item || end > item;
+            }
+        }
+        let input = input.to_lowercase();
+        let bounds = msg_entry.get_selection_bounds();
+        let context = gtk::Widget::get_style_context (&msg_entry.clone().upcast::<gtk::Widget>()).unwrap();
+        let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_bg_color").unwrap();
         let red = fg.red * 65535. + 0.5;
         let green = fg.green * 65535. + 0.5;
         let blue = fg.blue * 65535. + 0.5;
-        let mut color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
-        color.set_start_index(start);
-        color.set_end_index(end);
-        color
-    }
+        let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
 
-    pub fn add_highlight(&self, input: String) -> pango::AttrList {
-        let msg_entry: gtk::Widget = self.gtk_builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
         let attr = pango::AttrList::new();
         for (_, alias) in self.highlighted_entry.iter().enumerate() {
-            let mut input = input.clone().to_lowercase();
+            let mut input = input.clone();
             let alias = &alias.to_lowercase();
             let mut removed_char = 0;
             let mut found = false;
@@ -2619,16 +2619,38 @@ impl AppOp {
                     let start = input.find(alias).unwrap() as i32;
                     (start, start + alias.len() as i32)
                 };
-                let context = gtk::Widget::get_style_context (&msg_entry).unwrap();
-                let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_bg_color").unwrap();
+                let mut color = color.clone();
+                let mark_start = removed_char as i32 + pos.0;
+                let mark_end = removed_char as i32 + pos.1;
+                let mut final_pos = Some((mark_start, mark_end));
+                /* exclude selected text */
+                if let Some((bounds_start, bounds_end)) = bounds {
+                    /* If the selection is within the alias */
+                    if contains((mark_start, mark_end), bounds_start) &&
+                        contains((mark_start, mark_end), bounds_end) {
+                            final_pos = Some((mark_start, bounds_start));
+                            /* Add blue color after a selection */
+                            let mut color = color.clone();
+                            color.set_start_index(bounds_end as u32);
+                            color.set_end_index(mark_end as u32);
+                            attr.insert(color);
+                        } else {
+                            /* The alias starts inside a selection */
+                            if contains(bounds.unwrap(), mark_start) {
+                                final_pos = Some((bounds_end, final_pos.unwrap().1));
+                            }
+                            /* The alias ends inside a selection */
+                            if contains(bounds.unwrap(), mark_end) {
+                                final_pos = Some((final_pos.unwrap().0, bounds_start));
+                            }
+                        }
+                }
 
-                let red = fg.red * 65535. + 0.5;
-                let green = fg.green * 65535. + 0.5;
-                let blue = fg.blue * 65535. + 0.5;
-                let mut color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
-                color.set_start_index(removed_char + pos.0 as u32);
-                color.set_end_index(removed_char + pos.1 as u32);
-                attr.insert(color);
+                if let Some((start, end)) = final_pos {
+                    color.set_start_index(start as u32);
+                    color.set_end_index(end as u32);
+                    attr.insert(color);
+                }
                 {
                     let end = pos.1 as usize;
                     input.drain(0..end);
@@ -2641,6 +2663,7 @@ impl AppOp {
                 //println!("Should remove {} form store", alias);
             }
         }
+
         return attr;
     }
 
@@ -3268,15 +3291,25 @@ impl App {
             if let Ok(ref guard) = lock {
                     let input = w.get_text().unwrap();
                     let attr = guard.add_highlight(input);
-                    /*Event doesn't get fired for selections*/
-                    if let Some((start, end)) = w.get_selection_bounds() {
-                        attr.insert(guard.add_selected_highlight(start as u32, end as u32));
-                    }
                     w.set_attributes(&attr);
             } else {
                 /* Can not update UI because somebody else has the look" */
             }
         });
+
+
+        op = self.op.clone();
+        msg_entry.connect_property_selection_bound_notify(move |w| {
+            let lock = op.try_lock();
+            if let Ok(ref guard) = lock {
+                    let input = w.get_text().unwrap();
+                    let attr = guard.add_highlight(input);
+                    w.set_attributes(&attr);
+            } else {
+                /* Can not update UI because somebody else has the look" */
+            }
+        });
+
 
         op = self.op.clone();
         msg_entry.connect_changed(move |w| {
