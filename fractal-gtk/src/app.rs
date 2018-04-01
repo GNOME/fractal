@@ -109,7 +109,6 @@ pub struct AppOp {
 
     pub highlighted_entry: Vec<String>,
     pub popover_position: Option<i32>,
-    pub popover_selected: bool,
     pub popover_search: Option<String>,
 
     pub state: AppState,
@@ -210,7 +209,6 @@ impl AppOp {
 
             highlighted_entry: vec![],
             popover_position: None,
-            popover_selected: false,
             popover_search: None,
 
             logged_in: false,
@@ -2585,8 +2583,6 @@ impl AppOp {
         }
         println!("Close popover");
         self.popover_position = None;
-        self.popover_search = None;
-        self.popover_selected = false;
         let visible = popover.is_visible();
         popover.popdown();
         return visible;
@@ -2708,7 +2704,6 @@ impl AppOp {
                 result = Some(row.get_children().first().unwrap().clone());
             }
         }
-        self.popover_selected = true;
         return result;
     }
 
@@ -3389,43 +3384,20 @@ impl App {
         op = self.op.clone();
         msg_entry.connect_key_press_event(move |_, ev| {
             match ev.get_keyval() {
-                /* Enter key */
-                65293 => {
+                /* Tab and Enter key */
+                65289 | 65293 => {
                     if op.lock().unwrap().popover_position.is_some() {
                         let widget = {
                             let mut lock = op.lock().unwrap();
                             lock.autocomplete_arrow(0)
                         };
                         if let Some(w) = widget {
-                            println!("Call Event");
                             let ev: &gdk::Event = ev;
                             let _ = w.emit("button-press-event", &[ev]);
                         }
                     }
                     else {
                         return glib::signal::Inhibit(false);
-                    }
-                },
-                /* Tab key */
-                65289 => {
-                    let widget = {
-                        let mut lock = op.lock().unwrap();
-                        if lock.popover_position.is_some() { 
-                            let widget = if lock.popover_selected {
-                                lock.autocomplete_arrow(1)
-                            }
-                            else {
-                                lock.autocomplete_arrow(0)
-                            };
-                            widget
-                        }
-                        else {
-                            None
-                        }
-                    };
-                    if let Some(w) = widget {
-                        let ev: &gdk::Event = ev;
-                        let _ = w.emit("button-press-event", &[ev]);
                     }
                 },
                 /* Arrow key */
@@ -3460,6 +3432,13 @@ impl App {
         msg_entry.connect_key_release_event(move |e, ev| {
             let is_tab = ev.get_keyval() == 65289;
             let text = e.get_text();
+            {
+                let mut guard = op.lock().unwrap();
+                if guard.popover_search.is_some() && guard.popover_position.is_none() {
+                    guard.popover_search = None;
+                    return Inhibit(false);
+                }
+            }
             if let Some(ref text) = text {
                 if let Some(ref old) = op.lock().unwrap().popover_search {
                     if text == old {
@@ -3468,20 +3447,20 @@ impl App {
                 }
             }
             if (is_tab && op.lock().unwrap().popover_position.is_none()) ||
-               (ev.get_keyval() != gdk::enums::key::Escape && ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
-                op.lock().unwrap().popover_search = text.clone();
-                let pos = e.get_position();
-                if let Some(text) = text.clone() {
-                    let (first, _) = text.split_at(pos as usize);
-                    if op.lock().unwrap().popover_position.is_none() {
-                        if !is_tab { 
-                            if let Some(at_pos) = first.rfind("@") {
-                                op.lock().unwrap().popover_position = Some(at_pos as i32);
+                (ev.get_keyval() != gdk::enums::key::Escape && ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
+                    op.lock().unwrap().popover_search = text.clone();
+                    let pos = e.get_position();
+                    if let Some(text) = text.clone() {
+                        let (first, _) = text.split_at(pos as usize);
+                        if op.lock().unwrap().popover_position.is_none() {
+                            if !is_tab { 
+                                if let Some(at_pos) = first.rfind("@") {
+                                    op.lock().unwrap().popover_position = Some(at_pos as i32);
+                                }
                             }
-                        }
-                        else {
-                            if let Some(space_pos) = first.rfind(" ") {
-                                op.lock().unwrap().popover_position = Some(space_pos as i32 + 1);
+                            else {
+                                if let Some(space_pos) = first.rfind(" ") {
+                                    op.lock().unwrap().popover_position = Some(space_pos as i32 + 1);
                             }
                             else {
                                 op.lock().unwrap().popover_position = Some(0);
@@ -3507,8 +3486,9 @@ impl App {
                                     ev.clone().downcast::<gdk::EventKey>().unwrap()
                                 };
                                 /* Submit on enter */
-                                if ev.get_keyval() == 65293 {
+                                if ev.get_keyval() == 65293 || ev.get_keyval() == gdk::enums::key::Tab  {
                                     op.lock().unwrap().autocomplete_enter();
+                                    //op.lock().unwrap().popover_search = Some(alias.clone());
                                 }
                             }
                             else if ev.is::<gdk::EventButton>() {
