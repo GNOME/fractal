@@ -3353,19 +3353,6 @@ impl App {
             }
         });
 
-        /*op = self.op.clone();
-        msg_entry.connect_focus_out_event(move |_, _| {
-            if op.lock().unwrap().popover_position.is_some() {
-                let mut lock = op.lock().unwrap();
-                lock.autocomplete_enter();
-                Inhibit(true)
-            }
-            else {
-                return Inhibit(false);
-            }
-        });
-        */
-
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |_, k| {
             match k.get_keyval() {
