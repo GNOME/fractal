@@ -110,6 +110,7 @@ pub struct AppOp {
     pub highlighted_entry: Vec<String>,
     pub popover_position: Option<i32>,
     pub popover_search: Option<String>,
+    pub popover_closing: bool,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -210,6 +211,7 @@ impl AppOp {
             highlighted_entry: vec![],
             popover_position: None,
             popover_search: None,
+            popover_closing: false,
 
             logged_in: false,
             loading_more: false,
@@ -2581,8 +2583,8 @@ impl AppOp {
             let attr = self.add_highlight(input);
             msg_entry.set_attributes(&attr);
         }
-        println!("Close popover");
         self.popover_position = None;
+        self.popover_search = None;
         let visible = popover.is_visible();
         popover.popdown();
         return visible;
@@ -3391,10 +3393,11 @@ impl App {
                     return glib::signal::Inhibit(false);
                 },
                 /* Tab and Enter key */
-                65289 | 65293 => {
+                gdk::enums::key::Tab | gdk::enums::key::Return => {
                     if op.lock().unwrap().popover_position.is_some() {
                         let widget = {
                             let mut lock = op.lock().unwrap();
+                            lock.popover_closing = true;
                             lock.autocomplete_arrow(0)
                         };
                         if let Some(w) = widget {
@@ -3409,7 +3412,7 @@ impl App {
                     }
                 },
                 /* Arrow key */
-                65362 => {
+                gdk::enums::key::Up => {
                     let widget = {
                         let mut lock = op.lock().unwrap();
                         lock.autocomplete_arrow(-1)
@@ -3420,7 +3423,7 @@ impl App {
                     }
                 },
                 /* Arrow key */
-                65364 => {
+                gdk::enums::key::Down => {
                     let widget = {
                         let mut lock = op.lock().unwrap();
                         lock.autocomplete_arrow(1)
@@ -3438,24 +3441,31 @@ impl App {
 
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |e, ev| {
-            let is_tab = ev.get_keyval() == 65289;
+            let is_tab = ev.get_keyval() == gdk::enums::key::Tab;
             let text = e.get_text();
+            /* when closing popover with tab */
             {
                 let mut guard = op.lock().unwrap();
-                if guard.popover_search.is_some() && guard.popover_position.is_none() {
-                    guard.popover_search = None;
+                if guard.popover_closing {
+                    guard.popover_closing = false;
                     return Inhibit(false);
                 }
             }
-            if let Some(ref text) = text {
-                if let Some(ref old) = op.lock().unwrap().popover_search {
-                    if text == old {
-                        return Inhibit(false);
+            /* allow popover opening with tab 
+             * don't update popover when the input didn't change */
+            if !is_tab {
+                if let Some(ref text) = text {
+                    if let Some(ref old) = op.lock().unwrap().popover_search {
+                        if text == old {
+                            return Inhibit(false);
+                        }
                     }
                 }
             }
+            /* update the popover when closed and tab is released
+             * don't update the popover the arrow keys are pressed */
             if (is_tab && op.lock().unwrap().popover_position.is_none()) ||
-                (ev.get_keyval() != gdk::enums::key::Escape && ev.get_keyval() != 65289 && ev.get_keyval() != 65362 && ev.get_keyval() != 65364 && ev.get_keyval() != 65293) {
+                (ev.get_keyval() != gdk::enums::key::Up && ev.get_keyval() != gdk::enums::key::Down) {
                     op.lock().unwrap().popover_search = text.clone();
                     let pos = e.get_position();
                     if let Some(text) = text.clone() {
@@ -3469,48 +3479,48 @@ impl App {
                             else {
                                 if let Some(space_pos) = first.rfind(" ") {
                                     op.lock().unwrap().popover_position = Some(space_pos as i32 + 1);
-                            }
-                            else {
-                                op.lock().unwrap().popover_position = Some(0);
+                                }
+                                else {
+                                    op.lock().unwrap().popover_position = Some(0);
+                                }
                             }
                         }
                     }
-                }
-                if op.lock().unwrap().popover_position.is_some() {
-                    let list = {
-                        let own = op.lock().unwrap();
-                        own.autocomplete(text, e.get_position())
-                    };
-                    let widget_list = {
-                        let mut own = op.lock().unwrap();
-                        own.autocomplete_show_popover(list)
-                    };
-                    for (alias, widget) in widget_list.iter() {
-                        widget.connect_button_press_event(clone!(op, alias => move |_, ev| {
-                            op.lock().unwrap().autocomplete_insert(alias.clone());
-                            if ev.is::<gdk::EventKey>() {
-                                let ev = {
-                                    let ev: &gdk::Event = ev;
-                                    ev.clone().downcast::<gdk::EventKey>().unwrap()
-                                };
-                                /* Submit on enter */
-                                if ev.get_keyval() == 65293 || ev.get_keyval() == gdk::enums::key::Tab  {
-                                    op.lock().unwrap().autocomplete_enter();
-                                    //op.lock().unwrap().popover_search = Some(alias.clone());
+                    if op.lock().unwrap().popover_position.is_some() {
+                        let list = {
+                            let own = op.lock().unwrap();
+                            own.autocomplete(text, e.get_position())
+                        };
+                        let widget_list = {
+                            let mut own = op.lock().unwrap();
+                            own.autocomplete_show_popover(list)
+                        };
+                        for (alias, widget) in widget_list.iter() {
+                            widget.connect_button_press_event(clone!(op, alias => move |_, ev| {
+                                op.lock().unwrap().autocomplete_insert(alias.clone());
+                                if ev.is::<gdk::EventKey>() {
+                                    let ev = {
+                                        let ev: &gdk::Event = ev;
+                                        ev.clone().downcast::<gdk::EventKey>().unwrap()
+                                    };
+                                    /* Submit on enter */
+                                    if ev.get_keyval() == gdk::enums::key::Return || ev.get_keyval() == gdk::enums::key::Tab  {
+                                        op.lock().unwrap().autocomplete_enter();
+                                        //op.lock().unwrap().popover_search = Some(alias.clone());
+                                    }
                                 }
-                            }
-                            else if ev.is::<gdk::EventButton>() {
-                                op.lock().unwrap().autocomplete_enter();
-                            }
-                            Inhibit(true)
-                    }));
-                }
-                /*for element in op.lock().unwrap().highlighted_entry.iter() {
-                    println!("Saved aliases {}", element);
-                }
-                */
+                                else if ev.is::<gdk::EventButton>() {
+                                    op.lock().unwrap().autocomplete_enter();
+                                }
+                                Inhibit(true)
+                            }));
+                        }
+                        /*for element in op.lock().unwrap().highlighted_entry.iter() {
+                          println!("Saved aliases {}", element);
+                          }
+                          */
                     }
-            }
+                }
             Inhibit(false)
         });
     }
