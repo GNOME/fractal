@@ -3382,8 +3382,14 @@ impl App {
         });
 
         op = self.op.clone();
-        msg_entry.connect_key_press_event(move |_, ev| {
+        msg_entry.connect_key_press_event(move |w, ev| {
             match ev.get_keyval() {
+                gdk::enums::key::BackSpace => {
+                    if w.get_text().is_none()  || w.get_text().unwrap() == "" {
+                        op.lock().unwrap().autocomplete_enter();
+                    }
+                    return glib::signal::Inhibit(false);
+                },
                 /* Tab and Enter key */
                 65289 | 65293 => {
                     if op.lock().unwrap().popover_position.is_some() {
@@ -3397,7 +3403,9 @@ impl App {
                         }
                     }
                     else {
-                        return glib::signal::Inhibit(false);
+                        if ev.get_keyval() != gdk::enums::key::Tab {
+                            return glib::signal::Inhibit(false);
+                        }
                     }
                 },
                 /* Arrow key */
