@@ -21,6 +21,8 @@ serde_derive = "1.0.33"
 serde_json = "1.0.13"
 url = "1.7.0"
 rand = "0.4.2"
+# TODO: update the url when this repo is move to World/
+html2pango = { git = "https://gitlab.gnome.org/danigm/html2pango" }
 
 [dependencies.cairo-rs]
 features = ["png"]

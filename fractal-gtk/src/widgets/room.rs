@@ -11,6 +11,7 @@ use backend::BKCommand;
 
 use fractal_api as api;
 use util;
+use html2pango::matrix_html_to_markup as markup;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender, Receiver};
@@ -78,7 +79,7 @@ impl<'a> RoomBox<'a> {
         let topic = gtk::Label::new("");
         topic.set_line_wrap(true);
         msg.set_line_wrap_mode(pango::WrapMode::WordChar);
-        topic.set_markup(&util::markup(&r.topic.clone().unwrap_or_default()));
+        topic.set_markup(&markup(&r.topic.clone().unwrap_or_default()));
         topic.set_justify(gtk::Justification::Left);
         topic.set_halign(gtk::Align::Start);
         topic.set_valign(gtk::Align::Start);

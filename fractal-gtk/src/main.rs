@@ -10,6 +10,9 @@ extern crate serde_derive;
 
 #[macro_use]
 extern crate fractal_api;
+
+extern crate html2pango;
+
 use fractal_api::backend;
 use fractal_api::types;
 use fractal_api::error;

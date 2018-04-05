@@ -9,7 +9,7 @@ extern crate rand;
 use self::notify_rust::Notification;
 
 use util::get_pixbuf_data;
-use util::markup;
+use html2pango::matrix_html_to_markup as markup;
 
 use self::chrono::prelude::*;
 
