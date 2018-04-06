@@ -61,7 +61,7 @@ impl<'a> MessageBox<'a> {
         msg_widget.set_margin_top(2);
         msg_widget.set_margin_bottom(2);
 
-        msg_widget.pack_start(&avatar, false, false, 5);
+        msg_widget.pack_start(&avatar, false, false, 0);
         msg_widget.pack_start(&content, true, true, 0);
 
         msg_widget.show_all();
@@ -80,7 +80,7 @@ impl<'a> MessageBox<'a> {
         msg_widget.set_margin_top(2);
         msg_widget.set_margin_bottom(2);
 
-        msg_widget.pack_start(&content, true, true, 55);
+        msg_widget.pack_start(&content, true, true, 45);
 
         msg_widget.show_all();
 
