@@ -53,7 +53,7 @@ impl<'a> MessageBox<'a> {
         // +--------+---------+
         // | avatar | content |
         // +--------+---------+
-        let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 10);
 
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
@@ -80,7 +80,7 @@ impl<'a> MessageBox<'a> {
         msg_widget.set_margin_top(2);
         msg_widget.set_margin_bottom(2);
 
-        msg_widget.pack_start(&content, true, true, 45);
+        msg_widget.pack_start(&content, true, true, 50);
 
         msg_widget.show_all();
 
