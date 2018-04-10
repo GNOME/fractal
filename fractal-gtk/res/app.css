@@ -133,7 +133,7 @@ row:not(:selected) .member-uid {
 /** messages **/
 .messages-history {
     background-color: @theme_base_color;
-    padding: 0 18px;
+    padding: 0 18px 30px;
 }
 
 .msg-mention {
