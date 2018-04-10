@@ -48,7 +48,7 @@ impl<'a> MessageBox<'a> {
         }
     }
 
-    pub fn widget(&self) -> gtk::Box {
+    pub fn widget(&self) -> gtk::ListBoxRow {
         // msg
         // +--------+---------+
         // | avatar | content |
@@ -58,18 +58,19 @@ impl<'a> MessageBox<'a> {
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
 
-        msg_widget.set_margin_top(2);
-        msg_widget.set_margin_bottom(2);
-
         msg_widget.pack_start(&avatar, false, false, 0);
         msg_widget.pack_start(&content, true, true, 0);
 
-        msg_widget.show_all();
+        let row = gtk::ListBoxRow::new();
+        row.set_selectable(false);
+        row.set_margin_top(12);
+        row.add(&msg_widget);
+        row.show_all();
 
-        msg_widget
+        row
     }
 
-    pub fn small_widget(&self) -> gtk::Box {
+    pub fn small_widget(&self) -> gtk::ListBoxRow {
         // msg
         // +--------+---------+
         // |        | content |
@@ -77,14 +78,15 @@ impl<'a> MessageBox<'a> {
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 5);
 
         let content = self.build_room_msg_content(true);
-        msg_widget.set_margin_top(2);
-        msg_widget.set_margin_bottom(2);
 
         msg_widget.pack_start(&content, true, true, 50);
 
-        msg_widget.show_all();
+        let row = gtk::ListBoxRow::new();
+        row.set_selectable(false);
+        row.add(&msg_widget);
+        row.show_all();
 
-        msg_widget
+        row
     }
 
     fn build_room_msg_content(&self, small: bool) -> gtk::Box {

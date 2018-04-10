@@ -154,7 +154,7 @@ color: @error_color;
 color: @theme_selected_fg_color; }
 
 .messages-history > row {
- padding: 0 6px;
+ padding: 6px;
 }
 
 .autocomplete {
