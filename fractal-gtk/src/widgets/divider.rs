@@ -25,6 +25,7 @@ pub fn new(text: &str) -> gtk::ListBoxRow {
     divider.pack_start(&right_separator, true, true, 0);
 
     divider_row.add(&divider);
+    divider_row.set_selectable(false);
 
     divider_row.show_all();
     divider_row
