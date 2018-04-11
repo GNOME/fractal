@@ -50,30 +50,38 @@ impl Autocomplete {
         let this: Rc<RefCell<Autocomplete>> = Rc::new(RefCell::new(self));
         let own = this.clone();
         this.borrow().entry.connect_property_cursor_position_notify(move |w| {
-            let input = w.get_text().unwrap();
-            let attr = own.borrow().add_highlight(input);
-            w.set_attributes(&attr);
+            if let Ok(item) = own.try_borrow() {
+                let input = w.get_text().unwrap();
+                let attr = item.add_highlight(input);
+                w.set_attributes(&attr);
+            }
         });
-        
+
         let own = this.clone();
         this.borrow().entry.connect_property_selection_bound_notify(move |w| {
-            let input = w.get_text().unwrap();
-            let attr = own.borrow().add_highlight(input);
-            w.set_attributes(&attr);
+            if let Ok(item) = own.try_borrow() {
+                let input = w.get_text().unwrap();
+                let attr = item.add_highlight(input);
+                w.set_attributes(&attr);
+            }
         });
 
         let own = this.clone();
         this.borrow().entry.connect_changed(move |w| {
-            let input = w.get_text().unwrap();
-            let attr = own.borrow().add_highlight(input);
-            w.set_attributes(&attr);
+            if let Ok(item) = own.try_borrow() {
+                let input = w.get_text().unwrap();
+                let attr = item.add_highlight(input);
+                w.set_attributes(&attr);
+            }
         });
 
         let own = this.clone();
         this.borrow().entry.connect_delete_text(move |_, start, end| {
-            if let Some(pos) = own.borrow().popover_position {
-                if end <= pos + 1 || (start <= pos && end > pos){
-                    own.borrow_mut().autocomplete_enter();
+            if let Ok(mut item) = own.try_borrow_mut() {
+                if let Some(pos) = item.popover_position {
+                    if end <= pos + 1 || (start <= pos && end > pos){
+                        item.autocomplete_enter();
+                    }
                 }
             }
         });
@@ -254,6 +262,7 @@ impl Autocomplete {
             self.entry.delete_text(start_pos, end_pos);
             self.entry.insert_text(&alias, &mut start_pos);
             self.entry.set_position(start_pos);
+
             /* highlight member inside the entry */
             /* we need to set the highlight here the first time
              * because the ui changes from others are blocked as long we hold the look */
@@ -387,11 +396,6 @@ impl Autocomplete {
     }
 
     pub fn autocomplete_show_popover(&mut self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
-        /*let msg_entry = self.entry;
-        let popover = self.popover;
-        let listbox = self.listbox;
-        */
-
         for ch in self.listbox.get_children().iter() {
             self.listbox.remove(ch);
         }
@@ -399,12 +403,6 @@ impl Autocomplete {
         let mut widget_list : HashMap<String, gtk::EventBox> = HashMap::new();
 
         if list.len() > 0 {
-            if let Ok(guard) = self.op.try_lock() {
-                println!("me looking stuff");
-            }
-            else {
-                println!("me not able to looking stuff");
-            }
             let guard = self.op.lock().unwrap();
             for m in list.iter() {
                 let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
@@ -448,18 +446,10 @@ impl Autocomplete {
 
     pub fn autocomplete(&self, text: Option<String>, pos : i32) -> Vec<Member> {
         let mut list: Vec<Member> = vec![];
-            if let Ok(guard) = self.op.try_lock() {
-        println!("Me looking more stuff to get rooms");
-            }
-            else {
-                println!("me not able to looking more stuff to get rooms");
-            }
         let guard = self.op.lock().unwrap();
         let rooms = &guard.rooms;
         match text {
-            None => {
-                //return;
-            }
+            None => {},
             Some(txt) => {
                 if let Some(at_pos) = self.popover_position {
                     let last = {
