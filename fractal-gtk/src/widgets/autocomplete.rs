@@ -332,7 +332,7 @@ impl Autocomplete {
                                 final_pos = Some((bounds_end, final_pos.unwrap().1));
                             }
                             /* The alias ends inside a selection */
-                            if contains(bounds.unwrap(), mark_end) {
+                            if contains(bounds.unwrap(), mark_end - 1) {
                                 final_pos = Some((final_pos.unwrap().0, bounds_start));
                             }
                         }
