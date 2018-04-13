@@ -2806,6 +2806,12 @@ impl App {
         let s = self.gtk_builder
             .get_object::<gtk::ScrolledWindow>("messages_scroll")
             .expect("Can't find message_scroll in ui file.");
+        let btn = self.gtk_builder
+            .get_object::<gtk::Button>("scroll_btn")
+            .expect("Can't find scroll_btn in ui file.");
+        let revealer = self.gtk_builder
+            .get_object::<gtk::Revealer>("scroll_btn_revealer")
+            .expect("Can't find scroll_btn_revealer in ui file.");
 
         let op = self.op.clone();
         s.connect_edge_overshot(move |_, dir| if dir == gtk::PositionType::Top {
@@ -2824,12 +2830,20 @@ impl App {
             adj.connect_value_changed(move |adj| {
                 let bottom = adj.get_upper() - adj.get_page_size();
                 if adj.get_value() == bottom {
+                    revealer.set_reveal_child(false);
                     op.lock().unwrap().autoscroll = true;
                 } else {
+                    revealer.set_reveal_child(true);
                     op.lock().unwrap().autoscroll = false;
                 }
             });
         }
+
+        btn.connect_clicked(move |_| {
+            if let Some(adj) = s.get_vadjustment() {
+                adj.set_value(adj.get_upper() - adj.get_page_size());
+            }
+        });
     }
 
     fn connect_send(&self) {

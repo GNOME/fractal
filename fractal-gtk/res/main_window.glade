@@ -636,29 +636,72 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkScrolledWindow" id="messages_scroll">
+                              <object class="GtkOverlay">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="hscrollbar_policy">never</property>
-                                <property name="window_placement">bottom-left</property>
-                                <property name="min_content_width">300</property>
-                                <property name="min_content_height">300</property>
                                 <child>
-                                  <object class="GtkViewport">
+                                  <object class="GtkScrolledWindow" id="messages_scroll">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="vscroll_policy">natural</property>
-                                    <property name="shadow_type">none</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="hscrollbar_policy">never</property>
+                                    <property name="window_placement">bottom-left</property>
+                                    <property name="min_content_width">300</property>
+                                    <property name="min_content_height">300</property>
                                     <child>
-                                      <object class="GtkListBox" id="message_list">
-                                        <property name="width_request">300</property>
+                                      <object class="GtkViewport">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="vexpand">True</property>
-                                        <style>
-                                          <class name="messages-history"/>
-                                        </style>
+                                        <property name="vscroll_policy">natural</property>
+                                        <property name="shadow_type">none</property>
+                                        <child>
+                                          <object class="GtkListBox" id="message_list">
+                                            <property name="width_request">300</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="vexpand">True</property>
+                                            <style>
+                                              <class name="messages-history"/>
+                                            </style>
+                                          </object>
+                                        </child>
                                       </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="overlay">
+                                  <object class="GtkOverlay">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">end</property>
+                                    <property name="halign">end</property>
+                                    <property name="margin_end">24</property>
+                                    <property name="margin_bottom">24</property>
+                                    <child>
+                                      <object class="GtkRevealer" id="scroll_btn_revealer">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="transition_type">crossfade</property>
+                                        <child>
+                                          <object class="GtkButton" id="scroll_btn">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="icon_name">go-bottom-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <style>
+                                              <class name="osd"/>
+                                              <class name="scroll_button"/>
+                                            </style>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="pass_through">False</property>
+                                        <property name="index">-1</property>
+                                      </packing>
                                     </child>
                                   </object>
                                 </child>

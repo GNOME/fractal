@@ -136,6 +136,11 @@ row:not(:selected) .member-uid {
     padding: 0 18px 30px;
 }
 
+.scroll_button {
+    border-radius: 9999px;
+    -gtk-outline-radius: 9999px;
+}
+
 .msg-mention {
 color: @error_color;
 }
