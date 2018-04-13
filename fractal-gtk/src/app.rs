@@ -34,6 +34,7 @@ use self::gdk_pixbuf::Pixbuf;
 use self::gdk_pixbuf::PixbufExt;
 use self::gio::prelude::*;
 use self::gtk::prelude::*;
+use self::gdk::FrameClockExt;
 
 use globals;
 
@@ -2818,31 +2819,71 @@ impl App {
             op.lock().unwrap().load_more_messages();
         });
 
-        if let Some(adj) = s.get_vadjustment() {
-            let op = self.op.clone();
-            adj.connect_changed(move |adj| {
-                if op.lock().unwrap().autoscroll {
+        /* From clutter-easing.c, based on Robert Penner's
+         * infamous easing equations, MIT license.
+         */
+        fn ease_out_cubic (t: f64) -> f64 {
+            let p = t - 1f64;
+            return p * p * p + 1f64;
+        }
+
+        fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) {
+            if let Some(adj) = view.get_vadjustment() {
+                if animate {
+                    if let Some(clock) = view.get_frame_clock() {
+                        let duration = 200;
+                        let start = adj.get_value();
+                        let end = adj.get_upper() - adj.get_page_size();
+                        let start_time = clock.get_frame_time();
+                        let end_time = start_time + 1000 * duration;
+                        view.add_tick_callback(move |_view, clock| {
+                            let now = clock.get_frame_time();
+
+                            if now < end_time && adj.get_value() != end {
+                                let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
+                                t = ease_out_cubic(t);
+                                adj.set_value(start + t * (end - start));
+                                return glib::Continue(true);
+                            }
+                            else
+                            {
+                                adj.set_value (end);
+                                return glib::Continue(false);
+                            }
+                        });
+                    }
+                }
+                else {
                     adj.set_value(adj.get_upper() - adj.get_page_size());
                 }
-            });
+            }
+        }
+
+        if let Some(adj) = s.get_vadjustment() {
+            let op = self.op.clone();
+            adj.connect_changed(clone!(s => move |_| {
+                if op.lock().unwrap().autoscroll {
+                    scroll_down(&s, false);
+                }
+            }));
 
             let op = self.op.clone();
+            let r = revealer.clone();
             adj.connect_value_changed(move |adj| {
                 let bottom = adj.get_upper() - adj.get_page_size();
                 if adj.get_value() == bottom {
-                    revealer.set_reveal_child(false);
+                    r.set_reveal_child(false);
                     op.lock().unwrap().autoscroll = true;
                 } else {
-                    revealer.set_reveal_child(true);
+                    r.set_reveal_child(true);
                     op.lock().unwrap().autoscroll = false;
                 }
             });
         }
 
         btn.connect_clicked(move |_| {
-            if let Some(adj) = s.get_vadjustment() {
-                adj.set_value(adj.get_upper() - adj.get_page_size());
-            }
+			revealer.set_reveal_child(false);
+            scroll_down(&s, true);
         });
     }
 
