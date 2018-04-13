@@ -1007,7 +1007,6 @@ impl AppOp {
         if !room.messages.is_empty() {
             getmessages = false;
             if let Some(msg) = room.messages.iter().last() {
-                self.scroll_down();
                 self.mark_as_read(msg, Force(false));
             }
         }
@@ -1154,20 +1153,6 @@ impl AppOp {
         }
     }
 
-    pub fn scroll_down(&self) {
-        let scroll = self.gtk_builder
-            .get_object::<gtk::ScrolledWindow>("messages_scroll")
-            .expect("Can't find message_scroll in ui file.");
-
-        let s = scroll.clone();
-        gtk::timeout_add(500, move || {
-            if let Some(adj) = s.get_vadjustment() {
-                adj.set_value(adj.get_upper() - adj.get_page_size());
-            }
-            gtk::Continue(false)
-        });
-    }
-
     fn should_group(&self, msg: &Message, prev: &Message) -> bool {
         let same_sender = msg.sender == prev.sender;
 
@@ -1290,8 +1275,6 @@ impl AppOp {
                     msg: msg.clone(),
                     widget: w.clone(),
             });
-
-            self.scroll_down();
         };
     }
 
@@ -1650,9 +1633,6 @@ impl AppOp {
             let active_room = self.active_room.clone().unwrap_or_default();
             let fs = msgs.iter().filter(|x| x.room == active_room);
             if let Some(msg) = fs.last() {
-                if self.autoscroll {
-                    self.scroll_down();
-                }
                 self.mark_as_read(msg, Force(false));
             }
         }
@@ -2831,8 +2811,15 @@ impl App {
             op.lock().unwrap().load_more_messages();
         });
 
-        let op = self.op.clone();
         if let Some(adj) = s.get_vadjustment() {
+            let op = self.op.clone();
+            adj.connect_changed(move |adj| {
+                if op.lock().unwrap().autoscroll {
+                    adj.set_value(adj.get_upper() - adj.get_page_size());
+                }
+            });
+
+            let op = self.op.clone();
             adj.connect_value_changed(move |adj| {
                 let bottom = adj.get_upper() - adj.get_page_size();
                 if adj.get_value() == bottom {
