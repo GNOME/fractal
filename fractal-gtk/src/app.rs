@@ -1372,7 +1372,8 @@ impl AppOp {
             m.mtype = strn!("m.emote");
         };
 
-
+        /* reenable autoscroll to jump to new message in history */
+        self.autoscroll = true;
         self.add_tmp_room_message(m.clone());
         self.backend.send(BKCommand::SendMsg(m)).unwrap();
     }
