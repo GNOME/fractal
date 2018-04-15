@@ -1361,7 +1361,7 @@ impl AppOp {
         };
 
         if msg.starts_with("/me ") {
-            m.body = msg.trim_left_matches("/me").to_owned();
+            m.body = msg.trim_left_matches("/me ").to_owned();
             m.mtype = strn!("m.emote");
         }
 
