@@ -1336,7 +1336,7 @@ impl AppOp {
         }
     }
 
-    pub fn send_message(&mut self, mut msg: String) {
+    pub fn send_message(&mut self, msg: String) {
         if msg.is_empty() {
             // Not sending empty messages
             return;
@@ -1361,19 +1361,19 @@ impl AppOp {
         };
 
         if msg.starts_with("/me ") {
-            msg = msg.trim_left_matches("/me ").to_owned();
-            m.body = msg.to_string();
+            m.body = msg.trim_left_matches("/me").to_owned();
             m.mtype = strn!("m.emote");
         }
 
         /* reenable autoscroll to jump to new message in history */
         self.autoscroll = true;
-        let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
-        if md_parsed_msg.replace("<p>","").replace("</p>","") != msg.clone() + "\n" {
-            // Riot does not properly show emotes with Markdown;
-            // Emotes with markdown have a newline after the username
-            if m.mtype != "m.emote" {
+        // Riot does not properly show emotes with Markdown;
+        // Emotes with markdown have a newline after the username
+        if m.mtype != "m.emote" {
+            let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
+
+            if md_parsed_msg !=  String::from("<p>") + &msg + &String::from("</p>\n") {
                 m.formatted_body = Some(md_parsed_msg);
                 m.format = Some(String::from("org.matrix.custom.html"));
             }
