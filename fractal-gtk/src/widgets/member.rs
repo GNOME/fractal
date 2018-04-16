@@ -49,7 +49,10 @@ impl<'a> MemberBox<'a> {
         }
 
         username.set_text(&self.member.get_alias().unwrap_or_default());
-        username.set_tooltip_text(&self.member.get_alias().unwrap_or_default()[..]);
+        let mut alias = self.member.get_alias().unwrap_or_default();
+        alias.push_str("\n");
+        alias.push_str(&self.member.uid);
+        username.set_tooltip_text(&alias[..]);
         username.set_margin_end(5);
         username.set_ellipsize(pango::EllipsizeMode::End);
         username.set_valign(gtk::Align::Center);
