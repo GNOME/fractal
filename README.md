@@ -16,9 +16,8 @@ You need Meson and Ninja (as well as Rust and Cargo) to build Fractal.
 ### GNU/Linux
 
 ```
-./configure --prefix=/usr/local
-make
-sudo make install
+meson . _build --prefix=/usr/local
+ninja -C _build
 ```
 
 ### macOS
@@ -27,7 +26,7 @@ sudo make install
 brew install gtk3+ dbus bash
 # empirically needs 3.22.19 or later of gtk3+
 # ...and run configure as:
-/usr/local/bin/bash -c ./configure --prefix=/usr/local
+/usr/local/bin/bash -c meson . _build --prefix=/usr/local
 ```
 
 You may also need to comment out the `notification.show` block in
