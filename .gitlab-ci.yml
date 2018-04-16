@@ -10,7 +10,7 @@ flatpak:
 
         # https://gitlab.gnome.org/alatiera/Hammond/issues/55
         # Force regeneration of gresources regardless of artifacts chage
-        - flatpak-builder --run app org.gnome.Fractal.json glib-compile-resources --sourcedir=fractal-gtk/res/ fractal-gtk/res/resources.xml
+        - flatpak-builder --run app flatpak/org.gnome.Fractal.json glib-compile-resources --sourcedir=fractal-gtk/res/ fractal-gtk/res/resources.xml
 
         - flatpak-builder --run app flatpak/org.gnome.Fractal.json meson --prefix=/app --libdir=/app/lib _build
         - flatpak-builder --run app flatpak/org.gnome.Fractal.json ninja -C _build install
