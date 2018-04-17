@@ -1244,7 +1244,7 @@ impl AppOp {
                     MsgPos::Top => messages.insert(&m, 1),
                 };
 
-                if last == LastViewed::Inline {
+                if last == LastViewed::Inline && msg.sender != self.uid.clone().unwrap_or_default() {
                     let divider: gtk::ListBoxRow = widgets::divider::new("New Messages");
                     match msgpos {
                         MsgPos::Bottom => messages.add(&divider),
