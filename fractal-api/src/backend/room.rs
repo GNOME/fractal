@@ -216,14 +216,16 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
 
     let mut attrs = json!({
         "body": msg.body.clone(),
-        "msgtype": msg.mtype.clone(),
-        "url": msg.url.clone(),
-        "formatted_body": msg.formatted_body.clone(),
-        "format": msg.format.clone(),
+        "msgtype": msg.mtype.clone()
     });
 
     if let Some(u) = msg.url {
         attrs["url"] = json!(u);
+    }
+
+    if let (Some(f), Some(f_b)) = (msg.format, msg.formatted_body) {
+        attrs["formatted_body"] = json!(f);
+        attrs["format"] = json!(f_b);
     }
 
     let tx = bk.tx.clone();
