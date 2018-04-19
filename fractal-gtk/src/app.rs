@@ -115,6 +115,7 @@ pub struct AppOp {
     pub loading_more: bool,
 
     pub invitation_roomid: Option<String>,
+    pub md_enabled: bool,
     invite_list: Vec<Member>,
     search_type: SearchType,
 }
@@ -213,6 +214,7 @@ impl AppOp {
             logged_in: false,
             loading_more: false,
 
+            md_enabled: false,
             invitation_roomid: None,
             invite_list: vec![],
             search_type: SearchType::Invite,
@@ -1370,7 +1372,7 @@ impl AppOp {
 
         // Riot does not properly show emotes with Markdown;
         // Emotes with markdown have a newline after the username
-        if m.mtype != "m.emote" {
+        if m.mtype != "m.emote" && self.md_enabled {
             let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
             if md_parsed_msg !=  String::from("<p>") + &msg + &String::from("</p>\n") {
@@ -2446,6 +2448,7 @@ impl App {
 
         self.connect_send();
         self.connect_attach();
+        self.connect_markdown();
         self.connect_autocomplete();
 
         self.connect_directory();
@@ -2898,6 +2901,17 @@ impl App {
         let op = self.op.clone();
         attach_button.connect_clicked(move |_| {
             op.lock().unwrap().attach_file();
+        });
+    }
+
+    fn connect_markdown(&self) {
+        let toggle_button: gtk::ToggleButton = self.ui.builder
+            .get_object("markdown_button")
+            .expect("Couldn't find markdown_button in ui file.");
+
+        let op = self.op.clone();
+        toggle_button.clone().connect_clicked(move |_| {
+            op.lock().unwrap().md_enabled = toggle_button.get_active();
         });
     }
 
