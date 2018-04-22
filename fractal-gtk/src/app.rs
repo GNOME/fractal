@@ -2911,13 +2911,32 @@ impl App {
     }
 
     fn connect_markdown(&self) {
-        let toggle_button: gtk::ToggleButton = self.ui.builder
+        let md_popover_btn: gtk::MenuButton = self.ui.builder
             .get_object("markdown_button")
             .expect("Couldn't find markdown_button in ui file.");
 
+        let popover: gtk::Popover = self.ui.builder
+            .get_object("markdown_popover")
+            .expect("Couldn't find markdown_popover in ui file.");
+
+        let markdown_switch: gtk::Switch = self.ui.builder
+            .get_object("markdown_switch")
+            .expect("Couldn't find markdown_switch in ui file.");
+
+        let md_img = self.ui.builder
+            .get_object::<gtk::Image>("md_img")
+            .expect("Couldn't find md_img in ui file.");
+
+        md_popover_btn.set_popover(Some(&popover));
+
         let op = self.op.clone();
-        toggle_button.clone().connect_clicked(move |_| {
-            op.lock().unwrap().md_enabled = toggle_button.get_active();
+        markdown_switch.clone().connect_property_active_notify(move |_| {
+            op.lock().unwrap().md_enabled = markdown_switch.get_active();
+            if !markdown_switch.get_active() {
+                md_img.set_from_icon_name("format-justify-left-symbolic",16);
+            } else {
+                md_img.set_from_icon_name("format-indent-more-symbolic",16);
+            }
         });
     }
 
