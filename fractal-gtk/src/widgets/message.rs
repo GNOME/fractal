@@ -62,6 +62,7 @@ impl<'a> MessageBox<'a> {
         msg_widget.pack_start(&content, true, true, 0);
 
         let row = gtk::ListBoxRow::new();
+        self.set_msg_styles(&row);
         row.set_selectable(false);
         row.set_margin_top(12);
         row.add(&msg_widget);
@@ -82,6 +83,7 @@ impl<'a> MessageBox<'a> {
         msg_widget.pack_start(&content, true, true, 50);
 
         let row = gtk::ListBoxRow::new();
+        self.set_msg_styles(&row);
         row.set_selectable(false);
         row.add(&msg_widget);
         row.show_all();
@@ -181,7 +183,7 @@ impl<'a> MessageBox<'a> {
     ///  * msg-tmp: if the message doesn't have id
     ///  * msg-mention: if the message contains the username in the body
     ///  * msg-emote: if the message is an emote
-    fn set_msg_styles(&self, w: &gtk::Label) {
+    fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
         let uname = &self.op.username.clone().unwrap_or_default();
         let msg = self.msg;
         let body: &str = &msg.body;
@@ -200,7 +202,9 @@ impl<'a> MessageBox<'a> {
                 style.add_class("msg-emote");
             }
         }
+    }
 
+    fn set_label_styles(&self, w: &gtk::Label) {
         w.set_line_wrap(true);
         w.set_line_wrap_mode(pango::WrapMode::WordChar);
         w.set_justify(gtk::Justification::Left);
@@ -215,7 +219,7 @@ impl<'a> MessageBox<'a> {
         let msg = gtk::Label::new("");
 
         msg.set_markup(&markup_text(body));
-        self.set_msg_styles(&msg);
+        self.set_label_styles(&msg);
 
         bx.add(&msg);
         bx
@@ -325,7 +329,7 @@ impl<'a> MessageBox<'a> {
         msg_label.set_markup(&format!("<b>{}</b> {}",
             sname.unwrap_or_default(), markup_text(body)));
 
-        self.set_msg_styles(&msg_label);
+        self.set_label_styles(&msg_label);
 
         bx.add(&msg_label);
         bx

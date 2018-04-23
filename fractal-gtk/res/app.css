@@ -1,167 +1,157 @@
 .rooms {
-    background-color: alpha(@borders, 0.25);
-}
-
-.full-separator {
-    margin-top: 0px;
-    margin-bottom: 0px;
+  background-color: alpha(@borders, 0.25);
 }
 
 .notify-badge {
-    background-color: #555;
-    color: white;
-    font-weight: bold;
-    font-size: 0.8em;
-    border-radius: 10px;
-    min-width: 10px;
-    padding: 2px 5px 1px;
+  background-color: #555;
+  color: white;
+  font-weight: bold;
+  font-size: 0.8em;
+  border-radius: 10px;
+  min-width: 10px;
+  padding: 2px 5px 1px;
 }
 
 .notify-highlight {
-    background-color: @theme_selected_bg_color;
+  background-color: @theme_selected_bg_color;
 }
 
 .notify-bold {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .room-row {
-    padding: 6px 0px;
+  padding: 6px 0px;
 }
 
 .noroom-title {
-    font-size: larger;
-    opacity: 0.5;
+  font-size: larger;
+  opacity: 0.5;
 }
 
 .noroom-description {
-    font-size: smaller;
-    opacity: 0.5;
+  font-size: smaller;
+  opacity: 0.5;
 }
 
 .room-list list row:selected .notify-badge {
-    background-color: white;
-    color: @theme_selected_bg_color;
+  background-color: white;
+  color: @theme_selected_bg_color;
 }
 
 .sidebar {
-    border: none;
+  border: none;
 }
 
 .room-avatar-container .avatar {
-    margin: 3px;
-}
-
-row .username {
-    font-weight: bold;
-    font-size: small;
-}
-
-row .msg-emote {
-    font-size: small;
-}
-
-row:not(:selected) .username,
-row:not(:selected) .msg-emote {
-    color: #4a90d9
-}
-
-.divider {
-    color: #4a90d9
-}
-
-.divider separator {
-    background: #4a90d9;
-}
-
-
-row .timestamp {
-    font-size: small;
+  margin: 3px;
 }
 
 .room-menu {
-    padding: 0 6px;
-    margin-top: 0;
-    margin-bottom: 0;
-    border-radius: 0;
-    border-top-style: none;
-    border-bottom-style: none;
+  padding: 0 6px;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: 0;
+  border-top-style: none;
+  border-bottom-style: none;
 }
 
 .room-menu:hover:not(:backdrop) {
-    background-image: none;
-    text-shadow: none;
+  background-image: none;
+  text-shadow: none;
 }
 
 .room-title {
-    padding: 5px;
-    padding-bottom: 2px;
-    border-bottom: 1px solid @borders;
-    margin-bottom: 5px;
-    margin-left: 4px;
-    margin-right: 4px;
-    font-weight: bold;
-    font-size: x-small;
-    color: @insensitive_fg_color;
+  padding: 5px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid @borders;
+  margin-bottom: 5px;
+  margin-left: 4px;
+  margin-right: 4px;
+  font-weight: bold;
+  font-size: x-small;
+  color: @insensitive_fg_color;
 }
 
 .room-empty-text {
-    color: @insensitive_fg_color;
-    padding: 10px;
-    font-size: x-small;
+  color: @insensitive_fg_color;
+  padding: 10px;
+  font-size: x-small;
 }
 
 row:not(:selected) .member-uid {
-    color: @insensitive_fg_color;
+  color: @insensitive_fg_color;
 }
 
 .member-uid {
-    font-size: x-small;
+  font-size: x-small;
 }
 
 .direct-chat {
-    color: alpha(@theme_fg_color, 0.5);
+  color: alpha(@theme_fg_color, 0.5);
 }
+
 .room-list list row:selected .direct-chat {
-    color: alpha(@theme_selected_fg_color, 0.5);
+  color: alpha(@theme_selected_fg_color, 0.5);
 }
 
 .collapsed row:selected {
-    background-color: transparent;
+  background-color: transparent;
 }
 
-/** messages **/
+/** message history **/
 .messages-history {
-    background-color: @theme_base_color;
-    padding: 0 18px 30px;
+  background-color: @theme_base_color;
+  padding: 0 18px 30px;
+}
+
+.messages-history > row:not(.msg-mention) {
+  padding: 6px 9px;
 }
 
 .scroll_button {
-    border-radius: 9999px;
-    -gtk-outline-radius: 9999px;
+  border-radius: 9999px;
+  -gtk-outline-radius: 9999px;
 }
 
-.msg-mention {
-color: @error_color;
+row.msg-mention {
+  background: alpha(@theme_selected_bg_color, 0.2);
+  border-left: 3px solid @theme_selected_bg_color;
+  padding: 6px;
+  padding-right: 9px;
+  padding-left: 6px;
+  border-radius: 3px;
 }
 
-.msg-tmp { 
+row.msg-tmp {
   color: alpha(@theme_fg_color, 0.4); 
 }
 
-.msg-emote {
-    color: alpha(@theme_fg_color, 0.85);
-    padding: 12px 0px;
+row.msg-emote {
+  font-size: small;
+  padding: 12px 0px;
 }
 
-.messages-history row:selected .msg-mention,
-.messages-history row:selected .msg-emote {
-color: @theme_selected_fg_color; }
-
-.messages-history > row {
- padding: 6px;
+row .username {
+  font-weight: bold;
+  font-size: small;
 }
 
+row .username,
+row.msg-emote,
+.divider {
+  color: @theme_selected_bg_color;
+}
+
+.divider separator {
+  background: @theme_selected_bg_color;
+}
+
+row .timestamp {
+  font-size: small;
+}
+
+/** autocomplete popover **/
 .autocomplete {
   margin-left: 150px;
 }
@@ -173,7 +163,7 @@ color: @theme_selected_fg_color; }
 }
 
 .autocomplete .frame {
- border: 0;
+  border: 0;
 }
 
 .autocomplete row {
@@ -183,19 +173,7 @@ color: @theme_selected_fg_color; }
 
 .invite-selected,
 .invite-selected row {
-    background-color: @theme_bg_color;
-}
-
-@keyframes blink {
-  to { opacity: 0.3; }
-}
-
-.syncing {
-  animation-name: blink;
-  animation-duration: 0.5s;
-  animation-timing-function: ease;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
+  background-color: @theme_bg_color;
 }
 
 /*#FIXME css style to remove round corners in the header*/
@@ -207,5 +185,5 @@ stack headerbar:first-child:not(:only-child) {
 }
 
 stack.titlebar:not(headerbar) > box > separator {
-  background-color: #b6b6b3;
+  background-color: @borders;
 }
