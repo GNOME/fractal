@@ -258,6 +258,7 @@ impl Autocomplete {
             let end_pos = self.entry.get_position();
             self.entry.delete_text(start_pos, end_pos);
             self.entry.insert_text(&alias, &mut start_pos);
+            self.entry.insert_text(" ", &mut start_pos);
             self.entry.set_position(start_pos);
 
             /* highlight member inside the entry */
