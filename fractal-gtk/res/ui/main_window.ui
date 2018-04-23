@@ -48,6 +48,29 @@
                   </object>
                 </child>
                 <child>
+                  <object class="GtkMenuButton" id="add_room_menu">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="icon_name">list-add-symbolic</property>
+                      </object>
+                    </child>
+                    <child internal-child="accessible">
+                      <object class="AtkObject" id="add_room_menu-atkobject">
+                        <property name="AtkObject::accessible-name" translatable="yes">User</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="pack_type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkToggleButton" id="room_search_button">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -68,28 +91,6 @@
                     <style>
                       <class name="room-search-button"/>
                     </style>
-                  </object>
-                  <packing>
-                    <property name="pack_type">end</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkMenuButton" id="add_room_menu">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">list-add-symbolic</property>
-                      </object>
-                    </child>
-                    <child internal-child="accessible">
-                      <object class="AtkObject" id="add_room_menu-atkobject">
-                        <property name="AtkObject::accessible-name" translatable="yes">User</property>
-                      </object>
-                    </child>
                   </object>
                   <packing>
                     <property name="pack_type">end</property>
@@ -644,7 +645,7 @@
                                       <object class="GtkImage" id="md_img">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="icon_name">format-indent-more-symbolic</property>
+                                        <property name="icon_name">format-justify-left-symbolic</property>
                                       </object>
                                     </child>
                                   </object>

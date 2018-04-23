@@ -2933,9 +2933,9 @@ impl App {
         markdown_switch.clone().connect_property_active_notify(move |_| {
             op.lock().unwrap().md_enabled = markdown_switch.get_active();
             if !markdown_switch.get_active() {
-                md_img.set_from_icon_name("format-justify-left-symbolic",16);
+                md_img.set_from_icon_name("format-justify-left-symbolic",1);
             } else {
-                md_img.set_from_icon_name("format-indent-more-symbolic",16);
+                md_img.set_from_icon_name("format-indent-more-symbolic",1);
             }
         });
     }
