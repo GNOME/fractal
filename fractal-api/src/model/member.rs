@@ -18,10 +18,10 @@ impl Clone for Member {
 }
 
 impl Member {
-    pub fn get_alias(&self) -> Option<String> {
+    pub fn get_alias(&self) -> String {
         match self.alias {
-            ref a if a.is_none() || a.clone().unwrap().is_empty() => Some(self.uid.clone()),
-            ref a => a.clone(),
+            ref a if a.is_none() || a.clone().unwrap().is_empty() => self.uid.clone(),
+            ref a => a.as_ref().unwrap().clone(),
         }
     }
 }

@@ -798,7 +798,7 @@ impl AppOp {
         let title = format!("Join {}?", room_name);
         let secondary;
         if let Some(ref sender) = r.inv_sender {
-            let sender_name = sender.get_alias().unwrap_or(sender.uid.clone());
+            let sender_name = sender.get_alias();
             secondary = format!("You've been invited to join to <b>{}</b> room by <b>{}</b>",
                                      room_name, sender_name);
         } else {

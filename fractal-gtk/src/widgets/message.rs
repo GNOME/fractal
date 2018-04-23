@@ -148,7 +148,7 @@ impl<'a> MessageBox<'a> {
 
         match m {
             Some(member) => {
-                self.username.set_text(&member.get_alias().unwrap_or_default());
+                self.username.set_text(&member.get_alias());
                 get_member_info(backend.clone(), avatar.clone(), self.username.clone(), sender.clone(), globals::MSG_ICON_SIZE, 10);
             }
             None => {
@@ -163,10 +163,10 @@ impl<'a> MessageBox<'a> {
     fn build_room_msg_username(&self, sender: &str, member: Option<&Member>) -> gtk::Label {
         let uname = match member {
             Some(m) => m.get_alias(),
-            None => Some(String::from(sender)),
+            None => String::from(sender),
         };
 
-        self.username.set_text(&uname.unwrap_or_default());
+        self.username.set_text(&uname);
         self.username.set_justify(gtk::Justification::Left);
         self.username.set_halign(gtk::Align::Start);
         if let Some(style) = self.username.get_style_context() {
@@ -316,14 +316,13 @@ impl<'a> MessageBox<'a> {
 
         let sname = match member {
             Some(m) => m.get_alias(),
-            None => Some(String::from(sender)),
+            None => String::from(sender),
         };
 
         let msg_label = gtk::Label::new("");
         let body: &str = &msg.body;
 
-        msg_label.set_markup(&format!("<b>{}</b> {}",
-            sname.unwrap_or_default(), markup_text(body)));
+        msg_label.set_markup(&format!("<b>{}</b> {}", sname, markup_text(body)));
 
         self.set_msg_styles(&msg_label);
 

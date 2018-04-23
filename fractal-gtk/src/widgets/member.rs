@@ -48,8 +48,8 @@ impl<'a> MemberBox<'a> {
             style.add_class("member-uid");
         }
 
-        username.set_text(&self.member.get_alias().unwrap_or_default());
-        let mut alias = self.member.get_alias().unwrap_or_default();
+        username.set_text(&self.member.get_alias());
+        let mut alias = self.member.get_alias();
         alias.push_str("\n");
         alias.push_str(&self.member.uid);
         username.set_tooltip_text(&alias[..]);

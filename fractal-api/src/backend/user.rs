@@ -129,12 +129,12 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
     let m = member.unwrap();
 
     let uid = m.uid.clone();
-    let alias = m.get_alias().clone();
+    let alias = m.get_alias();
     let avatar = m.avatar.clone();
 
     semaphore!(bk.limit_threads, {
         match get_user_avatar_img(&baseu, uid,
-                                  alias.unwrap_or_default(),
+                                  alias,
                                   avatar.unwrap_or_default()) {
             Ok(fname) => { tx.send(fname.clone()).unwrap(); }
             Err(_) => { tx.send(String::new()).unwrap(); }
