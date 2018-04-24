@@ -1767,26 +1767,16 @@ impl AppOp {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("new_room_name")
             .expect("Can't find new_room_name in ui file.");
-        let preset = self.ui.builder
-            .get_object::<gtk::ComboBox>("new_room_preset")
-            .expect("Can't find new_room_preset in ui file.");
+        let private = self.ui.builder
+            .get_object::<gtk::ToggleButton>("private_visibility_button")
+            .expect("Can't find private_visibility_button in ui file.");
 
         let n = name.get_text().unwrap_or(String::from(""));
 
-        let p = match preset.get_active_iter() {
-            None => backend::RoomType::Private,
-            Some(iter) => {
-                match preset.get_model() {
-                    None => backend::RoomType::Private,
-                    Some(model) => {
-                        match model.get_value(&iter, 1).get().unwrap() {
-                            "private_chat" => backend::RoomType::Private,
-                            "public_chat" => backend::RoomType::Public,
-                            _ => backend::RoomType::Private,
-                        }
-                    }
-                }
-            }
+        // Since the switcher
+        let p = match private.get_active() {
+            true => backend::RoomType::Private,
+            false => backend::RoomType::Public,
         };
 
         let internal_id: String = thread_rng().gen_ascii_chars().take(10).collect();
@@ -2577,22 +2567,29 @@ impl App {
         let entry = self.ui.builder
             .get_object::<gtk::Entry>("new_room_name")
             .expect("Can't find new_room_name in ui file.");
+        let private = self.ui.builder
+            .get_object::<gtk::ToggleButton>("private_visibility_button")
+            .expect("Can't find private_visibility_button in ui file.");
 
-        cancel.connect_clicked(clone!(entry, dialog => move |_| {
+        private.clone().set_active(true);
+        cancel.connect_clicked(clone!(entry, dialog, private => move |_| {
             dialog.hide();
             entry.set_text("");
+            private.set_active(true);
         }));
-        dialog.connect_delete_event(clone!(entry, dialog => move |_, _| {
+        dialog.connect_delete_event(clone!(entry, dialog, private => move |_, _| {
             dialog.hide();
             entry.set_text("");
+            private.set_active(true);
             glib::signal::Inhibit(true)
         }));
 
         let op = self.op.clone();
-        confirm.connect_clicked(clone!(entry, dialog => move |_| {
+        confirm.connect_clicked(clone!(entry, dialog, private => move |_| {
             dialog.hide();
             op.lock().unwrap().create_new_room();
             entry.set_text("");
+            private.set_active(true);
         }));
 
         let op = self.op.clone();
@@ -2600,6 +2597,7 @@ impl App {
             dialog.hide();
             op.lock().unwrap().create_new_room();
             entry.set_text("");
+            private.set_active(true);
         }));
     }
 
