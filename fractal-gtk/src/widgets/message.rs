@@ -181,7 +181,8 @@ impl<'a> MessageBox<'a> {
     /// Add classes to the widget depending on the properties:
     ///
     ///  * msg-tmp: if the message doesn't have id
-    ///  * msg-mention: if the message contains the username in the body
+    ///  * msg-mention: if the message contains the username in the body and
+    ///                    sender does not contain username
     ///  * msg-emote: if the message is an emote
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
         let uname = &self.op.username.clone().unwrap_or_default();
@@ -194,7 +195,8 @@ impl<'a> MessageBox<'a> {
                 style.add_class("msg-tmp");
             }
             // mentions
-            if String::from(body).contains(uname) {
+            if String::from(body).contains(uname) &&
+            !msg.sender.contains(uname) {
                 style.add_class("msg-mention");
             }
             // emotes
