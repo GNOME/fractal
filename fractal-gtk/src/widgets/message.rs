@@ -217,9 +217,34 @@ impl<'a> MessageBox<'a> {
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let msg = gtk::Label::new("");
+        let uname = self.op.username.clone().unwrap_or_default();
 
         msg.set_markup(&markup_text(body));
         self.set_label_styles(&msg);
+
+        if String::from(body).contains(&uname) {
+
+            let name = uname.clone();
+            msg.connect_property_cursor_position_notify(move |w| {
+                if let Some(text) = w.get_text() {
+                    let attr = highlight_username(w.clone(), &name, text);
+                    w.set_attributes(&attr);
+                }
+            });
+
+            let name = uname.clone();
+            msg.connect_property_selection_bound_notify(move |w| {
+                if let Some(text) = w.get_text() {
+                    let attr = highlight_username(w.clone(), &name, text);
+                    w.set_attributes(&attr);
+                }
+            });
+
+            if let Some(text) = msg.get_text() {
+                let attr = highlight_username(msg.clone(), &uname, text);
+                msg.set_attributes(&attr);
+            }
+        }
 
         bx.add(&msg);
         bx
@@ -333,4 +358,72 @@ impl<'a> MessageBox<'a> {
         bx.add(&msg_label);
         bx
     }
+}
+
+fn highlight_username(label: gtk::Label, alias: &String, input: String) -> pango::AttrList {
+    fn contains((start, end): (i32, i32), item: i32) -> bool {
+        if start <= end {
+            return start <= item && end > item;
+        } else {
+            return start <= item || end > item;
+        }
+    }
+    let input = input.to_lowercase();
+    let bounds = label.get_selection_bounds();
+    let context = gtk::Widget::get_style_context (&label.clone().upcast::<gtk::Widget>()).unwrap();
+    let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_bg_color").unwrap();
+    let red = fg.red * 65535. + 0.5;
+    let green = fg.green * 65535. + 0.5;
+    let blue = fg.blue * 65535. + 0.5;
+    let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16).unwrap();
+
+    let attr = pango::AttrList::new();
+    let mut input = input.clone();
+    let alias = &alias.to_lowercase();
+    let mut removed_char = 0;
+    while input.contains(alias) {
+        let pos = {
+            let start = input.find(alias).unwrap() as i32;
+            (start, start + alias.len() as i32)
+        };
+        let mut color = color.clone();
+        let mark_start = removed_char as i32 + pos.0;
+        let mark_end = removed_char as i32 + pos.1;
+        let mut final_pos = Some((mark_start, mark_end));
+        /* exclude selected text */
+        if let Some((bounds_start, bounds_end)) = bounds {
+            /* If the selection is within the alias */
+            if contains((mark_start, mark_end), bounds_start) &&
+                contains((mark_start, mark_end), bounds_end) {
+                    final_pos = Some((mark_start, bounds_start));
+                    /* Add blue color after a selection */
+                    let mut color = color.clone();
+                    color.set_start_index(bounds_end as u32);
+                    color.set_end_index(mark_end as u32);
+                    attr.insert(color);
+                } else {
+                    /* The alias starts inside a selection */
+                    if contains(bounds.unwrap(), mark_start) {
+                        final_pos = Some((bounds_end, final_pos.unwrap().1));
+                    }
+                    /* The alias ends inside a selection */
+                    if contains(bounds.unwrap(), mark_end - 1) {
+                        final_pos = Some((final_pos.unwrap().0, bounds_start));
+                    }
+                }
+        }
+
+        if let Some((start, end)) = final_pos {
+            color.set_start_index(start as u32);
+            color.set_end_index(end as u32);
+            attr.insert(color);
+        }
+        {
+            let end = pos.1 as usize;
+            input.drain(0..end);
+        }
+        removed_char = removed_char + pos.1 as u32;
+    }
+
+    return attr;
 }
