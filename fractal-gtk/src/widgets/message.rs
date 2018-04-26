@@ -186,6 +186,7 @@ impl<'a> MessageBox<'a> {
     ///  * msg-emote: if the message is an emote
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
         let uname = &self.op.username.clone().unwrap_or_default();
+        let uid = self.op.uid.clone().unwrap_or_default();
         let msg = self.msg;
         let body: &str = &msg.body;
 
@@ -195,8 +196,7 @@ impl<'a> MessageBox<'a> {
                 style.add_class("msg-tmp");
             }
             // mentions
-            if String::from(body).contains(uname) &&
-            !msg.sender.contains(uname) {
+            if String::from(body).contains(uname) && msg.sender != uid {
                 style.add_class("msg-mention");
             }
             // emotes
