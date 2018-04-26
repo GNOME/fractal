@@ -1949,7 +1949,7 @@ impl AppOp {
         let sender = ev.sender.clone();
         match ev.content["membership"].as_str() {
             Some("leave") => {
-                if let Some(r) = self.rooms.get_mut(&self.active_room.clone().unwrap_or_default()) {
+                if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
                     r.members.remove(&sender);
                 }
             }
@@ -1959,7 +1959,7 @@ impl AppOp {
                     alias: Some(strn!(ev.content["displayname"].as_str().unwrap_or(""))),
                     uid: sender.clone(),
                 };
-                if let Some(r) = self.rooms.get_mut(&self.active_room.clone().unwrap_or_default()) {
+                if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
                     r.members.insert(m.uid.clone(), m.clone());
                 }
             }
@@ -1968,7 +1968,7 @@ impl AppOp {
         }
 
         if ev.room != self.active_room.clone().unwrap_or_default() {
-            // if it isn't the current room, this event is not important for me
+            // if it isn't the current room, this event we don't need to update the UI
             return;
         }
 
