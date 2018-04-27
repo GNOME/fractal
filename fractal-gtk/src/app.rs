@@ -224,7 +224,7 @@ impl AppOp {
 
     pub fn initial_sync(&self, show: bool) {
         if show {
-            self.inapp_notify("Initial sync, this can take some time");
+            self.inapp_notify("Syncing, this could take a while");
         } else {
             self.hide_inapp_notify();
         }
