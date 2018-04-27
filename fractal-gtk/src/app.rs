@@ -3176,11 +3176,11 @@ impl App {
         cancel.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_direct_chat_dialog();
         }));
-        invite.connect_clicked(clone!(op => move |_| {
-            op.lock().unwrap().start_chat();
-        }));
         entry.connect_changed(clone!(invite => move |entry| {
                 invite.set_sensitive(entry.get_buffer().get_length() > 0);
+        }));
+        invite.connect_clicked(clone!(op => move |_| {
+            op.lock().unwrap().start_chat();
         }));
     }
 
