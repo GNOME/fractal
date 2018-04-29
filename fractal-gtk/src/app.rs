@@ -1810,7 +1810,7 @@ impl AppOp {
             .expect("Can't find join_room_dialog in ui file.");
         let btn = self.ui.builder
             .get_object::<gtk::Button>("join_room_button")
-            .expect("Can't find new_room_button in ui file.");
+            .expect("Can't find join_room_button in ui file.");
         btn.set_sensitive(false);
         dialog.present();
     }
