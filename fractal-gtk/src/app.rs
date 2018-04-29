@@ -2358,11 +2358,11 @@ impl AppOp {
         if self.invite_list.is_empty() {
             self.ui.builder
                 .get_object::<gtk::Button>("direct_chat_button")
-                .map(|btn| btn.set_sensitive(self.false);
+                .map(|btn| btn.set_sensitive(false));
 
             self.ui.builder
                 .get_object::<gtk::Button>("invite_button")
-                .map(|btn| btn.set_sensitive(self.false));
+                .map(|btn| btn.set_sensitive(false));
         }
 
         dialog.resize(300, 200);
