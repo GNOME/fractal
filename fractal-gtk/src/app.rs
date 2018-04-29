@@ -2291,6 +2291,14 @@ impl AppOp {
 
         self.invite_list.push(u.clone());
 
+        self.ui.builder
+            .get_object::<gtk::Button>("direct_chat_button")
+            .map(|btn| btn.set_sensitive(true));
+
+        self.ui.builder
+            .get_object::<gtk::Button>("invite_button")
+            .map(|btn| btn.set_sensitive(true));
+
         let w;
         {
             let mb = widgets::MemberBox::new(&u, &self);
@@ -2348,6 +2356,14 @@ impl AppOp {
                 to_invite.remove(&r);
             }
         }
+
+        self.ui.builder
+            .get_object::<gtk::Button>("direct_chat_button")
+            .map(|btn| btn.set_sensitive(self.invite_list.len() > 0));
+
+        self.ui.builder
+            .get_object::<gtk::Button>("invite_button")
+            .map(|btn| btn.set_sensitive(self.invite_list.len() > 0));
         dialog.resize(300, 200);
     }
 }
@@ -3127,6 +3143,7 @@ impl App {
         cancel.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_invite_dialog();
         }));
+        invite.set_sensitive(false);
         invite.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().invite();
         }));
@@ -3147,6 +3164,10 @@ impl App {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
+
+        self.ui.builder
+            .get_object::<gtk::Dialog>("direct_chat_button")
+            .map(|btn| btn.set_sensitive(false));
 
         // this is used to cancel the timeout and not search for every key input. We'll wait 500ms
         // without key release event to launch the search
@@ -3175,9 +3196,6 @@ impl App {
         }));
         cancel.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_direct_chat_dialog();
-        }));
-        entry.connect_changed(clone!(invite => move |entry| {
-                invite.set_sensitive(entry.get_buffer().get_length() > 0);
         }));
         invite.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().start_chat();
