@@ -5,7 +5,6 @@ extern crate gdk;
 extern crate notify_rust;
 extern crate rand;
 extern crate comrak;
-extern crate ammonia;
 
 use std::env;
 
@@ -18,7 +17,7 @@ use self::chrono::prelude::*;
 
 use self::rand::{thread_rng, Rng};
 
-use self::comrak::{markdown_to_html, ComrakOptions};
+use self::comrak::{markdown_to_html,ComrakOptions};
 
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
@@ -1383,14 +1382,6 @@ impl AppOp {
             let md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
             if md_parsed_msg !=  String::from("<p>") + &msg + &String::from("</p>\n") {
-                // removing all markdown from the text body
-                let sanitized_html = ammonia::Builder::new()
-                    .tags([].iter().cloned().collect())
-                    .tag_attributes([].iter().cloned().collect())
-                    .link_rel(None)
-                    .clean(&md_parsed_msg)
-                    .to_string();
-                m.body = sanitized_html;
                 m.formatted_body = Some(md_parsed_msg);
                 m.format = Some(String::from("org.matrix.custom.html"));
             }
