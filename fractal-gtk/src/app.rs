@@ -1737,10 +1737,9 @@ impl AppOp {
             .get_object::<gtk::Widget>("direct_chat_search_scroll")
             .expect("Can't find direct_chat_search_scroll in ui file.");
         self.search_type = SearchType::DirectChat;
-        let btn = self.ui.builder
+        self.ui.builder
             .get_object::<gtk::Button>("direct_chat_button")
-            .expect("Can't find invite_user_button in ui file.");
-        btn.set_sensitive(false);
+            .map(|btn| btn.set_sensitive(false));
         dialog.present();
         scroll.hide();
     }
@@ -1808,10 +1807,9 @@ impl AppOp {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
-        let btn = self.ui.builder
+        self.ui.builder
             .get_object::<gtk::Button>("join_room_button")
-            .expect("Can't find join_room_button in ui file.");
-        btn.set_sensitive(false);
+            .map(|btn| btn.set_sensitive(false));
         dialog.present();
     }
 
