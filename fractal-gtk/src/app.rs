@@ -2355,13 +2355,16 @@ impl AppOp {
             }
         }
 
-        self.ui.builder
-            .get_object::<gtk::Button>("direct_chat_button")
-            .map(|btn| btn.set_sensitive(self.invite_list.len() > 0));
+        if self.invite_list.is_empty() {
+            self.ui.builder
+                .get_object::<gtk::Button>("direct_chat_button")
+                .map(|btn| btn.set_sensitive(self.false);
 
-        self.ui.builder
-            .get_object::<gtk::Button>("invite_button")
-            .map(|btn| btn.set_sensitive(self.invite_list.len() > 0));
+            self.ui.builder
+                .get_object::<gtk::Button>("invite_button")
+                .map(|btn| btn.set_sensitive(self.false));
+        }
+
         dialog.resize(300, 200);
     }
 }
@@ -3163,10 +3166,6 @@ impl App {
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
 
-        self.ui.builder
-            .get_object::<gtk::Dialog>("direct_chat_button")
-            .map(|btn| btn.set_sensitive(false));
-
         // this is used to cancel the timeout and not search for every key input. We'll wait 500ms
         // without key release event to launch the search
         let source_id: Arc<Mutex<Option<glib::source::SourceId>>> = Arc::new(Mutex::new(None));
@@ -3195,6 +3194,7 @@ impl App {
         cancel.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_direct_chat_dialog();
         }));
+        invite.set_sensitive(false);
         invite.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().start_chat();
         }));
