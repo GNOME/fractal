@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<schemalist>
+  <enum id="org.gnome.Fractal.PasswordStorage">
+    <value nick="Secret Service" value="0"/>
+    <value nick="Plain text" value="1"/>
+  </enum>
+
+  <schema path="/org/gnome/factal/" id="org.gnome.Fractal">
+
+    <key name="password-storage" enum="org.gnome.Fractal.PasswordStorage">
+      <default>'Secret Service'</default>
+      <summary>Type of password and token storage</summary>
+      <description>
+        Type of password and token storage, default value is: Secret Service
+      </description>
+    </key>
+
+  </schema>
+
+</schemalist>
