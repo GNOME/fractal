@@ -1,17 +1,16 @@
 project(
   'fractal', 'rust',
   version: '0.1.28',
-  license: 'GPLv3',
+  license: 'GPL-3.0-only',
 )
 
 fractal_version = meson.project_version()
-version_array = fractal_version.split('.')
-fractal_major_version = version_array[0].to_int()
-fractal_minor_version = version_array[1].to_int()
-fractal_version_micro = version_array[2].to_int()
+build_date = run_command('date', '+%Y-%m-%d').stdout().strip()
 
-fractal_prefix = get_option('prefix')
-fractal_bindir = join_paths(fractal_prefix, get_option('bindir'))
+conf = configuration_data()
+conf.set('VERSION', fractal_version)
+conf.set('LICENSE', meson.project_license()[0])
+conf.set('BUILD_DATE', build_date)
 
 datadir = get_option('datadir')
 icondir = join_paths(datadir, 'icons')
@@ -33,7 +32,7 @@ cargo_release = custom_target('cargo-build',
                         input: sources,
                         output: ['fractal'],
                         install: true,
-                        install_dir: fractal_bindir,
+                        install_dir: get_option('bindir'),
                         command: [cargo_script, '@CURRENT_SOURCE_DIR@', '@OUTPUT@'])
 
 run_target('release', command: ['scripts/release.sh',
