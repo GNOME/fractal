@@ -12,8 +12,13 @@ conf.set('VERSION', fractal_version)
 conf.set('LICENSE', meson.project_license()[0])
 conf.set('BUILD_DATE', build_date)
 
+mac_bundle = get_option('mac_bundle')
 datadir = get_option('datadir')
 icondir = join_paths(datadir, 'icons')
+
+if mac_bundle and host_machine.system() != 'darwin'
+    error('Can\'t build a mac bundle if the target machine isn\'t darwin')
+endif
 
 subdir('fractal-gtk/res')
 
