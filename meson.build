@@ -28,11 +28,12 @@ cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 grabber = find_program('scripts/grabber.sh')
 cargo_release = find_program('scripts/release.sh')
+create_mac_bundle = find_program('scripts/create-mac-bundle.sh')
 
 c = run_command(grabber)
 sources = c.stdout().strip().split('\n')
 
-cargo_release = custom_target('cargo-build',
+fractal = custom_target('cargo-build',
                         build_by_default: true,
                         input: sources,
                         output: ['fractal'],
@@ -43,3 +44,17 @@ cargo_release = custom_target('cargo-build',
 run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
                                ])
+
+if mac_bundle
+    brew = find_program('brew', required: true)
+    pkg_config = find_program('pkg-config', required: true)
+    install_name_tool = find_program('install_name_tool', required: true)
+    glib_compile_schemas = find_program('glib-compile-schemas', required: true)
+    gtk_query_immodules = find_program('gtk-query-immodules-3.0', required: true)
+
+    meson.add_install_script(
+        create_mac_bundle.path(),
+        join_paths(get_option('prefix'), get_option('bindir'), 'fractal'),
+        get_option('prefix')
+    )
+endif
