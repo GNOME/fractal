@@ -13,6 +13,8 @@ extern crate fractal_api;
 
 extern crate html2pango;
 
+extern crate gspell;
+
 use fractal_api::backend;
 use fractal_api::types;
 use fractal_api::error;

@@ -20,6 +20,7 @@ mod roomlist_search;
 mod scroll;
 mod search;
 mod send;
+mod spellcheck;
 
 use app::App;
 
@@ -73,6 +74,7 @@ impl App {
         self.connect_attach();
         self.connect_markdown();
         self.connect_autocomplete();
+        self.connect_spellcheck();
 
         self.connect_directory();
         self.connect_room_config();

@@ -39,6 +39,9 @@ version = "0.4.2"
 [dependencies.fractal-api]
 path = "../fractal-api"
 
+[dependencies.gspell]
+git = "https://gitlab.gnome.org/jsparber/gspell-rs"
+
 [dependencies.gtk]
 features = ["v3_22"]
 version = "0.4.0"
