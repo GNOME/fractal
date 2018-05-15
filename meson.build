@@ -40,4 +40,4 @@ run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
                                ])
 
-meson.add_install_script('scripts/meson_post_inst.sh')
+meson.add_install_script('scripts/meson_post_install.py')
