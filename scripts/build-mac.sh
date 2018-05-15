@@ -15,9 +15,9 @@ APP_BUNDLE=$1
 shift
 
 meson \
-    --prefix $APP_BUNDLE/Contents \
-    --bindir MacOS \
-    --libdir Frameworks \
-    --datadir Resources \
+    --prefix $APP_BUNDLE \
+    --bindir Contents/MacOS \
+    --libdir Contents/Frameworks \
+    --datadir Contents/Resources \
     -Dmac_bundle=true \
     $@

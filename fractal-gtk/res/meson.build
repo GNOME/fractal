@@ -13,5 +13,5 @@ if host_machine.system() == 'linux' or host_machine.system() == 'bsd'
     install_data('org.gnome.Fractal.desktop', install_dir : datadir + '/applications')
     install_data(appdata, install_dir : datadir + '/appdata')
 elif host_machine.system() == 'darwin' and mac_bundle
-    install_data(infoplist, install_dir : '')
+    install_data(infoplist, install_dir : get_option('prefix') + '/Contents')
 endif

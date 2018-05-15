@@ -64,11 +64,10 @@ for LIB in `gtk-query-immodules-3.0 | grep .so | sed 's/"//g'`; do
     copy_and_fix $LIB
 done
 
-mkdir -p $RESOURCES/etc/gtk-3.0/
 gtk-query-immodules-3.0 \
   | sed "s|$GTK_PREFIX/lib/gtk-3.0/$GTK_VERSION/immodules/|@rpath/|g" \
-  | sed "s|$GTK_PREFIX/share/locale|@executable_path/../Resources/share/locale|g" \
-  > $RESOURCES/etc/gtk-3.0/gtk.immodules
+  | sed "s|$GTK_PREFIX/shareaa/locale|@executable_path/../Resources/locale|g" \
+  > $RESOURCES/gtk.immodules
 
 
 # GDK Pixbuf modules things
@@ -79,24 +78,23 @@ for LIB in `pkg-config gdk-pixbuf-2.0 --variable=gdk_pixbuf_moduledir`/*.so; do
     copy_and_fix $LIB
 done
 
-mkdir -p $RESOURCES/lib/gdk-pixbuf-2.0/$GDK_PIXBUF_VERSION
 gdk-pixbuf-query-loaders \
   | sed "s|$GDK_PIXBUF_PREFIX/lib/gdk-pixbuf-2.0/$GDK_PIXBUF_VERSION/loaders/|@rpath/|g" \
-  > $RESOURCES/lib/gdk-pixbuf-2.0/$GDK_PIXBUF_VERSION/loaders.cache
+  > $RESOURCES/gdk-loaders.cache
 
 
 # Compile the GLib schemas
-mkdir -p $RESOURCES/share/glib-2.0/schemas
-glib-compile-schemas --targetdir=$RESOURCES/share/glib-2.0/schemas "`brew --prefix gtk+3`/share/glib-2.0/schemas"
+mkdir -p $RESOURCES/glib-2.0/schemas
+glib-compile-schemas --targetdir=$RESOURCES/glib-2.0/schemas "`brew --prefix gtk+3`/share/glib-2.0/schemas"
 
 
 # Copy the theme and icons
-mkdir -p $RESOURCES/share/icons
-cp -a `brew --prefix adwaita-icon-theme`/share/icons/* $RESOURCES/share/icons
-cp -a `brew --prefix hicolor-icon-theme`/share/icons/* $RESOURCES/share/icons
+mkdir -p $RESOURCES/icons
+cp -a `brew --prefix adwaita-icon-theme`/share/icons/* $RESOURCES/icons
+cp -a `brew --prefix hicolor-icon-theme`/share/icons/* $RESOURCES/icons
 
-mkdir -p $RESOURCES/share/themes/Mac
-cp -a `brew --prefix gtk+3`/share/themes/Mac/* $RESOURCES/share/themes/Mac
+mkdir -p $RESOURCES/themes/Mac
+cp -a `brew --prefix gtk+3`/share/themes/Mac/* $RESOURCES/themes/Mac
 
 
 # Create the GTK settings file
@@ -108,6 +106,6 @@ EOF
 
 
 # Copy mime database
-mkdir -p $RESOURCES/share/mime
+mkdir -p $RESOURCES/mime
 cp -a $(pkg-config shared-mime-info --variable=prefix)/share/mime/mime.cache \
-  $RESOURCES/share/mime
+  $RESOURCES/mime
