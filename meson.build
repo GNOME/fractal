@@ -52,6 +52,14 @@ if mac_bundle
     glib_compile_schemas = find_program('glib-compile-schemas', required: true)
     gtk_query_immodules = find_program('gtk-query-immodules-3.0', required: true)
 
+    fractal_mac_wrapper = custom_target('cargo-build-mac-wrapper',
+                                        build_by_default: true,
+                                        input: sources,
+                                        output: ['fractal-mac-wrapper'],
+                                        install: true,
+                                        install_dir: get_option('bindir'),
+                                        command: [cargo_script, '@CURRENT_SOURCE_DIR@', '@OUTPUT@', 'fractal-mac-wrapper'])
+
     meson.add_install_script(
         create_mac_bundle.path(),
         join_paths(get_option('prefix'), get_option('bindir'), 'fractal'),

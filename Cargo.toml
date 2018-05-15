@@ -2,6 +2,7 @@
 members = [
     "fractal-api",
     "fractal-gtk",
+    "fractal-mac-wrapper"
 ]
 
 [patch.crates-io]

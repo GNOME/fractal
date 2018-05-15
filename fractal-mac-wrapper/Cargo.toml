@@ -1,0 +1,8 @@
+[package]
+name = "fractal-mac-wrapper"
+version = "0.1.0"
+authors = ["Quentin Gliech <quentingliech@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
+core-foundation = "0.6"

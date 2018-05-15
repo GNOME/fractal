@@ -214,12 +214,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-foundation"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "core-foundation-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.40 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.40 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "crc"
@@ -412,6 +426,14 @@ dependencies = [
  "string_cache 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "fractal-mac-wrapper"
+version = "0.1.0"
+dependencies = [
+ "core-foundation 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.40 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1963,7 +1985,9 @@ dependencies = [
 "checksum clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f0f16b89cbb9ee36d87483dc939fe9f1e13c05898d56d7b230a0d4dff033a536"
 "checksum comrak 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)" = "17a5772ca33e3ec805360145413ccb60e0256b504919d3c7d38bfb844cd0dc75"
 "checksum core-foundation 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "25bfd746d203017f7d5cbd31ee5d8e17f94b6521c7af77ece6c9e4b2d4b16c67"
+"checksum core-foundation 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c7caa6cb9e76ddddbea09a03266d6b3bc98cd41e9fb9b017c473e7cca593ec25"
 "checksum core-foundation-sys 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "065a5d7ffdcbc8fa145d6f0746f3555025b9097a9e9cda59f7467abae670c78d"
+"checksum core-foundation-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b2a53cce0ddcf7e7e1f998738d757d5a3bf08bf799a180e50ebe50d298f52f5a"
 "checksum crc 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d663548de7f5cca343f1e0a48d14dcfb0e9eb4e079ec58883b7251539fa10aeb"
 "checksum crossbeam-deque 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c1bdc73742c36f7f35ebcda81dbb33a7e0d33757d03a06d9ddca762712ec5ea2"
 "checksum crossbeam-epoch 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9b4e2817eb773f770dcb294127c011e22771899c21d18fce7dd739c0b9832e81"
