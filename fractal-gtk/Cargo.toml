@@ -27,6 +27,7 @@ comrak = "0.2.9"
 html5ever = "=0.22.0"
 string_cache = "=0.7.1"
 string_cache_codegen = "=0.4.0"
+gettext-rs = { git = "https://github.com/Koka/gettext-rs", features = ["gettext-system"] }
 
 [dependencies.cairo-rs]
 features = ["png"]
