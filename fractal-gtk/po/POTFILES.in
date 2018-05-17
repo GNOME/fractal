@@ -1,0 +1,36 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+fractal-gtk/res/gtk/help-overlay.ui
+fractal-gtk/res/gtk/menus.ui
+fractal-gtk/res/org.gnome.Fractal.appdata.xml
+fractal-gtk/res/org.gnome.Fractal.desktop
+fractal-gtk/res/org.gnome.Fractal.gschema.xml
+fractal-gtk/res/ui/add_room_menu.ui
+fractal-gtk/res/ui/autocomplete.ui
+fractal-gtk/res/ui/direct_chat.ui
+fractal-gtk/res/ui/filechooser.ui
+fractal-gtk/res/ui/invite_user.ui
+fractal-gtk/res/ui/invite.ui
+fractal-gtk/res/ui/join_room.ui
+fractal-gtk/res/ui/leave_room.ui
+fractal-gtk/res/ui/main_window.ui
+fractal-gtk/res/ui/markdown_popover.ui
+fractal-gtk/res/ui/members.ui
+fractal-gtk/res/ui/new_room.ui
+fractal-gtk/res/ui/room_config.ui
+fractal-gtk/res/ui/room_menu.ui
+fractal-gtk/res/ui/user_menu.ui
+fractal-gtk/src/app/backend_loop.rs
+fractal-gtk/src/app/mod.rs
+fractal-gtk/src/appop/about.rs
+fractal-gtk/src/appop/attach.rs
+fractal-gtk/src/appop/directory.rs
+fractal-gtk/src/appop/invite.rs
+fractal-gtk/src/appop/login.rs
+fractal-gtk/src/appop/member.rs
+fractal-gtk/src/appop/message.rs
+fractal-gtk/src/appop/mod.rs
+fractal-gtk/src/appop/room.rs
+fractal-gtk/src/appop/sync.rs
+fractal-gtk/src/widgets/room.rs
+fractal-gtk/src/widgets/roomlist.rs
