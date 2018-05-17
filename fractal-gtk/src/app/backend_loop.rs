@@ -1,3 +1,7 @@
+extern crate gettextrs;
+
+use self::gettextrs::gettext;
+
 use app::App;
 
 use appop::RoomPanel;
@@ -90,7 +94,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::DirectorySearch(rooms)) => {
                     if rooms.len() == 0 {
-                        let error = "No rooms found".to_string();
+                        let error = gettext("No rooms found");
                         APPOP!(show_error, (error));
                         APPOP!(enable_directory_search);
                     }
@@ -154,7 +158,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::NewRoomError(err, internal_id)) => {
                     println!("ERROR: {:?}", err);
 
-                    let error = "Can't create the room, try again".to_string();
+                    let error = gettext("Can't create the room, try again");
                     let panel = RoomPanel::NoRoom;
                     APPOP!(remove_room, (internal_id));
                     APPOP!(show_error, (error));
@@ -162,23 +166,23 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 },
                 Ok(BKResponse::JoinRoomError(err)) => {
                     println!("ERROR: {:?}", err);
-                    let error = format!("Can't join to the room, try again.");
+                    let error = format!("{}", gettext("Can't join to the room, try again."));
                     let panel = RoomPanel::NoRoom;
                     APPOP!(show_error, (error));
                     APPOP!(room_panel, (panel));
                 },
                 Ok(BKResponse::LoginError(_)) => {
-                    let error = "Can't login, try again".to_string();
+                    let error = gettext("Can't login, try again");
                     let st = AppState::Login;
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (st));
                 },
                 Ok(BKResponse::SendMsgError(_)) => {
-                    let error = "Error sending message".to_string();
+                    let error = gettext("Error sending message");
                     APPOP!(show_error, (error));
                 }
                 Ok(BKResponse::DirectoryError(_)) => {
-                    let error = "Error searching for rooms".to_string();
+                    let error = gettext("Error searching for rooms");
                     APPOP!(show_error, (error));
                     APPOP!(enable_directory_search);
                 }

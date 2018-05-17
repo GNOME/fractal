@@ -1,10 +1,12 @@
 extern crate gtk;
 extern crate comrak;
 extern crate chrono;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
 use self::chrono::prelude::*;
 use self::comrak::{markdown_to_html, ComrakOptions};
+use self::gettextrs::gettext;
 
 use app::InternalCommand;
 use appop::AppOp;
@@ -164,7 +166,7 @@ impl AppOp {
                 };
 
                 if last == LastViewed::Inline && msg.sender != self.uid.clone().unwrap_or_default() {
-                    let divider: gtk::ListBoxRow = widgets::divider::new("New Messages");
+                    let divider: gtk::ListBoxRow = widgets::divider::new(gettext("New Messages").as_str());
                     match msgpos {
                         MsgPos::Bottom => messages.add(&divider),
                         MsgPos::Top => messages.insert(&divider, 2),
@@ -309,7 +311,7 @@ impl AppOp {
                                                  Some(&window),
                                                  gtk::FileChooserAction::Open);
 
-        let btn = dialog.add_button("Select", 1);
+        let btn = dialog.add_button(gettext("Select").as_str(), 1);
         btn.get_style_context().unwrap().add_class("suggested-action");
 
         let backend = self.backend.clone();

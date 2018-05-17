@@ -1,3 +1,6 @@
+extern crate gettextrs;
+use self::gettextrs::gettext;
+
 use appop::AppOp;
 
 use backend::BKCommand;
@@ -6,7 +9,7 @@ use backend::BKCommand;
 impl AppOp {
     pub fn initial_sync(&self, show: bool) {
         if show {
-            self.inapp_notify("Syncing, this could take a while");
+            self.inapp_notify(&gettext("Syncing, this could take a while"));
         } else {
             self.hide_inapp_notify();
         }

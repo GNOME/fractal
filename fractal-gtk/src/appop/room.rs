@@ -1,8 +1,10 @@
 extern crate gtk;
 extern crate gdk_pixbuf;
 extern crate rand;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use appop::AppOp;
 use appop::AppState;
@@ -248,7 +250,7 @@ impl AppOp {
             .expect("Can't find leave_room_dialog in ui file.");
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            dialog.set_property_text(Some(&format!("Leave {}?", r.name.clone().unwrap_or_default())));
+            dialog.set_property_text(Some(&format!("{} {}?", gettext("Leave"), r.name.clone().unwrap_or_default())));
             dialog.present();
         }
     }
@@ -567,10 +569,10 @@ impl AppOp {
             };
 
             let name = match n {
-                0 => String::from("EMPTY ROOM"),
+                0 => gettext("EMPTY ROOM"),
                 1 => String::from(m1),
-                2 => format!("{} and {}", m1, m2),
-                _ => format!("{} and Others", m1),
+                2 => format!("{} {} {}", m1, gettext("and"), m2),
+                _ => format!("{} {}", m1, gettext("and Others")),
             };
 
             r.name = Some(name);

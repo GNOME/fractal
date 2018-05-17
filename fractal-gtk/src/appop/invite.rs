@@ -1,6 +1,8 @@
 extern crate gtk;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use appop::AppOp;
 use appop::member::SearchType;
@@ -132,9 +134,10 @@ impl AppOp {
         if let Some(aroom) = self.active_room.clone() {
             if let Some(r) = self.rooms.get(&aroom) {
                 if let &Some(ref name) = &r.name {
-                    title.set_text(&format!("Invite to {}", name));
+                    let sentence_template = gettext("Invite to {name}");
+                    title.set_text(&sentence_template.replace("{name}", name));
                 } else {
-                    title.set_text("Invite");
+                    title.set_text(gettext("Invite").as_str());
                 }
             }
         }
@@ -203,14 +206,16 @@ impl AppOp {
             .expect("Can't find invite_dialog in ui file.");
 
         let room_name = r.name.clone().unwrap_or_default();
-        let title = format!("Join {}?", room_name);
+        let title = format!("{} {}?", gettext("Join"), room_name);
         let secondary;
         if let Some(ref sender) = r.inv_sender {
             let sender_name = sender.get_alias();
-            secondary = format!("You've been invited to join to <b>{}</b> room by <b>{}</b>",
-                                     room_name, sender_name);
+            let sentence_template = gettext("You've been invited to join to <b>{room_name}</b> room by <b>{sender_name}</b>");
+            secondary = sentence_template.replace("{room_name}", room_name.as_str())
+                                         .replace("{sender_name}", sender_name.as_str());
         } else {
-            secondary = format!("You've been invited to join to <b>{}</b>", room_name);
+            let sentence_template = gettext("You've been invited to join to <b>{room_name}</b>");
+            secondary = sentence_template.replace("{room_name}", room_name.as_str());
         }
 
         dialog.set_property_text(Some(&title));

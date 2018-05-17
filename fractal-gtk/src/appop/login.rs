@@ -1,5 +1,8 @@
 extern crate gtk;
+extern crate gettextrs;
+
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use appop::AppOp;
 use appop::state::AppState;
@@ -101,11 +104,11 @@ impl AppOp {
 
         if username.clone().unwrap_or_default().is_empty() ||
            password.clone().unwrap_or_default().is_empty() {
-            login_error.set_text("Invalid username or password");
+            login_error.set_text(gettext("Invalid username or password").as_str());
             login_error.show();
             return;
         } else {
-            login_error.set_text("Unknown Error");
+            login_error.set_text(gettext("Unknown Error").as_str());
             login_error.hide();
         }
 
@@ -159,7 +162,7 @@ impl AppOp {
         };
 
         if password != passconf {
-            self.show_error("Passwords didn't match, try again".to_string());
+            self.show_error(gettext("Passwords didn't match, try again"));
             return;
         }
 

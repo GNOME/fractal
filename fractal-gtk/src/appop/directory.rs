@@ -1,6 +1,8 @@
 extern crate gtk;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use appop::AppOp;
 
@@ -55,7 +57,7 @@ impl AppOp {
         let btn = self.ui.builder
             .get_object::<gtk::Button>("directory_search_button")
             .expect("Can't find directory_search_button in ui file.");
-        btn.set_label("Searching...");
+        btn.set_label(gettext("Searching...").as_str());
         btn.set_sensitive(false);
 
         if !more {
@@ -92,7 +94,7 @@ impl AppOp {
         let btn = self.ui.builder
             .get_object::<gtk::Button>("directory_search_button")
             .expect("Can't find directory_search_button in ui file.");
-        btn.set_label("Search");
+        btn.set_label(gettext("Search").as_str());
         btn.set_sensitive(true);
     }
 }

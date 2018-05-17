@@ -1,6 +1,8 @@
 extern crate gtk;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use std::collections::HashMap;
 
@@ -82,7 +84,9 @@ impl AppOp {
         }
 
         if members.len() > self.member_limit {
-            let newlabel = format!("and {} more", members.len() - self.member_limit);
+            let sentence_template = gettext("and {member_count} more");
+            let newlabel = sentence_template.replace("{member_count}",
+                                                     &(members.len() - self.member_limit).to_string());
             self.more_members_btn.set_label(&newlabel);
             self.more_members_btn.show();
         } else {

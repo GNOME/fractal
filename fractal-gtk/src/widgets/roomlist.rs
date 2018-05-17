@@ -3,6 +3,7 @@ extern crate url;
 extern crate gtk;
 extern crate pango;
 extern crate gdk;
+extern crate gettextrs;
 
 use glib;
 use self::gdk::DragContextExtManual;
@@ -10,6 +11,7 @@ use self::gdk::DragContextExtManual;
 use self::url::Url;
 use std::collections::HashMap;
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use widgets::roomrow::RoomRow;
 use types::Room;
@@ -428,10 +430,13 @@ impl RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
         let baseu = get_url(url);
 
-        let inv = RGroup::new(&baseu, "Invites", "You don't have any invitations");
-        let fav = RGroup::new(&baseu, "Favorites", "Drag and drop rooms here to \
-                                                    add them to your favorites");
-        let rooms = RGroup::new(&baseu, "Rooms", "You don't have any rooms yet");
+        let inv = RGroup::new(&baseu, gettext("Invites").as_str(),
+                              gettext("You don't have any invitations").as_str());
+        let fav = RGroup::new(&baseu, gettext("Favorites").as_str(),
+                              gettext("Drag and drop rooms here to \
+                                       add them to your favorites").as_str());
+        let rooms = RGroup::new(&baseu, gettext("Rooms").as_str(),
+                                gettext("You don't have any rooms yet").as_str());
 
         let rl = RoomList {
             baseu,

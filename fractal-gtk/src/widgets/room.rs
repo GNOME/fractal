@@ -1,9 +1,11 @@
 extern crate gtk;
 extern crate gdk_pixbuf;
 extern crate pango;
+extern crate gettextrs;
 
 use self::gdk_pixbuf::Pixbuf;
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use types::Room;
 
@@ -89,7 +91,7 @@ impl<'a> RoomBox<'a> {
         idw.set_halign(gtk::Align::Start);
         idw.set_valign(gtk::Align::Start);
 
-        let joinbtn = gtk::Button::new_with_label("Join");
+        let joinbtn = gtk::Button::new_with_label(gettext("Join").as_str());
         let rid = r.id.clone();
         let backend = self.op.backend.clone();
         joinbtn.connect_clicked(move |_| {

@@ -1,8 +1,10 @@
 extern crate gdk;
 extern crate gdk_pixbuf;
 extern crate gtk;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use appop::AppOp;
 use backend::BKCommand;
@@ -47,7 +49,7 @@ impl AppOp {
                 .expect("Can't find main_window in ui file.");
             let img = gtk::Image::new();
             let dialog = gtk::Dialog::new_with_buttons(
-                Some("Image from Clipboard"),
+                Some(gettext("Image from Clipboard").as_str()),
                 Some(&window),
                 gtk::DialogFlags::MODAL|
                 gtk::DialogFlags::USE_HEADER_BAR|
@@ -61,8 +63,8 @@ impl AppOp {
 
             if let Some(hbar) = dialog.get_header_bar() {
                 let bar = hbar.downcast::<gtk::HeaderBar>().unwrap();
-                let closebtn = gtk::Button::new_with_label("Cancel");
-                let okbtn = gtk::Button::new_with_label("Send");
+                let closebtn = gtk::Button::new_with_label(gettext("Cancel").as_str());
+                let okbtn = gtk::Button::new_with_label(gettext("Send").as_str());
                 okbtn.get_style_context().unwrap().add_class("suggested-action");
 
                 bar.set_show_close_button(false);
