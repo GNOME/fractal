@@ -1,7 +1,9 @@
 extern crate gtk;
 extern crate gdk;
+extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gettextrs::{setlocale, LocaleCategory, bindtextdomain, textdomain};
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
@@ -78,6 +80,12 @@ impl App {
 
             let bk = Backend::new(tx);
             let apptx = bk.run();
+
+            // Set up the textdomain for gettext
+            setlocale(LocaleCategory::LcAll, "");
+            bindtextdomain("fractal", "./fractal-gtk/po");
+            textdomain("fractal");
+
 
             let ui = uibuilder::UI::new();
             let window: gtk::Window = ui.builder
