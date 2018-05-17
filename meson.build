@@ -16,6 +16,9 @@ fractal_bindir = join_paths(fractal_prefix, get_option('bindir'))
 datadir = get_option('datadir')
 icondir = join_paths(datadir, 'icons')
 
+i18n = import('i18n')
+
+subdir('fractal-gtk/po')
 subdir('fractal-gtk/res')
 
 cargo = find_program('cargo', required: false)
