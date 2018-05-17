@@ -3,9 +3,11 @@ Name=Fractal
 Comment=Fractal is a decentralized, secure messaging client for collaborative group communication.
 GenericName=Fractal group messaging
 Exec=fractal
+# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
 Icon=org.gnome.Fractal
 Type=Application
 StartupNotify=true
 X-GNOME-UsesNotifications=true
 Categories=GNOME;GTK;Network;InstantMessaging;
+# Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 Keywords=Matrix;matrix.org;
