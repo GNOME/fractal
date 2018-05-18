@@ -37,15 +37,27 @@ flatpak:
           - target/
 
 pages:
-    image: rust
+    image: fedora
     stage: deploy
     only:
         - master
+    before_script:
+        - dnf install -y rust cargo meson make gtk3-devel gspell-devel openssl-devel gmp-devel
     script:
-        - cargo doc --no-deps -p fractal-api
+        # Setup the cargo cache
+        - mkdir -p .cargo_cache
+        - export CARGO_HOME="${PWD}/.cargo_cache"
+
+        - cargo doc --no-deps
         - cargo rustdoc -p fractal-gtk -- --document-private-items
         - rm -rf public
         - mv target/doc/ public
     artifacts:
         paths:
           - public
+    cache:
+        key: "$CI_JOB_NAME"
+        paths:
+            - target/
+            - .cargo_cache/
+
