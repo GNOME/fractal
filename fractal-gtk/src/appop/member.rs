@@ -78,6 +78,11 @@ impl AppOp {
         } else {
             self.more_members_btn.hide();
         }
+
+        let members_count = self.ui.builder
+            .get_object::<gtk::Label>("members_count")
+            .expect("Can't find member_count in ui file.");
+        members_count.set_text(&format!("{}", members.len()));
     }
 
     pub fn show_all_members(&self) {
