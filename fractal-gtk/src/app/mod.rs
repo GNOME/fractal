@@ -83,7 +83,7 @@ impl App {
 
             // Set up the textdomain for gettext
             setlocale(LocaleCategory::LcAll, "");
-            bindtextdomain("fractal", "./fractal-gtk/po");
+            bindtextdomain("fractal", globals::LOCALEDIR);
             textdomain("fractal");
 
 
