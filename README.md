@@ -34,6 +34,23 @@ ninja -C _build
 sudo ninja -C _build install
 ```
 
+### Translations
+
+If you want to add a new language you should update the file
+`fractal-gtk/po/LINUGAS` and add the new lang to the list.
+
+To generate .pot files you should run:
+
+```
+ninja -C _build fractal-pot
+```
+
+To generate .po files you should run:
+
+```
+ninja -C _build fractal-update-po
+```
+
 ### Password Storage
 
 Fractal uses Secret Service to store the password so you should have

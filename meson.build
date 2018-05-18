@@ -12,6 +12,7 @@ fractal_version_micro = version_array[2].to_int()
 
 fractal_prefix = get_option('prefix')
 fractal_bindir = join_paths(fractal_prefix, get_option('bindir'))
+fractal_localedir = join_paths(fractal_prefix, get_option('localedir'))
 
 datadir = get_option('datadir')
 icondir = join_paths(datadir, 'icons')
@@ -37,7 +38,7 @@ cargo_release = custom_target('cargo-build',
                         output: ['fractal'],
                         install: true,
                         install_dir: fractal_bindir,
-                        command: [cargo_script, '@CURRENT_SOURCE_DIR@', '@OUTPUT@'])
+                        command: [cargo_script, '@CURRENT_SOURCE_DIR@', '@OUTPUT@', fractal_localedir])
 
 run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
