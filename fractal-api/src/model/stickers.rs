@@ -19,6 +19,7 @@ pub struct Sticker {
 #[derive(Serialize, Deserialize)]
 pub struct StickerGroup {
     pub name: String,
+    pub asset: String,
     pub description: String,
     pub price: i64,
     pub purchased: bool,
@@ -32,6 +33,7 @@ impl StickerGroup {
         let d = &js["data"];
 
         let purchased = js["purchased"].as_bool().unwrap_or_default();
+        let asset = js["asset_type"].as_str().unwrap_or_default().to_string();
         let name = d["name"].as_str().unwrap_or_default().to_string();
         let description = d["description"].as_str().unwrap_or_default().to_string();
         let price = d["price"].as_i64().unwrap_or_default();
@@ -53,6 +55,7 @@ impl StickerGroup {
 
         StickerGroup {
             name,
+            asset,
             description,
             price,
             purchased,

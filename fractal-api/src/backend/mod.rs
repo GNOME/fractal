@@ -316,6 +316,10 @@ impl Backend {
                 let r = stickers::send(self, room, &sticker);
                 bkerror!(r, tx, BKResponse::StickersError);
             }
+            Ok(BKCommand::PurchaseSticker(group)) => {
+                let r = stickers::purchase(self, &group);
+                bkerror!(r, tx, BKResponse::StickersError);
+            }
 
             // Internal commands
             Ok(BKCommand::ShutDown) => {

@@ -10,6 +10,7 @@ use self::gtk::StackExt;
 use self::gtk::WidgetExt;
 use self::gtk::LabelExt;
 use self::gtk::BoxExt;
+use self::gtk::ButtonExt;
 
 use self::gdk_pixbuf::Pixbuf;
 use self::gtk::ImageExt;
@@ -76,6 +77,14 @@ impl AppOp {
                 let img = builder.get_object::<gtk::Image>("thumb")
                        .expect("Can't find thumb in ui file.");
                 self.sticker_thumbnail(sticker.thumbnail.clone(), &img);
+                let btn = builder.get_object::<gtk::Button>("btn")
+                   .expect("Can't find btn in ui file.");
+                let group = sticker.clone();
+                let internal = self.internal.clone();
+                btn.connect_clicked(move |_| {
+                    let command = InternalCommand::PurchaseSticker(group.clone());
+                    internal.send(command).unwrap();
+                });
             }
 
             container.remove(&bx);
@@ -143,7 +152,6 @@ impl AppOp {
 
         for (i, img) in sticker.stickers.iter().enumerate() {
             if i > 0 && i % 5 == 0 {
-                println!("container");
                 bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
                 bx.set_homogeneous(true);
                 content.pack_start(&bx, true, true, 6);
@@ -192,5 +200,10 @@ impl AppOp {
         };
 
         self.add_tmp_room_message(msg);
+    }
+
+    pub fn purchase_sticker(&self, group: StickerGroup) {
+        self.backend.send(BKCommand::PurchaseSticker(group)).unwrap();
+        self.stickers_loading(true);
     }
 }

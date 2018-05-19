@@ -12,6 +12,7 @@ use types::Message;
 use types::Room;
 use types::Member;
 use types::Sticker;
+use types::StickerGroup;
 
 
 #[derive(Debug)]
@@ -23,6 +24,7 @@ pub enum InternalCommand {
     LoadMoreNormal,
     RemoveInv(String),
     SendSticker(Sticker),
+    PurchaseSticker(StickerGroup),
 
     ToInvite(Member),
     RmInvite(String),
@@ -61,6 +63,9 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
                 }
                 Ok(InternalCommand::SendSticker(sticker)) => {
                     APPOP!(send_sticker, (sticker));
+                }
+                Ok(InternalCommand::PurchaseSticker(group)) => {
+                    APPOP!(purchase_sticker, (group));
                 }
                 Err(_) => {
                     break;

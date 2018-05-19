@@ -13,6 +13,7 @@ use error::Error;
 
 use backend::types::Backend;
 use backend::types::BKResponse;
+use backend::types::BKCommand;
 use types::StickerGroup;
 use types::Sticker;
 use self::serde_json::Value as JsonValue;
@@ -109,6 +110,38 @@ pub fn send(bk: &Backend, roomid: String, sticker: &Sticker) -> Result<(), Error
             tx.send(BKResponse::SendMsg).unwrap();
         },
         |err| { tx.send(BKResponse::SendMsgError(err)).unwrap(); }
+    );
+
+    Ok(())
+}
+
+pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
+    let widget = bk.data.lock().unwrap().sticker_widget.clone();
+    let widget_id = match widget {
+        None => {
+            let id = get_sticker_widget_id(bk)?;
+            bk.data.lock().unwrap().sticker_widget = Some(id.clone());
+            id
+        },
+        Some(id) => id.clone(),
+    };
+
+    let asset = group.asset.clone();
+    let data = vec![
+        ("asset_type", asset.clone()),
+        ("widget_id", widget_id.clone()),
+        ("widget_type", "m.stickerpicker".to_string()),
+    ];
+    let url = bk.vurl("widgets/purchase_asset", data)?;
+    let tx = bk.tx.clone();
+    let itx = bk.internal_tx.clone();
+    get!(&url,
+        |_| {
+            if let Some(t) = itx {
+                t.send(BKCommand::ListStickers).unwrap();
+            }
+        },
+        |err| { tx.send(BKResponse::StickersError(err)).unwrap() }
     );
 
     Ok(())

@@ -59,6 +59,7 @@ pub enum BKCommand {
     Invite(String, String),
     ListStickers,
     SendSticker(String, Sticker),
+    PurchaseSticker(StickerGroup),
 }
 
 #[derive(Debug)]
