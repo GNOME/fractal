@@ -188,6 +188,24 @@ row .timestamp {
   background-color: @theme_bg_color;
 }
 
+.advanced_revealer {
+  border-radius: 3px;
+	border: 1px solid @borders;
+  background-color: @theme_base_color;
+}
+
+.advanced_revealer_header {
+  padding: 18px;
+}
+
+.advanced_revealer_divider {
+  border-radius: 0px;
+  border-bottom: 1px solid @borders;
+}
+.advanced_revealer_body {
+  padding: 18px;
+}
+
 /*#FIXME css style to remove round corners in the header*/
 stack headerbar:last-child:not(:only-child) {
   border-top-left-radius: 0px;

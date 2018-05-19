@@ -9,6 +9,7 @@ use app::App;
 impl App {
     pub fn create_actions(&self) {
         let settings = gio::SimpleAction::new("settings", None);
+        let account = gio::SimpleAction::new("account_settings", None);
         let dir = gio::SimpleAction::new("directory", None);
         let chat = gio::SimpleAction::new("start_chat", None);
         let newr = gio::SimpleAction::new("new_room", None);
@@ -27,6 +28,7 @@ impl App {
         let op = &self.op;
 
         op.lock().unwrap().gtk_app.add_action(&settings);
+        op.lock().unwrap().gtk_app.add_action(&account);
         op.lock().unwrap().gtk_app.add_action(&dir);
         op.lock().unwrap().gtk_app.add_action(&chat);
         op.lock().unwrap().gtk_app.add_action(&newr);
@@ -47,6 +49,8 @@ impl App {
 
         settings.connect_activate(move |_, _| { println!("SETTINGS"); });
         settings.set_enabled(false);
+
+        account.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_account_settings_dialog()) );
 
         dir.connect_activate(clone!(op => move |_, _| op.lock().unwrap().set_state(AppState::Directory) ));
         logout.connect_activate(clone!(op => move |_, _| op.lock().unwrap().logout() ));

@@ -30,6 +30,7 @@ use app::InternalCommand;
 mod login;
 mod sync;
 mod user;
+mod account;
 mod notifications;
 mod state;
 mod room;

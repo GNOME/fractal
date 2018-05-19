@@ -9,7 +9,7 @@ pub struct UI {
 
 impl UI {
     pub fn new() -> UI {
-        // The orther here is important because some ui file depends on others
+        // The order here is important because some ui file depends on others
 
         let builder = gtk::Builder::new();
 
@@ -52,6 +52,8 @@ impl UI {
                .expect("Can't load ui file: new_room.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/room_config.ui")
                .expect("Can't load ui file: room_config.ui");
+        builder.add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
+               .expect("Can't load ui file: account_settings.ui");
 
         // Depends on room config
         builder.add_from_resource("/org/gnome/Fractal/ui/filechooser.ui")

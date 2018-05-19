@@ -2,7 +2,6 @@
 <!-- Generated with glade 3.20.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-
   <object class="GtkPopoverMenu" id="user_popover">
     <property name="can_focus">False</property>
     <child>
@@ -101,12 +100,11 @@
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="account_settings_menu">
-            <property name="visible">False</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="action_name">app.account_settings</property>
-            <property name="text" translatable="yes">Account Settings</property>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_top">3</property>
+            <property name="margin_bottom">3</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -115,16 +113,30 @@
           </packing>
         </child>
         <child>
-          <object class="GtkSeparator">
+          <object class="GtkModelButton" id="account_settings_menu">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_top">6</property>
-            <property name="margin_bottom">3</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="action_name">app.account_settings</property>
+            <property name="text" translatable="yes">Account Settings</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_top">3</property>
+            <property name="margin_bottom">3</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -148,5 +160,4 @@
       </packing>
     </child>
   </object>
-
 </interface>
