@@ -61,7 +61,7 @@ msgstr "Fractal"
 
 #: fractal-gtk/res/org.gnome.Fractal.appdata.xml:8
 msgid "Matrix group messaging app"
-msgstr ""
+msgstr "Application de messagerie de groupe Matrix"
 
 #: fractal-gtk/res/org.gnome.Fractal.appdata.xml:11
 msgid ""
@@ -69,16 +69,21 @@ msgid ""
 "is optimized for collaboration in large groups, such as free software "
 "projects."
 msgstr ""
+"Fractal est une application de messagerie Matrix pour GNOME écrite en "
+"Rust. Son interface est optimisée pour la collaboration dans les grands "
+"groupes, comme les projets de logiciels libres."
 
 #: fractal-gtk/res/org.gnome.Fractal.desktop:4
 msgid ""
 "Fractal is a decentralized, secure messaging client for collaborative group "
 "communication."
 msgstr ""
+"Fractal est un client de messagerie décentralisée et sécurisée pour la "
+"communication en groupes collaboratifs."
 
 #: fractal-gtk/res/org.gnome.Fractal.desktop:5
 msgid "Fractal group messaging"
-msgstr ""
+msgstr "Messagerie de groupe Fractal"
 
 #. Translators: Do NOT translate or transliterate this text (this is an icon file name)!
 #: fractal-gtk/res/org.gnome.Fractal.desktop:8
@@ -92,15 +97,15 @@ msgstr ""
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:13
 msgid "Type of password and token storage"
-msgstr ""
+msgstr "Type de mot de passe et de stockage de jetons"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:14
 msgid "Type of password and token storage, default value is: Secret Service"
-msgstr ""
+msgstr "Type de mot de passe et de stockage de jetons, la valeur par défaut est : Secret Service"
 
 #: fractal-gtk/res/ui/add_room_menu.ui:23
 msgid "Room directory"
-msgstr ""
+msgstr "Répertoire des salons"
 
 #: fractal-gtk/res/ui/add_room_menu.ui:37 fractal-gtk/res/ui/join_room.ui:90
 msgid "Join room"
@@ -112,7 +117,7 @@ msgstr "Nouveau salon"
 
 #: fractal-gtk/res/ui/add_room_menu.ui:78 fractal-gtk/res/ui/direct_chat.ui:115
 msgid "New direct chat"
-msgstr ""
+msgstr "Nouvelle discussion directe"
 
 #: fractal-gtk/res/ui/direct_chat.ui:64 fractal-gtk/res/ui/invite_user.ui:64
 #: fractal-gtk/res/ui/main_window.ui:682
@@ -131,7 +136,7 @@ msgstr "Commencer une conversation"
 
 #: fractal-gtk/res/ui/filechooser.ui:62
 msgid "Select room image file"
-msgstr ""
+msgstr "Sélectionner une image pour le salon"
 
 #: fractal-gtk/res/ui/invite_user.ui:137 fractal-gtk/res/ui/invite_user.ui:150
 #: fractal-gtk/src/appop/invite.rs:140
@@ -144,7 +149,7 @@ msgstr "Invitation"
 
 #: fractal-gtk/res/ui/invite.ui:20
 msgid "You've been invited to join to \"\", you can accept or reject"
-msgstr ""
+msgstr "Vous avez été invité·e à vous joindre à \"\", vous pouvez accepter ou décliner"
 
 #: fractal-gtk/res/ui/invite.ui:33
 msgid "Reject"
@@ -172,6 +177,8 @@ msgid ""
 "Once you leave, you won't be able to interact with people in the room "
 "anymore."
 msgstr ""
+"Une fois que vous aurez quitté, vous ne pourrez plus interagir avec les "
+"personnes dans le salon."
 
 #: fractal-gtk/res/ui/leave_room.ui:46 fractal-gtk/res/ui/room_menu.ui:64
 msgid "Leave room"
@@ -211,7 +218,7 @@ msgstr "Aucun salon"
 
 #: fractal-gtk/res/ui/main_window.ui:460
 msgid "This is an app-notification"
-msgstr ""
+msgstr "Ceci est une notification"
 
 #: fractal-gtk/res/ui/main_window.ui:498
 msgid "Chat"
@@ -243,11 +250,11 @@ msgstr "Mot de passe"
 
 #: fractal-gtk/res/ui/main_window.ui:760
 msgid "Home server URL"
-msgstr ""
+msgstr "URL du serveur d'accueil"
 
 #: fractal-gtk/res/ui/main_window.ui:778
 msgid "Identity server URL"
-msgstr ""
+msgstr "URL du serveur d'identité"
 
 #: fractal-gtk/res/ui/main_window.ui:794
 msgid "https://matrix.org"
@@ -263,7 +270,7 @@ msgstr ""
 
 #: fractal-gtk/res/ui/main_window.ui:814
 msgid "Identity server"
-msgstr ""
+msgstr "Serveur d'identité"
 
 #: fractal-gtk/res/ui/main_window.ui:851
 msgid "Advanced"
@@ -296,7 +303,7 @@ msgstr "Utilisateur"
 
 #: fractal-gtk/res/ui/main_window.ui:1061
 msgid "Room search"
-msgstr ""
+msgstr "Recherche de salon"
 
 #: fractal-gtk/res/ui/main_window.ui:1130 fractal-gtk/res/ui/new_room.ui:108
 msgid "Room name"
@@ -345,7 +352,7 @@ msgstr ""
 
 #: fractal-gtk/res/ui/members.ui:25
 msgid "Search for room members"
-msgstr ""
+msgstr "Rechercher des membres du salon"
 
 #: fractal-gtk/res/ui/new_room.ui:14
 msgid "Private Chat"
@@ -405,7 +412,7 @@ msgstr "Détails du salon"
 
 #: fractal-gtk/res/ui/room_menu.ui:23
 msgid "Invite to this room"
-msgstr ""
+msgstr "Inviter dans ce salon"
 
 #: fractal-gtk/res/ui/user_menu.ui:109
 msgid "Account Settings"
@@ -421,23 +428,23 @@ msgstr "Aucun salon trouvé"
 
 #: fractal-gtk/src/app/backend_loop.rs:161
 msgid "Can't create the room, try again"
-msgstr ""
+msgstr "Vous ne pouvez pas créer ce salon, veuillez réessayer"
 
 #: fractal-gtk/src/app/backend_loop.rs:169
 msgid "Can't join to the room, try again."
-msgstr ""
+msgstr "Vous ne pouvez pas rejoindre ce salon, veuillez réessayer."
 
 #: fractal-gtk/src/app/backend_loop.rs:175
 msgid "Can't login, try again"
-msgstr ""
+msgstr "Échec de connexion, veuillez réessayer"
 
 #: fractal-gtk/src/app/backend_loop.rs:181
 msgid "Error sending message"
-msgstr ""
+msgstr "Erreur lors de l'envoi du message"
 
 #: fractal-gtk/src/app/backend_loop.rs:185
 msgid "Error searching for rooms"
-msgstr ""
+msgstr "Erreur lors de la recherche de salon"
 
 #: fractal-gtk/src/appop/about.rs:19
 msgid "A Matrix.org client for GNOME"
@@ -457,7 +464,7 @@ msgstr "Nommé par"
 
 #: fractal-gtk/src/appop/attach.rs:52
 msgid "Image from Clipboard"
-msgstr ""
+msgstr "Image issue du presse-papiers"
 
 #: fractal-gtk/src/appop/attach.rs:67
 msgid "Send"
@@ -469,17 +476,17 @@ msgstr "Recherche en cours..."
 
 #: fractal-gtk/src/appop/invite.rs:137
 msgid "Invite to {name}"
-msgstr ""
+msgstr "Inviter dans {name}"
 
 #: fractal-gtk/src/appop/invite.rs:213
 msgid ""
 "You've been invited to join to <b>{room_name}</b> room by <b>{sender_name}</"
 "b>"
-msgstr ""
+msgstr "Vous avez été invité·e par <b>{sender_name}</b> à vous joindre à <b>{room_name}</b>"
 
 #: fractal-gtk/src/appop/invite.rs:217
 msgid "You've been invited to join to <b>{room_name}</b>"
-msgstr ""
+msgstr "Vous avez été invité·e à vous joindre à <b>{room_name}</b>"
 
 #: fractal-gtk/src/appop/login.rs:111
 msgid "Unknown Error"
@@ -487,11 +494,11 @@ msgstr "Erreur Inconnue"
 
 #: fractal-gtk/src/appop/login.rs:165
 msgid "Passwords didn't match, try again"
-msgstr ""
+msgstr "Mot de passe incorrect, veuillez réessayer"
 
 #: fractal-gtk/src/appop/member.rs:87
 msgid "and {member_count} more"
-msgstr ""
+msgstr "et {member_count} de plus"
 
 #: fractal-gtk/src/appop/message.rs:169
 msgid "New Messages"
@@ -503,7 +510,7 @@ msgstr "Sélectionner"
 
 #: fractal-gtk/src/appop/mod.rs:104
 msgid "Load more members"
-msgstr ""
+msgstr "Lister plus de membres"
 
 #: fractal-gtk/src/appop/room.rs:253
 msgid "Leave"
@@ -523,7 +530,7 @@ msgstr "et d'autres"
 
 #: fractal-gtk/src/appop/sync.rs:12
 msgid "Syncing, this could take a while"
-msgstr ""
+msgstr "Synchronisation en cours, cela peut prendre un certain temps"
 
 #: fractal-gtk/src/widgets/roomlist.rs:433
 msgid "Invites"
@@ -542,6 +549,8 @@ msgid ""
 "Drag and drop rooms here to                                        add them "
 "to your favorites"
 msgstr ""
+"Faites glisser-déposer des salons ici pour                         les ajouter "
+"à vos favoris"
 
 #: fractal-gtk/src/widgets/roomlist.rs:438
 msgid "Rooms"
