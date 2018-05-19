@@ -18,7 +18,6 @@ use error::Error;
 use util::json_q;
 use util::dw_media;
 use util::get_initial_room_messages;
-use util::parse_room_message;
 use util::build_url;
 use util::put_media;
 use util;
@@ -167,11 +166,11 @@ fn parse_context(tx: Sender<BKResponse>, tk: String, baseu: Url, roomid: String,
                     id = Some(msg["event_id"].as_str().unwrap_or("").to_string());
                 }
 
-                if msg["type"].as_str().unwrap_or("") != "m.room.message" {
+                if !Message::supported_event(&&msg) {
                     continue;
                 }
 
-                let m = parse_room_message(&baseu, roomid.clone(), msg);
+                let m = Message::parse_room_message(roomid.clone(), msg);
                 ms.push(m);
             }
 
@@ -511,24 +510,15 @@ pub fn make_search(bk: &Backend, roomid: String, term: String) -> Result<(), Err
     });
 
     let tx = bk.tx.clone();
-    let baseu = bk.get_base_url()?;
 
     thread::spawn(move || {
         match json_q("post", &url, &attrs, 0) {
             Ok(js) => {
                 tx.send(BKResponse::SearchEnd).unwrap();
-                let mut ms: Vec<Message> = vec![];
-
                 let res = &js["search_categories"]["room_events"]["results"];
-                for search in res.as_array().unwrap().iter().rev() {
-                    let msg = &search["result"];
-                    if msg["type"].as_str().unwrap_or("") != "m.room.message" {
-                        continue;
-                    }
+                let events = res.as_array().unwrap().iter().rev();
+                let ms = Message::from_json_events_iter(roomid.clone(), events);
 
-                    let m = parse_room_message(&baseu, roomid.clone(), msg);
-                    ms.push(m);
-                }
                 tx.send(BKResponse::RoomMessagesInit(ms)).unwrap();
             }
             Err(err) => {
