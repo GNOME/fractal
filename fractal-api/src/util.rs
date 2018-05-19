@@ -493,6 +493,10 @@ pub fn dw_media(base: &Url,
         Some(d) => String::from(d),
     };
 
+    download_file(url.as_str(), fname, dest)
+}
+
+pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
     let pathname = fname.clone();
     let p = Path::new(&pathname);
     if p.is_file() {
@@ -508,7 +512,7 @@ pub fn dw_media(base: &Url,
     }
 
     let mut file = File::create(&fname)?;
-    let buffer = get_media(url.as_str())?;
+    let buffer = get_media(url)?;
     file.write_all(&buffer)?;
 
     Ok(fname)

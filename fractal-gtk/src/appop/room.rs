@@ -231,6 +231,9 @@ impl AppOp {
         if getmessages {
             self.backend.send(BKCommand::GetRoomMessages(self.active_room.clone().unwrap_or_default())).unwrap();
         }
+
+        // redrawing the stickers
+        self.stickers_draw();
     }
 
     pub fn really_leave_active_room(&mut self) {

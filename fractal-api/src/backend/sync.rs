@@ -121,6 +121,9 @@ pub fn sync(bk: &Backend) -> Result<(), Error> {
                                     "m.room.member" => {
                                         tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
                                     }
+                                    "m.sticker" => {
+                                        // This event is managed in the room list
+                                    }
                                     _ => {
                                         println!("EVENT NOT MANAGED: {:?}", ev);
                                     }

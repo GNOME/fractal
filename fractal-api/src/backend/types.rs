@@ -9,6 +9,7 @@ use types::Protocol;
 use types::Room;
 use types::Event;
 use types::StickerGroup;
+use types::Sticker;
 
 use cache::CacheMap;
 
@@ -31,6 +32,7 @@ pub enum BKCommand {
     GetMessageContext(Message),
     GetRoomAvatar(String),
     GetThumbAsync(String, Sender<String>),
+    GetFileAsync(String, Sender<String>),
     GetAvatarAsync(Option<Member>, Sender<String>),
     GetMedia(String),
     GetUserInfoAsync(String, Sender<(String, String)>),
@@ -56,6 +58,7 @@ pub enum BKCommand {
     UserSearch(String),
     Invite(String, String),
     ListStickers,
+    SendSticker(String, Sticker),
 }
 
 #[derive(Debug)]

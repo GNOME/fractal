@@ -5,6 +5,8 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 
 use util::dw_media;
+use util::download_file;
+use util::cache_dir_path;
 
 pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
@@ -41,3 +43,19 @@ pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
+    let fname;
+    {
+        let name = url.split("/").last().unwrap_or_default();
+        fname = cache_dir_path("files", name)?.clone();
+    }
+
+    thread::spawn(move || {
+        match download_file(&url, fname, None) {
+            Ok(fname) => { tx.send(fname).unwrap(); }
+            Err(_) => { tx.send(String::from("")).unwrap(); }
+        };
+    });
+
+    Ok(())
+}

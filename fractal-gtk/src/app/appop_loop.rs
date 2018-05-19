@@ -11,6 +11,7 @@ use glib;
 use types::Message;
 use types::Room;
 use types::Member;
+use types::Sticker;
 
 
 #[derive(Debug)]
@@ -21,6 +22,7 @@ pub enum InternalCommand {
     SelectRoom(Room),
     LoadMoreNormal,
     RemoveInv(String),
+    SendSticker(Sticker),
 
     ToInvite(Member),
     RmInvite(String),
@@ -56,6 +58,9 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
                 }
                 Ok(InternalCommand::RemoveInv(rid)) => {
                     APPOP!(remove_inv, (rid));
+                }
+                Ok(InternalCommand::SendSticker(sticker)) => {
+                    APPOP!(send_sticker, (sticker));
                 }
                 Err(_) => {
                     break;

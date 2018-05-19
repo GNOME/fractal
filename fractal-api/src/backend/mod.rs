@@ -280,6 +280,10 @@ impl Backend {
                 let r = media::get_media(self, media);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
+            Ok(BKCommand::GetFileAsync(url, ctx)) => {
+                let r = media::get_file_async(url, ctx);
+                bkerror!(r, tx, BKResponse::CommandError);
+            }
 
             // Directory module
 
@@ -306,6 +310,10 @@ impl Backend {
 
             Ok(BKCommand::ListStickers) => {
                 let r = stickers::list(self);
+                bkerror!(r, tx, BKResponse::StickersError);
+            }
+            Ok(BKCommand::SendSticker(room, sticker)) => {
+                let r = stickers::send(self, room, &sticker);
                 bkerror!(r, tx, BKResponse::StickersError);
             }
 

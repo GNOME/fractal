@@ -8,10 +8,10 @@ use self::serde_json::Value as JsonValue;
 pub struct Sticker {
     pub name: String,
     pub description: String,
-    pub file: String,
     pub body: String,
     pub thumbnail: String,
     pub url: String,
+    pub size: (i32, i32),
 }
 
 #[derive(Debug)]
@@ -39,13 +39,15 @@ impl StickerGroup {
 
         for img in d["images"].as_array().unwrap_or(&vec![]).iter() {
             let c = &img["content"];
+            let w = c["info"]["h"].as_i64().unwrap_or_default();
+            let h = c["info"]["h"].as_i64().unwrap_or_default();
             stickers.push(Sticker {
                 name: img["name"].as_str().unwrap_or_default().to_string(),
                 description: img["description"].as_str().unwrap_or_default().to_string(),
-                file: img["file"].as_str().unwrap_or_default().to_string(),
                 body: c["body"].as_str().unwrap_or_default().to_string(),
                 url: c["url"].as_str().unwrap_or_default().to_string(),
                 thumbnail: c["info"]["thumbnail_url"].as_str().unwrap_or_default().to_string(),
+                size: (w as i32, h as i32),
             });
         }
 

@@ -15,6 +15,7 @@ use types::Member;
 use types::Message;
 use types::Room;
 use types::RoomList;
+use types::StickerGroup;
 
 use passwd::PasswordStorage;
 
@@ -88,6 +89,8 @@ pub struct AppOp {
     pub md_enabled: bool,
     invite_list: Vec<Member>,
     search_type: SearchType,
+
+    pub stickers: Vec<StickerGroup>,
 }
 
 impl PasswordStorage for AppOp {}
@@ -134,6 +137,7 @@ impl AppOp {
             invitation_roomid: None,
             invite_list: vec![],
             search_type: SearchType::Invite,
+            stickers: vec![],
         }
     }
 
