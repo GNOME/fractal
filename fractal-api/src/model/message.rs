@@ -90,10 +90,10 @@ impl Message {
     /// List all supported types. By default a message map a m.room.message event, but there's
     /// other events that we want to show in the message history so we map other event types to our
     /// Message struct, like stickers
-    pub fn types() -> [&'static str; 1] {
+    pub fn types() -> [&'static str; 2] {
         [
             "m.room.message",
-            //"m.sticker",
+            "m.sticker",
         ]
     }
 
@@ -125,39 +125,69 @@ impl Message {
         }
 
         let id = msg["event_id"].as_str().unwrap_or("");
+        let type_ = msg["type"].as_str().unwrap_or("");
+
+        let mut message = Message {
+            sender: sender.to_string(),
+            date: Message::age_to_datetime(age),
+            room: roomid.clone(),
+            id: Some(id.to_string()),
+            mtype: type_.to_string(),
+            body: "".to_string(),
+            url: None,
+            thumb: None,
+            formatted_body: None,
+            format: None,
+        };
 
         let c = &msg["content"];
+        match type_ {
+            "m.room.message" => Message::parse_m_room_message(&mut message, c),
+            "m.sticker" => Message::parse_m_sticker(&mut message, c),
+            _ => {}
+        };
+
+        message
+    }
+
+    fn parse_m_room_message(msg: &mut Message, c: &JsonValue) {
         let mtype = c["msgtype"].as_str().unwrap_or("");
         let body = c["body"].as_str().unwrap_or("");
         let formatted_body = c["formatted_body"].as_str().map(|s| String::from(s));
         let format = c["format"].as_str().map(|s| String::from(s));
-        let mut url = String::new();
-        let mut thumb = String::new();
 
         match mtype {
             "m.image" | "m.file" | "m.video" | "m.audio" => {
-                url = String::from(c["url"].as_str().unwrap_or(""));
+                let url = String::from(c["url"].as_str().unwrap_or(""));
                 let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
                 if t.is_empty() && !url.is_empty() {
                     t = url.clone();
                 }
-                thumb = t;
+
+                msg.url = Some(url);
+                msg.thumb = Some(t);
             }
             _ => {}
         };
 
-        Message {
-            sender: String::from(sender),
-            mtype: String::from(mtype),
-            body: String::from(body),
-            date: Message::age_to_datetime(age),
-            room: roomid.clone(),
-            url: Some(url),
-            thumb: Some(thumb),
-            id: Some(String::from(id)),
-            formatted_body: formatted_body,
-            format: format,
+        msg.mtype = mtype.to_string();
+        msg.body = body.to_string();
+        msg.formatted_body = formatted_body;
+        msg.format = format;
+    }
+
+    fn parse_m_sticker(msg: &mut Message, c: &JsonValue) {
+        let body = c["body"].as_str().unwrap_or("");
+
+        let url = String::from(c["url"].as_str().unwrap_or(""));
+        let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
+        if t.is_empty() && !url.is_empty() {
+            t = url.clone();
         }
+
+        msg.body = body.to_string();
+        msg.url = Some(url);
+        msg.thumb = Some(t);
     }
 
     /// Create a vec of Message from a json event list
