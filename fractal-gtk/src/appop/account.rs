@@ -4,7 +4,7 @@ use self::gtk::prelude::*;
 
 use appop::AppOp;
 
-//use backend::BKCommand;
+use backend::BKCommand;
 use widgets;
 use widgets::AvatarExt;
 
@@ -19,12 +19,20 @@ impl AppOp {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
             .expect("Can't find account_settings_name in ui file.");
+        let uid = self.ui.builder
+            .get_object::<gtk::Label>("account_settings_uid")
+            .expect("Can't find account_settings_uid in ui file.");
+        let homeserver = self.ui.builder
+            .get_object::<gtk::Label>("account_settings_homeserver")
+            .expect("Can't find account_settings_homeserver in ui file.");
 
         /* remove all old avatar from the popover */
         for w in avatar.get_children().iter() {
             avatar.remove(w);
         }
 
+        uid.set_text(&self.uid.clone().unwrap_or_default());
+        homeserver.set_text(&self.server_url);
         name.set_text(&self.username.clone().unwrap_or_default());
         name.grab_focus_without_selecting();
         name.set_position(-1);
@@ -34,6 +42,19 @@ impl AppOp {
         avatar.show();
 
         dialog.present();
+    }
+
+    pub fn apply_account_settings(&self) {
+        let name = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_name")
+            .expect("Can't find account_settings_name in ui file.");
+
+        let old_username = self.username.clone().unwrap_or_default();
+        let username = name.get_text().unwrap_or_default();
+
+        if old_username !=  username {
+            self.backend.send(BKCommand::SetUserName(username)).unwrap();
+        }
     }
 
     pub fn close_account_settings_dialog(&mut self) {

@@ -353,6 +353,7 @@
                           <object class="GtkLabel" id="account_settings_homeserver">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">None</property>
                           </object>
                           <packing>
@@ -377,9 +378,10 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="account_settings_matrix_id">
+                          <object class="GtkLabel" id="account_settings_uid">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">None</property>
                           </object>
                           <packing>
@@ -407,6 +409,7 @@
                           <object class="GtkLabel" id="account_settings_device_id">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">None</property>
                           </object>
                           <packing>

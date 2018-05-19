@@ -13,6 +13,9 @@ impl App {
         let cancel = self.ui.builder
             .get_object::<gtk::Button>("cancel_account_settings")
             .expect("Can't find cancel_account_settings in ui file.");
+        let confirm = self.ui.builder
+            .get_object::<gtk::Button>("apply_account_settings")
+            .expect("Can't find join_room_button in ui file.");
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("account_settings_dialog")
             .expect("Can't find account_settings_dialog in ui file.");
@@ -29,6 +32,11 @@ impl App {
             glib::signal::Inhibit(true)
         }));
         cancel.connect_clicked(clone!(op => move |_| {
+            op.lock().unwrap().close_account_settings_dialog();
+        }));
+
+        confirm.connect_clicked(clone!(op => move |_| {
+            op.lock().unwrap().apply_account_settings();
             op.lock().unwrap().close_account_settings_dialog();
         }));
 
@@ -51,7 +59,7 @@ impl App {
             let widget = builder
                 .get_object::<gtk::Revealer>("account_settings_delete")
                 .expect("Can't find account_settings_delete in ui file.");
-if widget.get_reveal_child() {
+            if widget.get_reveal_child() {
                 this.get_style_context().unwrap().remove_class("advanced_revealer_divider");
                 widget.set_reveal_child(false);
             }

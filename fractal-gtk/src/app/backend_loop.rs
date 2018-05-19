@@ -49,6 +49,10 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let u = Some(username);
                     APPOP!(set_username, (u));
                 }
+                Ok(BKResponse::SetUserName(username)) => {
+                    let u = Some(username);
+                    APPOP!(set_username, (u));
+                }
                 Ok(BKResponse::Avatar(path)) => {
                     let av = Some(path);
                     APPOP!(set_avatar, (av));

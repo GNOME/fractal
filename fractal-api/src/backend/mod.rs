@@ -151,6 +151,10 @@ impl Backend {
                 let r = user::get_username(self);
                 bkerror!(r, tx, BKResponse::UserNameError);
             }
+            Ok(BKCommand::SetUserName(name)) => {
+                let r = user::set_username(self, name);
+                bkerror!(r, tx, BKResponse::SetUserNameError);
+            }
             Ok(BKCommand::GetAvatar) => {
                 let r = user::get_avatar(self);
                 bkerror!(r, tx, BKResponse::AvatarError);

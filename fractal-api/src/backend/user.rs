@@ -31,6 +31,23 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
+    let id = bk.data.lock().unwrap().user_id.clone();
+    let url = bk.url(&format!("profile/{}/displayname", id.clone()), vec![])?;
+
+    let attrs = json!({
+        "displayname": name,
+    });
+
+    let tx = bk.tx.clone();
+    query!("put", &url, &attrs,
+        |_| { tx.send(BKResponse::SetUserName(name)).unwrap(); },
+        |err| { tx.send(BKResponse::SetUserNameError(err)).unwrap(); }
+    );
+
+    Ok(())
+}
+
 pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let userid = bk.data.lock().unwrap().user_id.clone();
