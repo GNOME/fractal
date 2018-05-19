@@ -1,9 +1,7 @@
 extern crate gtk;
-extern crate gdk_pixbuf;
 extern crate chrono;
 extern crate pango;
 
-use self::gdk_pixbuf::Pixbuf;
 use self::gtk::prelude::*;
 
 use types::Message;
@@ -15,6 +13,7 @@ use self::chrono::prelude::*;
 use backend::BKCommand;
 
 use fractal_api as api;
+use util;
 use util::markup_text;
 
 use std::path::Path;
@@ -259,16 +258,12 @@ impl<'a> MessageBox<'a> {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let image = gtk::Image::new();
-
-        if let Ok(pixbuf) = Pixbuf::new_from_file_at_scale(&msg.thumb.clone().unwrap_or_default(), 200, 200, true) {
-            image.set_from_pixbuf(&pixbuf);
-        } else {
-            image.set_from_file(&msg.thumb.clone().unwrap_or_default());
-        }
-
         let viewbtn = gtk::Button::new();
         let url = msg.url.clone().unwrap_or_default();
+
         let backend = self.op.backend.clone();
+        util::load_thumb(&backend, &msg.thumb.clone().unwrap_or_default(), &image, (200, 200));
+
         //let img = image.clone();
         viewbtn.connect_clicked(move |_| {
             //let spin = gtk::Spinner::new();

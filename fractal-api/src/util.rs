@@ -3,8 +3,6 @@ extern crate url;
 extern crate reqwest;
 extern crate regex;
 extern crate serde_json;
-extern crate chrono;
-extern crate time;
 extern crate cairo;
 extern crate pango;
 extern crate pangocairo;
@@ -40,8 +38,6 @@ use std::collections::HashSet;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use self::chrono::prelude::*;
-use self::time::Duration;
 use std::time::Duration as StdDuration;
 
 use error::Error;
@@ -259,12 +255,9 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
             }
         }
 
-        for ev in timeline["events"].as_array()
-            .unwrap_or(&vec![]).iter()
-            .filter(|x| x["type"] == "m.room.message") {
-
-            let msg = parse_room_message(baseu, k.clone(), ev);
-            r.messages.push(msg);
+        if let Some(evs) = timeline["events"].as_array() {
+            let ms = Message::from_json_events_iter(k.clone(), evs.iter());
+            r.messages.extend(ms);
         }
 
         let mevents = stevents.as_array().unwrap()
@@ -374,14 +367,9 @@ pub fn get_rooms_timeline_from_json(baseu: &Url,
             continue;
         }
 
-        let events = timeline.unwrap()
-            .iter()
-            .filter(|x| x["type"] == "m.room.message");
-
-        for ev in events {
-            let msg = parse_room_message(baseu, k.clone(), ev);
-            msgs.push(msg);
-        }
+        let events = timeline.unwrap().iter();
+        let ms = Message::from_json_events_iter(k.clone(), events);
+        msgs.extend(ms);
     }
 
     Ok(msgs)
@@ -516,12 +504,6 @@ pub fn dw_media(base: &Url,
     file.write_all(&buffer)?;
 
     Ok(fname)
-}
-
-pub fn age_to_datetime(age: i64) -> DateTime<Local> {
-    let now = Local::now();
-    let diff = Duration::seconds(age / 1000);
-    now - diff
 }
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Result<JsonValue, Error> {
@@ -784,49 +766,6 @@ pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<St
     Ok(Some(name))
 }
 
-pub fn parse_room_message(baseu: &Url, roomid: String, msg: &JsonValue) -> Message {
-    let sender = msg["sender"].as_str().unwrap_or("");
-    let mut age = msg["age"].as_i64().unwrap_or(0);
-    if age == 0 {
-        age = msg["unsigned"]["age"].as_i64().unwrap_or(0);
-    }
-
-    let id = msg["event_id"].as_str().unwrap_or("");
-
-    let c = &msg["content"];
-    let mtype = c["msgtype"].as_str().unwrap_or("");
-    let body = c["body"].as_str().unwrap_or("");
-    let formatted_body = c["formatted_body"].as_str().map(|s| String::from(s));
-    let format = c["format"].as_str().map(|s| String::from(s));
-    let mut url = String::new();
-    let mut thumb = String::new();
-
-    match mtype {
-        "m.image" | "m.file" | "m.video" | "m.audio" => {
-            url = String::from(c["url"].as_str().unwrap_or(""));
-            let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
-            if t.is_empty() && !url.is_empty() {
-                t = url.clone();
-            }
-            thumb = media!(baseu, &t).unwrap_or(String::from(""));
-        }
-        _ => {}
-    };
-
-    Message {
-        sender: String::from(sender),
-        mtype: String::from(mtype),
-        body: String::from(body),
-        date: age_to_datetime(age),
-        room: roomid.clone(),
-        url: Some(url),
-        thumb: Some(thumb),
-        id: Some(String::from(id)),
-        formatted_body: formatted_body,
-        format: format,
-    }
-}
-
 /// Recursive function that tries to get at least @get Messages for the room.
 ///
 /// The @limit is the first "limit" param in the GET request.
@@ -867,14 +806,9 @@ pub fn get_initial_room_messages(baseu: &Url,
         return Ok((ms, nstart, nend));
     }
 
-    for msg in array.unwrap().iter().rev() {
-        if msg["type"].as_str().unwrap_or("") != "m.room.message" {
-            continue;
-        }
-
-        let m = parse_room_message(&baseu, roomid.clone(), msg);
-        ms.push(m);
-    }
+    let evs = array.unwrap().iter().rev();
+    let msgs = Message::from_json_events_iter(roomid.clone(), evs);
+    ms.extend(msgs);
 
     if ms.len() < get {
         let (more, s, e) =
@@ -921,14 +855,9 @@ pub fn fill_room_gap(baseu: &Url,
         return Ok(ms);
     }
 
-    for msg in array.unwrap().iter() {
-        if msg["type"].as_str().unwrap_or("") != "m.room.message" {
-            continue;
-        }
-
-        let m = parse_room_message(&baseu, roomid.clone(), msg);
-        ms.push(m);
-    }
+    let evs = array.unwrap().iter();
+    let mevents = Message::from_json_events_iter(roomid.clone(), evs);
+    ms.extend(mevents);
 
     // loading more until no more messages
     let more = fill_room_gap(baseu, tk, roomid, nend, to)?;

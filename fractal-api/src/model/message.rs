@@ -1,7 +1,11 @@
 extern crate md5;
 extern crate chrono;
+extern crate serde_json;
+extern crate time;
 use self::chrono::prelude::*;
 use std::cmp::Ordering;
+use self::serde_json::Value as JsonValue;
+use self::time::Duration;
 
 #[derive(Debug)]
 #[derive(Serialize, Deserialize)]
@@ -81,5 +85,101 @@ impl Message {
         let msg = format!("{}{}{}", self.room, self.body, self.date.to_string());
         let digest = md5::compute(msg.as_bytes());
         format!("{:x}", digest)
+    }
+
+    /// List all supported types. By default a message map a m.room.message event, but there's
+    /// other events that we want to show in the message history so we map other event types to our
+    /// Message struct, like stickers
+    pub fn types() -> [&'static str; 1] {
+        [
+            "m.room.message",
+            //"m.sticker",
+        ]
+    }
+
+    /// Helper function to use in iterator filter of a matrix.org json response to filter supported
+    /// events
+    pub fn supported_event(ev: &&JsonValue) -> bool {
+        let type_ = ev["type"].as_str().unwrap_or_default();
+
+        for t in Message::types().iter() {
+            if t == &type_ {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Parses a matrix.org event and return a Message object
+    ///
+    /// # Arguments
+    ///
+    /// * `roomid` - The message room id
+    /// * `msg` - The message event as Json
+    pub fn parse_room_message(roomid: String, msg: &JsonValue) -> Message {
+        let sender = msg["sender"].as_str().unwrap_or("");
+        let mut age = msg["age"].as_i64().unwrap_or(0);
+        if age == 0 {
+            age = msg["unsigned"]["age"].as_i64().unwrap_or(0);
+        }
+
+        let id = msg["event_id"].as_str().unwrap_or("");
+
+        let c = &msg["content"];
+        let mtype = c["msgtype"].as_str().unwrap_or("");
+        let body = c["body"].as_str().unwrap_or("");
+        let formatted_body = c["formatted_body"].as_str().map(|s| String::from(s));
+        let format = c["format"].as_str().map(|s| String::from(s));
+        let mut url = String::new();
+        let mut thumb = String::new();
+
+        match mtype {
+            "m.image" | "m.file" | "m.video" | "m.audio" => {
+                url = String::from(c["url"].as_str().unwrap_or(""));
+                let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
+                if t.is_empty() && !url.is_empty() {
+                    t = url.clone();
+                }
+                thumb = t;
+            }
+            _ => {}
+        };
+
+        Message {
+            sender: String::from(sender),
+            mtype: String::from(mtype),
+            body: String::from(body),
+            date: Message::age_to_datetime(age),
+            room: roomid.clone(),
+            url: Some(url),
+            thumb: Some(thumb),
+            id: Some(String::from(id)),
+            formatted_body: formatted_body,
+            format: format,
+        }
+    }
+
+    /// Create a vec of Message from a json event list
+    ///
+    /// * `roomid` - The messages room id
+    /// * `events` - An iterator to the json events
+    pub fn from_json_events_iter<'a, I>(roomid: String, events: I) -> Vec<Message>
+        where I: Iterator<Item=&'a JsonValue> {
+        let mut ms = vec![];
+
+        let evs = events.filter(Message::supported_event);
+        for msg in evs {
+            let m = Message::parse_room_message(roomid.clone(), msg);
+            ms.push(m);
+        }
+
+        ms
+    }
+
+    fn age_to_datetime(age: i64) -> DateTime<Local> {
+        let now = Local::now();
+        let diff = Duration::seconds(age / 1000);
+        now - diff
     }
 }
