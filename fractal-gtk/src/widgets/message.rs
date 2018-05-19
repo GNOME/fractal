@@ -110,6 +110,9 @@ impl<'a> MessageBox<'a> {
         let body: gtk::Box;
 
         match msg.mtype.as_ref() {
+            "m.sticker" => {
+                body = self.build_room_msg_sticker();
+            }
             "m.image" => {
                 body = self.build_room_msg_image();
             }
@@ -275,6 +278,19 @@ impl<'a> MessageBox<'a> {
         viewbtn.set_image(&image);
 
         bx.add(&viewbtn);
+        bx
+    }
+
+    fn build_room_msg_sticker(&self) -> gtk::Box {
+        let msg = self.msg;
+        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let image = gtk::Image::new();
+
+        let backend = self.op.backend.clone();
+        util::load_thumb(&backend, &msg.thumb.clone().unwrap_or_default(), &image, (200, 200));
+        image.set_tooltip_text(&self.msg.body[..]);
+        bx.add(&image);
+
         bx
     }
 
