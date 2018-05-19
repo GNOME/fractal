@@ -153,6 +153,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::UserSearch(users)) => {
                     APPOP!(user_search_finished, (users));
                 }
+                Ok(BKResponse::Stickers(stickers)) => {
+                    APPOP!(stickers_loaded, (stickers));
+                }
 
                 // errors
                 Ok(BKResponse::NewRoomError(err, internal_id)) => {

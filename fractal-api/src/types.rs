@@ -5,3 +5,5 @@ pub use model::protocol::Protocol;
 pub use model::message::Message;
 pub use model::member::Member;
 pub use model::member::MemberList;
+pub use model::stickers::Sticker;
+pub use model::stickers::StickerGroup;
