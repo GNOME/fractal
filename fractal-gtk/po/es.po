@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-05-18 10:52+0200\n"
+"POT-Creation-Date: 2018-05-19 17:59+0200\n"
 "PO-Revision-Date: 2018-05-18 11:13+0200\n"
 "Last-Translator: Daniel Garcia Moreno <danigm@wadobo.com>\n"
 "Language-Team: Español; Castellano <info@wadobo.com>\n"
@@ -55,8 +55,6 @@ msgstr "_Salir"
 
 #: fractal-gtk/res/org.gnome.Fractal.appdata.xml:4
 #: fractal-gtk/res/org.gnome.Fractal.desktop:3
-#: fractal-gtk/res/ui/main_window.ui:1241
-#: fractal-gtk/res/ui/main_window.ui:1291
 msgid "Fractal"
 msgstr "Fractal"
 
@@ -185,10 +183,6 @@ msgstr ""
 msgid "Leave room"
 msgstr "Abandonar sala"
 
-#: fractal-gtk/res/ui/main_window.ui:168 fractal-gtk/res/ui/main_window.ui:1224
-msgid "normal"
-msgstr "normal"
-
 #: fractal-gtk/res/ui/main_window.ui:179
 msgid "Searching"
 msgstr "Buscando"
@@ -196,14 +190,6 @@ msgstr "Buscando"
 #: fractal-gtk/res/ui/main_window.ui:296
 msgid "Attach files"
 msgstr "Adjuntar ficheros"
-
-#: fractal-gtk/res/ui/main_window.ui:354
-msgid "room_view"
-msgstr "vista de salas"
-
-#: fractal-gtk/res/ui/main_window.ui:365
-msgid "loading"
-msgstr "cargando"
 
 #: fractal-gtk/res/ui/main_window.ui:388
 msgid "No room selected"
@@ -257,17 +243,9 @@ msgstr "URL de servidor"
 msgid "Identity server URL"
 msgstr "URL de servidor de identidad"
 
-#: fractal-gtk/res/ui/main_window.ui:794
-msgid "https://matrix.org"
-msgstr "https://matrix.org"
-
 #: fractal-gtk/res/ui/main_window.ui:795
 msgid "Matrix Server"
 msgstr "Servidor de Matrix"
-
-#: fractal-gtk/res/ui/main_window.ui:813
-msgid "https://vector.im"
-msgstr "https://vector.im"
 
 #: fractal-gtk/res/ui/main_window.ui:814
 msgid "Identity server"
@@ -318,16 +296,12 @@ msgstr "Tema de sala"
 msgid "Room"
 msgstr "Sala"
 
-#: fractal-gtk/res/ui/main_window.ui:1210
+#: fractal-gtk/res/ui/main_window.ui:1227
 msgid "Members"
 msgstr "Miembros"
 
-#: fractal-gtk/res/ui/main_window.ui:1252
-msgid "login"
-msgstr "entrar"
-
-#: fractal-gtk/res/ui/main_window.ui:1282
-#: fractal-gtk/res/ui/main_window.ui:1302
+#: fractal-gtk/res/ui/main_window.ui:1299
+#: fractal-gtk/res/ui/main_window.ui:1319
 msgid "Back"
 msgstr "Atrás"
 
@@ -359,17 +333,9 @@ msgstr "Buscar miembros en la sala"
 msgid "Private Chat"
 msgstr "Chat Privado"
 
-#: fractal-gtk/res/ui/new_room.ui:15
-msgid "private_chat"
-msgstr "private_chat"
-
 #: fractal-gtk/res/ui/new_room.ui:18 fractal-gtk/res/ui/new_room.ui:187
 msgid "Public"
 msgstr "Público"
-
-#: fractal-gtk/res/ui/new_room.ui:19
-msgid "public_chat"
-msgstr "public_chat"
 
 #: fractal-gtk/res/ui/new_room.ui:39
 msgid "Create new room"
@@ -402,10 +368,6 @@ msgstr "Nombre"
 #: fractal-gtk/res/ui/room_config.ui:116
 msgid "Topic"
 msgstr "Tema"
-
-#: fractal-gtk/res/ui/room_config.ui:162
-msgid "#"
-msgstr "#"
 
 #: fractal-gtk/res/ui/room_config.ui:186 fractal-gtk/res/ui/room_menu.ui:37
 msgid "Room details"
@@ -562,3 +524,30 @@ msgstr "Salas"
 #: fractal-gtk/src/widgets/roomlist.rs:439
 msgid "You don't have any rooms yet"
 msgstr "No tienes ninguna sala todavía"
+
+#~ msgid "normal"
+#~ msgstr "normal"
+
+#~ msgid "loading"
+#~ msgstr "cargando"
+
+#~ msgid "login"
+#~ msgstr "entrar"
+
+#~ msgid "private_chat"
+#~ msgstr "private_chat"
+
+#~ msgid "public_chat"
+#~ msgstr "public_chat"
+
+#~ msgid "#"
+#~ msgstr "#"
+
+#~ msgid "room_view"
+#~ msgstr "vista de salas"
+
+#~ msgid "https://matrix.org"
+#~ msgstr "https://matrix.org"
+
+#~ msgid "https://vector.im"
+#~ msgstr "https://vector.im"
