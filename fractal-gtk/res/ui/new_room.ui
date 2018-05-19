@@ -12,11 +12,11 @@
     <data>
       <row>
         <col id="0" translatable="yes">Private Chat</col>
-        <col id="1" translatable="yes">private_chat</col>
+        <col id="1">private_chat</col>
       </row>
       <row>
         <col id="0" translatable="yes">Public</col>
-        <col id="1" translatable="yes">public_chat</col>
+        <col id="1">public_chat</col>
       </row>
     </data>
   </object>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-05-18 10:52+0200\n"
+"POT-Creation-Date: 2018-05-19 17:59+0200\n"
 "PO-Revision-Date: 2018-05-19 15:42+0100\n"
 "Last-Translator: Alexandre Franke <alexandre.franke@gmail.com>\n"
 "Language-Team: none\n"
@@ -54,8 +54,6 @@ msgstr "_Quitter"
 
 #: fractal-gtk/res/org.gnome.Fractal.appdata.xml:4
 #: fractal-gtk/res/org.gnome.Fractal.desktop:3
-#: fractal-gtk/res/ui/main_window.ui:1241
-#: fractal-gtk/res/ui/main_window.ui:1291
 msgid "Fractal"
 msgstr "Fractal"
 
@@ -69,9 +67,9 @@ msgid ""
 "is optimized for collaboration in large groups, such as free software "
 "projects."
 msgstr ""
-"Fractal est une application de messagerie Matrix pour GNOME écrite en "
-"Rust. Son interface est optimisée pour la collaboration dans les grands "
-"groupes, comme les projets de logiciels libres."
+"Fractal est une application de messagerie Matrix pour GNOME écrite en Rust. "
+"Son interface est optimisée pour la collaboration dans les grands groupes, "
+"comme les projets de logiciels libres."
 
 #: fractal-gtk/res/org.gnome.Fractal.desktop:4
 msgid ""
@@ -101,7 +99,9 @@ msgstr "Type de stockage de mots de passe et de jetons"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:14
 msgid "Type of password and token storage, default value is: Secret Service"
-msgstr "Type de stockage de mots de passe et de jetons, la valeur par défaut est : Secret Service"
+msgstr ""
+"Type de stockage de mots de passe et de jetons, la valeur par défaut est : "
+"Secret Service"
 
 #: fractal-gtk/res/ui/add_room_menu.ui:23
 msgid "Room directory"
@@ -149,7 +149,8 @@ msgstr "Invitation"
 
 #: fractal-gtk/res/ui/invite.ui:20
 msgid "You've been invited to join to \"\", you can accept or reject"
-msgstr "Vous avez été invité·e à rejoindre « », vous pouvez accepter ou décliner"
+msgstr ""
+"Vous avez été invité·e à rejoindre « », vous pouvez accepter ou décliner"
 
 #: fractal-gtk/res/ui/invite.ui:33
 msgid "Reject"
@@ -184,10 +185,6 @@ msgstr ""
 msgid "Leave room"
 msgstr "Quitter le salon"
 
-#: fractal-gtk/res/ui/main_window.ui:168 fractal-gtk/res/ui/main_window.ui:1224
-msgid "normal"
-msgstr ""
-
 #: fractal-gtk/res/ui/main_window.ui:179
 msgid "Searching"
 msgstr "Recherche en cours"
@@ -195,14 +192,6 @@ msgstr "Recherche en cours"
 #: fractal-gtk/res/ui/main_window.ui:296
 msgid "Attach files"
 msgstr "Joindre des fichiers"
-
-#: fractal-gtk/res/ui/main_window.ui:354
-msgid "room_view"
-msgstr ""
-
-#: fractal-gtk/res/ui/main_window.ui:365
-msgid "loading"
-msgstr ""
 
 #: fractal-gtk/res/ui/main_window.ui:388
 msgid "No room selected"
@@ -256,17 +245,9 @@ msgstr "URL du serveur d’accueil"
 msgid "Identity server URL"
 msgstr "URL du serveur d’identité"
 
-#: fractal-gtk/res/ui/main_window.ui:794
-msgid "https://matrix.org"
-msgstr "https://matrix.org"
-
 #: fractal-gtk/res/ui/main_window.ui:795
 msgid "Matrix Server"
 msgstr "Serveur Matrix"
-
-#: fractal-gtk/res/ui/main_window.ui:813
-msgid "https://vector.im"
-msgstr "https://vector.im"
 
 #: fractal-gtk/res/ui/main_window.ui:814
 msgid "Identity server"
@@ -317,16 +298,12 @@ msgstr "Sujet du salon"
 msgid "Room"
 msgstr "Salon"
 
-#: fractal-gtk/res/ui/main_window.ui:1210
+#: fractal-gtk/res/ui/main_window.ui:1227
 msgid "Members"
 msgstr "Membres"
 
-#: fractal-gtk/res/ui/main_window.ui:1252
-msgid "login"
-msgstr ""
-
-#: fractal-gtk/res/ui/main_window.ui:1282
-#: fractal-gtk/res/ui/main_window.ui:1302
+#: fractal-gtk/res/ui/main_window.ui:1299
+#: fractal-gtk/res/ui/main_window.ui:1319
 msgid "Back"
 msgstr "Retour"
 
@@ -358,17 +335,9 @@ msgstr "Rechercher des membres du salon"
 msgid "Private Chat"
 msgstr "Discussion privée"
 
-#: fractal-gtk/res/ui/new_room.ui:15
-msgid "private_chat"
-msgstr ""
-
 #: fractal-gtk/res/ui/new_room.ui:18 fractal-gtk/res/ui/new_room.ui:187
 msgid "Public"
 msgstr "Publique"
-
-#: fractal-gtk/res/ui/new_room.ui:19
-msgid "public_chat"
-msgstr ""
 
 #: fractal-gtk/res/ui/new_room.ui:39
 msgid "Create new room"
@@ -401,10 +370,6 @@ msgstr "Nom"
 #: fractal-gtk/res/ui/room_config.ui:116
 msgid "Topic"
 msgstr "Sujet"
-
-#: fractal-gtk/res/ui/room_config.ui:162
-msgid "#"
-msgstr "#"
 
 #: fractal-gtk/res/ui/room_config.ui:186 fractal-gtk/res/ui/room_menu.ui:37
 msgid "Room details"
@@ -482,7 +447,9 @@ msgstr "Inviter dans {name}"
 msgid ""
 "You've been invited to join to <b>{room_name}</b> room by <b>{sender_name}</"
 "b>"
-msgstr "Vous avez été invité·e par <b>{sender_name}</b> à rejoindre <b>{room_name}</b>"
+msgstr ""
+"Vous avez été invité·e par <b>{sender_name}</b> à rejoindre <b>{room_name}</"
+"b>"
 
 #: fractal-gtk/src/appop/invite.rs:217
 msgid "You've been invited to join to <b>{room_name}</b>"
@@ -549,8 +516,8 @@ msgid ""
 "Drag and drop rooms here to                                        add them "
 "to your favorites"
 msgstr ""
-"Faites glisser-déposer des salons ici pour                         les ajouter "
-"à vos favoris"
+"Faites glisser-déposer des salons ici pour                         les "
+"ajouter à vos favoris"
 
 #: fractal-gtk/src/widgets/roomlist.rs:438
 msgid "Rooms"
@@ -559,3 +526,12 @@ msgstr "Salons"
 #: fractal-gtk/src/widgets/roomlist.rs:439
 msgid "You don't have any rooms yet"
 msgstr "Vous n’avez pas encore de salon"
+
+#~ msgid "#"
+#~ msgstr "#"
+
+#~ msgid "https://matrix.org"
+#~ msgstr "https://matrix.org"
+
+#~ msgid "https://vector.im"
+#~ msgstr "https://vector.im"

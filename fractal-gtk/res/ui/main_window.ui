@@ -165,7 +165,7 @@
                                           </object>
                                           <packing>
                                             <property name="name">normal</property>
-                                            <property name="title" translatable="yes">normal</property>
+                                            <property name="title">normal</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -351,7 +351,7 @@
                       </object>
                       <packing>
                         <property name="name">room_view</property>
-                        <property name="title" translatable="yes">room_view</property>
+                        <property name="title">room_view</property>
                       </packing>
                     </child>
                     <child>
@@ -362,7 +362,7 @@
                       </object>
                       <packing>
                         <property name="name">loading</property>
-                        <property name="title" translatable="yes">loading</property>
+                        <property name="title">loading</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -791,7 +791,7 @@
                                 <property name="width_request">330</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text" translatable="yes">https://matrix.org</property>
+                                <property name="text">https://matrix.org</property>
                                 <property name="placeholder_text" translatable="yes">Matrix Server</property>
                                 <property name="input_purpose">url</property>
                                 <accessibility>
@@ -810,7 +810,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="margin_bottom">6</property>
-                                <property name="text" translatable="yes">https://vector.im</property>
+                                <property name="text">https://vector.im</property>
                                 <property name="placeholder_text" translatable="yes">Identity server</property>
                                 <property name="input_purpose">url</property>
                                 <accessibility>
@@ -1207,7 +1207,7 @@
                           <object class="GtkLabel" id="members_count">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">?</property>
+                            <property name="label">?</property>
                           </object>
                         </child>
                         <child>
@@ -1238,7 +1238,7 @@
           </object>
           <packing>
             <property name="name">normal</property>
-            <property name="title" translatable="yes">normal</property>
+            <property name="title">normal</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -1255,7 +1255,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Fractal</property>
+                    <property name="label">Fractal</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -1266,7 +1266,7 @@
           </object>
           <packing>
             <property name="name">login</property>
-            <property name="title" translatable="yes">login</property>
+            <property name="title">login</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -1305,7 +1305,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Fractal</property>
+                    <property name="label">Fractal</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -1338,4 +1338,3 @@
 
 
 </interface>
-
