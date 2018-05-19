@@ -99,6 +99,13 @@ macro_rules! client_url {
 }
 
 #[macro_export]
+macro_rules! scalar_url {
+    ($b: expr, $path: expr, $params: expr) => (
+        build_url($b, &format!("api/{}", $path), $params)
+    )
+}
+
+#[macro_export]
 macro_rules! media_url {
     ($b: expr, $path: expr, $params: expr) => (
         build_url($b, &format!("/_matrix/media/r0/{}", $path), $params)

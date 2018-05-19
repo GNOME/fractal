@@ -10,6 +10,8 @@ impl AppOp {
     pub fn initial_sync(&self, show: bool) {
         if show {
             self.inapp_notify(&gettext("Syncing, this could take a while"));
+            // getting stickers
+            self.backend.send(BKCommand::ListStickers).unwrap();
         } else {
             self.hide_inapp_notify();
         }

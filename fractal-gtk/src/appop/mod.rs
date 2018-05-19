@@ -38,6 +38,7 @@ mod member;
 mod invite;
 mod about;
 mod start_chat;
+mod stickers;
 
 pub use self::state::AppState;
 use self::message::TmpMsg;

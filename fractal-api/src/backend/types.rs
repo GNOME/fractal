@@ -8,6 +8,7 @@ use types::Member;
 use types::Protocol;
 use types::Room;
 use types::Event;
+use types::StickerGroup;
 
 use cache::CacheMap;
 
@@ -54,6 +55,7 @@ pub enum BKCommand {
     RejectInv(String),
     UserSearch(String),
     Invite(String, String),
+    ListStickers,
 }
 
 #[derive(Debug)]
@@ -92,6 +94,7 @@ pub enum BKResponse {
     AddedToFav(String, bool),
     RoomNotifications(String, i32, i32),
     UserSearch(Vec<Member>),
+    Stickers(Vec<StickerGroup>),
 
     //errors
     UserNameError(Error),
@@ -123,6 +126,7 @@ pub enum BKResponse {
     AcceptInvError(Error),
     RejectInvError(Error),
     InviteError(Error),
+    StickersError(Error),
 }
 
 #[derive(Debug)]
@@ -135,6 +139,9 @@ pub struct BackendData {
     pub user_id: String,
     pub access_token: String,
     pub server_url: String,
+    pub scalar_token: Option<String>,
+    pub scalar_url: String,
+    pub sticker_widget: Option<String>,
     pub since: String,
     pub rooms_since: String,
     pub join_to_room: String,
