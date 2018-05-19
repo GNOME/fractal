@@ -481,7 +481,8 @@ pub fn dw_media(base: &Url,
     let url = media_url!(base, &path, params)?;
 
     let fname = match dest {
-        None => { cache_path(&media)?  }
+        None if thumb => { cache_dir_path("thumbs", &media)?  }
+        None => { cache_dir_path("medias", &media)?  }
         Some(d) => String::from(d),
     };
 
@@ -910,6 +911,24 @@ pub fn cache_path(name: &str) -> Result<String, Error> {
     };
 
     path.push("fractal");
+
+    if !path.exists() {
+        create_dir_all(&path)?;
+    }
+
+    path.push(name);
+
+    Ok(path.into_os_string().into_string()?)
+}
+
+pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
+    let mut path = match glib::get_user_cache_dir() {
+        Some(path) => path,
+        None => PathBuf::from("/tmp"),
+    };
+
+    path.push("fractal");
+    path.push(dir);
 
     if !path.exists() {
         create_dir_all(&path)?;
