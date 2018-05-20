@@ -380,6 +380,27 @@ impl AppOp {
                     .get_object::<gtk::Entry>("room_name_entry")
                     .expect("Can't find room_name_entry in ui file.");
 
+                match self.uid {
+                    Some(ref uid) => {
+                        match self.active_room {
+                            Some(ref active_room_id) => {
+                                match self.rooms.get(active_room_id) {
+                                    Some(active_room) => {
+                                        if active_room.power_levels.get(uid).unwrap_or(&0) >= &50 {
+                                            edit.set_editable(true);
+                                        } else {
+                                            edit.set_editable(false);
+                                        }
+                                    },
+                                    None => edit.set_editable(false),
+                                }
+                            },
+                            None => edit.set_editable(false),
+                        }
+                    },
+                    None => edit.set_editable(false),
+                }
+
                 name_label.set_text(&value);
                 edit.set_text(&value);
 
@@ -390,6 +411,27 @@ impl AppOp {
                 let edit = self.ui.builder
                     .get_object::<gtk::Entry>("room_topic_entry")
                     .expect("Can't find room_topic_entry in ui file.");
+
+                match self.uid {
+                    Some(ref uid) => {
+                        match self.active_room {
+                            Some(ref active_room_id) => {
+                                match self.rooms.get(active_room_id) {
+                                    Some(active_room) => {
+                                        if active_room.power_levels.get(uid).unwrap_or(&0) >= &50 {
+                                            edit.set_editable(true);
+                                        } else {
+                                            edit.set_editable(false);
+                                        }
+                                    },
+                                    None => edit.set_editable(false),
+                                }
+                            },
+                            None => edit.set_editable(false),
+                        }
+                    },
+                    None => edit.set_editable(false),
+                }
 
                 edit.set_text(&value);
             }
