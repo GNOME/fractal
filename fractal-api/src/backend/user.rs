@@ -1,11 +1,16 @@
 extern crate serde_json;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 use globals;
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use error::Error;
 use util::json_q;
+use util::build_url;
+use util::put_media;
 use util::get_user_avatar;
 use util::get_user_avatar_img;
 use backend::types::BKResponse;
@@ -129,6 +134,43 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
             Err(_) => { tx.send(String::new()).unwrap(); }
         }
     });
+
+    Ok(())
+}
+
+pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
+    let baseu = bk.get_base_url()?;
+    let id = bk.data.lock().unwrap().user_id.clone();
+    let tk = bk.data.lock().unwrap().access_token.clone();
+    let params = vec![("access_token", tk.clone())];
+    let mediaurl = media_url!(&baseu, "upload", params)?;
+    let url = bk.url(&format!("profile/{}/avatar_url", id), vec![])?;
+
+    let mut file = File::open(&avatar)?;
+    let mut contents: Vec<u8> = vec![];
+    file.read_to_end(&mut contents)?;
+
+    let tx = bk.tx.clone();
+    thread::spawn(
+        move || {
+            match put_media(mediaurl.as_str(), contents) {
+                Err(err) => {
+                    tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
+                }
+                Ok(js) => {
+                    let uri = js["content_uri"].as_str().unwrap_or("");
+                    let attrs = json!({ "avatar_url": uri });
+                    match json_q("put", &url, &attrs, 0) {
+                        Ok(_) => {
+                            tx.send(BKResponse::SetUserAvatar(avatar)).unwrap();
+                        },
+                        Err(err) => {
+                            tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
+                        }
+                    };
+                }
+            };
+        });
 
     Ok(())
 }

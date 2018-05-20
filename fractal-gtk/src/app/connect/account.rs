@@ -25,12 +25,16 @@ impl App {
         let delete_toggle = self.ui.builder
             .get_object::<gtk::EventBox>("account_settings_delete_toggle")
             .expect("Can't find account_settings_delete_toggle in ui file.");
+        let avatar_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_avatar_button")
+            .expect("Can't find account_settings_avatar_button in ui file.");
 
 
         dialog.connect_delete_event(clone!(op => move |_, _| {
             op.lock().unwrap().close_account_settings_dialog();
             glib::signal::Inhibit(true)
         }));
+        /* Headerbar */
         cancel.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_account_settings_dialog();
         }));
@@ -38,6 +42,24 @@ impl App {
         confirm.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().apply_account_settings();
             op.lock().unwrap().close_account_settings_dialog();
+        }));
+
+        /* Body */
+        avatar_btn.connect_clicked(clone!(op, builder => move |_| {
+            let window = builder
+                .get_object::<gtk::Window>("main_window")
+                .expect("Can't find main_window in ui file.");
+            let file_chooser = gtk::FileChooserNative::new("Pick a new avatar", Some(&window), gtk::FileChooserAction::Open, Some("Select"), None);
+            /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
+            let result = gtk::NativeDialog::run(&file_chooser.clone().upcast::<gtk::NativeDialog>());
+            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
+                if let Some(file) = file_chooser.get_filename() {
+                    if let Some(path) = file.to_str() {
+                        op.lock().unwrap().save_tmp_avatar_account_settings(String::from(path));
+
+                    }
+                }
+            }
         }));
 
         advanced_toggle.connect_button_press_event(clone!(builder => move |this, _| {

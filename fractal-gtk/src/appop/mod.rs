@@ -82,6 +82,8 @@ pub struct AppOp {
     pub popover_search: Option<String>,
     pub popover_closing: bool,
 
+    pub tmp_avatar: Option<String>,
+
     pub state: AppState,
     pub since: Option<String>,
     pub member_limit: usize,
@@ -132,6 +134,8 @@ impl AppOp {
             since: None,
             member_limit: 50,
             unsent_messages: HashMap::new(),
+
+            tmp_avatar: None,
 
             highlighted_entry: vec![],
             popover_position: None,

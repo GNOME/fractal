@@ -44,6 +44,10 @@ impl AppOp {
         dialog.present();
     }
 
+    pub fn save_tmp_avatar_account_settings(&mut self, file: String) {
+        self.tmp_avatar = Some(file);
+    }
+
     pub fn apply_account_settings(&self) {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
@@ -55,6 +59,12 @@ impl AppOp {
         if old_username !=  username {
             self.backend.send(BKCommand::SetUserName(username)).unwrap();
         }
+
+        if let Some(ref user) = self.tmp_avatar {
+            let command = BKCommand::SetUserAvatar(user.to_string());
+            self.backend.send(command).unwrap();
+        }
+
     }
 
     pub fn close_account_settings_dialog(&mut self) {
@@ -62,13 +72,13 @@ impl AppOp {
             .get_object::<gtk::Dialog>("account_settings_dialog")
             .expect("Can't find account_settings_dialog in ui file.");
         /*
-        let avatar = self.ui.builder
-            .get_object::<gtk::Container>("account_settings_avatar")
-            .expect("Can't find account_settings_avatar in ui file.");
-        let name = self.ui.builder
-            .get_object::<gtk::Entry>("account_settings_name")
-            .expect("Can't find account_settings_name in ui file.");
-        */
+           let avatar = self.ui.builder
+           .get_object::<gtk::Container>("account_settings_avatar")
+           .expect("Can't find account_settings_avatar in ui file.");
+           let name = self.ui.builder
+           .get_object::<gtk::Entry>("account_settings_name")
+           .expect("Can't find account_settings_name in ui file.");
+           */
         let advanced = self.ui.builder                                                                          
             .get_object::<gtk::Revealer>("account_settings_advanced")                                 
             .expect("Can't find account_settings_advanced in ui file."); 
@@ -83,6 +93,7 @@ impl AppOp {
             .get_object::<gtk::EventBox>("account_settings_delete_toggle")                                
             .expect("Can't find account_settings_delete_toggle in ui file.");
 
+        self.tmp_avatar = None;
         advanced_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         delete_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         advanced.set_reveal_child(false);

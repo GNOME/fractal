@@ -159,6 +159,10 @@ impl Backend {
                 let r = user::get_avatar(self);
                 bkerror!(r, tx, BKResponse::AvatarError);
             }
+            Ok(BKCommand::SetUserAvatar(file)) => {
+                let r = user::set_user_avatar(self, file);
+                bkerror!(r, tx, BKResponse::SetUserAvatarError);
+            }
             Ok(BKCommand::GetAvatarAsync(member, ctx)) => {
                 let r = user::get_avatar_async(self, member, ctx);
                 bkerror!(r, tx, BKResponse::CommandError);
