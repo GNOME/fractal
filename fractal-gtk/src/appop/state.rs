@@ -57,6 +57,10 @@ impl AppOp {
                 .expect("Can't find widget to set focus in ui file.")
                 .grab_focus();
         }
+
+        if let AppState::Directory = self.state {
+            self.search_rooms(false);
+        }
     }
 
     pub fn escape(&mut self) {
