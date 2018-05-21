@@ -5,9 +5,6 @@ use app::App;
 
 impl App {
     pub fn connect_directory(&self) {
-        let btn = self.ui.builder
-            .get_object::<gtk::Button>("directory_search_button")
-            .expect("Can't find directory_search_button in ui file.");
         let q = self.ui.builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
@@ -17,9 +14,6 @@ impl App {
             .expect("Can't find directory_scroll in ui file.");
 
         let mut op = self.op.clone();
-        btn.connect_clicked(move |_| { op.lock().unwrap().search_rooms(false); });
-
-        op = self.op.clone();
         scroll.connect_edge_reached(move |_, dir| if dir == gtk::PositionType::Bottom {
             op.lock().unwrap().load_more_rooms();
         });

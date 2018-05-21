@@ -1,8 +1,6 @@
 extern crate gtk;
-extern crate gettextrs;
 
 use self::gtk::prelude::*;
-use self::gettextrs::gettext;
 
 use appop::AppOp;
 
@@ -26,23 +24,14 @@ impl AppOp {
         for p in protocols {
             combo.insert_with_values(None, &[0, 1], &[&p.desc, &p.id]);
         }
-
-        self.ui.builder
-            .get_object::<gtk::ComboBox>("directory_combo")
-            .expect("Can't find directory_combo in ui file.")
-            .set_active(0);
     }
 
     pub fn search_rooms(&self, more: bool) {
         let combo_store = self.ui.builder
             .get_object::<gtk::ListStore>("protocol_model")
             .expect("Can't find protocol_model in ui file.");
-        let combo = self.ui.builder
-            .get_object::<gtk::ComboBox>("directory_combo")
-            .expect("Can't find directory_combo in ui file.");
 
-        let active = combo.get_active();
-        let protocol: String = match combo_store.iter_nth_child(None, active) {
+        let protocol: String = match combo_store.iter_nth_child(None, 0) {
             Some(it) => {
                 let v = combo_store.get_value(&it, 1);
                 v.get().unwrap()
@@ -53,12 +42,6 @@ impl AppOp {
         let q = self.ui.builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
-
-        let btn = self.ui.builder
-            .get_object::<gtk::Button>("directory_search_button")
-            .expect("Can't find directory_search_button in ui file.");
-        btn.set_label(gettext("Searching…").as_str());
-        btn.set_sensitive(false);
 
         if !more {
             let directory = self.ui.builder
@@ -86,15 +69,5 @@ impl AppOp {
         let rb = widgets::RoomBox::new(&room, &self);
         let room_widget = rb.widget();
         directory.add(&room_widget);
-
-        self.enable_directory_search();
-    }
-
-    pub fn enable_directory_search(&self) {
-        let btn = self.ui.builder
-            .get_object::<gtk::Button>("directory_search_button")
-            .expect("Can't find directory_search_button in ui file.");
-        btn.set_label(gettext("Search").as_str());
-        btn.set_sensitive(true);
     }
 }
