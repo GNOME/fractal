@@ -96,7 +96,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     if rooms.len() == 0 {
                         let error = gettext("No rooms found");
                         APPOP!(show_error, (error));
-                        APPOP!(enable_directory_search);
                     }
 
                     for room in rooms {
@@ -187,7 +186,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::DirectoryError(_)) => {
                     let error = gettext("Error searching for rooms");
                     APPOP!(show_error, (error));
-                    APPOP!(enable_directory_search);
                 }
                 Ok(BKResponse::SyncError(err)) => {
                     println!("SYNC Error: {:?}", err);
