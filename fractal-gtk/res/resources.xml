@@ -22,6 +22,7 @@
       <file preprocess="xml-stripblanks">ui/room_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/user_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/markdown_popover.ui</file>
+      <file preprocess="xml-stripblanks">ui/server_chooser_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/stickers_popover.ui</file>
       <file preprocess="xml-stripblanks">ui/sticker_group.ui</file>
   </gresource>

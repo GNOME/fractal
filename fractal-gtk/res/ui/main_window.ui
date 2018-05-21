@@ -1286,10 +1286,11 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkMenuButton">
+                  <object class="GtkMenuButton" id="server_chooser_menu">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="popover">server_chooser_popover</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
