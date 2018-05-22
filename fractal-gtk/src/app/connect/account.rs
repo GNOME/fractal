@@ -28,7 +28,9 @@ impl App {
         let avatar_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_avatar_button")
             .expect("Can't find account_settings_avatar_button in ui file.");
-
+        let password_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
 
         dialog.connect_delete_event(clone!(op => move |_, _| {
             op.lock().unwrap().close_account_settings_dialog();
@@ -60,6 +62,11 @@ impl App {
                     }
                 }
             }
+        }));
+
+        /* Passsword dialog */
+        password_btn.connect_clicked(clone!(op, builder => move |_| {
+            op.lock().unwrap().show_password_dialog();
         }));
 
         advanced_toggle.connect_button_press_event(clone!(builder => move |this, _| {

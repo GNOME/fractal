@@ -25,6 +25,12 @@ impl AppOp {
         let homeserver = self.ui.builder
             .get_object::<gtk::Label>("account_settings_homeserver")
             .expect("Can't find account_settings_homeserver in ui file.");
+        let advanced_box = self.ui.builder
+            .get_object::<gtk::Box>("account_settings_advanced_box")
+            .expect("Can't find account_settings_advanced_box in ui file.");
+        let delete_box = self.ui.builder
+            .get_object::<gtk::Box>("account_settings_delete_box")
+            .expect("Can't find account_settings_delete_box in ui file.");
 
         /* remove all old avatar from the popover */
         for w in avatar.get_children().iter() {
@@ -41,6 +47,16 @@ impl AppOp {
         avatar.add(&w);
         avatar.show();
 
+        dialog.set_redraw_on_allocate(true);
+        advanced_box.set_redraw_on_allocate(true);
+        delete_box.set_redraw_on_allocate(true);
+        dialog.present();
+    }
+
+    pub fn show_password_dialog(&self) {
+        let dialog = self.ui.builder
+            .get_object::<gtk::Dialog>("password_dialog")
+            .expect("Can't find password_dialog in ui file.");
         dialog.present();
     }
 
