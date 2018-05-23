@@ -53,7 +53,7 @@ impl AppOp {
         }
 
         self.backend
-            .send(BKCommand::DirectorySearch(q.get_text().unwrap(), protocol, more))
+            .send(BKCommand::DirectorySearch("https://matrix.org".to_string(), q.get_text().unwrap(), protocol, more))
             .unwrap();
     }
 
