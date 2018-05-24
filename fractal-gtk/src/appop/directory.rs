@@ -43,6 +43,8 @@ impl AppOp {
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
 
+        let mut homeserver = Vec::new();
+
         if !more {
             let directory = self.ui.builder
                 .get_object::<gtk::ListBox>("directory_room_list")
@@ -53,7 +55,7 @@ impl AppOp {
         }
 
         self.backend
-            .send(BKCommand::DirectorySearch(q.get_text().unwrap(), protocol, more))
+            .send(BKCommand::DirectorySearch("puri.sm".to_string(), q.get_text().unwrap(), protocol, more))
             .unwrap();
     }
 
