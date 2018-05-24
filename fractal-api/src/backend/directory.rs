@@ -1,6 +1,8 @@
 extern crate serde_json;
+extern crate url;
 
 use self::serde_json::Value as JsonValue;
+use self::url::Url;
 
 use globals;
 
@@ -53,12 +55,24 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
 }
 
 pub fn room_search(bk: &Backend,
+                   homeserver: Option<String>,
                    query: Option<String>,
                    third_party: Option<String>,
                    more: bool)
                    -> Result<(), Error> {
 
-    let url = bk.url("publicRooms", vec![])?;
+    let mut url = bk.url("publicRooms", vec![])?;
+
+    if let Some(hs) = homeserver {
+        // Check if `hs` is a hostname and not a URL
+        if let Ok(homeserver_url) = Url::parse(&hs) {
+            hs = homeserver_url.host_str().unwrap().to_string();
+        }
+
+        url.set_query(// Code here...)?;
+    }
+
+    println!("[DEBUG] The URL used: {}", url);
 
     let mut attrs = json!({"limit": 20});
 

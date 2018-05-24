@@ -180,7 +180,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = gettext("Error sending message");
                     APPOP!(show_error, (error));
                 }
-                Ok(BKResponse::DirectoryError(_)) => {
+                Ok(BKResponse::DirectoryError(err)) => {
+                    println!("[DEBUG] DirectoryError: {:?}", err);
                     let error = gettext("Error searching for rooms");
                     APPOP!(show_error, (error));
                 }
