@@ -1,3 +1,4 @@
+extern crate cairo;
 extern crate gtk;
 extern crate glib;
 extern crate gdk;
@@ -21,6 +22,8 @@ use std::sync::mpsc::TryRecvError;
 
 pub struct Thumb(pub bool);
 
+pub struct Circle(pub bool);
+
 #[derive(Clone, Debug)]
 pub struct Image {
     pub path: String,
@@ -29,10 +32,11 @@ pub struct Image {
     pub backend: Sender<BKCommand>,
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
     pub thumb: bool,
+    pub circle: bool,
 }
 
 impl Image {
-    pub fn new(backend: &Sender<BKCommand>, path: &str, size: (i32, i32), Thumb(thumb): Thumb) -> Image {
+    pub fn new(backend: &Sender<BKCommand>, path: &str, size: (i32, i32), Thumb(thumb): Thumb, Circle(circle): Circle) -> Image {
         let da = DrawingArea::new();
         let pixbuf = match gtk::IconTheme::get_default() {
             None => None,
@@ -48,6 +52,7 @@ impl Image {
             widget: da,
             pixbuf: Arc::new(Mutex::new(pixbuf)),
             thumb: thumb,
+            circle: circle,
             backend: backend.clone(),
         };
         img.draw();
@@ -74,46 +79,79 @@ impl Image {
         }
 
         let pix = self.pixbuf.clone();
-        da.connect_draw(move |da, g| {
-            let width = w as f64;
-            let height = h as f64;
 
-            let mut rw = w;
+        if self.circle {
+            da.connect_draw(move |da, g| {
+                use std::f64::consts::PI;
+                g.set_antialias(cairo::Antialias::Best);
 
-            if let Some(p) = da.get_parent() {
-                let parent_width = p.get_allocated_width();
-                let max = parent_width - 50;
-                if max < w {
-                    rw = max;
-                }
-            }
+                let s = if w > h {
+                    w
+                } else {
+                    h
+                };
+                let width = s as f64;
+                let height = s as f64;
 
-            let context = da.get_style_context().unwrap();
+                let context = da.get_style_context().unwrap();
 
-            gtk::render_background(&context, g, 0.0, 0.0, width, height);
+                gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-            if let Some(ref pb) = *pix.lock().unwrap() {
-                let mut pw = pb.get_width();
-                let mut ph = pb.get_height();
+                if let Some(ref pb) = *pix.lock().unwrap() {
+                    let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
 
-                if pw > ph && pw > rw {
-                    ph = rw * ph / pw;
-                    pw = rw;
-                } else if ph >= pw && ph > h {
-                    pw = h * pw / ph;
-                    ph = h;
-                }
-                da.set_size_request(pw, ph);
+                    g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
+                    g.clip();
 
-                if let Some(scaled) = pb.scale_simple(pw, ph, gdk_pixbuf::InterpType::Bilinear) {
-                    g.set_source_pixbuf(&scaled, 0.0, 0.0);
-                    g.rectangle(0.0, 0.0, pw as f64, ph as f64);
+                    g.set_source_pixbuf(&pb, 0.0, hpos);
+                    g.rectangle(0.0, 0.0, width, height);
                     g.fill();
                 }
-            }
 
-            Inhibit(false)
-        });
+                Inhibit(false)
+            });
+        } else {
+            da.connect_draw(move |da, g| {
+                let width = w as f64;
+                let height = h as f64;
+
+                let mut rw = w;
+
+                if let Some(p) = da.get_parent() {
+                    let parent_width = p.get_allocated_width();
+                    let max = parent_width - 50;
+                    if max < w {
+                        rw = max;
+                    }
+                }
+
+                let context = da.get_style_context().unwrap();
+
+                gtk::render_background(&context, g, 0.0, 0.0, width, height);
+
+                if let Some(ref pb) = *pix.lock().unwrap() {
+                    let mut pw = pb.get_width();
+                    let mut ph = pb.get_height();
+
+                    if pw > ph && pw > rw {
+                        ph = rw * ph / pw;
+                        pw = rw;
+                    } else if ph >= pw && ph > h {
+                        pw = h * pw / ph;
+                        ph = h;
+                    }
+                    da.set_size_request(pw, ph);
+
+                    if let Some(scaled) = pb.scale_simple(pw, ph, gdk_pixbuf::InterpType::Bilinear) {
+                        g.set_source_pixbuf(&scaled, 0.0, 0.0);
+                        g.rectangle(0.0, 0.0, pw as f64, ph as f64);
+                        g.fill();
+                    }
+                }
+
+                Inhibit(false)
+            });
+        }
     }
 
     /// If `path` starts with mxc this func download the img async, in other case the image is loaded
