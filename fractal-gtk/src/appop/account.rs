@@ -57,6 +57,10 @@ impl AppOp {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("password_dialog")
             .expect("Can't find password_dialog in ui file.");
+        let confirm_password = self.ui.builder
+            .get_object::<gtk::Button>("password-dialog-apply")
+            .expect("Can't find password-dialog-apply in ui file.");
+            confirm_password.set_sensitive(false);
         dialog.present();
     }
 
@@ -116,5 +120,25 @@ impl AppOp {
         delete.set_reveal_child(false);
         dialog.hide();
         dialog.resize(700, 200);
+    }
+
+    pub fn close_password_dialog(&mut self) {
+        let dialog = self.ui.builder
+            .get_object::<gtk::Dialog>("password_dialog")
+            .expect("Can't find password_dialog in ui file.");
+        let old_password = self.ui.builder
+            .get_object::<gtk::Entry>("password-dialog-old-entry")
+            .expect("Can't find password-dialog-old-entry in ui file.");
+        let new_password = self.ui.builder
+            .get_object::<gtk::Entry>("password-dialog-entry")
+            .expect("Can't find password-dialog-entry in ui file.");
+        let verify_password = self.ui.builder
+            .get_object::<gtk::Entry>("password-dialog-verify-entry")
+            .expect("Can't find password-dialog-verify-entry in ui file.");
+        /* Clear all user input */
+        old_password.set_text("");
+        new_password.set_text("");
+        verify_password.set_text("");
+        dialog.hide();
     }
 }
