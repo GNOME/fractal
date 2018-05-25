@@ -43,6 +43,20 @@ impl AppOp {
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
 
+        let specific_remote_server_radio = self.ui.builder
+            .get_object::<gtk::RadioButton>("specific_remote_server_radio")
+            .expect("Can't find specific_remote_server_radio in ui file.");
+
+        let specific_remote_server_url = self.ui.builder
+            .get_object::<gtk::EntryBuffer>("specific_remote_server_url")
+            .expect("Can't find specific_remote_server_url in ui file.");
+
+        let homeserver = if specific_remote_server_radio.get_active() {
+            specific_remote_server_url.get_text()
+        } else {
+            String::from("")
+        };
+
         if !more {
             let directory = self.ui.builder
                 .get_object::<gtk::ListBox>("directory_room_list")
@@ -53,7 +67,7 @@ impl AppOp {
         }
 
         self.backend
-            .send(BKCommand::DirectorySearch(q.get_text().unwrap(), protocol, more))
+            .send(BKCommand::DirectorySearch(homeserver, q.get_text().unwrap(), protocol, more))
             .unwrap();
     }
 
