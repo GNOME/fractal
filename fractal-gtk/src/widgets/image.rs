@@ -21,6 +21,8 @@ use std::sync::mpsc::TryRecvError;
 
 pub struct Thumb(pub bool);
 
+pub struct Circle(pub bool);
+
 #[derive(Clone, Debug)]
 pub struct Image {
     pub path: String,
@@ -31,10 +33,13 @@ pub struct Image {
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
     pub thumb: bool,
+    pub circle: bool,
 }
 
 impl Image {
-    pub fn new(backend: &Sender<BKCommand>, path: &str, size: (i32, i32), Thumb(thumb): Thumb) -> Image {
+    pub fn new(backend: &Sender<BKCommand>, path: &str, size: (i32, i32),
+               Thumb(thumb): Thumb, Circle(circle): Circle)
+               -> Image {
 
         let da = DrawingArea::new();
         let img = Image {
@@ -44,6 +49,7 @@ impl Image {
             pixbuf: Arc::new(Mutex::new(None)),
             scaled: Arc::new(Mutex::new(None)),
             thumb: thumb,
+            circle: circle,
             backend: backend.clone(),
         };
         img.draw();
@@ -72,6 +78,7 @@ impl Image {
 
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
+        let is_circle = self.circle.clone();
         da.connect_draw(move |da, g| {
             let width = w as f64;
             let height = h as f64;
@@ -107,6 +114,13 @@ impl Image {
                 }
 
                 if let Some(sc) = scaled_pix {
+                    if is_circle {
+                        use std::f64::consts::PI;
+
+                        g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
+                        g.clip();
+                    }
+
                     g.set_source_pixbuf(&sc, 0.0, 0.0);
                     g.rectangle(0.0, 0.0, pw as f64, ph as f64);
                     g.fill();
