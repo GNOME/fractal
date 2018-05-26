@@ -81,6 +81,20 @@ impl App {
             }
         }));
 
+        /*
+        fn update_password_strength(builder: &gtk::Builder) {
+            let bar = builder
+                .get_object::<gtk::LevelBar>("password-dialog-strength-indicator")
+                .expect("Can't find password-dialog-strength-indicator in ui file.");
+            let label = builder
+                .get_object::<gtk::Label>("password-dialog-hint")
+                .expect("Can't find password-dialog-hint in ui file.");
+            let strength_level = 10f64;
+            bar.set_value(strength_level);
+            label.set_label("text");
+        }
+        */
+
         fn validate_password_input(builder: &gtk::Builder) {
             let hint = builder
                 .get_object::<gtk::Label>("password-dialog-verify-hint")
@@ -143,10 +157,10 @@ impl App {
 
         /* Body */
         verify_password.connect_property_text_notify(clone!(op, builder => move |_| {
-            validate_password_input(&builder)
+            validate_password_input(&builder.clone());
         }));
         new_password.connect_property_text_notify(clone!(op, builder => move |_| {
-            validate_password_input(&builder)
+            validate_password_input(&builder.clone());
         }));
         old_password.connect_property_text_notify(clone!(op, builder => move |_| {
             validate_password_input(&builder)

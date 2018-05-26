@@ -45,493 +45,522 @@
     </child>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="halign">center</property>
-        <property name="margin">18</property>
         <child>
-          <object class="GtkButton" id="account_settings_avatar_button">
+          <object class="GtkStack" id="account_settings_stack">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">center</property>
-            <property name="margin_bottom">18</property>
-            <child>
-              <object class="GtkBox" id="account_settings_avatar">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="valign">end</property>
-            <property name="halign">center</property>
-            <property name="wrap">True</property>
-            <property name="max-width-chars">35</property>
-            <property name="label" translatable="yes">Other people can find you by searching for any of these identifiers.</property>
-            <style>
-              <class name="dim-label"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkGrid">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="halign">center</property>
-            <property name="width-request">300</property>
-            <property name="margin-top">6</property>
-            <property name="column-spacing">6</property>
-            <property name="row-spacing">6</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Name</property>
-                <style>
-                  <class name="dim-label"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">0</property>
-                <property name="left-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="account_settings_name">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-              </object>
-              <packing>
-                <property name="top-attach">0</property>
-                <property name="left-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Email</property>
-                <style>
-                  <class name="dim-label"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">1</property>
-                <property name="left-attach">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="halign">center</property>
+                <property name="margin">18</property>
                 <child>
-                  <object class="GtkEntry" id="account_settings_email">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="account_settings_email_add">
-                    <property name="visible">False</property>
-                    <property name="can_focus">True</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">list-add-symbolic</property>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="account_settings_email_remove">
-                    <property name="visible">False</property>
-                    <property name="can_focus">True</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">user-trash-symbolic</property>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
-                  </object>
-                </child>
-                <style>
-                  <class name="linked"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">1</property>
-                <property name="left-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Phone</property>
-                <style>
-                  <class name="dim-label"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">2</property>
-                <property name="left-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkEntry" id="account_settings_phone">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="account_settings_phone_add">
-                    <property name="visible">False</property>
-                    <property name="can_focus">True</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">list-add-symbolic</property>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="account_settings_phone_remove">
-                    <property name="visible">False</property>
-                    <property name="can_focus">True</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">user-trash-symbolic</property>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
-                  </object>
-                </child>
-                <style>
-                  <class name="linked"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">2</property>
-                <property name="left-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="halign">end</property>
-                <property name="margin-top">18</property>
-                <property name="label" translatable="yes">Password</property>
-                <style>
-                  <class name="dim-label"/>
-                </style>
-              </object>
-              <packing>
-                <property name="top-attach">3</property>
-                <property name="left-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="account_settings_password">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="margin-top">18</property>
-                <property name="label" translatable="yes">●●●●●</property>
-              </object>
-              <packing>
-                <property name="top-attach">3</property>
-                <property name="left-attach">1</property>
-              </packing>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkBox" id="account_settings_advanced_box">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <property name="margin-top">24</property>
-            <child>
-              <object class="GtkEventBox" id="account_settings_advanced_toggle">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <child>
-                  <object class="GtkBox">
+                  <object class="GtkButton" id="account_settings_avatar_button">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="halign">center</property>
+                    <property name="margin_bottom">18</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkBox" id="account_settings_avatar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Advanced Information</property>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">pan-end-symbolic</property>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                      </packing>
-                    </child>
-                    <style>
-                      <class name="advanced_revealer_header"/>
-                    </style>
                   </object>
                 </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkRevealer" id="account_settings_advanced">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">center</property>
-                        <property name="hexpand">True</property>
-                        <property name="column-spacing">6</property>
-                        <property name="row-spacing">6</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="valign">center</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Homeserver</property>
-                            <style>
-                              <class name="dim-label"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="top-attach">0</property>
-                            <property name="left-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="account_settings_homeserver">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">None</property>
-                          </object>
-                          <packing>
-                            <property name="top-attach">0</property>
-                            <property name="left-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="valign">center</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Matrix ID</property>
-                            <style>
-                              <class name="dim-label"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="top-attach">1</property>
-                            <property name="left-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="account_settings_uid">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">None</property>
-                          </object>
-                          <packing>
-                            <property name="top-attach">1</property>
-                            <property name="left-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="valign">center</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Device ID</property>
-                            <style>
-                              <class name="dim-label"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="top-attach">2</property>
-                            <property name="left-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="account_settings_device_id">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">None</property>
-                          </object>
-                          <packing>
-                            <property name="top-attach">2</property>
-                            <property name="left-attach">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                    </child>
-                    <style>
-                      <class name="advanced_revealer_body"/>
-                    </style>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <style>
-              <class name="advanced_revealer"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkBox" id="account_settings_delete_box">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="orientation">vertical</property>
-            <property name="margin-top">24</property>
-            <child>
-              <object class="GtkEventBox" id="account_settings_delete_toggle">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Deactivate Account</property>
+                    <property name="valign">end</property>
+                    <property name="halign">center</property>
+                    <property name="wrap">True</property>
+                    <property name="max-width-chars">35</property>
+                    <property name="label" translatable="yes">Other people can find you by searching for any of these identifiers.</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkImage">
+                  <object class="GtkGrid" id="account_settings_grid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="icon_name">pan-end-symbolic</property>
-                  </object>
-                  <packing>
-                    <property name="pack_type">end</property>
-                  </packing>
-                </child>
-                <style>
-                  <class name="advanced_revealer_header"/>
-                </style>
-              </object>
-            </child>
-          </object>
-            </child>
-            <child>
-              <object class="GtkRevealer" id="account_settings_delete">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="halign">center</property>
+                    <property name="width-request">300</property>
+                    <property name="margin-top">6</property>
+                    <property name="column-spacing">6</property>
+                    <property name="row-spacing">6</property>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">12</property>
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Name</property>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">0</property>
+                        <property name="left-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="account_settings_name">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                      </object>
+                      <packing>
+                        <property name="top-attach">0</property>
+                        <property name="left-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="account_settings_email_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Email</property>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">1</property>
+                        <property name="left-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="account_settings_box_email">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkEntry" id="account_settings_email">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="wrap">True</property>
-                            <property name="max-width-chars">35</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Deactivating your account means that you will lose all your messages, contacts, and files.</property>
+                            <property name="hexpand">True</property>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
+                          <object class="GtkButton" id="account_settings_email_add">
+                            <property name="visible">False</property>
                             <property name="can_focus">True</property>
-                            <property name="wrap">True</property>
-                            <property name="max-width-chars">35</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">To confirm that you really want to deactivate this account type in your email address:</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkEntry">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="account_settings_delete_account_btn">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">end</property>
-                            <property name="label" translatable="yes">Deactivate Account</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">list-add-symbolic</property>
+                              </object>
+                            </child>
                             <style>
-                              <class name="destructive-action"/>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="account_settings_email_remove">
+                            <property name="visible">False</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">user-trash-symbolic</property>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                        <style>
+                          <class name="linked"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">1</property>
+                        <property name="left-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="account_settings_phone_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Phone</property>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">2</property>
+                        <property name="left-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="account_settings_box_phone">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkEntry" id="account_settings_phone">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="account_settings_phone_add">
+                            <property name="visible">False</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">list-add-symbolic</property>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="account_settings_phone_remove">
+                            <property name="visible">False</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">user-trash-symbolic</property>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                        <style>
+                          <class name="linked"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">2</property>
+                        <property name="left-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                        <property name="margin-top">18</property>
+                        <property name="label" translatable="yes">Password</property>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="top-attach">3</property>
+                        <property name="left-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="account_settings_password">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="margin-top">18</property>
+                        <property name="label" translatable="yes">●●●●●</property>
+                      </object>
+                      <packing>
+                        <property name="top-attach">3</property>
+                        <property name="left-attach">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="account_settings_advanced_box">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="margin-top">24</property>
+                    <child>
+                      <object class="GtkEventBox" id="account_settings_advanced_toggle">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Advanced Information</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">pan-end-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="pack_type">end</property>
+                              </packing>
+                            </child>
+                            <style>
+                              <class name="advanced_revealer_header"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkRevealer" id="account_settings_advanced">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">center</property>
+                                <property name="hexpand">True</property>
+                                <property name="column-spacing">6</property>
+                                <property name="row-spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Homeserver</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">0</property>
+                                    <property name="left-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="account_settings_homeserver">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">None</property>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">0</property>
+                                    <property name="left-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Matrix ID</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">1</property>
+                                    <property name="left-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="account_settings_uid">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">None</property>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">1</property>
+                                    <property name="left-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Device ID</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">2</property>
+                                    <property name="left-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="account_settings_device_id">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">None</property>
+                                  </object>
+                                  <packing>
+                                    <property name="top-attach">2</property>
+                                    <property name="left-attach">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="advanced_revealer_body"/>
                             </style>
                           </object>
                         </child>
                       </object>
                     </child>
                     <style>
-                      <class name="advanced_revealer_body"/>
+                      <class name="advanced_revealer"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="account_settings_delete_box">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="margin-top">24</property>
+                    <child>
+                      <object class="GtkEventBox" id="account_settings_delete_toggle">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Deactivate Account</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">pan-end-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="pack_type">end</property>
+                              </packing>
+                            </child>
+                            <style>
+                              <class name="advanced_revealer_header"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkRevealer" id="account_settings_delete">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="wrap">True</property>
+                                    <property name="max-width-chars">35</property>
+                                    <property name="xalign">0</property>
+                                    <property name="label" translatable="yes">Deactivating your account means that you will lose all your messages, contacts, and files.</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="wrap">True</property>
+                                    <property name="max-width-chars">35</property>
+                                    <property name="xalign">0</property>
+                                    <property name="label" translatable="yes">To confirm that you really want to deactivate this account type in your email address:</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="account_settings_delete_account_btn">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Deactivate Account</property>
+                                    <style>
+                                      <class name="destructive-action"/>
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="advanced_revealer_body"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <style>
+                      <class name="advanced_revealer"/>
                     </style>
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="name">info</property>
+              </packing>
             </child>
-            <style>
-              <class name="advanced_revealer"/>
-            </style>
+            <child>
+              <object class="GtkBox" id="account_settings_spinner">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkSpinner">
+                    <property name="visible">True</property>
+                    <property name="active">True</property>
+                    <property name="expand">True</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="name">loading</property>
+              </packing>
+            </child>
           </object>
         </child>
       </object>

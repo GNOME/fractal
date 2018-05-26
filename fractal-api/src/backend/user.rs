@@ -17,6 +17,7 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 
 use types::Member;
+use types::UserInfo;
 
 use self::serde_json::Value as JsonValue;
 
@@ -52,6 +53,49 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
 
     Ok(())
 }
+
+pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
+    let url = bk.url(&format!("account/3pid"), vec![])?;
+    let tx = bk.tx.clone();
+    get!(&url,
+        |r: JsonValue| {
+            let mut result: Vec<UserInfo> = vec![];
+            println!("{}", r);
+            if let Some(arr) = r["threepids"].as_array() {
+                for pid in arr.iter() {
+                    let address = match pid["address"].as_str() {
+                        None => "".to_string(),
+                        Some(a) => a.to_string(),
+                    };
+                    let add = match pid["added_at"].as_u64() {
+                        None => 0,
+                        Some(a) => a,
+                    };
+                    let medium = match pid["medium"].as_str() {
+                        None => "".to_string(),
+                        Some(a) => a.to_string(),
+                    };
+                    let val = match pid["validated_at"].as_u64() {
+                        None => 0,
+                        Some(a) => a,
+                    };
+
+                    result.push(UserInfo{
+                        address: address,
+                        added_at: add,
+                        validated_at: val,
+                        medium: medium,
+                    });
+                }
+            }
+            tx.send(BKResponse::GetThreePID(result)).unwrap();
+        },
+        |err| { tx.send(BKResponse::GetThreePIDError(err)).unwrap() }
+    );
+
+    Ok(())
+}
+
 
 pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;

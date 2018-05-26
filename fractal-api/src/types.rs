@@ -7,3 +7,4 @@ pub use model::member::Member;
 pub use model::member::MemberList;
 pub use model::stickers::Sticker;
 pub use model::stickers::StickerGroup;
+pub use model::userinfo::UserInfo;

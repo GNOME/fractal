@@ -10,6 +10,7 @@ use types::Room;
 use types::Event;
 use types::StickerGroup;
 use types::Sticker;
+use types::UserInfo;
 
 use cache::CacheMap;
 
@@ -25,6 +26,7 @@ pub enum BKCommand {
     Guest(String),
     GetUsername,
     SetUserName(String),
+    GetThreePID,
     GetAvatar,
     SetUserAvatar(String),
     Sync,
@@ -72,6 +74,7 @@ pub enum BKResponse {
     Logout,
     Name(String),
     SetUserName(String),
+    GetThreePID(Vec<UserInfo>),
     Avatar(String),
     SetUserAvatar(String),
     Sync(String),
@@ -109,6 +112,7 @@ pub enum BKResponse {
     //errors
     UserNameError(Error),
     SetUserNameError(Error),
+    GetThreePIDError(Error),
     AvatarError(Error),
     SetUserAvatarError(Error),
     LoginError(Error),
