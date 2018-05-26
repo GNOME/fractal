@@ -1,9 +1,7 @@
 extern crate gtk;
-extern crate gdk_pixbuf;
 extern crate pango;
 extern crate gettextrs;
 
-use self::gdk_pixbuf::Pixbuf;
 use self::gtk::prelude::*;
 use self::gettextrs::gettext;
 
@@ -11,14 +9,14 @@ use types::Room;
 
 use backend::BKCommand;
 
-use fractal_api as api;
 use util::markup_text;
 
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc::TryRecvError;
-
 use appop::AppOp;
+
+use widgets::image::{Image, Thumb, Circle};
+
+const AVATAR_SIZE: i32 = 60;
+const JOIN_BUTTON_WIDTH: i32 = 84;
 
 // Room Search item
 pub struct RoomBox<'a> {
@@ -35,86 +33,89 @@ impl<'a> RoomBox<'a> {
     }
 
     pub fn widget(&self) -> gtk::Box {
-        let r = self.room;
+        let room = self.room;
 
-        let h = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        let w = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        let list_row_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let mname = match r.name {
-            ref n if n.is_none() || n.clone().unwrap().is_empty() => r.alias.clone(),
+        let avatar = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
+                                (AVATAR_SIZE, AVATAR_SIZE), Thumb(true), Circle(true));
+        avatar.widget.set_hexpand(false);
+
+        widget_box.pack_start(&avatar.widget, false, false, 18);
+
+        let details_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
+
+        let name = match room.name {
+            ref n if n.is_none() || n.clone().unwrap().is_empty() => room.alias.clone(),
             ref n => n.clone(),
         };
 
-        let avatar = gtk::Image::new_from_icon_name("image-missing", 5);
-        let a = avatar.clone();
-        let id = r.id.clone();
-        let name = mname.clone();
-        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-        self.op.backend.send(BKCommand::GetThumbAsync(r.avatar.clone().unwrap_or_default().clone(), tx)).unwrap();
-        gtk::timeout_add(50, move || match rx.try_recv() {
-            Err(TryRecvError::Empty) => gtk::Continue(true),
-            Err(TryRecvError::Disconnected) => gtk::Continue(false),
-            Ok(fname) => {
-                let mut f = fname.clone();
-                if f.is_empty() {
-                    f = api::util::draw_identicon(&id, name.clone().unwrap_or_default(), api::util::AvatarMode::Circle).unwrap();
-                }
-                if let Ok(pixbuf) = Pixbuf::new_from_file_at_scale(&f, 32, 32, false) {
-                    a.set_from_pixbuf(&pixbuf);
-                }
-                gtk::Continue(false)
-            }
-        });
-        w.pack_start(&avatar, false, false, 0);
+        let name_label = gtk::Label::new("");
+        name_label.set_line_wrap(true);
+        name_label.set_line_wrap_mode(pango::WrapMode::WordChar);
+        name_label.set_markup(&format!("<b>{}</b>", name.unwrap_or_default()));
+        name_label.set_justify(gtk::Justification::Left);
+        name_label.set_halign(gtk::Align::Start);
+        name_label.set_valign(gtk::Align::Start);
+        name_label.set_xalign(0.0);
 
-        let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let topic_label = gtk::Label::new("");
+        topic_label.set_line_wrap(true);
+        topic_label.set_line_wrap_mode(pango::WrapMode::WordChar);
+        topic_label.set_lines(2);
+        topic_label.set_ellipsize(pango::EllipsizeMode::End);
+        topic_label.set_markup(&markup_text(&room.topic.clone().unwrap_or_default()));
+        topic_label.set_justify(gtk::Justification::Left);
+        topic_label.set_halign(gtk::Align::Start);
+        topic_label.set_valign(gtk::Align::Start);
+        topic_label.set_xalign(0.0);
 
-        let msg = gtk::Label::new("");
-        msg.set_line_wrap(true);
-        msg.set_markup(&format!("<b>{}</b>", mname.unwrap_or_default()));
-        msg.set_line_wrap_mode(pango::WrapMode::WordChar);
-        msg.set_justify(gtk::Justification::Left);
-        msg.set_halign(gtk::Align::Start);
-        msg.set_valign(gtk::Align::Start);
+        let alias_label = gtk::Label::new("");
+        alias_label.set_markup(&format!("<span alpha=\"60%\">{}</span>",
+                                        room.alias.clone().unwrap_or_default()));
+        alias_label.set_justify(gtk::Justification::Left);
+        alias_label.set_halign(gtk::Align::Start);
+        alias_label.set_valign(gtk::Align::Start);
+        alias_label.set_xalign(0.0);
 
-        let topic = gtk::Label::new("");
-        topic.set_line_wrap(true);
-        msg.set_line_wrap_mode(pango::WrapMode::WordChar);
-        topic.set_markup(&markup_text(&r.topic.clone().unwrap_or_default()));
-        topic.set_justify(gtk::Justification::Left);
-        topic.set_halign(gtk::Align::Start);
-        topic.set_valign(gtk::Align::Start);
+        details_box.add(&name_label);
+        details_box.add(&topic_label);
+        details_box.add(&alias_label);
 
-        let idw = gtk::Label::new("");
-        idw.set_markup(&format!("<span alpha=\"60%\">{}</span>", r.alias.clone().unwrap_or_default()));
-        idw.set_justify(gtk::Justification::Left);
-        idw.set_halign(gtk::Align::Start);
-        idw.set_valign(gtk::Align::Start);
+        widget_box.pack_start(&details_box, true, true, 0);
 
-        let joinbtn = gtk::Button::new_with_label(gettext("Join").as_str());
-        let rid = r.id.clone();
+        let membership_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
+
+        let members_count_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+
+        let members_icon = gtk::Image::new_from_icon_name("system-users-symbolic", gtk::IconSize::Menu.into());
+
+        let members_count = gtk::Label::new(&format!("{}", room.n_members)[..]);
+
+        members_count_box.pack_end(&members_count, false, false, 0);
+        members_count_box.pack_end(&members_icon, false, false, 0);
+
+        let join_button = gtk::Button::new_with_label(gettext("Join").as_str());
+        let room_id = room.id.clone();
         let backend = self.op.backend.clone();
-        joinbtn.connect_clicked(move |_| {
-            backend.send(BKCommand::JoinRoom(rid.clone())).unwrap();
+        join_button.connect_clicked(move |_| {
+            backend.send(BKCommand::JoinRoom(room_id.clone())).unwrap();
         });
-        joinbtn.get_style_context().unwrap().add_class("suggested-action");
+        join_button.get_style_context().unwrap().add_class("suggested-action");
+        join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
         let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        buttons.pack_start(&joinbtn, false, false, 0);
+        buttons.pack_start(&join_button, false, false, 0);
 
-        b.add(&msg);
-        b.add(&topic);
-        b.add(&idw);
-        b.add(&buttons);
+        membership_box.add(&members_count_box);
+        membership_box.add(&buttons);
 
-        w.pack_start(&b, true, true, 0);
+        widget_box.pack_start(&membership_box, false, false, 18);
 
-        let members = gtk::Label::new(&format!("{}", r.n_members)[..]);
-        w.pack_start(&members, false, false, 5);
-
-        h.add(&w);
-        h.add(&gtk::Separator::new(gtk::Orientation::Horizontal));
-        h.show_all();
-        h
+        list_row_box.pack_start(&widget_box, true, true, 18);
+        list_row_box.pack_end(&gtk::Separator::new(gtk::Orientation::Horizontal), false, false, 0);
+        list_row_box.show_all();
+        list_row_box
     }
 }
