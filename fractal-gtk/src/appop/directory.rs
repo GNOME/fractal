@@ -15,29 +15,13 @@ impl AppOp {
         self.backend.send(BKCommand::DirectoryProtocols).unwrap();
     }
 
-    pub fn set_protocols(&self, protocols: Vec<Protocol>) {
-        let combo = self.ui.builder
-            .get_object::<gtk::ListStore>("protocol_model")
-            .expect("Can't find protocol_model in ui file.");
-        combo.clear();
-
-        for p in protocols {
-            combo.insert_with_values(None, &[0, 1], &[&p.desc, &p.id]);
-        }
+    pub fn set_protocols(&mut self, protocols: Vec<Protocol>) {
+        self.protocols = protocols;
     }
 
     pub fn search_rooms(&self, more: bool) {
-        let combo_store = self.ui.builder
-            .get_object::<gtk::ListStore>("protocol_model")
-            .expect("Can't find protocol_model in ui file.");
-
-        let protocol: String = match combo_store.iter_nth_child(None, 0) {
-            Some(it) => {
-                let v = combo_store.get_value(&it, 1);
-                v.get().unwrap()
-            }
-            None => String::from(""),
-        };
+        let protocols: Vec<String> = self.protocols.clone().into_iter()
+                                         .map(|p| p.id).collect();
 
         let q = self.ui.builder
             .get_object::<gtk::Entry>("directory_search_entry")
