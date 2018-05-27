@@ -62,6 +62,7 @@ pub struct AppOp {
     pub uid: Option<String>,
     pub avatar: Option<String>,
     pub server_url: String,
+    pub identity_url: String,
 
     pub autoscroll: bool,
     pub active_room: Option<String>,
@@ -111,6 +112,7 @@ impl AppOp {
             uid: None,
             avatar: None,
             server_url: String::from("https://matrix.org"),
+            identity_url: String::from("https://vector.im"),
             syncing: false,
             tmp_msgs: vec![],
             shown_messages: 0,
@@ -152,8 +154,8 @@ impl AppOp {
             if let Ok((token, uid)) = self.get_token() {
                 self.set_token(Some(token), Some(uid), Some(pass.2));
             } else {
-                self.set_login_pass(&pass.0, &pass.1, &pass.2);
-                self.connect(Some(pass.0), Some(pass.1), Some(pass.2));
+                self.set_login_pass(&pass.0, &pass.1, &pass.2, &pass.3);
+                self.connect(Some(pass.0), Some(pass.1), Some(pass.2), Some(pass.3));
             }
         } else {
             self.set_state(AppState::Login);

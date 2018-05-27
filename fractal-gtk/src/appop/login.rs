@@ -38,6 +38,7 @@ impl AppOp {
 
         self.sync();
 
+
         self.init_protocols();
     }
 
@@ -95,12 +96,17 @@ impl AppOp {
         let server_entry: gtk::Entry = self.ui.builder
             .get_object("login_server")
             .expect("Can't find login_server in ui file.");
+        let idp_entry: gtk::Entry = self.ui.builder
+            .get_object("login_idp")
+            .expect("Can't find login_idp in ui file.");
         let login_error: gtk::Label = self.ui.builder
             .get_object("login_error_msg")
             .expect("Can't find login_error_msg in ui file.");
 
         let username = user_entry.get_text();
         let password = pass_entry.get_text();
+        let server = server_entry.get_text();
+        let identity = idp_entry.get_text();
 
         if username.clone().unwrap_or_default().is_empty() ||
            password.clone().unwrap_or_default().is_empty() {
@@ -112,12 +118,14 @@ impl AppOp {
             login_error.hide();
         }
 
+        /* FIXME: validate server and identity same as username and passwod */
+
         self.set_state(AppState::Loading);
         self.since = None;
-        self.connect(username, password, server_entry.get_text());
+        self.connect(username, password, server, identity);
     }
 
-    pub fn set_login_pass(&self, username: &str, password: &str, server: &str) {
+    pub fn set_login_pass(&self, username: &str, password: &str, server: &str, identity: &str) {
         let user_entry: gtk::Entry = self.ui.builder
             .get_object("login_username")
             .expect("Can't find login_username in ui file.");
@@ -127,10 +135,14 @@ impl AppOp {
         let server_entry: gtk::Entry = self.ui.builder
             .get_object("login_server")
             .expect("Can't find login_server in ui file.");
+        let idp_entry: gtk::Entry = self.ui.builder
+            .get_object("login_idp")
+            .expect("Can't find login_idp in ui file.");
 
         user_entry.set_text(username);
         pass_entry.set_text(password);
         server_entry.set_text(server);
+        idp_entry.set_text(identity);
     }
 
     #[allow(dead_code)]
@@ -147,6 +159,9 @@ impl AppOp {
         let server_entry: gtk::Entry = self.ui.builder
             .get_object("register_server")
             .expect("Can't find register_server in ui file.");
+        let _idp_entry: gtk::Entry = self.ui.builder
+            .get_object("login_idp")
+            .expect("Can't find login_idp in ui file.");
 
         let username = match user_entry.get_text() {
             Some(s) => s,
@@ -170,6 +185,7 @@ impl AppOp {
             Some(s) => s,
             None => String::from("https://matrix.org"),
         };
+        /* FIXME ask also for the identity server */
 
         //self.store_pass(username.clone(), password.clone(), server_url.clone())
         //    .unwrap_or_else(|_| {
@@ -183,13 +199,18 @@ impl AppOp {
         self.backend.send(BKCommand::Register(uname, pass, ser)).unwrap();
     }
 
-    pub fn connect(&mut self, username: Option<String>, password: Option<String>, server: Option<String>) -> Option<()> {
+    pub fn connect(&mut self, username: Option<String>, password: Option<String>, server: Option<String>, identity: Option<String>) -> Option<()> {
         self.server_url = match server {
             Some(s) => s,
             None => String::from("https://matrix.org"),
         };
 
-        self.store_pass(username.clone()?, password.clone()?, self.server_url.clone())
+        self.identity_url = match identity {
+            Some(u) => u,
+            None => String::from("https://vector.im"),
+        };
+
+        self.store_pass(username.clone()?, password.clone()?, self.server_url.clone(), self.identity_url.clone())
             .unwrap_or_else(|_| {
                 // TODO: show an error
                 println!("Error: Can't store the password using libsecret");
