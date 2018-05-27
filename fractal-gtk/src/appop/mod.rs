@@ -13,6 +13,7 @@ use backend;
 
 use types::Member;
 use types::Message;
+use types::Protocol;
 use types::Room;
 use types::RoomList;
 use types::StickerGroup;
@@ -91,6 +92,8 @@ pub struct AppOp {
     search_type: SearchType,
 
     pub stickers: Vec<StickerGroup>,
+
+    pub protocols: Vec<Protocol>,
 }
 
 impl PasswordStorage for AppOp {}
@@ -138,6 +141,8 @@ impl AppOp {
             invite_list: vec![],
             search_type: SearchType::Invite,
             stickers: vec![],
+
+            protocols: vec![],
         }
     }
 
