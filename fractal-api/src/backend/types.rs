@@ -41,7 +41,7 @@ pub enum BKCommand {
     SetRoom(Room),
     ShutDown,
     DirectoryProtocols,
-    DirectorySearch(String, String, String, bool),
+    DirectorySearch(String, String, Option<Vec<String>>, bool),
     JoinRoom(String),
     MarkAsRead(String, String),
     LeaveRoom(String),
