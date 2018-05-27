@@ -5,6 +5,7 @@ mod roomrow;
 mod roomlist;
 mod avatar;
 mod autocomplete;
+mod address;
 pub mod divider;
 pub mod image;
 
@@ -12,6 +13,8 @@ pub use self::message::MessageBox;
 pub use self::room::RoomBox;
 pub use self::member::MemberBox;
 pub use self::autocomplete::Autocomplete;
+pub use self::address::Address;
+pub use self::address::AddressType;
 pub use self::roomrow::RoomRow;
 pub use self::roomlist::RoomList;
 pub use self::avatar::Avatar;

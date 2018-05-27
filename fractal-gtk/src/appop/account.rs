@@ -73,18 +73,11 @@ impl AppOp {
             .get_object::<gtk::Grid>("account_settings_grid")
             .expect("Can't find account_settings_grid in ui file.");
         let email = self.ui.builder
-            .get_object::<gtk::Box>("account_settings_box_email")
+            .get_object::<gtk::Box>("account_settings_email")
             .expect("Can't find account_settings_box_email in ui file.");
         let phone = self.ui.builder
-            .get_object::<gtk::Box>("account_settings_box_phone")
+            .get_object::<gtk::Box>("account_settings_phone")
             .expect("Can't find account_settings_box_phone in ui file.");
-        let email_entry = self.ui.builder
-            .get_object::<gtk::Entry>("account_settings_email")
-            .expect("Can't find account_settings_email in ui file.");
-        let phone_entry = self.ui.builder
-            .get_object::<gtk::Entry>("account_settings_phone")
-            .expect("Can't find account_settings_phone in ui file.");
-
         let stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
@@ -100,47 +93,51 @@ impl AppOp {
                     grid.remove_row(i);
                 }
                 else {
+                    for w in email.get_children().iter() {
+                        email.remove(w);
+                    }
+                    for w in phone.get_children().iter() {
+                        phone.remove(w);
+                    }
                     i = i + 1;
                 }
             }
             child = grid.get_child_at(1, i);
         }
 
+        /* Make sure we have at least one empty entry for email and phone */
+        let empty_email = widgets::Address::new(widgets::AddressType::Email);
+        let empty_phone = widgets::Address::new(widgets::AddressType::Phone);
+        email.pack_start(&empty_email.clone().create(None), true, true, 0);
+        phone.pack_start(&empty_phone.clone().create(None), true, true, 0);
         if let Some(data) = data {
             for item in data {
                 if item.medium == "email" {
                     if first_email {
-                        email_entry.set_text(&item.address);
-                        let entry = gtk::Entry::new();
-                        entry.show();
+                        empty_email.clone().update(Some(item.address));
+                        let entry = widgets::Address::new(widgets::AddressType::Email).create(None);
                         grid.insert_next_to(&email, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
                         first_email = false;
                     }
                     else {
-                        let entry = gtk::Entry::new();
-                        entry.set_text(&item.address);
-                        entry.show();
+                        let entry = widgets::Address::new(widgets::AddressType::Email).create(Some(item.address));
                         grid.insert_next_to(&email, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
-                   }
+                    }
                 }
                 else if item.medium == "msisdn" {
                     if first_phone {
-                       let s = String::from("+") + &String::from(item.address);
-                        phone_entry.set_text(&s);
-
-                        let entry = gtk::Entry::new();
-                        entry.show();
+                        let s = String::from("+") + &String::from(item.address);
+                        empty_phone.clone().update(Some(s));
+                        let entry = widgets::Address::new(widgets::AddressType::Phone).create(None);
                         grid.insert_next_to(&phone, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
                         first_phone = false;
                     }
                     else {
-                        let entry = gtk::Entry::new();
                         let s = String::from("+") + &String::from(item.address);
-                        entry.set_text(&s);
-                        entry.show();
+                        let entry = widgets::Address::new(widgets::AddressType::Phone).create(Some(s));
                         grid.insert_next_to(&phone, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
                     }
