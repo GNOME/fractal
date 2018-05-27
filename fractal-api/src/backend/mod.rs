@@ -295,7 +295,7 @@ impl Backend {
                 let r = directory::protocols(self);
                 bkerror!(r, tx, BKResponse::DirectoryError);
             }
-            Ok(BKCommand::DirectorySearch(dhs, dq, dtp, more)) => {
+            Ok(BKCommand::DirectorySearch(dhs, dq, tps, more)) => {
                 let hs = match dhs {
                     ref a if a.is_empty() => None,
                     b => Some(b),
@@ -306,12 +306,7 @@ impl Backend {
                     b => Some(b),
                 };
 
-                let tp = match dtp {
-                    ref a if a.is_empty() => None,
-                    b => Some(b),
-                };
-
-                let r = directory::room_search(self, hs, q, tp, more);
+                let r = directory::room_search(self, hs, q, tps, more);
                 bkerror!(r, tx, BKResponse::DirectoryError);
             }
 
