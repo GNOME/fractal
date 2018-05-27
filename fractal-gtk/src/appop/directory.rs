@@ -41,6 +41,12 @@ impl AppOp {
             String::from("")
         };
 
+        let requested_protocols = if specific_remote_server_radio.get_active() {
+            None
+        } else {
+            Some(protocols)
+        };
+
         if !more {
             let directory = self.ui.builder
                 .get_object::<gtk::ListBox>("directory_room_list")
@@ -51,7 +57,7 @@ impl AppOp {
         }
 
         self.backend
-            .send(BKCommand::DirectorySearch(homeserver, q.get_text().unwrap(), protocol, more))
+            .send(BKCommand::DirectorySearch(homeserver, q.get_text().unwrap(), requested_protocols, more))
             .unwrap();
     }
 
