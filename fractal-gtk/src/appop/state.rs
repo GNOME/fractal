@@ -20,7 +20,10 @@ impl AppOp {
         self.state = state;
 
         let widget_name = match self.state {
-            AppState::Login => "login",
+            AppState::Login => {
+                self.clean_login();
+                "login"
+            },
             AppState::Chat => "chat",
             AppState::Directory => "directory",
             AppState::Loading => "loading",

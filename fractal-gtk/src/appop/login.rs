@@ -1,6 +1,7 @@
 extern crate gtk;
 extern crate gettextrs;
 
+use globals;
 use self::gtk::prelude::*;
 use self::gettextrs::gettext;
 
@@ -82,8 +83,8 @@ impl AppOp {
 
         user_entry.set_text("");
         pass_entry.set_text("");
-        server_entry.set_text("https://matrix.org");
-        idp_entry.set_text("https://vector.im");
+        server_entry.set_text(globals::DEFAULT_HOMESERVER);
+        idp_entry.set_text(globals::DEFAULT_IDENTITYSERVER);
     }
 
     pub fn login(&mut self) {
@@ -183,7 +184,7 @@ impl AppOp {
 
         self.server_url = match server_entry.get_text() {
             Some(s) => s,
-            None => String::from("https://matrix.org"),
+            None => String::from(globals::DEFAULT_HOMESERVER),
         };
         /* FIXME ask also for the identity server */
 
@@ -202,12 +203,12 @@ impl AppOp {
     pub fn connect(&mut self, username: Option<String>, password: Option<String>, server: Option<String>, identity: Option<String>) -> Option<()> {
         self.server_url = match server {
             Some(s) => s,
-            None => String::from("https://matrix.org"),
+            None => String::from(globals::DEFAULT_HOMESERVER),
         };
 
         self.identity_url = match identity {
             Some(u) => u,
-            None => String::from("https://vector.im"),
+            None => String::from(globals::DEFAULT_IDENTITYSERVER),
         };
 
         self.store_pass(username.clone()?, password.clone()?, self.server_url.clone(), self.identity_url.clone())
@@ -226,7 +227,7 @@ impl AppOp {
     pub fn set_token(&mut self, token: Option<String>, uid: Option<String>, server: Option<String>) -> Option<()> {
         self.server_url = match server {
             Some(s) => s,
-            None => String::from("https://matrix.org"),
+            None => String::from(globals::DEFAULT_HOMESERVER),
         };
 
         let ser = self.server_url.clone();
@@ -238,7 +239,7 @@ impl AppOp {
     pub fn connect_guest(&mut self, server: Option<String>) {
         self.server_url = match server {
             Some(s) => s,
-            None => String::from("https://matrix.org"),
+            None => String::from(globals::DEFAULT_HOMESERVER),
         };
 
         self.backend.send(BKCommand::Guest(self.server_url.clone())).unwrap();

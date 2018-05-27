@@ -8,6 +8,7 @@ use gio::ApplicationExt;
 use self::gtk::prelude::*;
 use self::gettextrs::gettext;
 
+use globals;
 use backend::BKCommand;
 use backend;
 
@@ -111,8 +112,8 @@ impl AppOp {
             username: None,
             uid: None,
             avatar: None,
-            server_url: String::from("https://matrix.org"),
-            identity_url: String::from("https://vector.im"),
+            server_url: String::from(globals::DEFAULT_HOMESERVER),
+            identity_url: String::from(globals::DEFAULT_IDENTITYSERVER),
             syncing: false,
             tmp_msgs: vec![],
             shown_messages: 0,

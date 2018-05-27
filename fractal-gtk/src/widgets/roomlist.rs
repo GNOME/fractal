@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use self::gtk::prelude::*;
 use self::gettextrs::gettext;
 
+use globals;
 use widgets::roomrow::RoomRow;
 use types::Room;
 use types::Message;
@@ -22,7 +23,7 @@ use self::chrono::prelude::*;
 
 
 fn get_url(url: Option<String>) -> Url {
-    let defurl = Url::parse("https://matrix.org").unwrap();
+    let defurl = Url::parse(globals::DEFAULT_HOMESERVER).unwrap();
 
     match url {
         Some(u) => {

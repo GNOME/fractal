@@ -6,7 +6,6 @@ use gio::SettingsExt;
 
 use std;
 
-
 #[derive(Debug)]
 pub enum Error {
     SecretServiceError,
@@ -81,6 +80,8 @@ mod ss_storage {
 
     use super::secret_service::SecretService;
     use super::secret_service::EncryptionType;
+
+    use globals;
 
     pub fn delete_pass(key: &str) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
@@ -205,9 +206,8 @@ mod ss_storage {
         for p in passwd {
             p.delete()?;
         }
-        /* It wasn't possibile to have a different identity server therefore set it always to
-         * vector.im */
-        let identity = String::from("https://vector.im");
+        /* Fallback to default identity server if there is none */
+        let identity = String::from(globals::DEFAULT_IDENTITYSERVER);
 
         store_pass(username, pwd, server, identity)?;
 
@@ -254,7 +254,7 @@ mod ss_storage {
         let identity = match attr {
             Some(a) => a.1.clone(),
             None => {
-                String::from("https://vector.im")
+                String::from(globals::DEFAULT_IDENTITYSERVER)
             },
         };
 
