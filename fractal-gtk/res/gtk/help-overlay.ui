@@ -10,19 +10,19 @@
         <child>
           <object class="GtkShortcutsGroup">
             <property name="visible">true</property>
-            <property name="title" translatable="yes">General</property>
+            <property name="title" translatable="yes" context="shortcut window">General</property>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">true</property>
                 <property name="accelerator">Escape</property>
-                <property name="title" translatable="yes">Close the active room</property>
+                <property name="title" translatable="yes" context="shortcut window">Close the active room</property>
               </object>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">true</property>
                 <property name="accelerator">&lt;Primary&gt;k</property>
-                <property name="title" translatable="yes">Open / close the room sidebar search</property>
+                <property name="title" translatable="yes" context="shortcut window">Open / close the room sidebar search</property>
               </object>
             </child>
             <child>
