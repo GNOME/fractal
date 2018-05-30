@@ -103,7 +103,6 @@ impl<'a> RoomBox<'a> {
         join_button.connect_clicked(move |_| {
             backend.send(BKCommand::JoinRoom(room_id.clone())).unwrap();
         });
-        join_button.get_style_context().unwrap().add_class("suggested-action");
         join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
         let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 0);
