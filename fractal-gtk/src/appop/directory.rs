@@ -104,6 +104,7 @@ impl AppOp {
         let directory = self.ui.builder
             .get_object::<gtk::ListBox>("directory_room_list")
             .expect("Can't find directory_room_list in ui file.");
+        directory.get_style_context().map(|c| c.add_class("room-directory"));
 
         for ch in directory.get_children().iter().skip(1) {
             directory.remove(ch);
