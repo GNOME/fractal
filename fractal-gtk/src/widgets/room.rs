@@ -36,7 +36,6 @@ impl<'a> RoomBox<'a> {
     pub fn widget(&self) -> gtk::Box {
         let room = self.room;
 
-        let list_row_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let mut avatar = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
@@ -113,9 +112,7 @@ impl<'a> RoomBox<'a> {
 
         widget_box.pack_start(&membership_grid, false, false, 18);
 
-        list_row_box.pack_start(&widget_box, true, true, 18);
-        list_row_box.pack_end(&gtk::Separator::new(gtk::Orientation::Horizontal), false, false, 0);
-        list_row_box.show_all();
-        list_row_box
+        widget_box.show_all();
+        widget_box
     }
 }
