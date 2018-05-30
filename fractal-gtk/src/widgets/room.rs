@@ -114,7 +114,6 @@ impl<'a> RoomBox<'a> {
         widget_box.pack_start(&membership_grid, false, false, 18);
 
         list_row_box.pack_start(&widget_box, true, true, 18);
-        list_row_box.pack_end(&gtk::Separator::new(gtk::Orientation::Horizontal), false, false, 0);
         list_row_box.show_all();
         list_row_box
     }
