@@ -62,15 +62,17 @@ impl<'a> RoomBox<'a> {
         name_label.set_xalign(0.0);
 
         let topic_label = gtk::Label::new("");
-        topic_label.set_line_wrap(true);
-        topic_label.set_line_wrap_mode(pango::WrapMode::WordChar);
-        topic_label.set_lines(2);
-        topic_label.set_ellipsize(pango::EllipsizeMode::End);
-        topic_label.set_markup(&markup_text(&room.topic.clone().unwrap_or_default()));
-        topic_label.set_justify(gtk::Justification::Left);
-        topic_label.set_halign(gtk::Align::Start);
-        topic_label.set_valign(gtk::Align::Start);
-        topic_label.set_xalign(0.0);
+        if !room.topic.clone().unwrap_or_default().is_empty() {
+            topic_label.set_line_wrap(true);
+            topic_label.set_line_wrap_mode(pango::WrapMode::WordChar);
+            topic_label.set_lines(2);
+            topic_label.set_ellipsize(pango::EllipsizeMode::End);
+            topic_label.set_markup(&markup_text(&room.topic.clone().unwrap_or_default()));
+            topic_label.set_justify(gtk::Justification::Left);
+            topic_label.set_halign(gtk::Align::Start);
+            topic_label.set_valign(gtk::Align::Start);
+            topic_label.set_xalign(0.0);
+        }
 
         let alias_label = gtk::Label::new("");
         alias_label.set_markup(&format!("<span alpha=\"60%\">{}</span>",
@@ -81,7 +83,9 @@ impl<'a> RoomBox<'a> {
         alias_label.set_xalign(0.0);
 
         details_box.add(&name_label);
-        details_box.add(&topic_label);
+        if !topic_label.get_text().unwrap_or_default().is_empty() {
+            details_box.add(&topic_label);
+        }
         details_box.add(&alias_label);
 
         widget_box.pack_start(&details_box, true, true, 0);
