@@ -90,16 +90,14 @@ impl<'a> RoomBox<'a> {
 
         widget_box.pack_start(&details_box, true, true, 0);
 
-        let membership_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
-
-        let members_count_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let membership_grid = gtk::Grid::new();
+        membership_grid.set_row_spacing(6);
 
         let members_icon = gtk::Image::new_from_icon_name("system-users-symbolic", gtk::IconSize::Menu.into());
+        members_icon.get_style_context().map(|c| c.add_class("dim-label"));
 
         let members_count = gtk::Label::new(&format!("{}", room.n_members)[..]);
-
-        members_count_box.pack_end(&members_count, false, false, 0);
-        members_count_box.pack_end(&members_icon, false, false, 0);
+        members_count.get_style_context().map(|c| c.add_class("dim-label"));
 
         let join_button = gtk::Button::new_with_label(gettext("Join").as_str());
         let room_id = room.id.clone();
@@ -109,13 +107,11 @@ impl<'a> RoomBox<'a> {
         });
         join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
-        let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        buttons.pack_start(&join_button, false, false, 0);
+        membership_grid.attach(&members_icon, 1, 0, 1, 1);
+        membership_grid.attach(&members_count, 2, 0, 1, 1);
+        membership_grid.attach(&join_button, 0, 1, 4, 1);
 
-        membership_box.add(&members_count_box);
-        membership_box.add(&buttons);
-
-        widget_box.pack_start(&membership_box, false, false, 18);
+        widget_box.pack_start(&membership_grid, false, false, 18);
 
         list_row_box.pack_start(&widget_box, true, true, 18);
         list_row_box.pack_end(&gtk::Separator::new(gtk::Orientation::Horizontal), false, false, 0);
