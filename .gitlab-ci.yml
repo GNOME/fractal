@@ -1,5 +1,6 @@
 stages:
   - test
+  - lint
   - deploy
 
 flatpak:
@@ -35,6 +36,16 @@ flatpak:
         paths:
           - .flatpak-builder/cache/
           - target/
+
+# Configure and run rustfmt on nightly
+# Exits and builds fails if on bad format
+rustfmt:
+    image: "registry.gitlab.com/alatiera/rustfmt-oci-image/rustfmt:nightly"
+    stage: lint
+    script:
+        - rustc -Vv && cargo -Vv
+        - cargo fmt --version
+        - cargo fmt --all -- --check
 
 pages:
     image: fedora
