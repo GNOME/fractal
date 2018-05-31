@@ -714,7 +714,7 @@ pub fn draw_identicon(fname: &str, name: String, mode: AvatarMode) -> Result<Str
 
     let fname = cache_path(fname)?;
 
-    let image = cairo::ImageSurface::create(cairo::Format::ARgb32, 40, 40)?;
+    let image = cairo::ImageSurface::create(cairo::Format::ARgb32, 60, 60)?;
     let g = cairo::Context::new(&image);
 
     let color_index = calculate_hash(&fname) as usize % colors.len() as usize;
@@ -722,9 +722,9 @@ pub fn draw_identicon(fname: &str, name: String, mode: AvatarMode) -> Result<Str
     g.set_source_rgba(bg_c.r as f64 / 256., bg_c.g as f64 / 256., bg_c.b as f64 / 256., 1.);
 
     match mode {
-        AvatarMode::Rect => g.rectangle(0., 0., 40., 40.),
+        AvatarMode::Rect => g.rectangle(0., 0., 60., 60.),
         AvatarMode::Circle => {
-            g.arc(20.0, 20.0, 20.0, 0.0, 2.0 * 3.14159);
+            g.arc(30.0, 30.0, 30.0, 0.0, 2.0 * 3.14159);
             g.fill();
         }
     };
