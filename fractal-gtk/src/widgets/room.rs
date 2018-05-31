@@ -1,15 +1,25 @@
 extern crate gtk;
+extern crate gdk;
+extern crate gdk_pixbuf;
+extern crate cairo;
 extern crate pango;
 extern crate gettextrs;
 
 use self::gtk::prelude::*;
+use self::gdk_pixbuf::Pixbuf;
+use self::gdk_pixbuf::PixbufExt;
+use self::gdk::ContextExt;
 use self::gettextrs::gettext;
+
+use fractal_api::util::AvatarMode;
+use fractal_api::util::draw_identicon;
 
 use types::Room;
 
 use backend::BKCommand;
 
 use util::markup_text;
+use util::glib_thread_prelude::*;
 
 use appop::AppOp;
 
@@ -38,11 +48,18 @@ impl<'a> RoomBox<'a> {
 
         let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let mut avatar = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
-                                    (AVATAR_SIZE, AVATAR_SIZE), Thumb(true), Circle(true), Fixed(true));
-        avatar.fixed_size = true;
+        let mut avatar = gtk::DrawingArea::new();
+        if room.avatar.clone().unwrap_or_default().is_empty() {
+            make_identicon(&avatar, AVATAR_SIZE, room.id.clone(), room.name.clone().unwrap_or_default());
+        } else {
+            let mut avatar_widget = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
+                                               (AVATAR_SIZE, AVATAR_SIZE), Thumb(true),
+                                               Circle(true), Fixed(true));
+            avatar_widget.fixed_size = true;
+            avatar = avatar_widget.widget;
+        }
 
-        widget_box.pack_start(&avatar.widget, false, false, 18);
+        widget_box.pack_start(&avatar, false, false, 18);
 
         let details_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
 
@@ -115,4 +132,45 @@ impl<'a> RoomBox<'a> {
         widget_box.show_all();
         widget_box
     }
+}
+
+fn make_identicon(da: &gtk::DrawingArea, size: i32, rid: String, name: String) {
+    let da = da.clone();
+    glib_thread!(Result<String, Error>,
+        || {
+            identicon!(&rid, name)
+        },
+        |rc: Result<String, Error>| {
+            if let Ok(path) = rc {
+                da.set_size_request(size, size);
+
+                let pixbuf = Pixbuf::new_from_file_at_scale(&path, size, size, true);
+
+                da.connect_draw(move |da, g| {
+                    use std::f64::consts::PI;
+                    g.set_antialias(cairo::Antialias::Best);
+
+                    let width = size as f64;
+                    let height = size as f64;
+
+                    let context = da.get_style_context().unwrap();
+
+                    gtk::render_background(&context, g, 0.0, 0.0, width, height);
+
+                    if let Ok(ref pb) = pixbuf {
+                        let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
+
+                        g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
+                        g.clip();
+
+                        g.set_source_pixbuf(&pb, 0.0, hpos);
+                        g.rectangle(0.0, 0.0, width, height);
+                        g.fill();
+                    }
+
+                    Inhibit(false)
+                });
+            }
+        }
+    );
 }
