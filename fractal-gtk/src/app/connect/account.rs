@@ -156,13 +156,13 @@ impl App {
         }));
 
         /* Body */
-        verify_password.connect_property_text_notify(clone!(op, builder => move |_| {
+        verify_password.connect_property_text_notify(clone!(builder => move |_| {
             validate_password_input(&builder.clone());
         }));
-        new_password.connect_property_text_notify(clone!(op, builder => move |_| {
+        new_password.connect_property_text_notify(clone!(builder => move |_| {
             validate_password_input(&builder.clone());
         }));
-        old_password.connect_property_text_notify(clone!(op, builder => move |_| {
+        old_password.connect_property_text_notify(clone!(builder => move |_| {
             validate_password_input(&builder)
         }));
 
