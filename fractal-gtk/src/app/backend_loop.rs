@@ -53,6 +53,32 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let l = Some(list);
                     APPOP!(set_three_pid, (l));
                 }
+                Ok(BKResponse::GetTokenEmail(sid)) => {
+                    let sid = Some(sid);
+                    APPOP!(get_token_email, (sid));
+                }
+                Ok(BKResponse::GetTokenPhone(sid)) => {
+                    let sid = Some(sid);
+                    APPOP!(get_token_phone, (sid));
+                }
+                Ok(BKResponse:: GetTokenEmailUsed) => {
+                    let error = gettext("Email is already in use");
+                    APPOP!(show_three_pid_error_dialog, (error));
+                }
+                Ok(BKResponse:: GetTokenPhoneUsed) => {
+                    let error = gettext("Phone number is already in use");
+                    APPOP!(show_three_pid_error_dialog, (error));
+                }
+                Ok(BKResponse:: SubmitPhoneToken(sid)) => {
+                    APPOP!(valid_phone_token, (sid));
+                }
+                Ok(BKResponse:: AddThreePID(list)) => {
+                    let l = Some(list);
+                    APPOP!(added_three_pid, (l));
+                }
+                Ok(BKResponse::DeleteThreePID) => {
+                    APPOP!(get_three_pid);
+                }
                 Ok(BKResponse::SetUserName(username)) => {
                     let u = Some(username);
                     APPOP!(set_username, (u));
@@ -163,6 +189,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
 
                 // errors
+                Ok(BKResponse::GetTokenEmailError(err)) => {
+                    let error = gettext("Couldn't add the email address.");
+                    println!("ERROR: {:?}", err);
+                    APPOP!(show_three_pid_error_dialog, (error));
+                },
                 Ok(BKResponse::NewRoomError(err, internal_id)) => {
                     println!("ERROR: {:?}", err);
 

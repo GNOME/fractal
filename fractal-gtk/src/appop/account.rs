@@ -19,6 +19,129 @@ impl AppOp {
         self.backend.send(BKCommand::GetThreePID).unwrap();
     }
 
+    pub fn added_three_pid(&self, _l: Option<String>) {
+		self.get_three_pid();
+	}
+
+    pub fn valid_phone_token(&self, sid: Option<String>) {
+        if let Some(sid) = sid {
+            let _ = self.backend.send(BKCommand::AddThreePID(String::from("vector.im"), String::from("canitworksandia2"), sid.clone()));
+        }
+        else {
+            self.show_three_pid_error_dialog(String::from("The validation code is not correct."));
+            self.get_three_pid();
+        }
+    }
+
+	pub fn show_phone_dialog(&self, sid: String) {
+		let parent = self.ui.builder
+			.get_object::<gtk::Dialog>("account_settings_dialog")
+			.expect("Can't find account_settings_dialog in ui file.");
+
+        let entry = gtk::Entry::new();
+		let msg = String::from("Insert the code recived via SMS");
+		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+		let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
+        if let Some(area) = dialog.get_message_area() {
+            if let Ok(area) = area.downcast::<gtk::Box>() {
+                area.add(&entry);
+            }
+        }
+        let backend = self.backend.clone();
+        dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
+        let button = dialog.add_button("Continue", gtk::ResponseType::Ok.into());
+        button.set_sensitive(false);
+        let ok = button.clone();
+        entry.connect_activate(move |_| {
+            if ok.get_sensitive() {
+                let _ = ok.emit("clicked", &[]);
+            }
+        });
+
+        entry.connect_property_text_notify(move |w| {
+            if let Some(text) = w.get_text() {
+                if text != "" {
+                    button.set_sensitive(true);
+                    return;
+                }
+            }
+            button.set_sensitive(false);
+        });
+
+        let value = entry.clone();
+        dialog.connect_response(move |w, r| {
+            match gtk::ResponseType::from(r) {
+                gtk::ResponseType::Ok => {
+                    if let Some(token) = value.get_text() {
+                        let _ = backend.send(BKCommand::SubmitPhoneToken(String::from("https://vector.im"), String::from("canitworksandia2"), sid.clone(), token));
+                    }
+                },
+                _ => {}
+            }
+            w.destroy();
+        });
+        dialog.show_all();
+    }
+
+    pub fn show_email_dialog(&self, sid: String) {
+        let parent = self.ui.builder
+            .get_object::<gtk::Dialog>("account_settings_dialog")
+            .expect("Can't find account_settings_dialog in ui file.");
+
+        let msg = String::from("In order to add this email address, go to your inbox and follow the link you received. Once you've done that, click 'continue'");
+		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+		let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
+        let backend = self.backend.clone();
+        dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
+        dialog.add_button("Continue", gtk::ResponseType::Ok.into());
+        dialog.connect_response(move |w, r| {
+            match gtk::ResponseType::from(r) {
+                gtk::ResponseType::Ok => {
+                    let _ = backend.send(BKCommand::AddThreePID(String::from("vector.im"), String::from("tosecretsecret2"), sid.clone()));
+                },
+                _ => {}
+            }
+            w.destroy();
+        });
+        dialog.show_all();
+    }
+
+    pub fn show_three_pid_error_dialog(&self, error: String) {
+		let parent = self.ui.builder
+			.get_object::<gtk::Dialog>("account_settings_dialog")
+			.expect("Can't find account_settings_dialog in ui file.");
+
+		let msg = error;
+		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+		let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
+
+        dialog.add_button("Ok", gtk::ResponseType::Ok.into());
+
+        let backend = self.backend.clone();
+        dialog.connect_response(move |w, _| {
+            backend.send(BKCommand::GetThreePID).unwrap();
+            w.destroy();
+        });
+        dialog.show_all();
+
+    }
+
+    pub fn get_token_email(&mut self, sid: Option<String>) {
+        self.tmp_sid = sid.clone();
+        if let Some(sid) = sid {
+            self.show_email_dialog(sid);
+        }
+    }
+
+    pub fn get_token_phone(&mut self, sid: Option<String>) {
+        self.tmp_sid = sid.clone();
+        if let Some(sid) = sid {
+            println!("Phone sid: {}", sid);
+            self.show_phone_dialog(sid);
+        }
+    }
+
+
     pub fn show_account_settings_dialog(&self) {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("account_settings_dialog")
@@ -106,38 +229,37 @@ impl AppOp {
         }
 
         /* Make sure we have at least one empty entry for email and phone */
-        let empty_email = widgets::Address::new(widgets::AddressType::Email);
-        let empty_phone = widgets::Address::new(widgets::AddressType::Phone);
-        email.pack_start(&empty_email.clone().create(None), true, true, 0);
-        phone.pack_start(&empty_phone.clone().create(None), true, true, 0);
+        let mut empty_email = widgets::Address::new(widgets::AddressType::Email, &self);
+        let mut empty_phone = widgets::Address::new(widgets::AddressType::Phone, &self);
+        email.pack_start(&empty_email.create(None), true, true, 0);
+        phone.pack_start(&empty_phone.create(None), true, true, 0);
         if let Some(data) = data {
             for item in data {
                 if item.medium == "email" {
                     if first_email {
-                        empty_email.clone().update(Some(item.address));
-                        let entry = widgets::Address::new(widgets::AddressType::Email).create(None);
+                        empty_email.update(Some(item.address));
+                        let entry = widgets::Address::new(widgets::AddressType::Email, &self).create(None);
                         grid.insert_next_to(&email, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
                         first_email = false;
                     }
                     else {
-                        let entry = widgets::Address::new(widgets::AddressType::Email).create(Some(item.address));
+                        let entry = widgets::Address::new(widgets::AddressType::Email, &self).create(Some(item.address));
                         grid.insert_next_to(&email, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
                     }
                 }
                 else if item.medium == "msisdn" {
                     if first_phone {
-                        let s = String::from("+") + &String::from(item.address);
-                        empty_phone.clone().update(Some(s));
-                        let entry = widgets::Address::new(widgets::AddressType::Phone).create(None);
+                        empty_phone.update(Some(item.address));
+                        let entry = widgets::Address::new(widgets::AddressType::Phone, &self).create(None);
                         grid.insert_next_to(&phone, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
                         first_phone = false;
                     }
                     else {
                         let s = String::from("+") + &String::from(item.address);
-                        let entry = widgets::Address::new(widgets::AddressType::Phone).create(Some(s));
+                        let entry = widgets::Address::new(widgets::AddressType::Phone, &self).create(Some(s));
                         grid.insert_next_to(&phone, gtk::PositionType::Bottom);
                         grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
                     }

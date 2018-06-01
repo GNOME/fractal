@@ -1,14 +1,17 @@
 extern crate serde_json;
+extern crate url;
 
 use std::fs::File;
 use std::io::prelude::*;
 
+use self::url::Url;
 use globals;
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use error::Error;
 use util::json_q;
+use util::send_value;
 use util::build_url;
 use util::put_media;
 use util::get_user_avatar;
@@ -60,7 +63,6 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
     get!(&url,
         |r: JsonValue| {
             let mut result: Vec<UserInfo> = vec![];
-            println!("{}", r);
             if let Some(arr) = r["threepids"].as_array() {
                 for pid in arr.iter() {
                     let address = match pid["address"].as_str() {
@@ -96,6 +98,134 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn get_email_token(bk: &Backend, identity: String, email: String, client_secret: String) -> Result<(), Error> {
+    let url = bk.url(&format!("account/3pid/email/requestToken"), vec![])?;
+
+    let attrs = json!({
+        "id_server": identity,
+        "client_secret": client_secret,
+        "email": email,
+        "send_attempt": "1",
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |r: JsonValue| {
+              let sid = String::from(r["sid"].as_str().unwrap_or(""));
+              tx.send(BKResponse::GetTokenEmail(sid)).unwrap();
+          },
+          |err| {
+              match err {
+                  Error::MatrixError(ref js) if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" => {
+                      tx.send(BKResponse::GetTokenEmailUsed).unwrap(); },
+              _ => {
+                  tx.send(BKResponse::GetTokenEmailError(err)).unwrap(); }
+          }
+          }
+         );
+
+    Ok(())
+}
+
+pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_secret: String) -> Result<(), Error> {
+    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
+
+    let attrs = json!({
+        "id_server": identity,
+        "client_secret": client_secret,
+        "phone_number": phone,
+        "country": "",
+        "send_attempt": "1",
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |r: JsonValue| {
+              let sid = String::from(r["sid"].as_str().unwrap_or(""));
+              tx.send(BKResponse::GetTokenPhone(sid)).unwrap();
+          },
+          |err| {
+              match err {
+                  Error::MatrixError(ref js) if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" => {
+                      tx.send(BKResponse::GetTokenPhoneUsed).unwrap(); },
+              _ => {
+                  tx.send(BKResponse::GetTokenPhoneError(err)).unwrap(); }
+          }
+          }
+         );
+
+    Ok(())
+}
+
+pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: String) -> Result<(), Error> {
+    let url = bk.url(&format!("account/3pid"), vec![])?;
+    let attrs = json!({
+        "three_pid_creds": {
+            "id_server": identity,
+            "sid": sid,
+            "client_secret": client_secret
+        },
+        "bind": true
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |_r: JsonValue| {
+              tx.send(BKResponse::AddThreePID(sid)).unwrap();
+          },
+          |err| {
+              tx.send(BKResponse::AddThreePIDError(err)).unwrap(); }
+         );
+
+    Ok(())
+}
+
+pub fn submit_phone_token(bk: &Backend, url: String, client_secret: String, sid: String, token: String) -> Result<(), Error> {
+    let url = Url::parse(&(url + &String::from("/_matrix/identity/api/v1/validate/msisdn/submitToken")))?;
+    let attrs = [("sid".to_string(), sid.clone()),
+                 ("client_secret".to_string(), client_secret),
+                 ("token".to_string(), token)];
+
+    let tx = bk.tx.clone();
+    post_value!(&url, &attrs,
+                |r: JsonValue| {
+                    let result = if r["success"] == true {
+                        Some(sid)
+                    }
+                    else {
+                        None
+                    };
+                    tx.send(BKResponse::SubmitPhoneToken(result)).unwrap();
+                },
+                |err| {
+                    tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();
+                }
+               );
+
+    Ok(())
+}
+
+pub fn delete_three_pid(bk: &Backend, medium: String, address: String) -> Result<(), Error> {
+    let baseu = bk.get_base_url()?;
+    let tk = bk.data.lock().unwrap().access_token.clone();
+    let mut url = baseu.join("/_matrix/client/unstable/account/3pid/delete")?;
+    url.query_pairs_mut().clear().append_pair("access_token", &tk);
+    let attrs = json!({
+        "medium": medium,
+        "address": address,
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |_r: JsonValue| {
+              tx.send(BKResponse::DeleteThreePID).unwrap();
+          },
+          |err| {
+              tx.send(BKResponse::DeleteThreePIDError(err)).unwrap(); }
+         );
+
+    Ok(())
+}
 
 pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
