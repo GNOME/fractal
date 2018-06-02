@@ -3,6 +3,7 @@ extern crate gtk;
 use self::gtk::prelude::*;
 
 use appop::AppOp;
+use appop::AppState;
 
 use backend::BKCommand;
 use widgets;
@@ -35,8 +36,8 @@ impl AppOp {
 
     pub fn show_phone_dialog(&self, sid: String) {
         let parent = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
 
         let entry = gtk::Entry::new();
         let msg = String::from("Insert the code recived via SMS");
@@ -85,8 +86,8 @@ impl AppOp {
 
     pub fn show_email_dialog(&self, sid: String) {
         let parent = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
 
         let msg = String::from("In order to add this email address, go to your inbox and follow the link you received. Once you've done that, click 'continue'");
 		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
@@ -111,9 +112,9 @@ impl AppOp {
     }
 
     pub fn show_error_dialog(&self, error: String) {
-		let parent = self.ui.builder
-			.get_object::<gtk::Dialog>("account_settings_dialog")
-			.expect("Can't find account_settings_dialog in ui file.");
+        let parent = self.ui.builder
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
 
 		let msg = error;
 		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
@@ -145,10 +146,7 @@ impl AppOp {
         }
     }
 
-    pub fn show_account_settings_dialog(&self) {
-        let dialog = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
+    pub fn show_account_settings_dialog(&mut self) {
         let avatar = self.ui.builder
             .get_object::<gtk::Container>("account_settings_avatar")
             .expect("Can't find account_settings_avatar in ui file.");
@@ -210,11 +208,11 @@ impl AppOp {
         destruction_flag.set_active(false);
         destruction_btn.set_sensitive(false);
         destruction_entry.set_text("");
-
-        dialog.set_redraw_on_allocate(true);
         advanced_box.set_redraw_on_allocate(true);
         delete_box.set_redraw_on_allocate(true);
-        dialog.present();
+
+
+        self.set_state(AppState::AccountSettings);
     }
 
     pub fn update_address(&self, data: Option<Vec<UserInfo>>) {
@@ -309,11 +307,12 @@ impl AppOp {
         dialog.present();
     }
 
-    pub fn save_tmp_avatar_account_settings(&mut self, file: String) {
-        self.tmp_avatar = Some(file);
+    pub fn update_avatar_account_settings(&mut self, file: String) {
+        let command = BKCommand::SetUserAvatar(file);
+        self.backend.send(command).unwrap();
     }
 
-    pub fn apply_account_settings(&self) {
+    pub fn update_username_account_settings(&self) {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
             .expect("Can't find account_settings_name in ui file.");
@@ -324,24 +323,15 @@ impl AppOp {
         if old_username !=  username {
             self.backend.send(BKCommand::SetUserName(username)).unwrap();
         }
-
-        if let Some(ref user) = self.tmp_avatar {
-            let command = BKCommand::SetUserAvatar(user.to_string());
-            self.backend.send(command).unwrap();
-        }
     }
 
     pub fn close_account_settings_dialog(&mut self) {
-        let dialog = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
         let advanced = self.ui.builder
             .get_object::<gtk::Revealer>("account_settings_advanced")
             .expect("Can't find account_settings_advanced in ui file.");
         let delete = self.ui.builder
             .get_object::<gtk::Revealer>("account_settings_delete")
             .expect("Can't find account_settings_delete in ui file.");
-
         let advanced_toggle = self.ui.builder
             .get_object::<gtk::EventBox>("account_settings_advanced_toggle")
             .expect("Can't find account_settings_advanced_toggle in ui file.");
@@ -354,8 +344,8 @@ impl AppOp {
         delete_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         advanced.set_reveal_child(false);
         delete.set_reveal_child(false);
-        dialog.hide();
-        dialog.resize(700, 200);
+
+        self.set_state(AppState::Chat);
     }
 
     pub fn set_new_password(&mut self) {
@@ -436,8 +426,8 @@ impl AppOp {
             .get_object::<gtk::CheckButton>("account_settings_delete_check")
             .expect("Can't find account_settings_delete_check in ui file.");
         let parent = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
 
         let msg = String::from("Are you sure you wan't do delete your account?");
         let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;

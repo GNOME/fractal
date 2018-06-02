@@ -12,6 +12,7 @@ pub enum AppState {
     Chat,
     Directory,
     Loading,
+    AccountSettings,
 }
 
 
@@ -27,6 +28,7 @@ impl AppOp {
             AppState::Chat => "chat",
             AppState::Directory => "directory",
             AppState::Loading => "loading",
+            AppState::AccountSettings => "account-settings",
         };
 
         self.ui.builder
@@ -39,6 +41,7 @@ impl AppOp {
             AppState::Login => "login",
             AppState::Directory => "back",
             AppState::Loading => "login",
+            AppState::AccountSettings => "account-settings",
             _ => "normal",
         };
 
