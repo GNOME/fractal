@@ -79,6 +79,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::DeleteThreePID) => {
                     APPOP!(get_three_pid);
                 }
+                Ok(BKResponse::ChangePassword) => {
+                    APPOP!(password_changed);
+                }
                 Ok(BKResponse::SetUserName(username)) => {
                     let u = Some(username);
                     APPOP!(set_username, (u));

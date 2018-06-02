@@ -381,6 +381,17 @@ impl AppOp {
         }
     }
 
+    pub fn password_changed(&self) {
+       let password_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
+        let password_btn_stack = self.ui.builder
+            .get_object::<gtk::Stack>("account_settings_password_stack")
+            .expect("Can't find account_settings_password_stack in ui file.");
+        password_btn.set_sensitive(true);
+        password_btn_stack.set_visible_child_name("label");
+    }
+
     pub fn show_password_error_dialog(&self, error: String) {
         let password_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_password")
