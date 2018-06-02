@@ -150,8 +150,9 @@ impl<'a> Address<'a> {
         let action = &self.action;
         let entry = &self.entry;
         let address = &self.address;
+        let id_server = &self.op.identity_url;
         let backend = &self.op.backend;
-        self.signal_id = Some(self.button.clone().connect_clicked(clone!(medium, action, entry, address, backend => move |w| {
+        self.signal_id = Some(self.button.clone().connect_clicked(clone!(id_server, medium, action, entry, address, backend => move |w| {
             if w.get_sensitive() && w.is_visible() {
                 /* get address from entry if we don't have one */
                 let address = if address.is_none() {
@@ -184,8 +185,7 @@ impl<'a> Address<'a> {
                                         entry.set_editable(false);
                                         backend.send(
                                             BKCommand::GetTokenEmail(
-                                                String::from("vector.im"), address, String::from("tosecretsecret2"))).unwrap();
-
+                                                id_server.clone(), address, String::from("tosecretsecret2"))).unwrap();
                                     },
                                 }
                             }
@@ -212,8 +212,7 @@ impl<'a> Address<'a> {
                                         entry.set_editable(false);
                                         backend.send(
                                             BKCommand::GetTokenPhone(
-                                                String::from("vector.im"), address, String::from("canitworksandia2"))).unwrap();
-
+                                                id_server.clone(), address, String::from("canitworksandia2"))).unwrap();
                                     },
                                 }
                             }
