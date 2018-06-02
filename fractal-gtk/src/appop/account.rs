@@ -28,20 +28,20 @@ impl AppOp {
             let _ = self.backend.send(BKCommand::AddThreePID(String::from("vector.im"), String::from("canitworksandia2"), sid.clone()));
         }
         else {
-            self.show_three_pid_error_dialog(String::from("The validation code is not correct."));
+            self.show_error_dialog(String::from("The validation code is not correct."));
             self.get_three_pid();
         }
     }
 
-	pub fn show_phone_dialog(&self, sid: String) {
-		let parent = self.ui.builder
-			.get_object::<gtk::Dialog>("account_settings_dialog")
-			.expect("Can't find account_settings_dialog in ui file.");
+    pub fn show_phone_dialog(&self, sid: String) {
+        let parent = self.ui.builder
+            .get_object::<gtk::Dialog>("account_settings_dialog")
+            .expect("Can't find account_settings_dialog in ui file.");
 
         let entry = gtk::Entry::new();
-		let msg = String::from("Insert the code recived via SMS");
-		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
-		let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
+        let msg = String::from("Insert the code recived via SMS");
+        let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+        let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
         if let Some(area) = dialog.get_message_area() {
             if let Ok(area) = area.downcast::<gtk::Box>() {
                 area.add(&entry);
@@ -107,6 +107,10 @@ impl AppOp {
     }
 
     pub fn show_three_pid_error_dialog(&self, error: String) {
+        self.show_error_dialog(error);
+    }
+
+    pub fn show_error_dialog(&self, error: String) {
 		let parent = self.ui.builder
 			.get_object::<gtk::Dialog>("account_settings_dialog")
 			.expect("Can't find account_settings_dialog in ui file.");
@@ -141,7 +145,6 @@ impl AppOp {
         }
     }
 
-
     pub fn show_account_settings_dialog(&self) {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("account_settings_dialog")
@@ -167,6 +170,18 @@ impl AppOp {
         let stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
+        let destruction_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_delete_btn")
+            .expect("Can't find account_settings_delete_btn in ui file.");
+        let destruction_entry = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_delete_password_confirm")
+            .expect("Can't find account_settings_delete_password_confirm in ui file.");
+        let password_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
+        let password_btn_stack = self.ui.builder
+            .get_object::<gtk::Stack>("account_settings_password_stack")
+            .expect("Can't find account_settings_password_stack in ui file.");
 
         stack.set_visible_child_name("loading");
         self.get_three_pid();
@@ -184,6 +199,13 @@ impl AppOp {
         let w = widgets::Avatar::circle_avatar(self.avatar.clone().unwrap_or_default(), Some(100));
         avatar.add(&w);
         avatar.show();
+
+        /* reset the password button */
+        password_btn_stack.set_visible_child_name("label");
+        password_btn.set_sensitive(true);
+
+        destruction_btn.set_sensitive(false);
+        destruction_entry.set_text("");
 
         dialog.set_redraw_on_allocate(true);
         advanced_box.set_redraw_on_allocate(true);
@@ -204,6 +226,9 @@ impl AppOp {
         let stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
+        let password = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
 
         let mut first_email = true;
         let mut first_phone = true;
@@ -212,7 +237,7 @@ impl AppOp {
         let mut child = grid.get_child_at(1, i);
         while child.is_some() {
             if let Some(child) = child.clone() {
-                if child != phone && child != email {
+                if child != phone && child != email && child != password {
                     grid.remove_row(i);
                 }
                 else {
@@ -300,21 +325,12 @@ impl AppOp {
             let command = BKCommand::SetUserAvatar(user.to_string());
             self.backend.send(command).unwrap();
         }
-
     }
 
     pub fn close_account_settings_dialog(&mut self) {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("account_settings_dialog")
             .expect("Can't find account_settings_dialog in ui file.");
-        /*
-           let avatar = self.ui.builder
-           .get_object::<gtk::Container>("account_settings_avatar")
-           .expect("Can't find account_settings_avatar in ui file.");
-           let name = self.ui.builder
-           .get_object::<gtk::Entry>("account_settings_name")
-           .expect("Can't find account_settings_name in ui file.");
-           */
         let advanced = self.ui.builder
             .get_object::<gtk::Revealer>("account_settings_advanced")
             .expect("Can't find account_settings_advanced in ui file.");
@@ -338,6 +354,45 @@ impl AppOp {
         dialog.resize(700, 200);
     }
 
+    pub fn set_new_password(&mut self) {
+        let old_password = self.ui.builder
+            .get_object::<gtk::Entry>("password-dialog-old-entry")
+            .expect("Can't find password-dialog-old-entry in ui file.");
+        let new_password = self.ui.builder
+            .get_object::<gtk::Entry>("password-dialog-entry")
+            .expect("Can't find password-dialog-entry in ui file.");
+        let password_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
+        let password_btn_stack = self.ui.builder
+            .get_object::<gtk::Stack>("account_settings_password_stack")
+            .expect("Can't find account_settings_password_stack in ui file.");
+
+        if let Some(old) = old_password.get_text() {
+            if let Some(new) = new_password.get_text() {
+                if let Some(mxid) = self.uid.clone() {
+                    if old != "" && new != "" {
+                        password_btn.set_sensitive(false);
+                        password_btn_stack.set_visible_child_name("spinner");
+                        let _ = self.backend.send(BKCommand::ChangePassword(mxid, old, new));
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn show_password_error_dialog(&self, error: String) {
+        let password_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_password")
+            .expect("Can't find account_settings_password in ui file.");
+        let password_btn_stack = self.ui.builder
+            .get_object::<gtk::Stack>("account_settings_password_stack")
+            .expect("Can't find account_settings_password_stack in ui file.");
+        self.show_error_dialog(error);
+        password_btn.set_sensitive(true);
+        password_btn_stack.set_visible_child_name("label");
+    }
+
     pub fn close_password_dialog(&mut self) {
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("password_dialog")
@@ -356,5 +411,20 @@ impl AppOp {
         new_password.set_text("");
         verify_password.set_text("");
         dialog.hide();
+    }
+
+    pub fn account_destruction(&self) {
+        let entry = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_delete_password_confirm")
+            .expect("Can't find account_settings_delete_password_confirm in ui file.");
+        let mark = self.ui.builder
+            .get_object::<gtk::CheckButton>("account_settings_delete_check")
+            .expect("Can't find account_settings_delete_check in ui file.");
+        let flag = mark.get_active();
+        if let Some(password) = entry.get_text() {
+            if let Some(mxid) = self.uid.clone() {
+                let _ = self.backend.send(BKCommand::AccountDestruction(mxid, password, flag));
+            }
+        }
     }
 }

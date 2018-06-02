@@ -189,6 +189,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
 
                 // errors
+                Ok(BKResponse::ChangePasswordError(err)) => {
+                    let error = gettext("Couldn't change the password");
+                    println!("ERROR: {:?}", err);
+                    APPOP!(show_password_error_dialog, (error));
+                },
                 Ok(BKResponse::GetTokenEmailError(err)) => {
                     let error = gettext("Couldn't add the email address.");
                     println!("ERROR: {:?}", err);

@@ -195,7 +195,32 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="margin-top">18</property>
-                        <property name="label" translatable="yes">●●●●●</property>
+                        <child>
+                          <object class="GtkStack" id="account_settings_password_stack">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkLabel" id="account_settings_password_button_label">
+                                <property name="can_focus">True</property>
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">●●●●●</property>
+                              </object>
+                              <packing>
+                                <property name="name">label</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinner" id="account_settings_password_button_spinner">
+                                <property name="can_focus">True</property>
+                                <property name="visible">True</property>
+                                <property name="active">True</property>
+                              </object>
+                              <packing>
+                                <property name="name">spinner</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="top-attach">3</property>
@@ -425,17 +450,26 @@
                                     <property name="wrap">True</property>
                                     <property name="max-width-chars">35</property>
                                     <property name="xalign">0</property>
-                                    <property name="label" translatable="yes">To confirm that you really want to deactivate this account type in your email address:</property>
+                                    <property name="label" translatable="yes">To confirm that you really want to deactivate this account type in your password:</property>
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry">
+                                  <object class="GtkEntry" id="account_settings_delete_password_confirm">
                                     <property name="visible">True</property>
+                                    <property name="visibility">False</property>
                                     <property name="can_focus">True</property>
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="account_settings_delete_account_btn">
+                                  <object class="GtkCheckButton" id="account_settings_delete_check">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">Also erase all messages</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="account_settings_delete_btn">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="halign">end</property>

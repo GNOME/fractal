@@ -179,6 +179,14 @@ impl Backend {
                 let r = user::delete_three_pid(self, medium, address);
                 bkerror!(r, tx, BKResponse::DeleteThreePIDError);
             }
+            Ok(BKCommand::ChangePassword(username, old_password, new_password)) => {
+                let r = user::change_password(self, username, old_password, new_password);
+                bkerror!(r, tx, BKResponse::ChangePasswordError);
+            }
+            Ok(BKCommand::AccountDestruction(username, password, flag)) => {
+                let r = user::account_destruction(self, username, password, flag);
+                bkerror!(r, tx, BKResponse::AccountDestructionError);
+            }
             Ok(BKCommand::GetAvatar) => {
                 let r = user::get_avatar(self);
                 bkerror!(r, tx, BKResponse::AvatarError);
