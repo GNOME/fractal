@@ -2,7 +2,6 @@ extern crate gtk;
 use self::gtk::prelude::*;
 
 use glib;
-//use std::sync::{Arc, Mutex};
 
 use app::App;
 
@@ -10,21 +9,15 @@ impl App {
     pub fn connect_account_settings(&self) {
         let op = &self.op;
         let builder = &self.ui.builder;
-        let cancel = self.ui.builder
-            .get_object::<gtk::Button>("cancel_account_settings")
-            .expect("Can't find cancel_account_settings in ui file.");
-        let confirm = self.ui.builder
-            .get_object::<gtk::Button>("apply_account_settings")
-            .expect("Can't find join_room_button in ui file.");
+        let back = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_back_button")
+            .expect("Can't find account_settings_back_button in ui file.");
         let cancel_password = self.ui.builder
             .get_object::<gtk::Button>("password-dialog-cancel")
             .expect("Can't find password-dialog-cancel in ui file.");
         let confirm_password = self.ui.builder
             .get_object::<gtk::Button>("password-dialog-apply")
             .expect("Can't find password-dialog-apply in ui file.");
-        let dialog = self.ui.builder
-            .get_object::<gtk::Dialog>("account_settings_dialog")
-            .expect("Can't find account_settings_dialog in ui file.");
         let password_dialog = self.ui.builder
             .get_object::<gtk::Dialog>("password_dialog")
             .expect("Can't find password_dialog in ui file.");
@@ -56,17 +49,8 @@ impl App {
             .get_object::<gtk::Button>("account_settings_delete_btn")
             .expect("Can't find account_settings_delete_btn in ui file.");
 
-        dialog.connect_delete_event(clone!(op => move |_, _| {
-            op.lock().unwrap().close_account_settings_dialog();
-            glib::signal::Inhibit(true)
-        }));
         /* Headerbar */
-        cancel.connect_clicked(clone!(op => move |_| {
-            op.lock().unwrap().close_account_settings_dialog();
-        }));
-
-        confirm.connect_clicked(clone!(op => move |_| {
-            op.lock().unwrap().apply_account_settings();
+        back.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().close_account_settings_dialog();
         }));
 
@@ -81,7 +65,7 @@ impl App {
             if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
                 if let Some(file) = file_chooser.get_filename() {
                     if let Some(path) = file.to_str() {
-                        op.lock().unwrap().save_tmp_avatar_account_settings(String::from(path));
+                        op.lock().unwrap().update_avatar_account_settings(String::from(path));
                     }
                 }
             }
