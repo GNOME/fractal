@@ -84,7 +84,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::SetUserName(username)) => {
                     let u = Some(username);
-                    APPOP!(set_username, (u));
+                    APPOP!(show_new_username, (u));
                 }
                 Ok(BKResponse::AccountDestruction) => {
                     APPOP!(account_destruction_logoff);
@@ -207,6 +207,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 },
                 Ok(BKResponse::GetTokenEmailError(err)) => {
                     let error = gettext("Couldn't add the email address.");
+                    println!("ERROR: {:?}", err);
+                    APPOP!(show_three_pid_error_dialog, (error));
+                },
+                Ok(BKResponse::GetTokenPhoneError(err)) => {
+                    let error = gettext("Couldn't add the phone number.");
                     println!("ERROR: {:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 },
