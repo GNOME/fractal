@@ -86,6 +86,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let u = Some(username);
                     APPOP!(set_username, (u));
                 }
+                Ok(BKResponse::AccountDestruction) => {
+                    APPOP!(account_destruction_logoff);
+                }
                 Ok(BKResponse::Avatar(path)) => {
                     let av = Some(path);
                     APPOP!(set_avatar, (av));
@@ -192,6 +195,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
 
                 // errors
+                Ok(BKResponse::AccountDestructionError(err)) => {
+                    let error = gettext("Couldn't delete the account");
+                    println!("ERROR: {:?}", err);
+                    APPOP!(show_error_dialog, (error));
+                },
                 Ok(BKResponse::ChangePasswordError(err)) => {
                     let error = gettext("Couldn't change the password");
                     println!("ERROR: {:?}", err);

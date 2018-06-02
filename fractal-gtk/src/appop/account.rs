@@ -182,6 +182,9 @@ impl AppOp {
         let password_btn_stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_password_stack")
             .expect("Can't find account_settings_password_stack in ui file.");
+        let destruction_flag = self.ui.builder
+            .get_object::<gtk::CheckButton>("account_settings_delete_check")
+            .expect("Can't find account_settings_delete_check in ui file.");
 
         stack.set_visible_child_name("loading");
         self.get_three_pid();
@@ -204,6 +207,7 @@ impl AppOp {
         password_btn_stack.set_visible_child_name("label");
         password_btn.set_sensitive(true);
 
+        destruction_flag.set_active(false);
         destruction_btn.set_sensitive(false);
         destruction_entry.set_text("");
 
@@ -431,11 +435,35 @@ impl AppOp {
         let mark = self.ui.builder
             .get_object::<gtk::CheckButton>("account_settings_delete_check")
             .expect("Can't find account_settings_delete_check in ui file.");
+        let parent = self.ui.builder
+            .get_object::<gtk::Dialog>("account_settings_dialog")
+            .expect("Can't find account_settings_dialog in ui file.");
+
+        let msg = String::from("Are you sure you wan't do delete your account?");
+        let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+        let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Warning, gtk::ButtonsType::None, &msg);
+
+        dialog.add_button("Confirm", gtk::ResponseType::Ok.into());
+        dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
+
         let flag = mark.get_active();
         if let Some(password) = entry.get_text() {
             if let Some(mxid) = self.uid.clone() {
-                let _ = self.backend.send(BKCommand::AccountDestruction(mxid, password, flag));
+                let backend = self.backend.clone();
+                dialog.connect_response(clone!(mxid, password, flag => move |w, r| {
+                    match gtk::ResponseType::from(r) {
+                        gtk::ResponseType::Ok => {
+                            let _ = backend.send(BKCommand::AccountDestruction(mxid.clone(), password.clone(), flag));
+                        },
+                        _ => {}
+                    }
+                    w.destroy();
+                }));
+                dialog.show_all();
             }
         }
+    }
+    pub fn account_destruction_logoff(&self) {
+        /* Do logout */
     }
 }
