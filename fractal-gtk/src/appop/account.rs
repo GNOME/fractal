@@ -26,7 +26,7 @@ impl AppOp {
 
     pub fn valid_phone_token(&self, sid: Option<String>) {
         if let Some(sid) = sid {
-            let _ = self.backend.send(BKCommand::AddThreePID(String::from("vector.im"), String::from("canitworksandia2"), sid.clone()));
+            let _ = self.backend.send(BKCommand::AddThreePID(self.identity_url.clone(), String::from("canitworksandia2"), sid.clone()));
         }
         else {
             self.show_error_dialog(String::from("The validation code is not correct."));
@@ -70,11 +70,13 @@ impl AppOp {
         });
 
         let value = entry.clone();
+        let id_server = self.identity_url.clone();
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text() {
-                        let _ = backend.send(BKCommand::SubmitPhoneToken(String::from("https://vector.im"), String::from("canitworksandia2"), sid.clone(), token));
+                        // identity_url with https://
+                        let _ = backend.send(BKCommand::SubmitPhoneToken(id_server.clone(), String::from("canitworksandia2"), sid.clone(), token));
                     }
                 },
                 _ => {}
@@ -93,12 +95,13 @@ impl AppOp {
 		let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
 		let dialog = gtk::MessageDialog::new(Some(&parent), flags, gtk::MessageType::Error, gtk::ButtonsType::None, &msg);
         let backend = self.backend.clone();
+        let id_server = self.identity_url.clone();
         dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
         dialog.add_button("Continue", gtk::ResponseType::Ok.into());
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
-                    let _ = backend.send(BKCommand::AddThreePID(String::from("vector.im"), String::from("tosecretsecret2"), sid.clone()));
+                    let _ = backend.send(BKCommand::AddThreePID(id_server.clone(), String::from("tosecretsecret2"), sid.clone()));
                 },
                 _ => {}
             }
