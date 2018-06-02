@@ -198,6 +198,7 @@ impl<'a> Address<'a> {
                                         let spinner = gtk::Spinner::new();
                                         spinner.start();
                                         w.set_image(&spinner);
+                                        w.set_sensitive(false);
                                         entry.set_editable(false);
                                         backend.send(
                                             BKCommand::DeleteThreePID(String::from("msisdn"), address)).unwrap();
