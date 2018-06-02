@@ -153,6 +153,9 @@ impl AppOp {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
             .expect("Can't find account_settings_name in ui file.");
+        let name_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_name_button")
+            .expect("Can't find account_settings_name_button in ui file.");
         let uid = self.ui.builder
             .get_object::<gtk::Label>("account_settings_uid")
             .expect("Can't find account_settings_uid in ui file.");
@@ -201,6 +204,13 @@ impl AppOp {
         avatar.add(&w);
         avatar.show();
 
+        name_btn.hide();
+        name.set_editable(true);
+        let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", 1);
+        name_btn.set_image(&image);
+        name_btn.set_sensitive(true);
+
+
         /* reset the password button */
         password_btn_stack.set_visible_child_name("label");
         password_btn.set_sensitive(true);
@@ -210,7 +220,6 @@ impl AppOp {
         destruction_entry.set_text("");
         advanced_box.set_redraw_on_allocate(true);
         delete_box.set_redraw_on_allocate(true);
-
 
         self.set_state(AppState::AccountSettings);
     }
@@ -312,16 +321,45 @@ impl AppOp {
         self.backend.send(command).unwrap();
     }
 
+    pub fn show_new_username(&mut self, name: Option<String>) {
+        let entry = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_name")
+            .expect("Can't find account_settings_name in ui file.");
+        let button = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_name_button")
+            .expect("Can't find account_settings_name_button in ui file.");
+        if let Some(name) = name.clone() {
+            button.hide();
+            let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", 1);
+            button.set_image(&image);
+            button.set_sensitive(true);
+            entry.set_editable(true);
+            entry.set_text(&name);
+        }
+        self.set_username(name);
+    }
+
     pub fn update_username_account_settings(&self) {
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
             .expect("Can't find account_settings_name in ui file.");
+        let button = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_name_button")
+            .expect("Can't find account_settings_name_button in ui file.");
 
         let old_username = self.username.clone().unwrap_or_default();
         let username = name.get_text().unwrap_or_default();
 
         if old_username !=  username {
+            let spinner = gtk::Spinner::new();
+            spinner.start();
+            button.set_image(&spinner);
+            button.set_sensitive(false);
+            name.set_editable(false);
             self.backend.send(BKCommand::SetUserName(username)).unwrap();
+        }
+        else {
+            button.hide();
         }
     }
 

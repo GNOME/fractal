@@ -30,6 +30,12 @@ impl App {
         let avatar_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_avatar_button")
             .expect("Can't find account_settings_avatar_button in ui file.");
+        let name_entry = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_name")
+            .expect("Can't find account_settings_name in ui file.");
+        let name_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_name_button")
+            .expect("Can't find account_settings_name_button in ui file.");
         let password_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_password")
             .expect("Can't find account_settings_password in ui file.");
@@ -71,19 +77,39 @@ impl App {
             }
         }));
 
+        let button = name_btn.clone();
+        name_entry.connect_property_text_notify(move |w| {
+            if let Some(text) = w.get_text() {
+                if text != "" {
+                    button.show();
+                    return;
+                }
+            }
+            button.hide();
+        });
+
+        let button = name_btn.clone();
+        name_entry.connect_activate(move |_w| {
+            let _ = button.emit("clicked", &[]);
+        });
+
+        name_btn.connect_clicked(clone!(op => move |_w| {
+            op.lock().unwrap().update_username_account_settings();
+        }));
+
         /*
-        fn update_password_strength(builder: &gtk::Builder) {
-            let bar = builder
-                .get_object::<gtk::LevelBar>("password-dialog-strength-indicator")
-                .expect("Can't find password-dialog-strength-indicator in ui file.");
-            let label = builder
-                .get_object::<gtk::Label>("password-dialog-hint")
-                .expect("Can't find password-dialog-hint in ui file.");
-            let strength_level = 10f64;
-            bar.set_value(strength_level);
-            label.set_label("text");
-        }
-        */
+           fn update_password_strength(builder: &gtk::Builder) {
+           let bar = builder
+           .get_object::<gtk::LevelBar>("password-dialog-strength-indicator")
+           .expect("Can't find password-dialog-strength-indicator in ui file.");
+           let label = builder
+           .get_object::<gtk::Label>("password-dialog-hint")
+           .expect("Can't find password-dialog-hint in ui file.");
+           let strength_level = 10f64;
+           bar.set_value(strength_level);
+           label.set_label("text");
+           }
+           */
 
         fn validate_password_input(builder: &gtk::Builder) {
             let hint = builder
