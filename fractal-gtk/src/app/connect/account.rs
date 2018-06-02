@@ -49,6 +49,12 @@ impl App {
         let verify_password = self.ui.builder
             .get_object::<gtk::Entry>("password-dialog-verify-entry")
             .expect("Can't find password-dialog-verify-entry in ui file.");
+        let destruction_entry = self.ui.builder
+            .get_object::<gtk::Entry>("account_settings_delete_password_confirm")
+            .expect("Can't find account_settings_delete_password_confirm in ui file.");
+        let destruction_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_delete_btn")
+            .expect("Can't find account_settings_delete_btn in ui file.");
 
         dialog.connect_delete_event(clone!(op => move |_, _| {
             op.lock().unwrap().close_account_settings_dialog();
@@ -152,6 +158,7 @@ impl App {
         }));
 
         confirm_password.connect_clicked(clone!(op => move |_| {
+            op.lock().unwrap().set_new_password();
             op.lock().unwrap().close_password_dialog();
         }));
 
@@ -195,11 +202,19 @@ impl App {
             }
             glib::signal::Inhibit(false)
         }));
-        /*
-           invite.set_sensitive(false);
-           invite.connect_clicked(clone!(op => move |_| {
-           op.lock().unwrap().start_chat();
-           }));
-           */
+
+        destruction_entry.connect_property_text_notify(clone!(destruction_btn => move |w| {
+            if let Some(text) = w.get_text() {
+                if text != "" {
+                    destruction_btn.set_sensitive(true);
+                    return;
+                }
+            }
+            destruction_btn.set_sensitive(false);
+        }));
+
+        destruction_btn.connect_clicked(clone!(op => move |_| {
+            op.lock().unwrap().account_destruction();
+        }));
     }
 }

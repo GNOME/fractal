@@ -227,6 +227,58 @@ pub fn delete_three_pid(bk: &Backend, medium: String, address: String) -> Result
     Ok(())
 }
 
+pub fn change_password(bk: &Backend, username: String, old_password: String, new_password: String) -> Result<(), Error> {
+    let url = bk.url(&format!("account/password"), vec![])?;
+
+    let attrs = json!({
+        "new_password": new_password,
+        "auth": {
+            "type": "m.login.password",
+            "user": username,
+            "password": old_password,
+        }
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |r: JsonValue| {
+              println!("{}", r);
+              tx.send(BKResponse::ChangePassword).unwrap();
+          },
+          |err| {
+              tx.send(BKResponse::ChangePasswordError(err)).unwrap();
+          }
+         );
+
+    Ok(())
+}
+
+pub fn account_destruction(bk: &Backend, username: String, password: String, flag: bool) -> Result<(), Error> {
+    let url = bk.url(&format!("account/deactivate"), vec![])?;
+
+    let attrs = json!({
+        "erase": flag,
+        "auth": {
+            "type": "m.login.password",
+            "user": username,
+            "password": password,
+        }
+    });
+
+    let tx = bk.tx.clone();
+    post!(&url, &attrs,
+          |r: JsonValue| {
+              println!("{}", r);
+              tx.send(BKResponse::AccountDestruction).unwrap();
+          },
+          |err| {
+              tx.send(BKResponse::AccountDestructionError(err)).unwrap();
+          }
+         );
+
+    Ok(())
+}
+
 pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let userid = bk.data.lock().unwrap().user_id.clone();
