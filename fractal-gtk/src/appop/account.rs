@@ -24,9 +24,11 @@ impl AppOp {
 		self.get_three_pid();
 	}
 
-    pub fn valid_phone_token(&self, sid: Option<String>) {
+    pub fn valid_phone_token(&self, sid: Option<String>, secret: Option<String>) {
         if let Some(sid) = sid {
-            let _ = self.backend.send(BKCommand::AddThreePID(self.identity_url.clone(), String::from("canitworksandia2"), sid.clone()));
+            if let Some(secret) = secret {
+                let _ = self.backend.send(BKCommand::AddThreePID(self.identity_url.clone(), secret.clone(), sid.clone()));
+            }
         }
         else {
             self.show_error_dialog(String::from("The validation code is not correct."));
@@ -34,7 +36,7 @@ impl AppOp {
         }
     }
 
-    pub fn show_phone_dialog(&self, sid: String) {
+    pub fn show_phone_dialog(&self, sid: String, secret: String) {
         let parent = self.ui.builder
             .get_object::<gtk::Window>("main_window")
             .expect("Can't find main_window in ui file.");
@@ -75,8 +77,7 @@ impl AppOp {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text() {
-                        // identity_url with https://
-                        let _ = backend.send(BKCommand::SubmitPhoneToken(id_server.clone(), String::from("canitworksandia2"), sid.clone(), token));
+                        let _ = backend.send(BKCommand::SubmitPhoneToken(id_server.clone(), secret.clone(), sid.clone(), token));
                     }
                 },
                 _ => {}
@@ -86,7 +87,7 @@ impl AppOp {
         dialog.show_all();
     }
 
-    pub fn show_email_dialog(&self, sid: String) {
+    pub fn show_email_dialog(&self, sid: String, secret: String) {
         let parent = self.ui.builder
             .get_object::<gtk::Window>("main_window")
             .expect("Can't find main_window in ui file.");
@@ -101,7 +102,7 @@ impl AppOp {
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
-                    let _ = backend.send(BKCommand::AddThreePID(id_server.clone(), String::from("tosecretsecret2"), sid.clone()));
+                    let _ = backend.send(BKCommand::AddThreePID(id_server.clone(), secret.clone(), sid.clone()));
                 },
                 _ => {}
             }
@@ -134,18 +135,19 @@ impl AppOp {
 
     }
 
-    pub fn get_token_email(&mut self, sid: Option<String>) {
-        self.tmp_sid = sid.clone();
+    pub fn get_token_email(&mut self, sid: Option<String>, secret: Option<String>) {
         if let Some(sid) = sid {
-            self.show_email_dialog(sid);
+            if let Some(secret) = secret {
+                self.show_email_dialog(sid, secret);
+            }
         }
     }
 
-    pub fn get_token_phone(&mut self, sid: Option<String>) {
-        self.tmp_sid = sid.clone();
+    pub fn get_token_phone(&mut self, sid: Option<String>, secret: Option<String>) {
         if let Some(sid) = sid {
-            println!("Phone sid: {}", sid);
-            self.show_phone_dialog(sid);
+            if let Some(secret) = secret {
+                self.show_phone_dialog(sid, secret);
+            }
         }
     }
 
@@ -380,7 +382,6 @@ impl AppOp {
             .get_object::<gtk::EventBox>("account_settings_delete_toggle")
             .expect("Can't find account_settings_delete_toggle in ui file.");
 
-        self.tmp_avatar = None;
         advanced_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         delete_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         advanced.set_reveal_child(false);
