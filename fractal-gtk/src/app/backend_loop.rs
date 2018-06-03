@@ -53,13 +53,15 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let l = Some(list);
                     APPOP!(set_three_pid, (l));
                 }
-                Ok(BKResponse::GetTokenEmail(sid)) => {
+                Ok(BKResponse::GetTokenEmail(sid, secret)) => {
                     let sid = Some(sid);
-                    APPOP!(get_token_email, (sid));
+                    let secret = Some(secret);
+                    APPOP!(get_token_email, (sid, secret));
                 }
-                Ok(BKResponse::GetTokenPhone(sid)) => {
+                Ok(BKResponse::GetTokenPhone(sid, secret)) => {
                     let sid = Some(sid);
-                    APPOP!(get_token_phone, (sid));
+                    let secret = Some(secret);
+                    APPOP!(get_token_phone, (sid, secret));
                 }
                 Ok(BKResponse:: GetTokenEmailUsed) => {
                     let error = gettext("Email is already in use");
@@ -69,8 +71,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = gettext("Phone number is already in use");
                     APPOP!(show_three_pid_error_dialog, (error));
                 }
-                Ok(BKResponse:: SubmitPhoneToken(sid)) => {
-                    APPOP!(valid_phone_token, (sid));
+                Ok(BKResponse:: SubmitPhoneToken(sid, secret)) => {
+                    let secret = Some(secret);
+                    APPOP!(valid_phone_token, (sid, secret));
                 }
                 Ok(BKResponse:: AddThreePID(list)) => {
                     let l = Some(list);
