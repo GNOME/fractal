@@ -103,7 +103,7 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
 
     let attrs = json!({
         "id_server": identity[8..],
-        "client_secret": client_secret,
+        "client_secret": client_secret.clone(),
         "email": email,
         "send_attempt": "1",
     });
@@ -112,7 +112,7 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
     post!(&url, &attrs,
           |r: JsonValue| {
               let sid = String::from(r["sid"].as_str().unwrap_or(""));
-              tx.send(BKResponse::GetTokenEmail(sid)).unwrap();
+              tx.send(BKResponse::GetTokenEmail(sid, client_secret)).unwrap();
           },
           |err| {
               match err {
@@ -142,7 +142,7 @@ pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_sec
     post!(&url, &attrs,
           |r: JsonValue| {
               let sid = String::from(r["sid"].as_str().unwrap_or(""));
-              tx.send(BKResponse::GetTokenPhone(sid)).unwrap();
+              tx.send(BKResponse::GetTokenPhone(sid, client_secret)).unwrap();
           },
           |err| {
               match err {
@@ -163,7 +163,7 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
         "three_pid_creds": {
             "id_server": identity[8..],
             "sid": sid,
-            "client_secret": client_secret
+            "client_secret": client_secret.clone()
         },
         "bind": true
     });
@@ -183,7 +183,7 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
 pub fn submit_phone_token(bk: &Backend, url: String, client_secret: String, sid: String, token: String) -> Result<(), Error> {
     let url = Url::parse(&(url + &String::from("/_matrix/identity/api/v1/validate/msisdn/submitToken")))?;
     let attrs = [("sid".to_string(), sid.clone()),
-                 ("client_secret".to_string(), client_secret),
+                 ("client_secret".to_string(), client_secret.clone()),
                  ("token".to_string(), token)];
 
     let tx = bk.tx.clone();
@@ -195,7 +195,7 @@ pub fn submit_phone_token(bk: &Backend, url: String, client_secret: String, sid:
                     else {
                         None
                     };
-                    tx.send(BKResponse::SubmitPhoneToken(result)).unwrap();
+                    tx.send(BKResponse::SubmitPhoneToken(result, client_secret)).unwrap();
                 },
                 |err| {
                     tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();

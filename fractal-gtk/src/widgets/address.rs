@@ -1,5 +1,7 @@
+extern crate rand;
 extern crate gtk;
 
+use self::rand::{thread_rng, Rng};
 use self::gtk::prelude::*;
 use glib::signal;
 
@@ -183,9 +185,10 @@ impl<'a> Address<'a> {
                                         w.set_image(&spinner);
                                         w.set_sensitive(false);
                                         entry.set_editable(false);
+                                        let secret: String = thread_rng().gen_ascii_chars().take(36).collect();
                                         backend.send(
                                             BKCommand::GetTokenEmail(
-                                                id_server.clone(), address, String::from("tosecretsecret2"))).unwrap();
+                                                id_server.clone(), address, secret)).unwrap();
                                     },
                                 }
                             }
@@ -210,9 +213,11 @@ impl<'a> Address<'a> {
                                         w.set_image(&spinner);
                                         w.set_sensitive(false);
                                         entry.set_editable(false);
+                                        let secret: String = thread_rng().gen_ascii_chars().take(36).collect();
+
                                         backend.send(
                                             BKCommand::GetTokenPhone(
-                                                id_server.clone(), address, String::from("canitworksandia2"))).unwrap();
+                                                id_server.clone(), address, secret)).unwrap();
                                     },
                                 }
                             }
