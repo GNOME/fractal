@@ -49,6 +49,7 @@ impl<'a> Address<'a> {
         let b = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         b.pack_start(&self.entry, true, true, 0);
         b.pack_end(&self.button, false, false, 0);
+
         if let Some(text) = text {
             self.address = Some(text.clone());
             self.entry.set_text(&text);
@@ -60,6 +61,12 @@ impl<'a> Address<'a> {
             self.button.show();
         }
         else {
+            let text = match self.medium {
+                AddressType::Email => "Add Email",
+                AddressType::Phone => "Add Phone",
+            };
+
+            self.entry.set_placeholder_text(text);
             self.action = Some(AddressAction::Add);
             let label = gtk::Image::new_from_icon_name("list-add-symbolic", 1);
             self.button.set_image(&label);
