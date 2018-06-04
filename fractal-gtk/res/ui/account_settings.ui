@@ -110,7 +110,6 @@
                           <object class="GtkBox" id="account_settings_name_box">
                             <property name="visible">True</property>
                             <property name="can_focus">false</property>
-                            <property name="margin_top">6</property>
                             <property name="hexpand">True</property>
                             <style>
                               <class name="linked"/>
@@ -148,6 +147,7 @@
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
                             <property name="valign">center</property>
+                            <property name="margin_top">6</property>
                             <property name="label" translatable="yes">Email</property>
                             <style>
                               <class name="dim-label"/>
@@ -176,6 +176,7 @@
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
                             <property name="valign">center</property>
+                            <property name="margin_top">6</property>
                             <property name="label" translatable="yes">Phone</property>
                             <style>
                               <class name="dim-label"/>
