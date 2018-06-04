@@ -98,7 +98,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::SetUserAvatar(path)) => {
                     let av = Some(path);
-                    APPOP!(set_avatar, (av));
+                    APPOP!(show_new_avatar, (av));
                 }
                 Ok(BKResponse::Sync(since)) => {
                     println!("SYNC");
