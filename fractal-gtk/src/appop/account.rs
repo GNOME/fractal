@@ -152,9 +152,12 @@ impl AppOp {
     }
 
     pub fn show_account_settings_dialog(&mut self) {
-        let avatar = self.ui.builder
-            .get_object::<gtk::Container>("account_settings_avatar")
-            .expect("Can't find account_settings_avatar in ui file.");
+        let avatar_spinner = self.ui.builder
+            .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
+            .expect("Can't find account_settings_avatar_spinner in ui file.");
+        let avatar_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_avatar_button")
+            .expect("Can't find account_settings_avatar_button in ui file.");
         let name = self.ui.builder
             .get_object::<gtk::Entry>("account_settings_name")
             .expect("Can't find account_settings_name in ui file.");
@@ -176,6 +179,12 @@ impl AppOp {
         let stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
+        let advanced = self.ui.builder
+            .get_object::<gtk::Revealer>("account_settings_advanced")
+            .expect("Can't find account_settings_advanced in ui file.");
+        let delete = self.ui.builder
+            .get_object::<gtk::Revealer>("account_settings_delete")
+            .expect("Can't find account_settings_delete in ui file.");
         let destruction_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_delete_btn")
             .expect("Can't find account_settings_delete_btn in ui file.");
@@ -194,20 +203,15 @@ impl AppOp {
 
         stack.set_visible_child_name("loading");
         self.get_three_pid();
-        /* remove all old avatar from the popover */
-        for w in avatar.get_children().iter() {
-            avatar.remove(w);
-        }
-
         uid.set_text(&self.uid.clone().unwrap_or_default());
         homeserver.set_text(&self.server_url);
         name.set_text(&self.username.clone().unwrap_or_default());
         name.grab_focus_without_selecting();
         name.set_position(-1);
 
-        let w = widgets::Avatar::circle_avatar(self.avatar.clone().unwrap_or_default(), Some(100));
-        avatar.add(&w);
-        avatar.show();
+        avatar_spinner.hide();
+        avatar_btn.set_sensitive(true);
+        self.show_avatar(self.avatar.clone());
 
         name_btn.hide();
         name.set_editable(true);
@@ -215,11 +219,12 @@ impl AppOp {
         name_btn.set_image(&image);
         name_btn.set_sensitive(true);
 
-
         /* reset the password button */
         password_btn_stack.set_visible_child_name("label");
         password_btn.set_sensitive(true);
 
+        advanced.set_reveal_child(false);
+        delete.set_reveal_child(false);
         destruction_flag.set_active(false);
         destruction_btn.set_sensitive(false);
         destruction_entry.set_text("");
@@ -321,9 +326,61 @@ impl AppOp {
         dialog.present();
     }
 
+    pub fn show_new_avatar(&mut self, path: Option<String>) {
+        let avatar_spinner = self.ui.builder
+            .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
+            .expect("Can't find account_settings_avatar_spinner in ui file.");
+        let avatar_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_avatar_button")
+            .expect("Can't find account_settings_avatar_button in ui file.");
+
+        println!("Request finished");
+        self.set_avatar(path.clone());
+        avatar_spinner.hide();
+        avatar_btn.set_sensitive(true);
+        self.show_avatar(self.avatar.clone());
+    }
+
+    pub fn show_avatar(&self, path: Option<String>) {
+        let stack = self.ui.builder
+            .get_object::<gtk::Stack>("account_settings_stack")
+            .expect("Can't find account_settings_delete_box in ui file.");
+        let avatar = self.ui.builder
+            .get_object::<gtk::Overlay>("account_settings_avatar")
+            .expect("Can't find account_settings_avatar in ui file.");
+        let avatar_spinner = self.ui.builder
+            .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
+            .expect("Can't find account_settings_avatar_spinner in ui file.");
+        /* remove all old avatar */
+        for w in avatar.get_children().iter() {
+            if w != &avatar_spinner {
+                avatar.remove(w);
+            }
+        }
+
+        let w = widgets::Avatar::circle_avatar(path.unwrap_or_default(), Some(100));
+        avatar.add(&w);
+
+        /* FIXME: hack to make the avatar drawing area clickable*/
+        let current = stack.get_visible_child_name();
+        stack.set_visible_child_name("loading");
+        if let Some(current) = current {
+            stack.set_visible_child_name(&current);
+        }
+    }
+
     pub fn update_avatar_account_settings(&mut self, file: String) {
-        let command = BKCommand::SetUserAvatar(file);
+        let avatar_spinner = self.ui.builder
+            .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
+            .expect("Can't find account_settings_avatar_spinner in ui file.");
+        let avatar_btn = self.ui.builder
+            .get_object::<gtk::Button>("account_settings_avatar_button")
+            .expect("Can't find account_settings_avatar_button in ui file.");
+        let command = BKCommand::SetUserAvatar(file.clone());
         self.backend.send(command).unwrap();
+        avatar_btn.set_sensitive(false);
+        avatar_spinner.show();
+        self.show_avatar(Some(file));
     }
 
     pub fn show_new_username(&mut self, name: Option<String>) {
@@ -381,11 +438,24 @@ impl AppOp {
         let delete_toggle = self.ui.builder
             .get_object::<gtk::EventBox>("account_settings_delete_toggle")
             .expect("Can't find account_settings_delete_toggle in ui file.");
+        let advanced_box = self.ui.builder
+            .get_object::<gtk::Box>("account_settings_advanced_box")
+            .expect("Can't find account_settings_advanced_box in ui file.");
+        let delete_box = self.ui.builder
+            .get_object::<gtk::Box>("account_settings_delete_box")
+            .expect("Can't find account_settings_delete_box in ui file.");
+        let b = self.ui.builder
+            .get_object::<gtk::Box>("account_settings_box")
+            .expect("Can't find account_settings_delete_box in ui file.");
 
         advanced_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         delete_toggle.get_style_context().unwrap().remove_class("advanced_revealer_divider");
         advanced.set_reveal_child(false);
         delete.set_reveal_child(false);
+        advanced_box.queue_draw();
+        delete_box.queue_draw();
+        b.queue_draw();
+        println!("Going back");
 
         self.set_state(AppState::Chat);
     }
