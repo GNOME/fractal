@@ -27,6 +27,12 @@ impl App {
         let delete_toggle = self.ui.builder
             .get_object::<gtk::EventBox>("account_settings_delete_toggle")
             .expect("Can't find account_settings_delete_toggle in ui file.");
+        let delete_revealer = self.ui.builder
+            .get_object::<gtk::Revealer>("account_settings_delete")
+            .expect("Can't find account_settings_advanced_delete in ui file.");
+        let advanced_revealer = self.ui.builder
+            .get_object::<gtk::Revealer>("account_settings_advanced")
+            .expect("Can't find account_settings_advanced_advanced in ui file.");
         let avatar_btn = self.ui.builder
             .get_object::<gtk::Button>("account_settings_avatar_button")
             .expect("Can't find account_settings_avatar_button in ui file.");
@@ -78,15 +84,28 @@ impl App {
         }));
 
         let button = name_btn.clone();
-        name_entry.connect_property_text_notify(move |w| {
+        name_entry.connect_property_text_notify(clone!(op => move |w| {
             if let Some(text) = w.get_text() {
                 if text != "" {
+                    let lock = op.try_lock();
+                    let username = if let Ok(guard) = lock {
+                        guard.username.clone()
+                    }
+                    else {
+                        None
+                    };
+                    if let Some(username) = username {
+                        if username == text {
+                            button.hide();
+                            return;
+                        }
+                    }
                     button.show();
                     return;
                 }
             }
             button.hide();
-        });
+        }));
 
         let button = name_btn.clone();
         name_entry.connect_activate(move |_w| {
@@ -225,6 +244,22 @@ impl App {
 
         destruction_btn.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().account_destruction();
+        }));
+
+        let scroll = builder
+            .get_object::<gtk::ScrolledWindow>("account_settings_scroll")
+            .expect("Can't find account_settings_scroll in ui file.");
+        delete_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
+            if let Some(adj) = scroll.get_vadjustment() {
+                let bottom = adj.get_upper() - adj.get_page_size();
+                adj.set_value(bottom);
+            }
+        }));
+        advanced_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
+            if let Some(adj) = scroll.get_vadjustment() {
+                let bottom = adj.get_upper() - adj.get_page_size();
+                adj.set_value(bottom);
+            }
         }));
     }
 }
