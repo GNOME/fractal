@@ -56,6 +56,8 @@ impl UI {
                .expect("Can't load ui file: password_dialog.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
                .expect("Can't load ui file: account_settings.ui");
+        builder.add_from_resource("/org/gnome/Fractal/ui/media_viewer.ui")
+               .expect("Can't load ui file: media_viewer.ui");
 
         // Depends on room config
         builder.add_from_resource("/org/gnome/Fractal/ui/filechooser.ui")
