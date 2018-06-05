@@ -14,6 +14,7 @@ mod leave_room;
 mod load_more;
 mod login;
 mod markdown;
+mod media_viewer;
 mod more_members;
 mod new_room;
 mod room_config;
@@ -75,6 +76,8 @@ impl App {
         self.connect_send();
         self.connect_attach();
         self.connect_markdown();
+        self.connect_media_viewer_headerbar();
+        self.connect_media_viewer_box();
         //self.connect_stickers();
         self.connect_autocomplete();
         self.connect_spellcheck();

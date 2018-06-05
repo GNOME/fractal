@@ -13,6 +13,7 @@ pub enum AppState {
     Directory,
     Loading,
     AccountSettings,
+    MediaViewer,
 }
 
 
@@ -29,6 +30,7 @@ impl AppOp {
             AppState::Directory => "directory",
             AppState::Loading => "loading",
             AppState::AccountSettings => "account-settings",
+            AppState::MediaViewer => "media-viewer",
         };
 
         self.ui.builder
@@ -42,6 +44,7 @@ impl AppOp {
             AppState::Directory => "back",
             AppState::Loading => "login",
             AppState::AccountSettings => "account-settings",
+            AppState::MediaViewer => "media-viewer",
             _ => "normal",
         };
 

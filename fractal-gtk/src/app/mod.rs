@@ -99,13 +99,14 @@ impl App {
             .get_object::<gtk::MenuButton>("room_menu_button")
             .expect("Can't find back_button in ui file.").set_valign(gtk::Align::Fill);
 
-            /* Add account settings view to the main stack */
             let stack = ui.builder
                 .get_object::<gtk::Stack>("main_content_stack")
                 .expect("Can't find main_content_stack in ui file.");
             let stack_header = ui.builder
                 .get_object::<gtk::Stack>("headerbar_stack")
                 .expect("Can't find headerbar_stack in ui file.");
+
+            /* Add account settings view to the main stack */
             let child = ui.builder
                 .get_object::<gtk::Box>("account_settings_box")
                 .expect("Can't find account_settings_box in ui file.");
@@ -114,6 +115,17 @@ impl App {
                 .expect("Can't find account_settings_headerbar in ui file.");
             stack.add_named(&child, "account-settings");
             stack_header.add_named(&child_header, "account-settings");
+
+            /* Add media viewer to the main stack */
+            let child = ui.builder
+                .get_object::<gtk::Box>("media_viewer_box")
+                .expect("Can't find media_viewer_box in ui file.");
+            let child_header = ui.builder
+                .get_object::<gtk::Box>("media_viewer_headerbar")
+                .expect("Can't find media_viewer_headerbar in ui file.");
+            stack.add_named(&child, "media-viewer");
+            stack_header.add_named(&child_header, "media-viewer");
+
 
             let op = Arc::new(Mutex::new(
                 AppOp::new(gtk_app.clone(), ui.clone(), apptx, itx)
