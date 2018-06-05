@@ -1,6 +1,9 @@
 extern crate gtk;
 extern crate chrono;
 extern crate pango;
+extern crate glib;
+
+use app::App;
 
 use self::gtk::prelude::*;
 
@@ -18,6 +21,7 @@ use util::markup_text;
 use std::path::Path;
 
 use appop::AppOp;
+use appop::AppState;
 use globals;
 use widgets;
 use widgets::AvatarExt;
@@ -275,7 +279,9 @@ impl<'a> MessageBox<'a> {
                                                widgets::image::Circle(false), widgets::image::Fixed(false));
 
         image.widget.connect_button_press_event(move |_, _| {
-            backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+            let newst = AppState::MediaViewer;
+            APPOP!(set_state, (newst));
+
             Inhibit(true)
         });
 

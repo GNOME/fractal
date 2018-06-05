@@ -23,12 +23,14 @@ use fractal_api::error;
 mod globals;
 #[macro_use]
 mod util;
-mod widgets;
 mod cache;
 mod uibuilder;
 mod static_resources;
 mod passwd;
+#[macro_use]
 mod app;
+mod widgets;
+
 mod appop;
 
 use app::App;
