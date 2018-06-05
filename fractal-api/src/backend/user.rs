@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use error::Error;
 use util::json_q;
-use util::send_value;
 use util::build_url;
 use util::put_media;
 use util::get_user_avatar;
@@ -181,26 +180,29 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
 }
 
 pub fn submit_phone_token(bk: &Backend, url: String, client_secret: String, sid: String, token: String) -> Result<(), Error> {
-    let url = Url::parse(&(url + &String::from("/_matrix/identity/api/v1/validate/msisdn/submitToken")))?;
-    let attrs = [("sid".to_string(), sid.clone()),
-                 ("client_secret".to_string(), client_secret.clone()),
-                 ("token".to_string(), token)];
+    let params = vec![
+        ("sid", sid.clone()),
+        ("client_secret", client_secret.clone()),
+        ("token", token),
+    ];
+    let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
+    let url = build_url(&Url::parse(&url)?, path, params)?;
 
     let tx = bk.tx.clone();
-    post_value!(&url, &attrs,
-                |r: JsonValue| {
-                    let result = if r["success"] == true {
-                        Some(sid)
-                    }
-                    else {
-                        None
-                    };
-                    tx.send(BKResponse::SubmitPhoneToken(result, client_secret)).unwrap();
-                },
-                |err| {
-                    tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();
-                }
-               );
+    post!(&url,
+          |r: JsonValue| {
+              let result = if r["success"] == true {
+                  Some(sid)
+              }
+              else {
+                  None
+              };
+              tx.send(BKResponse::SubmitPhoneToken(result, client_secret)).unwrap();
+          },
+          |err| {
+              tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();
+          }
+         );
 
     Ok(())
 }

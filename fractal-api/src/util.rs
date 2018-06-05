@@ -189,17 +189,6 @@ macro_rules! post {
 }
 
 #[macro_export]
-macro_rules! post_value {
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query_value!("post", $url, $attrs, $okcb, $errcb)
-    };
-    ($url: expr, $okcb: expr, $errcb: expr) => {
-        query_value!("post", $url, $okcb, $errcb)
-    };
-}
-
-
-#[macro_export]
 macro_rules! query {
     ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
         thread::spawn(move || {
@@ -221,28 +210,6 @@ macro_rules! query {
     ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
         let attrs = json!(null);
         query!($method, $url, &attrs, $okcb, $errcb)
-    };
-}
-
-#[macro_export]
-macro_rules! query_value {
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        thread::spawn(move || {
-            let js = send_value($method, $url, $attrs, globals::TIMEOUT);
-
-            match js {
-                Ok(r) => {
-                    $okcb(r)
-                },
-                Err(err) => {
-                    $errcb(err)
-                }
-            }
-        });
-    };
-    ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        let attrs = json!(null);
-        query_value!($method, $url, &attrs, $okcb, $errcb)
     };
 }
 
@@ -636,48 +603,6 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Resul
         Err(_) => Err(Error::BackendError),
     }
 }
-
-pub fn send_value(method: &str, url: &Url, attrs: &[(String, String)], timeout: u64) -> Result<JsonValue, Error> {
-    let mut clientb = reqwest::ClientBuilder::new();
-    let client = match timeout {
-        0 => clientb.timeout(None).build()?,
-        n => clientb.timeout(StdDuration::from_secs(n)).build()?
-    };
-
-    let mut conn = match method {
-        "post" => client.post(url.as_str()),
-        "put" => client.put(url.as_str()),
-        "delete" => client.delete(url.as_str()),
-        _ => client.get(url.as_str()),
-    };
-
-     conn.query(attrs);
-
-    let mut res = conn.send()?;
-
-    if !res.status().is_success() {
-        return match res.json() {
-            Ok(js) => Err(Error::MatrixError(js)),
-            Err(err) => Err(Error::ReqwestError(err))
-        }
-    }
-
-    let json: Result<JsonValue, reqwest::Error> = res.json();
-    match json {
-        Ok(js) => {
-            let js2 = js.clone();
-            if let Some(error) = js.as_object() {
-                if error.contains_key("errcode") {
-                    println!("ERROR: {:#?}", js2);
-                    return Err(Error::MatrixError(js2));
-                }
-            }
-            Ok(js)
-        }
-        Err(_) => Err(Error::BackendError),
-    }
-}
-
 
 pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Error> {
     let url = client_url!(baseu, &format!("profile/{}", userid), vec![])?;
