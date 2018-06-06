@@ -1,7 +1,7 @@
 extern crate secret_service;
 extern crate serde_json;
 
-use gio::Settings;
+use gio::{Settings, SettingsSchemaSource};
 use gio::SettingsExt;
 
 use std;
@@ -24,15 +24,15 @@ enum PWDConf {
 
 
 fn pwd_conf() -> PWDConf {
-    if Settings::list_schemas().iter().filter(|x| &x[..] == "org.gnome.Fractal").count() == 0 {
-        return PWDConf::SecretService;
-    }
+    if let Some(schema) = SettingsSchemaSource::get_default().lookup("org.gnome.Fractal", true) {
+        let settings: Settings = Settings::new("org.gnome.Fractal");
 
-    let settings: Settings = Settings::new("org.gnome.Fractal");
-
-    match settings.get_enum("password-storage") {
-        1 => PWDConf::PlainText,
-        _ => PWDConf::SecretService,
+        match settings.get_enum("password-storage") {
+            1 => PWDConf::PlainText,
+            _ => PWDConf::SecretService,
+        }
+    } else {
+        PWDConf::SecretService
     }
 }
 
