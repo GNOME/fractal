@@ -53,7 +53,7 @@ impl<'a> RoomBox<'a> {
             make_identicon(&avatar, AVATAR_SIZE, room.id.clone(), room.name.clone().unwrap_or_default());
         } else {
             let mut avatar_widget = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
-                                               (AVATAR_SIZE, AVATAR_SIZE), Thumb(true),
+                                               Some((AVATAR_SIZE, AVATAR_SIZE)), Thumb(true),
                                                Circle(true), Fixed(true));
             avatar_widget.fixed_size = true;
             avatar = avatar_widget.widget;

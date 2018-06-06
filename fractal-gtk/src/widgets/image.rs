@@ -26,7 +26,7 @@ pub struct Fixed(pub bool);
 #[derive(Clone, Debug)]
 pub struct Image {
     pub path: String,
-    pub max_size: (i32, i32),
+    pub max_size: Option<(i32, i32)>,
     pub widget: DrawingArea,
     pub backend: Sender<BKCommand>,
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
@@ -38,7 +38,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(backend: &Sender<BKCommand>, path: &str, size: (i32, i32),
+    pub fn new(backend: &Sender<BKCommand>, path: &str, size: Option<(i32, i32)>,
                Thumb(thumb): Thumb, Circle(circle): Circle, Fixed(fixed_size): Fixed)
                -> Image {
 
@@ -85,25 +85,34 @@ impl Image {
     pub fn draw(&self) {
         let da = &self.widget;
 
-        let w = self.max_size.0;
-        let h = self.max_size.1;
+        match self.max_size.clone() {
+            Some(size) => {
+                let w = size.0;
+                let h = size.1;
 
-        da.set_hexpand(false);
-        da.set_vexpand(false);
+                da.set_hexpand(false);
+                da.set_vexpand(false);
 
-        if self.fixed_size {
-            da.set_size_request(w, h);
-        } else {
-            da.set_hexpand(true);
-            if let Some(ref pb) = *self.pixbuf.lock().unwrap() {
-                let h = pb.get_height();
-                da.set_size_request(1, h);
-            } else {
-                // No image yet, square image
-                da.set_size_request(1, h);
+                if self.fixed_size {
+                    da.set_size_request(w, h);
+                } else {
+                    da.set_hexpand(true);
+                    if let Some(ref pb) = *self.pixbuf.lock().unwrap() {
+                        let h = pb.get_height();
+                        da.set_size_request(1, h);
+                    } else {
+                        // No image yet, square image
+                        da.set_size_request(1, h);
+                    }
+                }
+            },
+            None => {
+                da.set_hexpand(true);
+                da.set_vexpand(true);
             }
         }
 
+        let max_size = self.max_size.clone();
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
         let is_circle = self.circle.clone();
@@ -115,7 +124,17 @@ impl Image {
             let width = widget_w as f64;
             let height = widget_h as f64;
 
-            let rw = i32::min(w, widget_w);
+            let mut rw = widget_w;
+            if let Some(size) = max_size {
+                let w = size.0;
+                rw = i32::min(w, widget_w);
+            }
+
+            let mut rh = widget_h;
+            if let Some(size) = max_size {
+                let h = size.1;
+                rh = i32::min(h, widget_h);
+            }
 
             let context = da.get_style_context().unwrap();
             gtk::render_background(&context, g, 0.0, 0.0, width, height);
@@ -127,7 +146,7 @@ impl Image {
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
-                let (pw, ph) = adjust_to(pb.get_width(), pb.get_height(), rw, h);
+                let (pw, ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
                 if fixed_size {
                     da.set_size_request(pw, ph);
                 } else {
