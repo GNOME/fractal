@@ -199,22 +199,22 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
 
                 // errors
                 Ok(BKResponse::AccountDestructionError(err)) => {
-                    let error = gettext("Couldn't delete the account");
+                    let error = gettext("Couldn’t delete the account");
                     println!("ERROR: {:?}", err);
                     APPOP!(show_error_dialog, (error));
                 },
                 Ok(BKResponse::ChangePasswordError(err)) => {
-                    let error = gettext("Couldn't change the password");
+                    let error = gettext("Couldn’t change the password");
                     println!("ERROR: {:?}", err);
                     APPOP!(show_password_error_dialog, (error));
                 },
                 Ok(BKResponse::GetTokenEmailError(err)) => {
-                    let error = gettext("Couldn't add the email address.");
+                    let error = gettext("Couldn’t add the email address.");
                     println!("ERROR: {:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 },
                 Ok(BKResponse::GetTokenPhoneError(err)) => {
-                    let error = gettext("Couldn't add the phone number.");
+                    let error = gettext("Couldn’t add the phone number.");
                     println!("ERROR: {:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 },
