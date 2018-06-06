@@ -267,7 +267,7 @@ impl<'a> MessageBox<'a> {
 
         let backend = self.op.backend.clone();
         let image = widgets::image::Image::new(&backend, &msg.thumb.clone().unwrap_or_default(),
-                                               (600, 400), widgets::image::Thumb(false),
+                                               Some((600, 400)), widgets::image::Thumb(false),
                                                widgets::image::Circle(false), widgets::image::Fixed(false));
 
         image.widget.connect_button_press_event(move |_, _| {
@@ -291,7 +291,7 @@ impl<'a> MessageBox<'a> {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let backend = self.op.backend.clone();
         let image = widgets::image::Image::new(&backend, &msg.url.clone().unwrap_or_default(),
-                                               (600, 400), widgets::image::Thumb(false),
+                                               Some((600, 400)), widgets::image::Thumb(false),
                                                widgets::image::Circle(false), widgets::image::Fixed(false));
         let w = image.widget.clone();
         w.set_tooltip_text(&self.msg.body[..]);

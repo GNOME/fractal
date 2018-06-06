@@ -160,7 +160,7 @@ impl AppOp {
             }
 
             let backend = self.backend.clone();
-            let image = widgets::image::Image::new(&backend, &img.thumbnail.clone(), (size, size),
+            let image = widgets::image::Image::new(&backend, &img.thumbnail.clone(), Some((size, size)),
                                                    widgets::image::Thumb(true), widgets::image::Circle(false),
                                                    widgets::image::Fixed(true));
             let eb = gtk::EventBox::new();
