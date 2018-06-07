@@ -225,7 +225,13 @@ impl<'a> MessageBox<'a> {
         msg.set_markup(&markup_text(body));
         self.set_label_styles(&msg);
 
-        if String::from(body).contains(&uname) {
+        // @username:homeserver.tld
+        let l = 1;
+        let r = self.msg.sender.find(':').unwrap_or(0) - l;
+        let mut msg_uname = self.msg.sender.clone().split_off(l);
+        msg_uname.split_off(r);
+
+        if uname != msg_uname && String::from(body).contains(&uname) {
 
             let name = uname.clone();
             msg.connect_property_cursor_position_notify(move |w| {
