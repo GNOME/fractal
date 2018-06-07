@@ -50,6 +50,7 @@ pub use self::message::MsgPos;
 pub use self::message::LastViewed;
 pub use self::room::RoomPanel;
 use self::member::SearchType;
+use self::media_viewer::MediaViewer;
 
 
 pub struct AppOp {
@@ -98,6 +99,8 @@ pub struct AppOp {
     pub stickers: Vec<StickerGroup>,
 
     pub directory: Vec<Room>,
+
+    pub media_viewer: Option<MediaViewer>,
 }
 
 impl PasswordStorage for AppOp {}
@@ -149,6 +152,8 @@ impl AppOp {
             stickers: vec![],
 
             directory: vec![],
+
+            media_viewer: None,
         }
     }
 
