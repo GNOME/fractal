@@ -5,6 +5,7 @@ extern crate time;
 use self::chrono::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::str::FromStr;
 use self::serde_json::Value as JsonValue;
 use self::time::Duration;
 
@@ -94,9 +95,10 @@ impl Message {
     /// List all supported types. By default a message map a m.room.message event, but there's
     /// other events that we want to show in the message history so we map other event types to our
     /// Message struct, like stickers
-    pub fn types() -> [&'static str; 2] {
+    pub fn types() -> [&'static str; 3] {
         [
             "m.room.message",
+            "m.room.member",
             "m.sticker",
         ]
     }
@@ -148,6 +150,7 @@ impl Message {
         let c = &msg["content"];
         match type_ {
             "m.room.message" => Message::parse_m_room_message(&mut message, c),
+            "m.room.member" => Message::parse_m_room_member(&mut message, c),
             "m.sticker" => Message::parse_m_sticker(&mut message, c),
             _ => {}
         };
@@ -179,6 +182,30 @@ impl Message {
         msg.body = body.to_string();
         msg.formatted_body = formatted_body;
         msg.format = format;
+    }
+
+    fn parse_m_room_member(msg: &mut Message, c: &JsonValue) {
+        let membership = c["membership"].as_str().unwrap_or("");
+        let displayname = c["displayname"].as_str().unwrap_or(&msg.sender);
+
+        let mut action: String = String::new();
+        match membership {
+            "join" => {
+                action = String::from_str(displayname).unwrap();
+                action.push_str(" joined");
+            },
+            "leave" => {
+                action = String::from_str(displayname).unwrap();
+                action.push_str(" left");
+            },
+            "invite" => {
+                action = String::from_str(displayname).unwrap();
+                action.push_str(" was invited");
+            },
+            _ => {}
+        }
+
+        msg.body = action;
     }
 
     fn parse_m_sticker(msg: &mut Message, c: &JsonValue) {
