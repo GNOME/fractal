@@ -85,7 +85,7 @@ impl AppOp {
 
     fn has_small_mtype(&self, msg: &Message) -> bool {
         match msg.mtype.as_ref() {
-            "m.emote" => true,
+            "m.emote" | "m.room.member" => true,
             _ => false,
         }
     }

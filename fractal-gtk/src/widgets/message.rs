@@ -118,6 +118,9 @@ impl<'a> MessageBox<'a> {
             "m.emote" => {
                 body = self.build_room_msg_emote(&msg);
             }
+            "m.room.member" => {
+                body = self.build_room_msg_member(&msg);
+            }
             "m.video" | "m.audio" | "m.file" => {
                 body = self.build_room_msg_file();
             }
@@ -200,8 +203,9 @@ impl<'a> MessageBox<'a> {
             if String::from(body).contains(uname) && msg.sender != uid {
                 style.add_class("msg-mention");
             }
-            // emotes
-            if msg.mtype == "m.emote" {
+
+            // emotes & membership
+            if msg.mtype == "m.emote" || msg.mtype == "m.room.message" {
                 style.add_class("msg-emote");
             }
         }
@@ -375,6 +379,21 @@ impl<'a> MessageBox<'a> {
         bx.add(&msg_label);
         bx
     }
+
+    fn build_room_msg_member(&self, msg: &Message) -> gtk::Box {
+        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+
+        let msg_label = gtk::Label::new("");
+        let body: &str = &msg.body;
+
+        msg_label.set_markup(&format!("<b>{}</b>", markup_text(body)));
+
+        self.set_label_styles(&msg_label);
+
+        bx.add(&msg_label);
+        bx
+    }
+
 }
 
 fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Option<pango::AttrList> {
