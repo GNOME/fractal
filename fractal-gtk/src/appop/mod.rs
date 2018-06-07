@@ -33,6 +33,7 @@ mod account;
 mod notifications;
 mod state;
 mod room;
+mod media_viewer;
 mod message;
 mod directory;
 mod notify;
