@@ -32,7 +32,7 @@ pub fn sync(bk: &Backend) -> Result<(), Error> {
                     \"not_types\": [\"m.room.member\"]
                 }},
                 \"timeline\": {{
-                    \"types\": [\"m.room.message\", \"m.sticker\"],
+                    \"types\": [\"m.room.message\", \"m.room.member\", \"m.sticker\"],
                     \"limit\": {}
                 }},
                 \"ephemeral\": {{ \"types\": [] }}
