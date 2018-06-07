@@ -148,6 +148,7 @@ impl<'a> MessageBox<'a> {
             match msg.mtype.as_ref() {
                 "m.sticker" => self.build_room_msg_sticker(),
                 "m.image" => self.build_room_msg_image(),
+                "m.room.member" => self.build_room_msg_member(&msg),
                 "m.emote" => self.build_room_msg_emote(&msg),
                 "m.audio" => self.build_room_audio_player(),
                 "m.video" | "m.file" => self.build_room_msg_file(),
@@ -237,8 +238,9 @@ impl<'a> MessageBox<'a> {
             if String::from(body).contains(uname) && msg.sender != uid {
                 style.add_class("msg-mention");
             }
-            // emotes
-            if msg.mtype == "m.emote" {
+
+            // emotes & membership
+            if msg.mtype == "m.emote" || msg.mtype == "m.room.message" {
                 style.add_class("msg-emote");
             }
         }
@@ -569,6 +571,20 @@ impl<'a> MessageBox<'a> {
         msg_label.set_markup(&format!("<b>{}</b> {}", sname, markup));
         self.set_label_styles(&msg_label);
 
+        bx.add(&msg_label);
+        bx
+    }
+
+    fn build_room_msg_member(&self, msg: &Message) -> gtk::Box {
+        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+
+        let msg_label = gtk::Label::new("");
+        let body: &str = &msg.body;
+
+        msg_label.set_markup(&format!("<b>{}</b>", markup_text(body)));
+
+        self.set_label_styles(&msg_label);
+        self.connect_right_click_menu(msg_label.clone().upcast::<gtk::Widget>());
         bx.add(&msg_label);
         bx
     }
