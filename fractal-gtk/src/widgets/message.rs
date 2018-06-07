@@ -21,7 +21,6 @@ use util::markup_text;
 use std::path::Path;
 
 use appop::AppOp;
-use appop::AppState;
 use globals;
 use widgets;
 use widgets::AvatarExt;
@@ -278,9 +277,11 @@ impl<'a> MessageBox<'a> {
                                                Some((600, 400)), widgets::image::Thumb(false),
                                                widgets::image::Circle(false), widgets::image::Fixed(false));
 
+        let room_id = self.room.id.clone();
         image.widget.connect_button_press_event(move |_, _| {
-            let newst = AppState::MediaViewer;
-            APPOP!(set_state, (newst));
+            let image_url = url.clone();
+            let rid = room_id.clone();
+            APPOP!(display_media_viewer, (image_url, rid));
 
             Inhibit(true)
         });
