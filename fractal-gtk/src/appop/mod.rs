@@ -76,6 +76,7 @@ pub struct AppOp {
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub roomlist: widgets::RoomList,
+    pub message_box: gtk::ListBox,
     pub load_more_spn: gtk::Spinner,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
@@ -112,6 +113,7 @@ impl AppOp {
             ui: ui,
             gtk_app: app,
             load_more_spn: gtk::Spinner::new(),
+            message_box: gtk::ListBox::new(),
             backend: tx,
             internal: itx,
             autoscroll: true,
