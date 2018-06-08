@@ -27,6 +27,7 @@ impl App {
         messages.get_style_context().unwrap().add_class("messages-history");
         messages.show();
 
+        container.get_style_context().unwrap().add_class("messages-box");
         container.add(&column);
     }
 }
