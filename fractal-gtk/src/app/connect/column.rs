@@ -28,6 +28,7 @@ impl App {
         messages.show();
         self.ui.builder.expose_object::<gtk::ListBox>("message_list", &messages);
 
+        container.get_style_context().unwrap().add_class("messages-box");
         container.add(&column);
     }
 }
