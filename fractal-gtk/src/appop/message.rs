@@ -46,9 +46,7 @@ pub enum LastViewed {
 
 impl AppOp {
     pub fn remove_messages(&mut self) {
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
+        let messages = self.message_box.clone();
         for ch in messages.get_children().iter().skip(1) {
             messages.remove(ch);
         }
@@ -153,9 +151,7 @@ impl AppOp {
         let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
+        let messages = self.message_box.clone();
 
         let mut calc_prev = prev;
         if !force_full && calc_prev.is_none() {
@@ -224,9 +220,7 @@ impl AppOp {
     }
 
     pub fn add_tmp_room_message(&mut self, msg: Message) {
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
+        let messages = self.message_box.clone();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let m;
@@ -256,9 +250,7 @@ impl AppOp {
     }
 
     pub fn append_tmp_msgs(&mut self) {
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
+        let messages = self.message_box.clone();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let mut widgets = vec![];

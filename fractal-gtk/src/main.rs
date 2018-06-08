@@ -25,6 +25,7 @@ extern crate fractal_matrix_api as fractal_api;
 extern crate html2pango;
 
 extern crate gspell;
+extern crate libhandy;
 
 extern crate gettextrs;
 
