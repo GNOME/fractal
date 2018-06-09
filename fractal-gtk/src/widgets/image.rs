@@ -22,6 +22,7 @@ use std::sync::mpsc::TryRecvError;
 pub struct Thumb(pub bool);
 pub struct Circle(pub bool);
 pub struct Fixed(pub bool);
+pub struct Centered(pub bool);
 
 #[derive(Clone, Debug)]
 pub struct Image {
@@ -35,11 +36,13 @@ pub struct Image {
     pub thumb: bool,
     pub circle: bool,
     pub fixed_size: bool,
+    pub centered: bool,
 }
 
 impl Image {
     pub fn new(backend: &Sender<BKCommand>, path: &str, size: Option<(i32, i32)>,
-               Thumb(thumb): Thumb, Circle(circle): Circle, Fixed(fixed_size): Fixed)
+               Thumb(thumb): Thumb, Circle(circle): Circle, Fixed(fixed_size): Fixed,
+               Centered(centered): Centered)
                -> Image {
 
         let da = DrawingArea::new();
@@ -75,6 +78,7 @@ impl Image {
             circle: circle,
             backend: backend.clone(),
             fixed_size: fixed_size,
+            centered: centered,
         };
         img.draw();
         img.load_async();
@@ -117,6 +121,7 @@ impl Image {
         let scaled = self.scaled.clone();
         let is_circle = self.circle.clone();
         let fixed_size = self.fixed_size;
+        let centered = self.centered;
         da.connect_draw(move |da, g| {
             let widget_w = da.get_allocated_width();
             let widget_h = da.get_allocated_height();
@@ -173,8 +178,18 @@ impl Image {
                         g.clip();
                     }
 
-                    g.set_source_pixbuf(&sc, 0.0, 0.0);
-                    g.rectangle(0.0, 0.0, pw as f64, ph as f64);
+                    let x = if centered {
+                        (width / 2.0) - (pw as f64 / 2.0)
+                    } else {
+                        0.0
+                    };
+                    let y = if centered {
+                        (height / 2.0) - (ph as f64 / 2.0)
+                    } else {
+                        0.0
+                    };
+                    g.set_source_pixbuf(&sc, x, y);
+                    g.rectangle(x, y, pw as f64, ph as f64);
                     g.fill();
                     *scaled.lock().unwrap() = Some(sc);
                 }
