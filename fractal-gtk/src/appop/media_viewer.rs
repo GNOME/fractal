@@ -45,7 +45,8 @@ impl AppOp {
                                       None,
                                       image::Thumb(false),
                                       image::Circle(false),
-                                      image::Fixed(true));
+                                      image::Fixed(true),
+                                      image::Centered(true));
 
         media_viewport.add(&image.widget);
         media_viewport.show_all();
@@ -88,7 +89,8 @@ impl AppOp {
                                           None,
                                           image::Thumb(false),
                                           image::Circle(false),
-                                          image::Fixed(false));
+                                          image::Fixed(false),
+                                          image::Centered(true));
 
             image.widget.show();
             media_viewport.add(&image.widget);
@@ -119,7 +121,8 @@ impl AppOp {
                                           None,
                                           image::Thumb(false),
                                           image::Circle(false),
-                                          image::Fixed(false));
+                                          image::Fixed(false),
+                                          image::Centered(true));
 
             image.widget.show();
             media_viewport.add(&image.widget);
