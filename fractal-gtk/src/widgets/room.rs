@@ -23,7 +23,7 @@ use util::glib_thread_prelude::*;
 
 use appop::AppOp;
 
-use widgets::image::{Image, Thumb, Circle, Fixed};
+use widgets::image::{Image, Thumb, Circle, Fixed, Centered};
 use self::gtk::WidgetExt;
 
 const AVATAR_SIZE: i32 = 60;
@@ -54,7 +54,7 @@ impl<'a> RoomBox<'a> {
         } else {
             let mut avatar_widget = Image::new(&self.op.backend, &room.avatar.clone().unwrap_or_default(),
                                                Some((AVATAR_SIZE, AVATAR_SIZE)), Thumb(true),
-                                               Circle(true), Fixed(true));
+                                               Circle(true), Fixed(true), Centered(false));
             avatar_widget.fixed_size = true;
             avatar = avatar_widget.widget;
         }
