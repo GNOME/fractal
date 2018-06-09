@@ -12,6 +12,8 @@ use types::Room;
 pub struct MediaViewer {
     media_urls: Vec<String>,
     current_url_index: usize,
+
+    // image: image::Image,
 }
 
 impl MediaViewer {

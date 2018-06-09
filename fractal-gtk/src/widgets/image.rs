@@ -33,6 +33,7 @@ pub struct Image {
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
+    pub zoom_level: Arc<Mutex<Option<f64>>>,
     pub thumb: bool,
     pub circle: bool,
     pub fixed_size: bool,
@@ -74,6 +75,7 @@ impl Image {
             widget: da,
             pixbuf: Arc::new(Mutex::new(None)),
             scaled: Arc::new(Mutex::new(None)),
+            zoom_level: Arc::new(Mutex::new(None)),
             thumb: thumb,
             circle: circle,
             backend: backend.clone(),
@@ -116,15 +118,24 @@ impl Image {
             }
         }
 
+        *self.zoom_level.lock().unwrap() = Some(1.0);
+
         let max_size = self.max_size.clone();
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
+        let zoom_level = self.zoom_level.clone();
         let is_circle = self.circle.clone();
         let fixed_size = self.fixed_size;
         let centered = self.centered;
         da.connect_draw(move |da, g| {
             let widget_w = da.get_allocated_width();
             let widget_h = da.get_allocated_height();
+            println!("[DEBUG] widget_w: {}", widget_w);
+            println!("[DEBUG] widget_h: {}", widget_h);
+            if let Some(ref pb) = *pix.lock().unwrap() {
+                println!("[DEBUG] Pixbuf width: {}", pb.get_width());
+                println!("[DEBUG] Pixbuf height: {}", pb.get_height());
+            }
 
             let width = widget_w as f64;
             let height = widget_h as f64;
@@ -151,7 +162,21 @@ impl Image {
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
-                let (pw, ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
+                let (mut pw, mut ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
+                println!("[DEBUG] Adjusted pixbuf width: {}", pw);
+                println!("[DEBUG] Adjusted pixbuf height: {}", ph);
+
+                if let Ok(mut zoom_level_guard) = zoom_level.lock() {
+                    match zoom_level_guard.clone() {
+                        Some(zl) => {
+                            pw = (pb.get_width() as f64 * zl) as i32;
+                            ph = (pb.get_height() as f64 * zl) as i32;
+                        },
+                        None => *zoom_level_guard = Some(pw as f64 / pb.get_width() as f64),
+                    }
+                }
+                println!("[DEBUG] zoom_level: {:?}", *zoom_level.lock().unwrap());
+
                 if fixed_size {
                     da.set_size_request(pw, ph);
                 } else {
