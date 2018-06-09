@@ -33,6 +33,7 @@ pub struct Image {
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
+    pub zoom_level: Arc<Mutex<Option<f64>>>,
     pub thumb: bool,
     pub circle: bool,
     pub fixed_size: bool,
@@ -74,6 +75,7 @@ impl Image {
             widget: da,
             pixbuf: Arc::new(Mutex::new(None)),
             scaled: Arc::new(Mutex::new(None)),
+            zoom_level: Arc::new(Mutex::new(None)),
             thumb: thumb,
             circle: circle,
             backend: backend.clone(),
@@ -119,6 +121,7 @@ impl Image {
         let max_size = self.max_size.clone();
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
+        let zoom_level = self.zoom_level.clone();
         let is_circle = self.circle.clone();
         let fixed_size = self.fixed_size;
         let centered = self.centered;
@@ -151,7 +154,18 @@ impl Image {
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
-                let (pw, ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
+                let (mut pw, mut ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
+
+                if let Ok(mut zoom_level_guard) = zoom_level.lock() {
+                    match zoom_level_guard.clone() {
+                        Some(zl) => {
+                            pw = (pb.get_width() as f64 * zl) as i32;
+                            ph = (pb.get_height() as f64 * zl) as i32;
+                        },
+                        None => *zoom_level_guard = Some(pw as f64 / pb.get_width() as f64),
+                    }
+                }
+
                 if fixed_size {
                     da.set_size_request(pw, ph);
                 } else {
