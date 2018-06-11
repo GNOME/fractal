@@ -71,6 +71,9 @@
       </packing>
     </child>
   </object>
+  <object class="GtkEntryBuffer" id="zoom_level">
+    <property name="max_length">4</property>
+  </object>
   <object class="GtkBox" id="media_viewer_headerbar">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -126,7 +129,9 @@
               <object class="GtkEntry" id="zoom_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">8</property>
+                <property name="buffer">zoom_level</property>
+                <property name="width_chars">4</property>
+                <property name="max_width_chars">4</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">False</property>
                 <property name="input_purpose">digits</property>
