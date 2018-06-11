@@ -279,11 +279,13 @@ impl<'a> MessageBox<'a> {
                                                widgets::image::Fixed(false),
                                                widgets::image::Centered(false));
 
+        let image_name = msg.body.clone();
         let room_id = self.room.id.clone();
         image.widget.connect_button_press_event(move |_, _| {
+            let image_name = image_name.clone();
             let image_url = url.clone();
             let rid = room_id.clone();
-            APPOP!(display_media_viewer, (image_url, rid));
+            APPOP!(display_media_viewer, (image_name, image_url, rid));
 
             Inhibit(true)
         });
