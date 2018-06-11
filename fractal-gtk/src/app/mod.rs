@@ -121,8 +121,8 @@ impl App {
                 .get_object::<gtk::Box>("media_viewer_box")
                 .expect("Can't find media_viewer_box in ui file.");
             let child_header = ui.builder
-                .get_object::<gtk::Box>("media_viewer_headerbar")
-                .expect("Can't find media_viewer_headerbar in ui file.");
+                .get_object::<gtk::Box>("media_viewer_headerbar_box")
+                .expect("Can't find media_viewer_headerbar_box in ui file.");
             stack.add_named(&child, "media-viewer");
             stack_header.add_named(&child_header, "media-viewer");
 

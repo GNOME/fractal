@@ -12,8 +12,9 @@ use types::Room;
 
 #[derive(Clone)]
 pub struct MediaViewer {
+    media_names: Vec<String>,
     media_urls: Vec<String>,
-    current_url_index: usize,
+    current_media_index: usize,
 
     image: image::Image,
     zoom_levels: Vec<f64>,
@@ -22,13 +23,15 @@ pub struct MediaViewer {
 impl MediaViewer {
     pub fn new(room: &Room, current_media_url: &str, image: image::Image) -> MediaViewer {
         let img_msgs = room.messages.iter().filter(|msg| msg.mtype == "m.image");
+        let media_names: Vec<String> = img_msgs.clone().map(|msg| msg.body.clone()).collect();
         let media_urls: Vec<String> = img_msgs.map(|msg| msg.url.clone().unwrap_or_default()).collect();
 
-        let current_url_index = media_urls.iter().position(|url| url == current_media_url).unwrap_or_default();
+        let current_media_index = media_urls.iter().position(|url| url == current_media_url).unwrap_or_default();
 
         MediaViewer {
+            media_names,
             media_urls,
-            current_url_index,
+            current_media_index,
             image,
             zoom_levels: vec![0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0],
         }
@@ -41,11 +44,13 @@ impl MediaViewer {
 }
 
 impl AppOp {
-    pub fn display_media_viewer(&mut self, url: String, room_id: String) {
+    pub fn display_media_viewer(&mut self, name: String, url: String, room_id: String) {
         let rooms = self.rooms.clone();
         let r = rooms.get(&room_id).unwrap();
 
         self.set_state(AppState::MediaViewer);
+
+        set_header_title(&self.ui, &name);
 
         let media_viewport = self.ui.builder
             .get_object::<gtk::Viewport>("media_viewport")
@@ -92,12 +97,15 @@ impl AppOp {
 
     pub fn previous_media(&mut self) {
         if let Some(ref mut mv) = self.media_viewer {
-            if mv.current_url_index == 0 {
+            if mv.current_media_index == 0 {
                 return;
             }
 
-            mv.current_url_index -= 1;
-            let url = &mv.media_urls[mv.current_url_index];
+            mv.current_media_index -= 1;
+            let name = &mv.media_names[mv.current_media_index];
+            let url = &mv.media_urls[mv.current_media_index];
+
+            set_header_title(&self.ui, name);
 
             let media_viewport = self.ui.builder
                 .get_object::<gtk::Viewport>("media_viewport")
@@ -136,12 +144,17 @@ impl AppOp {
 
     pub fn next_media(&mut self) {
         if let Some(ref mut mv) = self.media_viewer {
-            if mv.current_url_index >= mv.media_urls.len() - 1 {
+            if mv.current_media_index >= mv.media_urls.len() - 1 {
                 return;
             }
 
-            mv.current_url_index += 1;
-            let url = &mv.media_urls[mv.current_url_index];
+            mv.current_media_index += 1;
+            let name = &mv.media_names[mv.current_media_index];
+            let url = &mv.media_urls[mv.current_media_index];
+            println!("[DEBUG] media_names: {:?}", mv.media_names);
+            println!("[DEBUG] media_urls: {:?}", mv.media_urls);
+
+            set_header_title(&self.ui, name);
 
             let media_viewport = self.ui.builder
                 .get_object::<gtk::Viewport>("media_viewport")
@@ -188,13 +201,13 @@ impl AppOp {
                 .get_object::<gtk::Button>("next_media_button")
                 .expect("Cant find next_media_button in ui file.");
 
-            if mv.current_url_index == 0 {
+            if mv.current_media_index == 0 {
                 previous_media_button.set_sensitive(false);
             } else {
                 previous_media_button.set_sensitive(true);
             }
 
-            if mv.current_url_index >= mv.media_urls.len() - 1 {
+            if mv.current_media_index >= mv.media_urls.len() - 1 {
                 next_media_button.set_sensitive(false);
             } else {
                 next_media_button.set_sensitive(true);
@@ -253,4 +266,11 @@ fn update_zoom_entry(ui: &uibuilder::UI, zoom_level: f64) {
         .get_object::<gtk::EntryBuffer>("zoom_level")
         .expect("Cant find zoom_level in ui file.");
     zoom_entry.set_text(&format!("{:3.0}%", zoom_level * 100.0));
+}
+
+fn set_header_title(ui: &uibuilder::UI, title: &str) {
+    let media_viewer_headerbar = ui.builder
+        .get_object::<gtk::HeaderBar>("media_viewer_headerbar")
+        .expect("Cant find media_viewer_headerbar in ui file.");
+    media_viewer_headerbar.set_title(title);
 }
