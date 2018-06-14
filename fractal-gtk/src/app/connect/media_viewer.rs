@@ -2,6 +2,9 @@ extern crate gtk;
 
 use self::gtk::prelude::*;
 
+use glib;
+use std::sync::{Arc, Mutex};
+
 use app::App;
 
 impl App {
@@ -48,6 +51,49 @@ impl App {
     }
 
     pub fn connect_media_viewer_box(&self) {
+        let media_viewer_box = self.ui.builder
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+            let ui = self.ui.clone();
+
+        let source_id: Arc<Mutex<Option<glib::source::SourceId>>> = Arc::new(Mutex::new(None));
+        media_viewer_box.connect_motion_notify_event(move |_, _| {
+            {
+                let mut id = source_id.lock().unwrap();
+                if let Some(sid) = id.take() {
+                    glib::source::source_remove(sid);
+                }
+            }
+
+            let previous_media_revealer = ui.builder
+                .get_object::<gtk::Revealer>("previous_media_revealer")
+                .expect("Cant find previous_media_revealer in ui file.");
+            previous_media_revealer.set_reveal_child(true);
+
+            let next_media_revealer = ui.builder
+                .get_object::<gtk::Revealer>("next_media_revealer")
+                .expect("Cant find next_media_revealer in ui file.");
+            next_media_revealer.set_reveal_child(true);
+
+            let sid = gtk::timeout_add(1000, clone!(ui, source_id => move || {
+                let previous_media_revealer = ui.builder
+                    .get_object::<gtk::Revealer>("previous_media_revealer")
+                    .expect("Cant find previous_media_revealer in ui file.");
+                previous_media_revealer.set_reveal_child(false);
+
+                let next_media_revealer = ui.builder
+                    .get_object::<gtk::Revealer>("next_media_revealer")
+                    .expect("Cant find next_media_revealer in ui file.");
+                next_media_revealer.set_reveal_child(false);
+
+                *(source_id.lock().unwrap()) = None;
+                gtk::Continue(false)
+            }));
+
+            *(source_id.lock().unwrap()) = Some(sid);
+            Inhibit(false)
+        });
+
         let op = self.op.clone();
         let previous_media_button = self.ui.builder
             .get_object::<gtk::Button>("previous_media_button")

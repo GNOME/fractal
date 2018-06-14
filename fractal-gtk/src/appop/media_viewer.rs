@@ -52,6 +52,16 @@ impl AppOp {
         let rooms = self.rooms.clone();
         let r = rooms.get(&room_id).unwrap();
 
+        let previous_media_revealer = self.ui.builder
+            .get_object::<gtk::Revealer>("previous_media_revealer")
+            .expect("Cant find previous_media_revealer in ui file.");
+        previous_media_revealer.set_reveal_child(false);
+
+        let next_media_revealer = self.ui.builder
+            .get_object::<gtk::Revealer>("next_media_revealer")
+            .expect("Cant find next_media_revealer in ui file.");
+        next_media_revealer.set_reveal_child(false);
+
         self.set_state(AppState::MediaViewer);
 
         set_header_title(&self.ui, &name);
