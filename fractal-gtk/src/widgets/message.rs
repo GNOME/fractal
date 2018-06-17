@@ -2,10 +2,12 @@ extern crate gtk;
 extern crate chrono;
 extern crate pango;
 extern crate glib;
+extern crate gettextrs;
 
 use app::App;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use types::Message;
 use types::Member;
@@ -19,6 +21,8 @@ use fractal_api as api;
 use util::markup_text;
 
 use std::path::Path;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Sender, Receiver};
 
 use appop::AppOp;
 use globals;
@@ -316,10 +320,36 @@ impl<'a> MessageBox<'a> {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let viewbtn = gtk::Button::new();
+        let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
-        viewbtn.connect_clicked(move |_| {
-            backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+        viewbtn.connect_clicked(move |btn| {
+            // backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+            let popover = gtk::Popover::new(btn);
+
+            let download_btn = gtk::ModelButton::new();
+            download_btn.set_label(&gettext("Download"));
+
+            download_btn.connect_clicked(clone!(url, backend => move |_| {
+                let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+                backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+
+                match rx.recv() {
+                    Err(_) => {
+                        let msg = gettext("Couldn't download the file");
+                        APPOP!(show_error, (msg));
+                    },
+                    Ok(fname) => {
+                        println!("[DEBUG] Download finished :)");
+                    }
+                }
+            }));
+
+            download_btn.show();
+            popover.add(&download_btn);
+
+            popover.popup();
         });
 
         viewbtn.set_label(&msg.body);
