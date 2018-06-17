@@ -22,6 +22,7 @@ use std::sync::mpsc::TryRecvError;
 #[derive(Clone, Debug)]
 pub struct Image {
     pub path: String,
+    pub local_path: Arc<Mutex<Option<String>>>,
     pub max_size: Option<(i32, i32)>,
     pub widget: DrawingArea,
     pub backend: Sender<BKCommand>,
@@ -75,6 +76,7 @@ impl Image {
 
         Image {
             path: path.to_string(),
+            local_path: Arc::new(Mutex::new(None)),
             max_size: None,
             widget: da,
             pixbuf: Arc::new(Mutex::new(None)),
@@ -268,6 +270,7 @@ impl Image {
                 true => BKCommand::GetThumbAsync(self.path.to_string(), tx),
             };
             self.backend.send(command).unwrap();
+            let local_path = self.local_path.clone();
             let pix = self.pixbuf.clone();
             let scaled = self.scaled.clone();
             let da = self.widget.clone();
@@ -279,6 +282,7 @@ impl Image {
                 Err(TryRecvError::Empty) => gtk::Continue(true),
                 Err(TryRecvError::Disconnected) => gtk::Continue(false),
                 Ok(fname) => {
+                    *local_path.lock().unwrap() = Some(fname.clone());
                     load_pixbuf(pix.clone(), scaled.clone(), da.clone(), &fname);
                     if let Some(style) = da.get_style_context() {
                         style.remove_class("image-spinner");
