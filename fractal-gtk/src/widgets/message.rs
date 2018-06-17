@@ -2,10 +2,12 @@ extern crate gtk;
 extern crate chrono;
 extern crate pango;
 extern crate glib;
+extern crate gettextrs;
 
 use app::App;
 
 use self::gtk::prelude::*;
+use self::gettextrs::gettext;
 
 use types::Message;
 use types::Member;
@@ -19,6 +21,9 @@ use fractal_api as api;
 use util::markup_text;
 
 use std::path::Path;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::TryRecvError;
 
 use appop::AppOp;
 use globals;
@@ -316,10 +321,53 @@ impl<'a> MessageBox<'a> {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let viewbtn = gtk::Button::new();
+        let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
-        viewbtn.connect_clicked(move |_| {
-            backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+        viewbtn.connect_clicked(move |btn| {
+            let popover = gtk::Popover::new(btn);
+
+            let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
+            let download_btn = gtk::ModelButton::new();
+            download_btn.set_label(&gettext("Download"));
+
+            download_btn.connect_clicked(clone!(name, url, backend => move |_| {
+                let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+                backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+
+                gtk::timeout_add(50, clone!(name => move || match rx.try_recv() {
+                    Err(TryRecvError::Empty) => gtk::Continue(true),
+                    Err(TryRecvError::Disconnected) => {
+                        let msg = gettext("Could not download the file");
+                        APPOP!(show_error, (msg));
+
+                        gtk::Continue(true)
+                    },
+                    Ok(fname) => {
+                        let name = name.clone();
+                        APPOP!(save_file_as, (fname, name));
+
+                        gtk::Continue(false)
+                    }
+                }));
+            }));
+
+            vbox.pack_start(&download_btn, false, false, 6);
+
+            let open_btn = gtk::ModelButton::new();
+            open_btn.set_label(&gettext("Open"));
+
+            open_btn.connect_clicked(clone!(url, backend => move |_| {
+                backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+            }));
+
+            vbox.pack_start(&open_btn, false, false, 6);
+
+            vbox.show_all();
+            popover.add(&vbox);
+            popover.popup();
         });
 
         viewbtn.set_label(&msg.body);
