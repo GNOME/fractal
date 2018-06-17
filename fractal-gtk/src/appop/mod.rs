@@ -34,6 +34,7 @@ mod notifications;
 mod state;
 mod room;
 mod media_viewer;
+mod files;
 mod message;
 mod directory;
 mod notify;
