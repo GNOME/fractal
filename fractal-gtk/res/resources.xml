@@ -25,6 +25,7 @@
       <file preprocess="xml-stripblanks">ui/password_dialog.ui</file>
       <file preprocess="xml-stripblanks">ui/markdown_popover.ui</file>
       <file preprocess="xml-stripblanks">ui/media_viewer.ui</file>
+      <file preprocess="xml-stripblanks">ui/media_viewer_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/server_chooser_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/stickers_popover.ui</file>
       <file preprocess="xml-stripblanks">ui/sticker_group.ui</file>

@@ -281,6 +281,9 @@ impl AppOp {
             .expect("Cant find main_window in ui file.");
         main_window.unfullscreen();
     }
+
+    pub fn save_media(&self) {
+    }
 }
 
 fn update_zoom_entry(ui: &uibuilder::UI, zoom_level: f64) {
