@@ -146,9 +146,15 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(reload_rooms);
                 }
                 Ok(BKResponse::LeaveRoom) => { }
-                Ok(BKResponse::SetRoomName) => { }
-                Ok(BKResponse::SetRoomTopic) => { }
-                Ok(BKResponse::SetRoomAvatar) => { }
+                Ok(BKResponse::SetRoomName) => {
+                    APPOP!(show_new_room_name);
+                }
+                Ok(BKResponse::SetRoomTopic) => {
+                    APPOP!(show_new_room_topic);
+                }
+                Ok(BKResponse::SetRoomAvatar) => {
+                    APPOP!(show_new_room_avatar);
+                }
                 Ok(BKResponse::MarkedAsRead(r, _)) => {
                     APPOP!(clear_room_notifications, (r));
                 }

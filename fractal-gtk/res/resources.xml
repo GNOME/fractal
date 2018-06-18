@@ -18,10 +18,10 @@
       <file preprocess="xml-stripblanks">ui/main_window.ui</file>
       <file preprocess="xml-stripblanks">ui/members.ui</file>
       <file preprocess="xml-stripblanks">ui/new_room.ui</file>
-      <file preprocess="xml-stripblanks">ui/room_config.ui</file>
       <file preprocess="xml-stripblanks">ui/room_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/user_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/account_settings.ui</file>
+      <file preprocess="xml-stripblanks">ui/room_settings.ui</file>
       <file preprocess="xml-stripblanks">ui/password_dialog.ui</file>
       <file preprocess="xml-stripblanks">ui/markdown_popover.ui</file>
       <file preprocess="xml-stripblanks">ui/media_viewer.ui</file>
