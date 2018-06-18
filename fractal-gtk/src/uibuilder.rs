@@ -52,18 +52,20 @@ impl UI {
                .expect("Can't load ui file: leave_room.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/new_room.ui")
                .expect("Can't load ui file: new_room.ui");
-        builder.add_from_resource("/org/gnome/Fractal/ui/room_config.ui")
-               .expect("Can't load ui file: room_config.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/password_dialog.ui")
                .expect("Can't load ui file: password_dialog.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
                .expect("Can't load ui file: account_settings.ui");
+        builder.add_from_resource("/org/gnome/Fractal/ui/room_settings.ui")
+               .expect("Can't load ui file: room_settings.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/media_viewer.ui")
                .expect("Can't load ui file: media_viewer.ui");
 
         // Depends on room config
+        /*
         builder.add_from_resource("/org/gnome/Fractal/ui/filechooser.ui")
                .expect("Can't load ui file: filechooser.ui");
+               */
 
         UI { builder }
     }

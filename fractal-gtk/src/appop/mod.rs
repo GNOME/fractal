@@ -30,6 +30,7 @@ mod login;
 mod sync;
 mod user;
 mod account;
+mod room_settings;
 mod notifications;
 mod state;
 mod room;

@@ -3,7 +3,7 @@ mod room;
 mod member;
 mod roomrow;
 mod roomlist;
-mod avatar;
+pub mod avatar;
 mod autocomplete;
 mod address;
 pub mod divider;

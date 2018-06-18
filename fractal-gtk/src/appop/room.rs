@@ -5,6 +5,7 @@ use i18n::{i18n, i18n_k};
 
 use self::gtk::prelude::*;
 
+use cache::download_to_cache;
 use appop::AppOp;
 use appop::AppState;
 use appop::MsgPos;
@@ -16,6 +17,7 @@ use backend::BKCommand;
 use globals;
 use cache;
 use widgets;
+use widgets::avatar::AvatarExt;
 
 use types::Room;
 use types::Message;
@@ -204,12 +206,8 @@ impl AppOp {
         let name_label = self.ui.builder
             .get_object::<gtk::Label>("room_name")
             .expect("Can't find room_name in ui file.");
-        let edit = self.ui.builder
-            .get_object::<gtk::Entry>("room_name_entry")
-            .expect("Can't find room_name_entry in ui file.");
 
         name_label.set_text(&room.name.clone().unwrap_or_default());
-        edit.set_text(&room.name.clone().unwrap_or_default());
 
         let mut size = 24;
         if let Some(r) = room.topic.clone() {
@@ -219,10 +217,6 @@ impl AppOp {
         }
 
         self.set_current_room_avatar(room.avatar.clone(), size);
-        let id = self.ui.builder
-            .get_object::<gtk::Label>("room_id")
-            .expect("Can't find room_id in ui file.");
-        id.set_text(&room.id.clone());
         self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
         self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
 
@@ -375,48 +369,17 @@ impl AppOp {
                 let name_label = self.ui.builder
                     .get_object::<gtk::Label>("room_name")
                     .expect("Can't find room_name in ui file.");
-                let edit = self.ui.builder
-                    .get_object::<gtk::Entry>("room_name_entry")
-                    .expect("Can't find room_name_entry in ui file.");
-
-                let pl = *self.active_room.clone()
-                              .and_then(|ar| self.rooms.get(&ar))
-                              .and_then(|r| r.power_levels.get(&self.uid.clone()?))
-                              .unwrap_or(&0);
-                if pl >= 50 {
-                    edit.set_editable(true);
-                } else {
-                    edit.set_editable(false);
-                }
 
                 name_label.set_text(&value);
-                edit.set_text(&value);
-
             }
             "m.room.topic" => {
                 self.set_room_topic_label(Some(value.clone()));
-
-                let edit = self.ui.builder
-                    .get_object::<gtk::Entry>("room_topic_entry")
-                    .expect("Can't find room_topic_entry in ui file.");
-
-                let pl = *self.active_room.clone()
-                              .and_then(|ar| self.rooms.get(&ar))
-                              .and_then(|r| r.power_levels.get(&self.uid.clone()?))
-                              .unwrap_or(&0);
-                if pl >= 50 {
-                    edit.set_editable(true);
-                } else {
-                    edit.set_editable(false);
-                }
-
-                edit.set_text(&value);
             }
             _ => println!("no key {}", key),
         };
     }
 
-    pub fn set_current_room_avatar(&self, _avatar: Option<String>, _size: i32) {
+    pub fn set_current_room_avatar(&self, _avatar: Option<String>, size: i32) {
         let image = self.ui.builder
             .get_object::<gtk::Box>("room_image")
             .expect("Can't find room_image in ui file.");
@@ -424,24 +387,10 @@ impl AppOp {
             image.remove(&ch);
         }
 
-        /*
-         * This will be removed soon.
-        let config = self.ui.builder
-            .get_object::<gtk::Image>("room_avatar_image")
-            .expect("Can't find room_avatar_image in ui file.");
-
-        if avatar.is_some() && !avatar.clone().unwrap().is_empty() {
-            image.add(&widgets::Avatar::circle_avatar(avatar.clone().unwrap(), Some(size)));
-            if let Ok(pixbuf) = Pixbuf::new_from_file_at_size(&avatar.clone().unwrap(), 100, 100) {
-                config.set_from_pixbuf(&pixbuf);
-            }
-        } else {
-            let w = widgets::Avatar::avatar_new(Some(size));
-            w.default(String::from("camera-photo-symbolic"), Some(size));
-            image.add(&w);
-            config.set_from_icon_name("camera-photo-symbolic", 1);
-        }
-        */
+        download_to_cache(self.backend.clone(), self.uid.clone().unwrap_or_default());
+        let w = widgets::Avatar::avatar_new(Some(size));
+        w.circle(self.uid.clone().unwrap_or_default(), self.username.clone(), size);
+        image.add(&w);
     }
 
     pub fn filter_rooms(&self, term: Option<String>) {
@@ -523,39 +472,6 @@ impl AppOp {
     pub fn added_to_fav(&mut self, roomid: String, tofav: bool) {
         if let Some(ref mut r) = self.rooms.get_mut(&roomid) {
             r.fav = tofav;
-        }
-    }
-
-    pub fn change_room_config(&mut self) {
-        let name = self.ui.builder
-            .get_object::<gtk::Entry>("room_name_entry")
-            .expect("Can't find room_name_entry in ui file.");
-        let topic = self.ui.builder
-            .get_object::<gtk::Entry>("room_topic_entry")
-            .expect("Can't find room_topic_entry in ui file.");
-        let avatar_fs = self.ui.builder
-            .get_object::<gtk::FileChooserDialog>("file_chooser_dialog")
-            .expect("Can't find file_chooser_dialog in ui file.");
-
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            if let Some(n) = name.get_text() {
-                if n != r.name.clone().unwrap_or_default() {
-                    let command = BKCommand::SetRoomName(r.id.clone(), n.clone());
-                    self.backend.send(command).unwrap();
-                }
-            }
-            if let Some(t) = topic.get_text() {
-                if t != r.topic.clone().unwrap_or_default() {
-                    let command = BKCommand::SetRoomTopic(r.id.clone(), t.clone());
-                    self.backend.send(command).unwrap();
-                }
-            }
-            if let Some(f) = avatar_fs.get_filename() {
-                if let Some(name) = f.to_str() {
-                    let command = BKCommand::SetRoomAvatar(r.id.clone(), String::from(name));
-                    self.backend.send(command).unwrap();
-                }
-            }
         }
     }
 
@@ -644,8 +560,8 @@ impl AppOp {
             .get_object::<gtk::Label>("room_topic")
             .expect("Can't find room_topic in ui file.");
         let n = self.ui.builder
-                .get_object::<gtk::Label>("room_name")
-                .expect("Can't find room_name in ui file.");
+            .get_object::<gtk::Label>("room_name")
+            .expect("Can't find room_name in ui file.");
 
         match topic {
             None => {
@@ -673,13 +589,5 @@ impl AppOp {
         }
 
         self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
-    }
-
-    pub fn show_room_dialog(&self) {
-        let dialog = self.ui.builder
-            .get_object::<gtk::Dialog>("room_config_dialog")
-            .expect("Can't find room_config_dialog in ui file.");
-
-        dialog.present();
     }
 }

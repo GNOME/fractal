@@ -91,6 +91,22 @@
   border-bottom: none;
 }
 
+.list-with-separator row {
+  border-bottom: solid 1px rgba(0,0,0, 0.1);
+}
+
+.list-with-separator row:last-child {
+  border-bottom: none
+}
+
+.room-settings-name {
+  font-size: xx-large;
+}
+
+.room-settings-type {
+  color: @theme_selected_bg_color;
+}
+
 row:not(:selected) .member-uid {
   color: @insensitive_fg_color;
 }
