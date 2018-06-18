@@ -60,7 +60,7 @@ impl App {
 
         dir.connect_activate(clone!(op => move |_, _| op.lock().unwrap().set_state(AppState::Directory) ));
         logout.connect_activate(clone!(op => move |_, _| op.lock().unwrap().logout() ));
-        room.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_room_dialog() ));
+        room.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_room_settings() ));
         inv.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_invite_user_dialog() ));
         chat.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_direct_chat_dialog() ));
         search.connect_activate(clone!(op => move |_, _| op.lock().unwrap().toggle_search() ));
