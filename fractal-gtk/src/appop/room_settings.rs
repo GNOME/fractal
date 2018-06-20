@@ -349,10 +349,14 @@ impl AppOp {
         let b = self.ui.builder
             .get_object::<gtk::Frame>("room_settings_members_list")
             .expect("Can't find room_settings_members_list in ui file.");
+        let label = self.ui.builder
+            .get_object::<gtk::Label>("room_settings_member_list_title")
+            .expect("Can't find room_settings_member_list_title in ui file.");
         for w in b.get_children().iter() {
             b.remove(w);
         }
 
+        label.set_text(&format!("{} members", members.len()));
         let list = widgets::MembersList::new(members, entry); 
         let w = list.create()?;
         b.add(&w);
