@@ -20,6 +20,18 @@ impl AppOp {
     }
 
     pub fn close_room_settings(&mut self) {
+        let scroll = self.ui.builder
+            .get_object::<gtk::ScrolledWindow>("room_settings_scroll")
+            .expect("Can't find room_settings_scroll in ui file.");
+        let b = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_members_list")
+            .expect("Can't find room_settings_members_list in ui file.");
+        for w in b.get_children().iter() {
+            b.remove(w);
+        }
+        if let Some(adj) = scroll.get_vadjustment() {
+            adj.set_value(0f64);
+        }
         self.set_state(AppState::Chat);
     }
 
@@ -35,7 +47,7 @@ impl AppOp {
         let edit = power >= 50 && !room.direct;
 
         let description = if room.direct {
-            self.get_direct_partner_uid(members)
+            self.get_direct_partner_uid(members.clone())
         } else {
             /* we don't have private groups yet
                let description = Some(format!("Private Group - {} members", members.len()));
@@ -47,6 +59,7 @@ impl AppOp {
         self.room_settings_show_room_name(name, edit);
         self.room_settings_show_room_topic(topic, is_room, edit);
         self.room_settings_show_room_type(description);
+        self.room_settings_show_members(members);
         None
     }
 
@@ -327,5 +340,22 @@ impl AppOp {
         button.hide();
         entry.set_editable(true);
         self.reset_action_button(button);
+    }
+
+    fn room_settings_show_members(&self, members: Vec<Member>) -> Option<()> {
+        let entry = self.ui.builder
+            .get_object::<gtk::SearchEntry>("room_settings_members_search")
+            .expect("Can't find room_settings_members_search in ui file.");
+        let b = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_members_list")
+            .expect("Can't find room_settings_members_list in ui file.");
+        for w in b.get_children().iter() {
+            b.remove(w);
+        }
+
+        let list = widgets::MembersList::new(members, entry); 
+        let w = list.create()?;
+        b.add(&w);
+        None
     }
 }
