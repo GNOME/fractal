@@ -96,7 +96,6 @@ fn load_row_content(member: Member) -> gtk::Box {
     let b = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     let avatar_path = cache_path(&member.uid).unwrap_or(String::from(""));
     let avatar = widgets::Avatar::circle_avatar(avatar_path, Some(40));
-    let menu = gtk::Image::new_from_icon_name("view-more-symbolic", 1);
     let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let username = gtk::Label::new(Some(member.get_alias().as_str()));
     b.set_margin_start(12);
@@ -109,7 +108,6 @@ fn load_row_content(member: Member) -> gtk::Box {
      * user_box.pack_end(&state, true, true, 0); */
     b.pack_start(&avatar, false, true, 0);
     b.pack_start(&user_box, false, true, 0);
-    b.pack_end(&menu, false, false, 0);
     b.show_all();
     b
 }
