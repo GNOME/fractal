@@ -232,7 +232,7 @@
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">Notification</property>
+                                        <property name="label" translatable="yes">Notifications</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -875,20 +875,51 @@
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="margin-bottom">12</property>
+                        <child>
+                          <object class="GtkLabel" id="room_settings_member_list_title">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">members</property>
+                            <attributes>
+                              <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="room_settings_invite">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="action_name">app.room_invite</property>
+                            <property name="label" translatable="yes">Invite new member</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="pack_type">end</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">12</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkFrame">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="shadow_type">none</property>
                         <property name="margin_bottom">24</property>
-                        <child type="label">
-                          <object class="GtkLabel" id="room_settings_member_list_title">
-                            <property name="label" translatable="yes">members</property>
-                            <property name="margin-bottom">12</property>
-                            <attributes>
-                              <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
-                            </attributes>
-                          </object>
-                        </child>
                         <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
@@ -927,7 +958,7 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">12</property>
+                        <property name="position">13</property>
                       </packing>
                     </child>
                   </object>
