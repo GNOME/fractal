@@ -6,7 +6,7 @@
       <file preprocess="xml-stripblanks">icons/org.gnome.Fractal.svg</file>
       <file preprocess="xml-stripblanks">icons/chat-icon.svg</file>
       <file>app.css</file>
-
+      <file preprocess="xml-stripblanks">ui/audio_player.ui</file>
       <file preprocess="xml-stripblanks">ui/add_room_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/autocomplete.ui</file>
       <file preprocess="xml-stripblanks">ui/direct_chat.ui</file>
