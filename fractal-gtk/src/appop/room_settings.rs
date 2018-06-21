@@ -39,19 +39,23 @@ impl AppOp {
         let avatar = room.avatar.clone();
         let name = room.name.clone();
         let topic = room.topic.clone();
-        let is_room = true;
+        let mut is_room = true;
+        let mut is_group = false;
         let members: Vec<Member> = room.members.values().cloned().collect();
         let power = *room.power_levels.get(&self.uid.clone()?).unwrap_or(&0);
 
         let edit = power >= 50 && !room.direct;
 
         let description = if room.direct {
+            is_room = false;
+            is_group = false;
             self.get_direct_partner_uid(members.clone())
         } else {
             /* we don't have private groups yet
                let description = Some(format!("Private Group - {} members", members.len()));
                */
-            Some(format!("Public Room - {} members", members.len()))
+            //Some(format!("Public Room - {} members", members.len()))
+            Some(format!("Room - {} members", members.len()))
         };
 
         self.room_settings_show_avatar(avatar, edit);
@@ -59,6 +63,12 @@ impl AppOp {
         self.room_settings_show_room_topic(topic, is_room, edit);
         self.room_settings_show_room_type(description);
         self.room_settings_show_members(members);
+
+        /* admin parts */
+        self.room_settings_show_group_room(is_room || is_group);
+        self.room_settings_show_admin_groupe(is_group && edit);
+        self.room_settings_show_admin_room(is_room && edit);
+
         None
     }
 
@@ -153,6 +163,58 @@ impl AppOp {
         } else {
             b.hide();
             label.hide();
+        }
+
+        None
+    }
+
+    pub fn room_settings_show_group_room(&self, show: bool) -> Option<()> {
+        let notify = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_notification_sounds")
+            .expect("Can't find room_settings_notification_sounds in ui file.");
+        let invite = self.ui.builder
+            .get_object::<gtk::Button>("room_settings_invite")
+            .expect("Can't find room_settings_invite in ui file.");
+
+        if show {
+            notify.show();
+            invite.show();
+        } else {
+            notify.hide();
+            invite.hide();
+        }
+
+        None
+    }
+
+    pub fn room_settings_show_admin_groupe(&self, show: bool) -> Option<()> {
+        let history = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_history_visibility")
+            .expect("Can't find room_settings_history_visibility in ui file.");
+
+        if show {
+            history.show();
+        } else {
+            history.hide();
+        }
+
+        None
+    }
+
+    pub fn room_settings_show_admin_room(&self, show: bool) -> Option<()> {
+        let room = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_room_visibility")
+            .expect("Can't find room_settings_room_visibility in ui file.");
+        let join = self.ui.builder
+            .get_object::<gtk::Frame>("room_settings_join")
+            .expect("Can't find room_settings_join in ui file.");
+
+        if show {
+            room.show();
+            join.show();
+        } else {
+            room.hide();
+            join.hide();
         }
 
         None
