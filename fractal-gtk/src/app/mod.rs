@@ -1,9 +1,7 @@
-extern crate gtk;
-extern crate gdk;
-extern crate gettextrs;
-
-use self::gtk::prelude::*;
-use self::gettextrs::{setlocale, LocaleCategory, bindtextdomain, textdomain};
+use gtk;
+use gtk::prelude::*;
+use gdk;
+use gettextrs::{setlocale, LocaleCategory, bindtextdomain, textdomain};
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;

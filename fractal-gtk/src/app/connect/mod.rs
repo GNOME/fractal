@@ -1,6 +1,6 @@
-extern crate gdk;
-extern crate gtk;
-use self::gtk::prelude::*;
+use gtk::prelude::*;
+use gtk;
+use gdk;
 
 mod attach;
 mod autocomplete;

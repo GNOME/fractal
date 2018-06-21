@@ -1,14 +1,13 @@
-extern crate gtk;
 extern crate comrak;
-extern crate chrono;
 extern crate tree_magic;
 
 use i18n::i18n;
 
 use std::path::Path;
 
-use self::gtk::prelude::*;
-use self::chrono::prelude::*;
+use gtk;
+use gtk::prelude::*;
+use chrono::prelude::*;
 use self::comrak::{markdown_to_html, ComrakOptions};
 
 use app::InternalCommand;

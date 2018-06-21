@@ -1,12 +1,15 @@
 #![deny(unused_extern_crates)]
 extern crate glib;
 extern crate gio;
+extern crate gtk;
+extern crate gdk;
 
 #[macro_use]
 extern crate failure;
 
 #[macro_use]
 extern crate serde_derive;
+
 
 #[macro_use]
 extern crate fractal_matrix_api as fractal_api;
@@ -15,6 +18,9 @@ extern crate html2pango;
 
 extern crate gspell;
 
+extern crate gettextrs;
+
+extern crate chrono;
 
 use fractal_api::backend;
 use fractal_api::types;
