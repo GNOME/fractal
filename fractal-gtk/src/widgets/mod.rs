@@ -8,6 +8,7 @@ mod autocomplete;
 mod address;
 pub mod divider;
 pub mod image;
+mod inline_player;
 
 pub use self::message::MessageBox;
 pub use self::room::RoomBox;
