@@ -266,7 +266,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="room_settings_notification_sounds">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="shadow_type">none</property>
@@ -541,7 +541,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="room_settings_history_visibility">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="shadow_type">none</property>
@@ -658,7 +658,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="room_settings_room_visibility">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="shadow_type">none</property>
@@ -816,7 +816,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="room_settings_join">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="shadow_type">none</property>
