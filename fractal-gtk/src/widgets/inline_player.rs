@@ -113,14 +113,14 @@ struct PlayerControls {
 }
 
 #[derive(Debug, Clone)]
-pub struct PlayerWidget {
+pub struct AudioPlayerWidget {
     pub container: gtk::Box,
     player: gst_player::Player,
     controls: PlayerControls,
     timer: PlayerTimes,
 }
 
-impl Default for PlayerWidget {
+impl Default for AudioPlayerWidget {
     fn default() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
@@ -160,7 +160,7 @@ impl Default for PlayerWidget {
             slider_update,
         };
 
-        PlayerWidget {
+        AudioPlayerWidget {
             container,
             player,
             controls,
@@ -169,7 +169,7 @@ impl Default for PlayerWidget {
     }
 }
 
-impl PlayerWidget {
+impl AudioPlayerWidget {
     pub fn new() -> Rc<Self> {
         let w = Rc::new(Self::default());
         Self::init(&w);
@@ -230,7 +230,7 @@ impl PlayerWidget {
     }
 }
 
-impl PlayerExt for PlayerWidget {
+impl PlayerExt for AudioPlayerWidget {
     fn play(&self) {
         self.controls.pause.show();
         self.controls.play.hide();
