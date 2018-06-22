@@ -341,8 +341,8 @@ impl<'a> MessageBox<'a> {
             }));
         }));
 
-        bx.pack_start(&download_btn, false, false, 0);
         bx.pack_start(&player.container, false, true, 0);
+        bx.pack_start(&download_btn, false, false, 3);
         bx
     }
 
