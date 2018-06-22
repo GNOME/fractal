@@ -30,19 +30,20 @@ use glib::SignalHandlerId;
 
 use chrono::NaiveTime;
 use failure::Error;
+use fragile::Fragile;
 
 use std::ops::Deref;
 use std::rc::Rc;
 // use std::path::Path;
 
-pub trait PlayerExt {
+trait PlayerExt {
     fn play(&self);
     fn pause(&self);
     fn stop(&self);
 }
 
 #[derive(Debug, Clone)]
-pub struct PlayerTimes {
+struct PlayerTimes {
     container: gtk::Box,
     progressed: gtk::Label,
     duration: gtk::Label,
@@ -51,7 +52,7 @@ pub struct PlayerTimes {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Duration(ClockTime);
+struct Duration(ClockTime);
 
 impl Deref for Duration {
     type Target = ClockTime;
@@ -61,7 +62,7 @@ impl Deref for Duration {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Position(ClockTime);
+struct Position(ClockTime);
 
 impl Deref for Position {
     type Target = ClockTime;
@@ -72,7 +73,7 @@ impl Deref for Position {
 
 impl PlayerTimes {
     /// Update the duration `gtk::Label` and the max range of the `gtk::SclaeBar`.
-    pub fn on_duration_changed(&self, duration: Duration) {
+    fn on_duration_changed(&self, duration: Duration) {
         let seconds = duration.seconds().map(|v| v as f64).unwrap_or(0.0);
 
         self.slider.block_signal(&self.slider_update);
@@ -83,7 +84,7 @@ impl PlayerTimes {
     }
 
     /// Update the `gtk::SclaeBar` when the pipeline position is changed.
-    pub fn on_position_updated(&self, position: Position) {
+    fn on_position_updated(&self, position: Position) {
         let seconds = position.seconds().map(|v| v as f64).unwrap_or(0.0);
 
         self.slider.block_signal(&self.slider_update);
@@ -116,12 +117,17 @@ pub struct PlayerWidget {
     pub container: gtk::Box,
     player: gst_player::Player,
     controls: PlayerControls,
-    pub timer: PlayerTimes,
+    timer: PlayerTimes,
 }
 
 impl Default for PlayerWidget {
     fn default() -> Self {
-        let player = gst_player::Player::new(None, None);
+        let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
+        let player = gst_player::Player::new(
+            None,
+            // Use the gtk main thread
+            Some(&dispatcher.upcast::<gst_player::PlayerSignalDispatcher>()),
+        );
 
         let mut config = player.get_config();
         config.set_position_update_interval(250);
@@ -173,25 +179,7 @@ impl PlayerWidget {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn init(s: &Rc<Self>) {
         Self::connect_control_buttons(s);
-
-        // Log gst warnings.
-        s.player.connect_warning(move |_, warn| warn!("gst Warning: {}", warn));
-
-        // Log gst errors.
-        // This ideally will never occur.
-        s.player.connect_error(move |_, err| error!("gst Error: {}", err));
-
-        s.player.connect_duration_changed(move |_, clock| {
-            info!("Duration changed...");
-        });
-
-        s.player.connect_position_updated(move |_, clock| {
-            info!("Stream position updated");
-        });
-
-        s.player.connect_end_of_stream(move |player| {
-            info!("Stream ended");
-        });
+        Self::connect_gst_signals(s);
     }
 
     pub fn initialize_stream(&self) -> Result<(), Error> {
@@ -206,6 +194,32 @@ impl PlayerWidget {
 
         // Connect the pause button to the gst Player.
         s.controls.pause.connect_clicked(clone!(s => move |_| s.pause()));
+    }
+
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    fn connect_gst_signals(s: &Rc<Self>) {
+        // Log gst warnings.
+        s.player.connect_warning(move |_, warn| warn!("gst warning: {}", warn));
+
+        // Log gst errors.
+        // This ideally will never occur.
+        s.player.connect_error(move |_, err| error!("gst Error: {}", err));
+
+        // The followign callbacks require `Send` but are handled by the gtk main loop
+        let s2 = Fragile::new(s.clone());
+
+        // Update the duration label and the slider
+        s.player.connect_duration_changed(clone!(s2 => move |_, clock| {
+            s2.get().timer.on_duration_changed(Duration(clock));
+        }));
+
+        // Update the position label and the slider
+        s.player.connect_position_updated(clone!(s2 => move |_, clock| {
+            s2.get().timer.on_position_updated(Position(clock));
+        }));
+
+        // Reset the slider to 0 and show a play button
+        s.player.connect_end_of_stream(clone!(s2 => move |_| s2.get().stop()));
     }
 
     fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> SignalHandlerId {
