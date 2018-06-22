@@ -28,6 +28,7 @@ gettext-rs = { git = "https://github.com/danigm/gettext-rs", branch = "no-gettex
 regex = "1.0.0"
 tree_magic = "0.2.0"
 log = "0.4.2"
+fragile = "0.2.1"
 
 [dependencies.cairo-rs]
 features = ["png"]

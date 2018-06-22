@@ -27,6 +27,8 @@ extern crate gettextrs;
 
 extern crate chrono;
 
+extern crate fragile;
+
 use fractal_api::backend;
 use fractal_api::types;
 use fractal_api::error;
