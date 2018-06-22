@@ -313,6 +313,25 @@ impl<'a> MessageBox<'a> {
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
 
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        backend.send(BKCommand::GetMediaUrl(url.clone(), tx)).unwrap();
+
+        gtk::timeout_add(50, clone!(player => move || {
+            match rx.try_recv() {
+                Err(TryRecvError::Empty) => gtk::Continue(true),
+                Err(TryRecvError::Disconnected) => {
+                    let msg = i18n("Could not retrieve file's uri");
+                    APPOP!(show_error, (msg));
+                    gtk::Continue(true)
+                },
+                Ok(uri) => {
+                    println!("AUDIO URI: {}", &uri);
+                    player.initialize_stream(&uri);
+                    gtk::Continue(false)
+                }
+            }
+        }));
+
         let download_btn = gtk::Button::new_from_icon_name(
             "document-save-symbolic",
             gtk::IconSize::Button.into(),

@@ -320,6 +320,10 @@ impl Backend {
                 let r = media::get_media(self, media);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
+            Ok(BKCommand::GetMediaUrl(media, ctx)) => {
+                let r = media::get_media_url(self, media.to_string(), ctx);
+                bkerror!(r, tx, BKResponse::CommandError);
+            }
             Ok(BKCommand::GetFileAsync(url, ctx)) => {
                 let r = media::get_file_async(url, ctx);
                 bkerror!(r, tx, BKResponse::CommandError);

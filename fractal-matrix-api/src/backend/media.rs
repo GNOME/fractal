@@ -7,6 +7,7 @@ use backend::types::Backend;
 use util::dw_media;
 use util::download_file;
 use util::cache_dir_path;
+use util::resolve_media_url;
 
 pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
@@ -53,6 +54,23 @@ pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
             }
             Err(err) => {
                 tx.send(BKResponse::MediaError(err)).unwrap();
+            }
+        };
+    });
+
+    Ok(())
+}
+
+pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+    let baseu = bk.get_base_url()?;
+
+    semaphore!(bk.limit_threads, {
+        match resolve_media_url(&baseu, &media, false, 0, 0) {
+            Ok(uri) => {
+                tx.send(uri.to_string()).unwrap();
+            }
+            Err(_) => {
+                tx.send(String::from("")).unwrap();
             }
         };
     });

@@ -13,7 +13,7 @@ use types::Sticker;
 use types::UserInfo;
 
 use cache::CacheMap;
-
+use url::Url;
 
 #[derive(Debug)]
 pub enum BKCommand {
@@ -47,6 +47,7 @@ pub enum BKCommand {
     GetFileAsync(String, Sender<String>),
     GetAvatarAsync(Option<Member>, Sender<String>),
     GetMedia(String),
+    GetMediaUrl(String, Sender<String>),
     GetUserInfoAsync(String, Sender<(String, String)>),
     SendMsg(Message),
     SetRoom(Room),
@@ -115,6 +116,7 @@ pub enum BKResponse {
     RoomName(String, String),
     RoomTopic(String, String),
     Media(String),
+    MediaUrl(Url),
     AttachedFile(Message),
     SearchEnd,
     NewRoom(Room, String),
