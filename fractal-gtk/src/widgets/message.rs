@@ -313,6 +313,9 @@ impl<'a> MessageBox<'a> {
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
 
+        let mediauri = unimplemented!();
+        player.initialize_stream(mediauri);
+
         let download_btn = gtk::Button::new_from_icon_name(
             "document-save-symbolic",
             gtk::IconSize::Button.into(),
