@@ -121,25 +121,14 @@ impl<'a> MessageBox<'a> {
             content.pack_start(&info, false, false, 0);
         }
 
-        let body: gtk::Box;
-
-        match msg.mtype.as_ref() {
-            "m.sticker" => {
-                body = self.build_room_msg_sticker();
-            }
-            "m.image" => {
-                body = self.build_room_msg_image();
-            }
-            "m.emote" => {
-                body = self.build_room_msg_emote(&msg);
-            }
-            "m.video" | "m.audio" | "m.file" => {
-                body = self.build_room_msg_file();
-            }
-            _ => {
-                body = self.build_room_msg_body(&msg.body);
-            }
-        }
+        let body = match msg.mtype.as_ref() {
+            "m.sticker" => self.build_room_msg_sticker(),
+            "m.image" => self.build_room_msg_image(),
+            "m.emote" => self.build_room_msg_emote(&msg),
+            "m.audio" => self.build_room_audio_player(),
+            "m.video" | "m.file" => self.build_room_msg_file(),
+            _ => self.build_room_msg_body(&msg.body),
+        };
 
         content.pack_start(&body, true, true, 0);
 
@@ -312,6 +301,48 @@ impl<'a> MessageBox<'a> {
 
         bx.add(&w);
 
+        bx
+    }
+
+    fn build_room_audio_player(&self) -> gtk::Box {
+        let msg = self.msg;
+        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let player = widgets::AudioPlayerWidget::new();
+
+        let name = msg.body.clone();
+        let url = msg.url.clone().unwrap_or_default();
+        let backend = self.op.backend.clone();
+
+        let download_btn = gtk::Button::new_from_icon_name(
+            "document-save-symbolic",
+            gtk::IconSize::Button.into(),
+        );
+        download_btn.set_tooltip_text(i18n("Save").as_str());
+
+        download_btn.connect_clicked(clone!(name, url, backend => move |_| {
+            let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+            backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+
+            gtk::timeout_add(50, clone!(name => move || match rx.try_recv() {
+                Err(TryRecvError::Empty) => gtk::Continue(true),
+                Err(TryRecvError::Disconnected) => {
+                    let msg = i18n("Could not download the file");
+                    APPOP!(show_error, (msg));
+
+                    gtk::Continue(true)
+                },
+                Ok(fname) => {
+                    let name = name.clone();
+                    APPOP!(save_file_as, (fname, name));
+
+                    gtk::Continue(false)
+                }
+            }));
+        }));
+
+        bx.pack_start(&download_btn, false, false, 0);
+        bx.pack_start(&player.container, false, true, 0);
         bx
     }
 

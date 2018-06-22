@@ -29,12 +29,10 @@ use gtk::prelude::*;
 use glib::SignalHandlerId;
 
 use chrono::NaiveTime;
-use failure::Error;
 use fragile::Fragile;
 
 use std::ops::Deref;
 use std::rc::Rc;
-// use std::path::Path;
 
 trait PlayerExt {
     fn play(&self);
@@ -134,7 +132,7 @@ impl Default for AudioPlayerWidget {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
-        let builder = gtk::Builder::new_from_resource("/org/gnome/Fractal/ui/player_toolbar.ui");
+        let builder = gtk::Builder::new_from_resource("/org/gnome/Fractal/ui/audio_player.ui");
         let container = builder.get_object("container").unwrap();
 
         let buttons = builder.get_object("buttons").unwrap();

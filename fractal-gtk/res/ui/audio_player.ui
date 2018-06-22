@@ -19,6 +19,7 @@
   <object class="GtkBox" id="container">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <property name="spacing">6</property>
     <child>
       <object class="GtkBox" id="buttons">
         <property name="visible">True</property>
@@ -26,7 +27,8 @@
         <property name="valign">center</property>
         <child>
           <object class="GtkButton" id="play_button">
-            <property name="width_request">60</property>
+            <property name="width_request">-1</property>
+            <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="tooltip_text" translatable="yes">Play</property>
@@ -41,10 +43,10 @@
         </child>
         <child>
           <object class="GtkButton" id="pause_button">
-            <property name="width_request">60</property>
-            <property name="visible">True</property>
+            <property name="width_request">-1</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <property name="no_show_all">True</property>
             <property name="tooltip_text" translatable="yes">Play</property>
             <property name="image">pause_image</property>
             <property name="always_show_image">True</property>
@@ -70,6 +72,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="hexpand">True</property>
+        <property name="spacing">6</property>
         <child>
           <object class="GtkScale" id="seek">
             <property name="visible">True</property>

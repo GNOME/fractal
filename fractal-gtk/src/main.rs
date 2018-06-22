@@ -52,5 +52,6 @@ use app::App;
 
 fn main() {
     static_resources::init().expect("GResource initialization failed.");
+    gst::init().expect("Error initializing gstreamer");
     App::new();
 }
