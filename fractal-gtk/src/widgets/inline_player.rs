@@ -40,6 +40,7 @@ trait PlayerExt {
     fn play(&self);
     fn pause(&self);
     fn stop(&self);
+    fn set_uri(&self, &str);
 }
 
 #[derive(Debug, Clone)]
@@ -182,8 +183,8 @@ impl AudioPlayerWidget {
         Self::connect_gst_signals(s);
     }
 
-    pub fn initialize_stream(&self) -> Result<(), Error> {
-        unimplemented!()
+    pub fn initialize_stream(&self, uri: &str) {
+        self.set_uri(uri)
     }
 
     #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -254,5 +255,9 @@ impl PlayerExt for AudioPlayerWidget {
 
         // Reset the slider position to 0
         self.timer.on_position_updated(Position(ClockTime::from_seconds(0)));
+    }
+
+    fn set_uri(&self, uri: &str) {
+        self.player.set_uri(uri)
     }
 }
