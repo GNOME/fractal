@@ -28,6 +28,8 @@ use types::Room;
 use types::Member;
 use types::Message;
 
+use MEDIA_POOL;
+
 use self::serde_json::Value as JsonValue;
 
 pub fn set_room(bk: &Backend, room: Room) -> Result<(), Error> {
@@ -317,7 +319,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: String, avatar: String) -> Result<(
     file.read_to_end(&mut contents)?;
 
     let tx = bk.tx.clone();
-    rayon::spawn(
+    MEDIA_POOL.spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {
@@ -361,7 +363,7 @@ pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
     let mut m = msg.clone();
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
-    rayon::spawn(
+    MEDIA_POOL.spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {

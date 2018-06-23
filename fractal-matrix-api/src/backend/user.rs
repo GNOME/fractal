@@ -21,6 +21,7 @@ use types::Member;
 use types::UserInfo;
 
 use rayon;
+use MEDIA_POOL;
 
 use self::serde_json::Value as JsonValue;
 
@@ -286,7 +287,7 @@ pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let tx = bk.tx.clone();
-    rayon::spawn(move || match get_user_avatar(&baseu, &userid) {
+    MEDIA_POOL.spawn(move || match get_user_avatar(&baseu, &userid) {
         Ok((_, fname)) => {
             tx.send(BKResponse::Avatar(fname)).unwrap();
         }
@@ -320,7 +321,7 @@ pub fn get_user_info_async(bk: &mut Backend,
     let cache_key = u.clone();
     let cache_value = info.clone();
 
-    rayon::spawn(move || {
+    MEDIA_POOL.spawn(move || {
         let i0 = info.lock();
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
@@ -354,7 +355,7 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
     let alias = m.get_alias();
     let avatar = m.avatar.clone();
 
-    rayon::spawn(move || {
+    MEDIA_POOL.spawn(move || {
         match get_user_avatar_img(&baseu, uid,
                                   alias,
                                   avatar.unwrap_or_default()) {
@@ -379,7 +380,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     file.read_to_end(&mut contents)?;
 
     let tx = bk.tx.clone();
-    rayon::spawn(
+    MEDIA_POOL.spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {

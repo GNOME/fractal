@@ -44,13 +44,11 @@ mod appop;
 
 use app::App;
 
-
 fn main() {
     rayon::ThreadPoolBuilder::new()
         .num_threads(16)
         .build_global()
         .expect("Failed to initialize rayon threadpool.");
-
     static_resources::init().expect("GResource initialization failed.");
     App::new();
 }
