@@ -35,34 +35,18 @@ use self::mime::Mime;
 
 use globals;
 
-macro_rules! semaphore {
-    ($cv: expr, $blk: block) => {{
-        let thread_count = $cv.clone();
-        thread::spawn(move || {
-            // waiting, less than 20 threads at the same time
-            // this is a semaphore
-            // TODO: use std::sync::Semaphore when it's on stable version
-            // https://doc.rust-lang.org/1.1.0/std/sync/struct.Semaphore.html
-            let &(ref num, ref cvar) = &*thread_count;
-            {
-                let mut start = num.lock().unwrap();
-                while *start >= 20 {
-                    start = cvar.wait(start).unwrap()
-                }
-                *start += 1;
-            }
 
-            $blk
-
-            // freeing the cvar for new threads
-            {
-                let mut counter = num.lock().unwrap();
-                *counter -= 1;
-            }
-            cvar.notify_one();
-        });
-    }}
+#[allow(dead_code)]
+pub enum AvatarMode {
+    Rect,
+    Circle,
 }
+
+#[macro_export]
+macro_rules! identicon {
+    ($userid: expr, $name: expr) => { draw_identicon($userid, $name, AvatarMode::Circle) }
+}
+
 
 // from https://stackoverflow.com/a/43992218/1592377
 #[macro_export]
