@@ -25,6 +25,7 @@ comrak = "0.2.9"
 gettext-rs = { git = "https://github.com/danigm/gettext-rs", branch = "no-gettext", features = ["gettext-system"] }
 regex = "1.0.0"
 tree_magic = "0.2.0"
+rayon = "1.0.0"
 
 [dependencies.cairo-rs]
 features = ["png"]

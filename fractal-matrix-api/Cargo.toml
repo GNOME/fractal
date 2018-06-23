@@ -33,6 +33,7 @@ url = "1.7.0"
 unicode-segmentation = "1.2.0"
 urlencoding = "1.0.0"
 md5 = "0.3.7"
+rayon = "1.0.0"
 
 [dependencies.cairo-rs]
 features = ["png"]

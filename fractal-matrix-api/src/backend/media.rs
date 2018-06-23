@@ -3,6 +3,7 @@ use std::sync::mpsc::Sender;
 use error::Error;
 use backend::types::BKResponse;
 use backend::types::Backend;
+use rayon;
 
 use util::dw_media;
 use util::download_file;
@@ -11,7 +12,7 @@ use util::cache_dir_path;
 pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
 
-    semaphore!(bk.limit_threads, {
+    rayon::spawn(move || {
         match thumb!(&baseu, &media) {
             Ok(fname) => {
                 tx.send(fname).unwrap();
@@ -28,7 +29,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
 
-    semaphore!(bk.limit_threads, {
+    rayon::spawn(move || {
         match media!(&baseu, &media) {
             Ok(fname) => {
                 tx.send(fname).unwrap();

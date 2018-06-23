@@ -22,6 +22,8 @@ extern crate gettextrs;
 
 extern crate chrono;
 
+extern crate rayon;
+
 use fractal_api::backend;
 use fractal_api::types;
 use fractal_api::error;
@@ -44,6 +46,11 @@ use app::App;
 
 
 fn main() {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(16)
+        .build_global()
+        .expect("Failed to initialize rayon threadpool.");
+
     static_resources::init().expect("GResource initialization failed.");
     App::new();
 }
