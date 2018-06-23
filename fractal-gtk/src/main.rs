@@ -31,6 +31,7 @@ extern crate gettextrs;
 extern crate chrono;
 
 extern crate fragile;
+extern crate rayon;
 
 use fractal_api::backend;
 use fractal_api::types;
@@ -54,6 +55,11 @@ use app::App;
 
 
 fn main() {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(16)
+        .build_global()
+        .expect("Failed to initialize rayon threadpool.");
+
     static_resources::init().expect("GResource initialization failed.");
     gst::init().expect("Error initializing gstreamer");
     App::new();
