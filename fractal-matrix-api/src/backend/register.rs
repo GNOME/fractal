@@ -5,7 +5,6 @@ extern crate regex;
 use self::serde_json::Value as JsonValue;
 use self::regex::Regex;
 
-use std::thread;
 use self::url::Url;
 
 use util::json_q;

@@ -6,7 +6,6 @@ use self::url::Url;
 
 use globals;
 
-use std::thread;
 use error::Error;
 use backend::types::BKResponse;
 use backend::types::Backend;

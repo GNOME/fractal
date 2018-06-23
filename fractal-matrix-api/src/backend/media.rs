@@ -1,4 +1,3 @@
-use std::thread;
 use std::sync::mpsc::Sender;
 use error::Error;
 use backend::types::BKResponse;
@@ -47,7 +46,7 @@ pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
 
     let tx = bk.tx.clone();
-    thread::spawn(move || {
+    rayon::spawn(move || {
         match media!(&baseu, &media) {
             Ok(fname) => {
                 tx.send(BKResponse::Media(fname)).unwrap();
@@ -68,7 +67,7 @@ pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
         fname = cache_dir_path("files", name)?.clone();
     }
 
-    thread::spawn(move || {
+    rayon::spawn(move || {
         match download_file(&url, fname, None) {
             Ok(fname) => { tx.send(fname).unwrap(); }
             Err(_) => { tx.send(String::from("")).unwrap(); }
