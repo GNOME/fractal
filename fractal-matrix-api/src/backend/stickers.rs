@@ -4,7 +4,6 @@ extern crate chrono;
 
 use self::chrono::prelude::*;
 
-use std::thread;
 use util::json_q;
 use util::build_url;
 use url::Url;
@@ -12,8 +11,8 @@ use std::sync::{Arc, Mutex};
 use backend::BackendData;
 
 use globals;
-//use std::thread;
 use error::Error;
+use rayon;
 
 use backend::types::Backend;
 use backend::types::BKResponse;
@@ -63,7 +62,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
     let d = bk.data.clone();
     let tx = bk.internal_tx.clone();
 
-    thread::spawn(move || {
+    rayon::spawn(move || {
         let url = vurl(d.clone(), "widgets/request", vec![]).unwrap();
         match json_q("post", &url, &data, globals::TIMEOUT) {
             Ok(r) => {

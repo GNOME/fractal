@@ -8,8 +8,8 @@ use std::sync::mpsc::Sender;
 use self::url::Url;
 
 use globals;
-use std::thread;
 use error::Error;
+use rayon;
 
 use util::json_q;
 use util::dw_media;
@@ -136,7 +136,7 @@ pub fn get_room_messages(bk: &Backend, roomid: String) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
 
     let tx = bk.tx.clone();
-    thread::spawn(move || {
+    rayon::spawn(move || {
         match get_initial_room_messages(&baseu, tk, roomid.clone(),
                                         globals::PAGE_LIMIT as usize,
                                         globals::PAGE_LIMIT, None) {
@@ -295,10 +295,12 @@ pub fn mark_as_read(bk: &Backend, roomid: String, eventid: String) -> Result<(),
     let tx = bk.tx.clone();
     let r = roomid.clone();
     let e = eventid.clone();
-    post!(&url,
-        move |_: JsonValue| { tx.send(BKResponse::MarkedAsRead(r, e)).unwrap(); },
-        |err| { tx.send(BKResponse::MarkAsReadError(err)).unwrap(); }
-    );
+    {
+        post!(&url,
+            move |_: JsonValue| { tx.send(BKResponse::MarkedAsRead(r, e)).unwrap(); },
+            |err| { tx.send(BKResponse::MarkAsReadError(err)).unwrap(); }
+        );
+    }
 
     // send fully_read event
     // This event API call isn't in the current doc but I found this in the
@@ -359,7 +361,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: String, avatar: String) -> Result<(
     file.read_to_end(&mut contents)?;
 
     let tx = bk.tx.clone();
-    thread::spawn(
+    rayon::spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {
@@ -403,7 +405,7 @@ pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
     let mut m = msg.clone();
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
-    thread::spawn(
+    rayon::spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {
@@ -521,7 +523,7 @@ pub fn make_search(bk: &Backend, roomid: String, term: String) -> Result<(), Err
 
     let tx = bk.tx.clone();
 
-    thread::spawn(move || {
+    rayon::spawn(move || {
         match json_q("post", &url, &attrs, 0) {
             Ok(js) => {
                 tx.send(BKResponse::SearchEnd).unwrap();

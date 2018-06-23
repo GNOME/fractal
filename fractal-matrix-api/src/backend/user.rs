@@ -6,7 +6,6 @@ use std::io::prelude::*;
 
 use self::url::Url;
 use globals;
-use std::thread;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use error::Error;
@@ -287,7 +286,7 @@ pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let tx = bk.tx.clone();
-    thread::spawn(move || match get_user_avatar(&baseu, &userid) {
+    rayon::spawn(move || match get_user_avatar(&baseu, &userid) {
         Ok((_, fname)) => {
             tx.send(BKResponse::Avatar(fname)).unwrap();
         }
@@ -310,7 +309,7 @@ pub fn get_user_info_async(bk: &mut Backend,
     if let Some(info) = bk.user_info_cache.get(&u) {
         if let Some(tx) = tx.clone() {
             let info = info.clone();
-            thread::spawn(move || {
+            rayon::spawn(move || {
                 let i = info.lock().unwrap().clone();
                 tx.send(i).unwrap();
             });
@@ -400,7 +399,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     file.read_to_end(&mut contents)?;
 
     let tx = bk.tx.clone();
-    thread::spawn(
+    rayon::spawn(
         move || {
             match put_media(mediaurl.as_str(), contents) {
                 Err(err) => {

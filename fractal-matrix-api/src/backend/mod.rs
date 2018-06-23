@@ -1,6 +1,7 @@
-use std::sync::{Arc, Mutex, Condvar};
-use std::thread;
-use url::Url;
+extern crate url;
+
+use std::sync::{Arc, Mutex};
+use self::url::Url;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::RecvError;
@@ -8,6 +9,7 @@ use std::sync::mpsc::RecvError;
 use util::build_url;
 
 use error::Error;
+use rayon;
 
 use cache::CacheMap;
 
@@ -47,7 +49,6 @@ impl Backend {
             internal_tx: None,
             data: Arc::new(Mutex::new(data)),
             user_info_cache: CacheMap::new().timeout(60*60),
-            limit_threads: Arc::new((Mutex::new(0u8), Condvar::new())),
         }
     }
 
@@ -71,7 +72,7 @@ impl Backend {
         let (apptx, rx): (Sender<BKCommand>, Receiver<BKCommand>) = channel();
 
         self.internal_tx = Some(apptx.clone());
-        thread::spawn(move || loop {
+        rayon::spawn(move || loop {
             let cmd = rx.recv();
             if !self.command_recv(cmd) {
                 break;
