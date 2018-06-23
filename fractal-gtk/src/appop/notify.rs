@@ -4,7 +4,6 @@ extern crate gtk;
 use self::gtk::prelude::*;
 use self::notify_rust::Notification;
 use std::sync::mpsc::TryRecvError;
-use std::thread;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::channel;
 
@@ -13,7 +12,7 @@ use app::InternalCommand;
 use backend::BKCommand;
 
 use types::Message;
-
+use rayon;
 
 impl AppOp {
     pub fn inapp_notify(&self, msg: &str) {
@@ -58,7 +57,7 @@ impl AppOp {
                 let body = body.clone();
                 let summary = summary.clone();
                 let avatar = avatar.clone();
-                thread::spawn(move || {
+                rayon::spawn(move || {
                     let mut notification = Notification::new();
                     notification.summary(&summary);
                     notification.body(&body);

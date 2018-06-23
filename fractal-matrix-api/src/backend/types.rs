@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, Condvar};
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 
 use error::Error;
@@ -195,8 +195,6 @@ pub struct Backend {
 
     // user info cache, uid -> (name, avatar)
     pub user_info_cache: CacheMap<Arc<Mutex<(String, String)>>>,
-    // semaphore to limit the number of threads downloading images
-    pub limit_threads: Arc<(Mutex<u8>, Condvar)>,
 }
 
 impl Clone for Backend {
@@ -206,7 +204,6 @@ impl Clone for Backend {
             data: self.data.clone(),
             internal_tx: self.internal_tx.clone(),
             user_info_cache: self.user_info_cache.clone(),
-            limit_threads: self.limit_threads.clone(),
         }
     }
 }
