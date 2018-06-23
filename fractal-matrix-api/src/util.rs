@@ -125,7 +125,9 @@ macro_rules! post {
 #[macro_export]
 macro_rules! query {
     ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        thread::spawn(move || {
+        use rayon;
+
+        rayon::spawn(move || {
             let js = json_q($method, $url, $attrs, $timeout);
 
             match js {
