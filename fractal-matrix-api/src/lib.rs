@@ -6,6 +6,7 @@ extern crate serde_json;
 extern crate serde_derive;
 
 extern crate url;
+extern crate rayon;
 
 #[macro_use]
 pub mod util;
