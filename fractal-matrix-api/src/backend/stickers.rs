@@ -4,11 +4,9 @@ extern crate chrono;
 
 use self::chrono::prelude::*;
 
-use std::thread;
 use util::json_q;
 
 use globals;
-//use std::thread;
 use error::Error;
 
 use backend::types::Backend;
