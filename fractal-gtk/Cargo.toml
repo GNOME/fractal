@@ -33,6 +33,7 @@ log = "0.4.3"
 fragile = "0.2.1"
 letter-avatar = "0.1.1"
 sourceview = "0.4.0"
+rayon = "1.0.0"
 
 [dependencies.cairo-rs]
 features = ["png"]
