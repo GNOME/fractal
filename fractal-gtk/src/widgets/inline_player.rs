@@ -224,7 +224,7 @@ impl AudioPlayerWidget {
     fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> SignalHandlerId {
         slider.connect_value_changed(clone!(player => move |slider| {
             let value = slider.get_value() as u64;
-            player.seek(ClockTime::from_seconds(value as u64));
+            player.seek(ClockTime::from_seconds(value));
         }))
     }
 }
