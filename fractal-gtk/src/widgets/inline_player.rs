@@ -33,6 +33,7 @@ use fragile::Fragile;
 
 use std::ops::Deref;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 trait PlayerExt {
     fn play(&self);
@@ -132,6 +133,13 @@ impl Default for AudioPlayerWidget {
         config.set_position_update_interval(250);
         player.set_config(config).unwrap();
 
+        // Log gst warnings.
+        player.connect_warning(move |_, warn| warn!("gst warning: {}", warn));
+
+        // Log gst errors.
+        // This ideally will never occur.
+        player.connect_error(move |_, err| error!("gst Error: {}", err));
+
         let builder = gtk::Builder::new_from_resource("/org/gnome/Fractal/ui/audio_player.ui");
         let container = builder.get_object("container").unwrap();
 
@@ -172,6 +180,25 @@ impl AudioPlayerWidget {
     pub fn new() -> Rc<Self> {
         let w = Rc::new(Self::default());
         Self::init(&w);
+
+        // When the widget is attached to a parent,
+        // since it's a rust struct and not a widget the
+        // compiler drops the refference to it at the end of
+        // scope. That's cause we only attach the `self.container`
+        // to the parent.
+        //
+        // So this callback keeps a refference to the Rust Struct
+        // so the compiler won't drop it which would cause to also drop
+        // the `gst_player`.
+        //
+        // When the widget is detached from it's parent which happens
+        // when we drop the room widget, this callback runs freeing
+        // the last refference we were holding.
+        let foo = RefCell::new(Some(w.clone()));
+        w.container.connect_remove(move |_, _| {
+            foo.borrow_mut().take();
+        });
+
         w
     }
 
@@ -188,37 +215,38 @@ impl AudioPlayerWidget {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     /// Connect the `PlayerControls` buttons to the `PlayerExt` methods.
     fn connect_control_buttons(s: &Rc<Self>) {
+        let weak = Rc::downgrade(s);
+
         // Connect the play button to the gst Player.
-        s.controls.play.connect_clicked(clone!(s => move |_| s.play()));
+        s.controls.play.connect_clicked(clone!(weak => move |_| {
+            weak.upgrade().map(|p| p.play());
+        }));
 
         // Connect the pause button to the gst Player.
-        s.controls.pause.connect_clicked(clone!(s => move |_| s.pause()));
+        s.controls.pause.connect_clicked(clone!(weak => move |_| {
+            weak.upgrade().map(|p| p.pause());
+        }));
     }
 
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn connect_gst_signals(s: &Rc<Self>) {
-        // Log gst warnings.
-        s.player.connect_warning(move |_, warn| warn!("gst warning: {}", warn));
-
-        // Log gst errors.
-        // This ideally will never occur.
-        s.player.connect_error(move |_, err| error!("gst Error: {}", err));
-
         // The followign callbacks require `Send` but are handled by the gtk main loop
-        let s2 = Fragile::new(s.clone());
+        let weak = Fragile::new(Rc::downgrade(s));
 
         // Update the duration label and the slider
-        s.player.connect_duration_changed(clone!(s2 => move |_, clock| {
-            s2.get().timer.on_duration_changed(Duration(clock));
+        s.player.connect_duration_changed(clone!(weak => move |_, clock| {
+            weak.get().upgrade().map(|p| p.timer.on_duration_changed(Duration(clock)));
         }));
 
         // Update the position label and the slider
-        s.player.connect_position_updated(clone!(s2 => move |_, clock| {
-            s2.get().timer.on_position_updated(Position(clock));
+        s.player.connect_position_updated(clone!(weak => move |_, clock| {
+            weak.get().upgrade().map(|p| p.timer.on_position_updated(Position(clock)));
         }));
 
         // Reset the slider to 0 and show a play button
-        s.player.connect_end_of_stream(clone!(s2 => move |_| s2.get().stop()));
+        s.player.connect_end_of_stream(clone!(weak => move |_| {
+            weak.get().upgrade().map(|p| p.stop());
+        }));
     }
 
     fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> SignalHandlerId {
