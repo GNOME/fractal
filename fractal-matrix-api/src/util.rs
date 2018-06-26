@@ -950,10 +950,13 @@ pub fn build_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<
     let mut url = base.join(path)?;
 
     {
-        let mut query = url.query_pairs_mut();
-        query.clear();
-        for (k, v) in params {
-            query.append_pair(k, &v);
+        // If len was 0 `?` would be appended without being needed.
+        if params.len() >= 1 {
+            let mut query = url.query_pairs_mut();
+            query.clear();
+            for (k, v) in params {
+                query.append_pair(k, &v);
+            }
         }
     }
 
