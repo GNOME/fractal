@@ -6,7 +6,7 @@ mod roomlist;
 pub mod avatar;
 mod autocomplete;
 mod address;
-mod members_list;
+pub mod members_list;
 pub mod divider;
 pub mod image;
 mod inline_player;
