@@ -128,8 +128,6 @@ pub fn get_member_avatar(backend: Sender<BKCommand>,
     });
 }
 
-
-
 pub fn get_member_info(backend: Sender<BKCommand>,
                        img: widgets::Avatar,
                        username: gtk::Label,
