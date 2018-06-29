@@ -6,10 +6,9 @@ use std::rc::Rc;
 use self::gtk::prelude::*;
 use glib::signal;
 
-use fractal_api::util::cache_path;
+use types::Member;
 use widgets;
 use widgets::avatar::AvatarExt;
-use types::Member;
 
 #[derive(Debug, Clone)]
 pub struct MembersList {
@@ -29,12 +28,16 @@ impl MembersList {
         }
     }
 
+    /* creates a empty list with members.len() rows, the content will be loaded when the row is
+     * drawn */
     pub fn create(&self) -> Option<gtk::Box> {
         let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
         b.set_hexpand(true);
         b.pack_start(&self.container, true, true, 0);
         add_rows(self.container.clone(), self.members.clone());
-        self.error.get_style_context()?.add_class("no_member_search");
+        self.error
+            .get_style_context()?
+            .add_class("no_member_search");
         self.error.set_text("Nothing found");
         b.pack_start(&self.error, true, true, 0);
         self.connect();
@@ -43,12 +46,28 @@ impl MembersList {
         Some(b)
     }
 
+    /* removes the content of the row with index i */
+    pub fn update(&self, i: usize) -> Option<()> {
+        let widget = self.container.get_row_at_index(i as i32)?;
+        let child = widget.get_child()?;
+        widget.remove(&child);
+        /* We don't need to create a new widget because the draw signal
+         * will handle the creation */
+
+        None
+    }
+
     pub fn connect(&self) {
         let container = self.container.clone();
         let members = self.members.clone();
         let error = self.error.clone();
         let id = self.search_entry.connect_search_changed(move |w| {
-            filter_rows(container.clone(), members.clone(), error.clone(), w.get_text());
+            filter_rows(
+                container.clone(),
+                members.clone(),
+                error.clone(),
+                w.get_text(),
+            );
         });
         /* we need to remove the handler when the member list is destroyed */
         let id: Rc<RefCell<Option<signal::SignalHandlerId>>> = Rc::new(RefCell::new(Some(id)));
@@ -59,7 +78,7 @@ impl MembersList {
                 signal::signal_handler_disconnect(&search_entry, id);
             }
         });
-        /* slowly load members when the main thread is idle */
+        /* we could slowly load members when the main thread is idle */
         /*
            let container = self.container.clone();
            let members = self.members.clone();
@@ -94,8 +113,8 @@ fn create_row(member: Member) -> Option<gtk::ListBoxRow> {
 /* creating the row is quite slow, therefore we have a small delay when scrolling the members list */
 fn load_row_content(member: Member) -> gtk::Box {
     let b = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-    let avatar_path = cache_path(&member.uid).unwrap_or(String::from(""));
-    let avatar = widgets::Avatar::circle_avatar(avatar_path, Some(40));
+    let avatar = widgets::Avatar::avatar_new(Some(40));
+    avatar.circle(member.uid.clone(), member.alias.clone(), 40);
     let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let username = gtk::Label::new(Some(member.get_alias().as_str()));
     b.set_margin_start(12);
@@ -120,7 +139,12 @@ fn add_rows(container: gtk::ListBox, members: Vec<Member>) -> Option<usize> {
     None
 }
 
-fn filter_rows(container: gtk::ListBox, members: Vec<Member>, label: gtk::Label, search: Option<String>) -> Option<usize> {
+fn filter_rows(
+    container: gtk::ListBox,
+    members: Vec<Member>,
+    label: gtk::Label,
+    search: Option<String>,
+) -> Option<usize> {
     /* Load just enough members to fill atleast the visible list */
     let search = search?;
     let search = search.as_str();
