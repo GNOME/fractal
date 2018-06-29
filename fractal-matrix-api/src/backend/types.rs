@@ -48,7 +48,7 @@ pub enum BKCommand {
     GetAvatarAsync(Option<Member>, Sender<String>),
     GetMedia(String),
     GetMediaUrl(String, Sender<String>),
-    GetUserInfoAsync(String, Sender<(String, String)>),
+    GetUserInfoAsync(String, Option<Sender<(String, String)>>),
     SendMsg(Message),
     SetRoom(Room),
     ShutDown,

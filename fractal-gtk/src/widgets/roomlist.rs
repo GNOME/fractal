@@ -162,7 +162,7 @@ impl RoomListGroup {
         let rid = r.id.clone();
         self.roomvec.lock().unwrap().push(RoomUpdated::new(r.clone()));
 
-        let row = RoomRow::new(r, &self.baseu);
+        let row = RoomRow::new(r);
         self.list.add(&row.widget());
 
         self.rooms.insert(rid, row);
@@ -187,7 +187,7 @@ impl RoomListGroup {
 
         rv.insert(pos, RoomUpdated::new(r.room.clone()));
 
-        let row = RoomRow::new(r.room, &self.baseu);
+        let row = RoomRow::new(r.room);
         self.list.insert(&row.widget(), pos as i32);
 
         self.rooms.insert(rid, row);

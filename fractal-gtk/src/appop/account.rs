@@ -9,6 +9,7 @@ use backend::BKCommand;
 use widgets;
 use widgets::AvatarExt;
 
+use cache::download_to_cache;
 use fractal_api::types::UserInfo;
 
 impl AppOp {
@@ -211,7 +212,7 @@ impl AppOp {
 
         avatar_spinner.hide();
         avatar_btn.set_sensitive(true);
-        self.show_avatar(self.avatar.clone());
+        self.show_avatar();
 
         name_btn.hide();
         name.set_editable(true);
@@ -338,10 +339,10 @@ impl AppOp {
         self.set_avatar(path.clone());
         avatar_spinner.hide();
         avatar_btn.set_sensitive(true);
-        self.show_avatar(self.avatar.clone());
+        self.show_avatar();
     }
 
-    pub fn show_avatar(&self, path: Option<String>) {
+    pub fn show_avatar(&self) {
         let stack = self.ui.builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
@@ -358,7 +359,9 @@ impl AppOp {
             }
         }
 
-        let w = widgets::Avatar::circle_avatar(path.unwrap_or_default(), Some(100));
+        download_to_cache(self.backend.clone(), self.uid.clone().unwrap_or_default());
+        let w = widgets::Avatar::avatar_new(Some(100));
+        w.circle(self.uid.clone().unwrap_or_default(), self.username.clone(), 100);
         avatar.add(&w);
 
         /* FIXME: hack to make the avatar drawing area clickable*/
@@ -380,7 +383,7 @@ impl AppOp {
         self.backend.send(command).unwrap();
         avatar_btn.set_sensitive(false);
         avatar_spinner.show();
-        self.show_avatar(Some(file));
+        self.show_avatar();
     }
 
     pub fn show_new_username(&mut self, name: Option<String>) {

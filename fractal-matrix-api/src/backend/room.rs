@@ -17,6 +17,7 @@ use util::get_initial_room_messages;
 use util::build_url;
 use util::put_media;
 use util;
+use util::cache_path;
 
 use backend::types::Backend;
 use backend::types::BKResponse;
@@ -73,7 +74,11 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
 
             match r["url"].as_str() {
                 Some(u) => {
-                    avatar = thumb!(&baseu, u).unwrap_or_default();
+                    if let Ok(dest) = cache_path(&roomid) {
+                        avatar = media!(&baseu, u, Some(&dest)).unwrap_or_default();
+                    } else {
+                        avatar = String::from("");
+                    }
                 },
                 None => {
                     avatar = util::get_room_avatar(&baseu, &tk, &userid, &roomid)

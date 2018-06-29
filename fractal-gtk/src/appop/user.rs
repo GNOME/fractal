@@ -4,6 +4,8 @@ use self::gtk::prelude::*;
 
 use appop::AppOp;
 
+use cache::download_to_cache;
+
 use backend::BKCommand;
 use widgets;
 use widgets::AvatarExt;
@@ -41,7 +43,9 @@ impl AppOp {
                 avatar.remove(w);
             }
 
-            let w = widgets::Avatar::circle_avatar(self.avatar.clone().unwrap_or_default(), Some(40));
+            download_to_cache(self.backend.clone(), self.uid.clone().unwrap_or_default());
+            let w = widgets::Avatar::avatar_new(Some(40));
+            w.circle(self.uid.clone().unwrap_or_default(), self.username.clone(), 40);
             avatar.add(&w);
             stack.set_visible_child_name("info");
         }
@@ -55,11 +59,13 @@ impl AppOp {
             .expect("Can't find user_menu_button in ui file.");
 
         let eb = gtk::EventBox::new();
-            match self.avatar.clone() {
-                Some(s) => {
-                    let w = widgets::Avatar::circle_avatar(s.clone(), Some(24));
-                    eb.add(&w);
-                }
+        match self.avatar.clone() {
+            Some(_) => {
+                download_to_cache(self.backend.clone(), self.uid.clone().unwrap_or_default());
+                let w = widgets::Avatar::avatar_new(Some(24));
+                w.circle(self.uid.clone().unwrap_or_default(), self.username.clone(), 24);
+                eb.add(&w);
+            }
             None => {
                 let w = gtk::Spinner::new();
                 w.show();

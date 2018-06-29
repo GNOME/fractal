@@ -1,19 +1,11 @@
 extern crate pango;
-extern crate url;
 extern crate gdk;
 extern crate gtk;
 extern crate cairo;
 
-use self::url::Url;
 use self::gtk::prelude::*;
 
-use fractal_api;
-use fractal_api::util::AvatarMode;
-use fractal_api::util::draw_identicon;
-
 use types::Room;
-
-use util::glib_thread_prelude::*;
 
 use widgets;
 use widgets::AvatarExt;
@@ -28,7 +20,6 @@ const ICON_SIZE: i32 = 24;
 // | IMG | Fractal                  |  32  |
 // +-----+--------------------------+------+
 pub struct RoomRow {
-    baseu: Url,
     pub room: Room,
     pub icon: widgets::Avatar,
     pub direct: gtk::Image,
@@ -38,10 +29,10 @@ pub struct RoomRow {
 }
 
 impl RoomRow {
-    pub fn new(room: Room, url: &Url) -> RoomRow {
+    pub fn new(room: Room) -> RoomRow {
         let widget = gtk::EventBox::new();
         let name = room.name.clone().unwrap_or("...".to_string());
-        let avatar = room.avatar.clone().unwrap_or_default();
+
         let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
         let direct = gtk::Image::new_from_icon_name("avatar-default-symbolic", 1);
         if let Some(style) = direct.get_style_context() {
@@ -49,7 +40,6 @@ impl RoomRow {
         }
 
         let text = gtk::Label::new(name.clone().as_str());
-        let baseu = url.clone();
         text.set_valign(gtk::Align::Start);
         text.set_halign(gtk::Align::Start);
         text.set_ellipsize(pango::EllipsizeMode::End);
@@ -77,19 +67,13 @@ impl RoomRow {
             notifications.hide();
         }
 
-        icon.default(String::from("avatar-default-symbolic"), Some(ICON_SIZE));
-        if avatar.starts_with("mxc") || avatar.is_empty() {
-            download_avatar(&baseu, room.id.clone(), name, avatar, &icon);
-        } else {
-            icon.circle(avatar, Some(ICON_SIZE));
-        }
+        icon.circle(room.id.clone(), Some(name), ICON_SIZE);
 
         let rr = RoomRow {
             room,
             icon,
             text,
             notifications,
-            baseu,
             widget,
             direct,
         };
@@ -146,13 +130,7 @@ impl RoomRow {
 
         let name = self.room.name.clone().unwrap_or("...".to_string());
 
-        self.icon.default(String::from("avatar-default-symbolic"), Some(ICON_SIZE));
-        let av = avatar.unwrap_or_default();
-        if av.starts_with("mxc") || av.is_empty() {
-            download_avatar(&self.baseu, self.room.id.clone(), name, av, &self.icon);
-        } else {
-            self.icon.circle(av, Some(ICON_SIZE));
-        }
+        self.icon.circle(self.room.id.clone(), Some(name), ICON_SIZE);
     }
 
     pub fn widget(&self) -> gtk::EventBox {
@@ -213,27 +191,4 @@ impl RoomRow {
             data.set_text(&id);
         });
     }
-}
-
-fn download_avatar(baseu: &Url,
-                   rid: String,
-                   name: String,
-                   avatar: String,
-                   image: &widgets::Avatar) {
-
-    let url = baseu.clone();
-    let img = image.clone();
-    glib_thread!(Result<String, Error>,
-        || {
-            match avatar {
-                ref s if s.is_empty() => identicon!(&rid, name),
-                _ => fractal_api::util::dw_media(&url, &avatar, true, None, 40, 40),
-            }
-        },
-        |rc: Result<String, Error>| {
-            if let Ok(c) = rc {
-                img.circle(c, Some(ICON_SIZE));
-            }
-        }
-    );
 }

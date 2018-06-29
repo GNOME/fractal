@@ -16,6 +16,7 @@ gstreamer = "0.11.3"
 gstreamer-player = "0.11.3"
 notify-rust = "3.4.2"
 pango = "0.4.0"
+pangocairo = "0.5.0"
 secret-service = "0.4.0"
 serde = "1.0.43"
 serde_derive = "1.0.43"
@@ -25,6 +26,8 @@ rand = "0.4.2"
 html2pango = { git = "https://gitlab.gnome.org/World/html2pango" }
 comrak = "0.2.9"
 gettext-rs = { git = "https://github.com/danigm/gettext-rs", branch = "no-gettext", features = ["gettext-system"] }
+letter-avatar = { git = "https://gitlab.gnome.org/jsparber/letter-avatar" }
+unicode-segmentation = "1.2.0"
 regex = "1.0.0"
 tree_magic = "0.2.0"
 log = "0.4.2"

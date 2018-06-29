@@ -300,19 +300,20 @@ pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
 
 pub fn get_user_info_async(bk: &mut Backend,
                            uid: &str,
-                           tx: Sender<(String, String)>)
+                           tx: Option<Sender<(String, String)>>)
                            -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
 
     let u = String::from(uid);
 
     if let Some(info) = bk.user_info_cache.get(&u) {
-        let tx = tx.clone();
-        let info = info.clone();
-        thread::spawn(move || {
-            let i = info.lock().unwrap().clone();
-            tx.send(i).unwrap();
-        });
+        if let Some(tx) = tx.clone() {
+            let info = info.clone();
+            thread::spawn(move || {
+                let i = info.lock().unwrap().clone();
+                tx.send(i).unwrap();
+            });
+        }
         return Ok(())
     }
 
@@ -324,13 +325,17 @@ pub fn get_user_info_async(bk: &mut Backend,
         let i0 = info.lock();
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
-                tx.send(info.clone()).unwrap();
-                let mut i = i0.unwrap();
-                i.0 = info.0;
-                i.1 = info.1;
+                if let Some(tx) = tx.clone() {
+                    tx.send(info.clone()).unwrap();
+                    let mut i = i0.unwrap();
+                    i.0 = info.0;
+                    i.1 = info.1;
+                }
             }
             Err(_) => {
-                tx.send((String::new(), String::new())).unwrap();
+                if let Some(tx) = tx.clone() {
+                    tx.send((String::new(), String::new())).unwrap();
+                }
             }
         };
     });
@@ -351,12 +356,10 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
     let m = member.unwrap();
 
     let uid = m.uid.clone();
-    let alias = m.get_alias();
     let avatar = m.avatar.clone();
 
     semaphore!(bk.limit_threads, {
         match get_user_avatar_img(&baseu, uid,
-                                  alias,
                                   avatar.unwrap_or_default()) {
             Ok(fname) => { tx.send(fname.clone()).unwrap(); }
             Err(_) => { tx.send(String::new()).unwrap(); }

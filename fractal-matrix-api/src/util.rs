@@ -3,22 +3,8 @@ extern crate url;
 extern crate reqwest;
 extern crate regex;
 extern crate serde_json;
-extern crate cairo;
-extern crate pango;
-extern crate pangocairo;
-extern crate gdk;
-extern crate gdk_pixbuf;
 extern crate mime;
 extern crate tree_magic;
-extern crate unicode_segmentation;
-
-use self::unicode_segmentation::UnicodeSegmentation;
-
-use self::pango::LayoutExt;
-
-use self::gdk_pixbuf::Pixbuf;
-use self::gdk_pixbuf::PixbufExt;
-use self::gdk::ContextExt;
 
 use self::regex::Regex;
 
@@ -35,8 +21,6 @@ use std::fs::create_dir_all;
 use std::io::prelude::*;
 
 use std::collections::HashSet;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 
 use std::time::Duration as StdDuration;
 
@@ -50,14 +34,6 @@ use self::reqwest::header::ContentType;
 use self::mime::Mime;
 
 use globals;
-
-
-#[allow(dead_code)]
-pub enum AvatarMode {
-    Rect,
-    Circle,
-}
-
 
 macro_rules! semaphore {
     ($cv: expr, $blk: block) => {{
@@ -87,13 +63,6 @@ macro_rules! semaphore {
         });
     }}
 }
-
-
-#[macro_export]
-macro_rules! identicon {
-    ($userid: expr, $name: expr) => { draw_identicon($userid, $name, AvatarMode::Circle) }
-}
-
 
 // from https://stackoverflow.com/a/43992218/1592377
 #[macro_export]
@@ -649,10 +618,10 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
                     let img = dw_media(baseu, &url, true, Some(&dest), 64, 64)?;
                     Ok((name.clone(), img))
                 },
-                None => Ok((name.clone(), identicon!(userid, name)?)),
+                None => Ok((name.clone(), String::from(""))),
             }
         }
-        Err(_) => Ok((String::from(userid), identicon!(userid, String::from(&userid[1..2]))?)),
+        Err(_) => Ok((String::from(userid), String::from(""))),
     }
 }
 
@@ -682,102 +651,19 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     };
 
     let mut fname = match members.count() {
-        1 => thumb!(&base, m1).unwrap_or_default(),
+        1 => {
+            if let Ok(dest) = cache_path(&roomid) {
+                 media!(&base, m1, Some(&dest)).unwrap_or_default()
+            } else {
+                String::new()
+            }
+        },
         _ => String::new(),
     };
 
     if fname.is_empty() {
-        let roomname = match calculate_room_name(&st, userid)?{
-            Some(ref name) => { name.clone() },
-            None => { "X".to_string() },
-        };
-        fname = identicon!(roomid, roomname)?;
+        fname = String::from("");
     }
-
-    Ok(fname)
-}
-
-struct Color {
-    r: i32,
-    g: i32,
-    b: i32,
-}
-
-pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
-
-pub fn get_initials(name: String) -> Result<String, Error> {
-        let name = name.trim_right_matches(" (IRC)");
-        let mut words = name.unicode_words();
-        let first = words
-            .next()
-            .and_then(|w| UnicodeSegmentation::graphemes(w, true).next())
-            .unwrap_or_default();
-        let second = words
-            .next()
-            .and_then(|w| UnicodeSegmentation::graphemes(w, true).next())
-            .unwrap_or_default();
-        let initials = format!( "{}{}", first, second);
-
-        Ok(initials)
-}
-
-pub fn draw_identicon(fname: &str, name: String, mode: AvatarMode) -> Result<String, Error> {
-    // Our color palette with a darker and a muted variant for each one
-    let colors = [
-        [Color { r: 206, g: 77, b: 205, }, Color { r: 251, g: 224, b: 251, }],
-        [Color { r: 121, g: 81, b: 192, }, Color { r: 231, g: 218, b: 251, }],
-        [Color { r: 78, g: 99, b: 201, }, Color { r: 207, g: 215, b: 248, }],
-        [Color { r: 66, g: 160, b: 243, }, Color { r: 214, g: 234, b: 252, }],
-        [Color { r: 70, g: 189, b: 158, }, Color { r: 212, g: 248, b: 239, }],
-        [Color { r: 117, g: 184, b: 45, }, Color { r: 220, g: 247, b: 191, }],
-        [Color { r: 235, g: 121, b: 10, }, Color { r: 254, g: 235, b: 218, }],
-        [Color { r: 227, g: 61, b: 34,  }, Color { r: 251, g: 219, b: 211, }],
-        [Color { r: 109, g: 109, b: 109, }, Color { r: 219, g: 219, b: 219  }],
-    ];
-
-    let fname = cache_path(fname)?;
-
-    let image = cairo::ImageSurface::create(cairo::Format::ARgb32, 60, 60)?;
-    let g = cairo::Context::new(&image);
-
-    let color_index = calculate_hash(&fname) as usize % colors.len() as usize;
-    let bg_c = &colors[color_index][0];
-    g.set_source_rgba(bg_c.r as f64 / 256., bg_c.g as f64 / 256., bg_c.b as f64 / 256., 1.);
-
-    match mode {
-        AvatarMode::Rect => g.rectangle(0., 0., 60., 60.),
-        AvatarMode::Circle => {
-            g.arc(30.0, 30.0, 30.0, 0.0, 2.0 * 3.14159);
-            g.fill();
-        }
-    };
-
-    let fg_c = &colors[color_index][1];
-    g.set_source_rgba(fg_c.r as f64 / 256., fg_c.g as f64 / 256., fg_c.b as f64 / 256., 1.);
-
-    if !name.is_empty() {
-        let initials = get_initials(name)?.to_uppercase();
-
-        let layout = pangocairo::functions::create_layout(&g).unwrap();
-        let fontdesc = pango::FontDescription::from_string("Cantarell Ultra-Bold 26");
-        layout.set_font_description(&fontdesc);
-        layout.set_text(&initials);
-        // Move to center of the background shape we drew,
-        // offset by half the size of the glyph
-        let bx = image.get_width();
-        let by = image.get_height();
-        let (ox, oy) = layout.get_pixel_size();
-        g.translate((bx - ox) as f64/2., (by - oy) as f64/2.);
-        // Finally draw the glyph
-        pangocairo::functions::show_layout(&g, &layout);
-    }
-
-    let mut buffer = File::create(&fname)?;
-    image.write_to_png(&mut buffer)?;
 
     Ok(fname)
 }
@@ -963,27 +849,6 @@ pub fn build_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<
     Ok(url)
 }
 
-pub fn circle_image(fname: String) -> Result<String, Error> {
-    use std::f64::consts::PI;
-
-    let pb = Pixbuf::new_from_file_at_scale(&fname, 40, -1, true)?;
-    let image = cairo::ImageSurface::create(cairo::Format::ARgb32, 40, 40)?;
-    let g = cairo::Context::new(&image);
-    g.set_antialias(cairo::Antialias::Best);
-    let hpos: f64 = (40.0 - (pb.get_height()) as f64) / 2.0;
-    g.set_source_pixbuf(&pb, 0.0, hpos);
-
-    g.arc(20.0, 20.0, 20.0, 0.0, 2.0 * PI);
-    g.clip();
-
-    g.paint();
-
-    let mut buffer = File::create(&fname)?;
-    image.write_to_png(&mut buffer)?;
-
-    Ok(fname)
-}
-
 pub fn cache_path(name: &str) -> Result<String, Error> {
     let mut path = match glib::get_user_cache_dir() {
         Some(path) => path,
@@ -1019,9 +884,9 @@ pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
     Ok(path.into_os_string().into_string()?)
 }
 
-pub fn get_user_avatar_img(baseu: &Url, userid: String, alias: String, avatar: String) -> Result<String, Error> {
+pub fn get_user_avatar_img(baseu: &Url, userid: String, avatar: String) -> Result<String, Error> {
     if avatar.is_empty() {
-        return identicon!(&userid, alias);
+        return Ok(String::from(""));
     }
 
     let dest = cache_path(&userid)?;

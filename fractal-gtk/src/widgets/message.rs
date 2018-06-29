@@ -16,19 +16,18 @@ use self::chrono::prelude::*;
 
 use backend::BKCommand;
 
-use fractal_api as api;
 use util::markup_text;
 
-use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::TryRecvError;
+
+use cache::download_to_cache;
 
 use appop::AppOp;
 use globals;
 use widgets;
 use widgets::AvatarExt;
-use widgets::member::get_member_info;
 
 // Room Message item
 pub struct MessageBox<'a> {
@@ -136,33 +135,24 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_avatar(&self) -> widgets::Avatar {
-        let sender = self.msg.sender.clone();
-        let backend = self.op.backend.clone();
+        let uid = self.msg.sender.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
-        let fname = api::util::cache_path(&sender).unwrap_or(strn!(""));
+        let m = self.room.members.get(&uid);
 
-        let pathname = fname.clone();
-        let p = Path::new(&pathname);
-        if p.is_file() {
-            avatar.circle(fname, Some(globals::MSG_ICON_SIZE));
-        } else {
-            avatar.default(String::from("avatar-default-symbolic"),
-                           Some(globals::MSG_ICON_SIZE));
-        }
-
-        let m = self.room.members.get(&sender);
-
-        match m {
+        let username = match m {
             Some(member) => {
                 self.username.set_text(&member.get_alias());
-                get_member_info(backend.clone(), avatar.clone(), self.username.clone(), sender.clone(), globals::MSG_ICON_SIZE, 10);
+                Some(member.get_alias())
             }
             None => {
-                self.username.set_text(&sender);
-                get_member_info(backend.clone(), avatar.clone(), self.username.clone(), sender.clone(), globals::MSG_ICON_SIZE, 10);
+                self.username.set_text(&uid);
+                None
             }
         };
+
+        download_to_cache(self.op.backend.clone(), uid.clone());
+        avatar.circle(uid, username, globals::MSG_ICON_SIZE);
 
         avatar
     }

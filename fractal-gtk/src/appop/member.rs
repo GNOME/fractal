@@ -138,6 +138,7 @@ impl AppOp {
         if let Some(aroom) = self.active_room.clone() {
             if aroom == roomid {
                 self.reload_members();
+                //self.set_active_room_by_id(aroom.clone());
             }
         }
     }
