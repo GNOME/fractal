@@ -141,6 +141,7 @@
                         <property name="can_focus">True</property>
                         <property name="selectable">True</property>
                         <property name="wrap">True</property>
+                        <property name="max-width-chars">50</property>
                         <property name="halign">center</property>
                         <property name="justify">center</property>
                         <property name="label" translatable="yes">Add topic</property>
