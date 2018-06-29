@@ -1045,13 +1045,13 @@
                 <property name="has-subtitle">False</property>
                 <property name="hexpand">True</property>
                 <child type="title">
-                  <object class="GtkMenuButton" id="room_menu_button">
+                  <object class="GtkButton" id="room_panel_title">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="vexpand">true</property>
                     <property name="valign">fill</property>
-                    <property name="popover">room_popover</property>
+                    <property name="action_name">app.room_details</property>
                     <child>
                       <object class="GtkBox" id="room_details_box">
                         <property name="visible">True</property>
@@ -1095,22 +1095,12 @@
                                     <attributes>
                                       <attribute name="weight" value="bold"/>
                                     </attributes>
-                                    <accessibility>
-                                      <relation type="label-for" target="room_menu_button"/>
-                                    </accessibility>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
                                     <property name="fill">False</property>
                                     <property name="position">1</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="icon_name">pan-down-symbolic</property>
-                                  </object>
                                 </child>
                               </object>
                             </child>
@@ -1125,9 +1115,6 @@
                                 <attributes>
                                   <attribute name="font-desc" value="&lt;Introducir valor&gt; 8"/>
                                 </attributes>
-                                <accessibility>
-                                  <relation type="description-for" target="room_menu_button"/>
-                                </accessibility>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1155,44 +1142,23 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkMenuButton" id="members_menu_button">
+                  <object class="GtkMenuButton" id="room_menu_button">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="popover">members_popover</property>
+                    <property name="popover">room_popover</property>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkImage">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="orientation">horizontal</property>
-                        <property name="margin_left">3</property>
-                        <property name="margin_right">3</property>
-                        <property name="spacing">6</property>
-                        <child>
-                          <object class="GtkLabel" id="members_count">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label">?</property>
-                            <accessibility>
-                              <relation type="description-for" target="members_menu_button"/>
-                            </accessibility>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">system-users-symbolic</property>
-                          </object>
-                        </child>
+                        <property name="icon_name">view-more-symbolic</property>
                       </object>
                     </child>
                     <accessibility>
-                      <relation type="described-by" target="members_count"/>
                     </accessibility>
                     <child internal-child="accessible">
-                      <object class="AtkObject" id="a11y-members_menu_button">
-                        <property name="AtkObject::accessible_name" translatable="yes">Members</property>
+                      <object class="AtkObject" id="a11y-room_menu_button">
+                        <property name="AtkObject::accessible_name" translatable="yes">Room Menu</property>
                       </object>
                     </child>
                   </object>
