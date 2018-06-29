@@ -94,8 +94,8 @@ impl App {
             /* we have to overwrite the default behavior for valign of the title widget
              * since it is force to be centered */
             ui.builder
-            .get_object::<gtk::MenuButton>("room_menu_button")
-            .expect("Can't find back_button in ui file.").set_valign(gtk::Align::Fill);
+            .get_object::<gtk::Button>("room_panel_title")
+            .expect("Can't find room_panel_title in ui file.").set_valign(gtk::Align::Fill);
 
             let stack = ui.builder
                 .get_object::<gtk::Stack>("main_content_stack")
