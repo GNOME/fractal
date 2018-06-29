@@ -59,10 +59,10 @@ impl AppOp {
             self.get_direct_partner_uid(members.clone())
         } else {
             /* we don't have private groups yet
-               let description = Some(format!("Private Group - {} members", members.len()));
+               let description = Some(format!("Private Group · {} members", members.len()));
                */
-            //Some(format!("Public Room - {} members", members.len()))
-            Some(format!("Room - {} members", members.len()))
+            //Some(format!("Public Room · {} members", members.len()))
+            Some(format!("Room · {} members", members.len()))
         };
 
         self.room_settings_show_avatar(avatar, edit);
