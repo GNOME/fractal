@@ -11,6 +11,10 @@ use error::Error;
 use fractal_api::util::cache_path;
 use globals;
 
+/* includes for avatar download */
+use backend::BKCommand;
+use std::sync::mpsc::Sender;
+
 use types::Message;
 
 #[derive(Serialize, Deserialize)]
@@ -70,4 +74,9 @@ pub fn load() -> Result<CacheData, Error> {
 pub fn destroy() -> Result<(), Error> {
     let fname = cache_path("")?;
     remove_dir_all(fname).or_else(|_| Err(Error::CacheError))
+}
+
+/* this downloads a avatar and stores it in the cache folder */
+pub fn download_to_cache(backend: Sender<BKCommand>, name: String) {
+    let _ = backend.send(BKCommand::GetUserInfoAsync(name.clone(), None));
 }

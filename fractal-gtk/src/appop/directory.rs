@@ -123,6 +123,9 @@ impl AppOp {
         }
 
         for r in self.directory.iter() {
+            /* we already have the url of the avatar therefore we could directly request it or move
+             * this call to fractal-matrix-api*/
+           // let _ = self.backend.send(BKCommand::GetRoomAvatar(r.id.clone()));
             let rb = widgets::RoomBox::new(&r, &self);
             let room_widget = rb.widget();
             directory.add(&room_widget);

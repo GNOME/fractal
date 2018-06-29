@@ -1,21 +1,14 @@
 extern crate pango;
 extern crate gtk;
-extern crate gdk_pixbuf;
 
-use self::gdk_pixbuf::Pixbuf;
 use self::gtk::prelude::*;
 
 use types::Member;
 
-use backend::BKCommand;
-
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc::TryRecvError;
-
 use appop::AppOp;
 
 use globals;
+use cache::download_to_cache;
 use widgets;
 use widgets::AvatarExt;
 
@@ -61,10 +54,10 @@ impl<'a> MemberBox<'a> {
             style.add_class("member");
         }
 
+        download_to_cache(backend.clone(), self.member.uid.clone());
         let avatar = widgets::Avatar::avatar_new(Some(globals::USERLIST_ICON_SIZE));
-        avatar.default(String::from("avatar-default-symbolic"),
-                       Some(globals::USERLIST_ICON_SIZE));
-        get_member_info(backend.clone(), avatar.clone(), username.clone(), self.member.uid.clone(), globals::USERLIST_ICON_SIZE, 10);
+        avatar.circle(self.member.uid.clone(), Some(alias.clone()), globals::USERLIST_ICON_SIZE);
+        //get_member_info(backend.clone(), avatar.clone(), username.clone(), self.member.uid.clone(), globals::USERLIST_ICON_SIZE, 10);
         avatar.set_margin_start(3);
         avatar.set_valign(gtk::Align::Center);
 
@@ -98,70 +91,4 @@ impl<'a> MemberBox<'a> {
         event_box.show_all();
         event_box
     }
-}
-
-#[allow(dead_code)]
-pub fn get_member_avatar(backend: Sender<BKCommand>,
-                         img: widgets::Avatar,
-                         m: Option<Member>,
-                         size: i32, tries: i32) {
-    if tries <= 0 {
-        return;
-    }
-
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend.send(BKCommand::GetAvatarAsync(m.clone(), tx)).unwrap();
-    gtk::timeout_add(100, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
-        Ok(avatar) => {
-            if let Ok(_) = Pixbuf::new_from_file_at_scale(&avatar, size, size, false) {
-                img.circle(avatar, Some(size));
-            } else {
-                // trying again if fail
-                img.default(String::from("avatar-default-symbolic"), Some(size));
-                get_member_avatar(backend.clone(), img.clone(), m.clone(), size, tries - 1);
-            }
-
-            gtk::Continue(false)
-        }
-    });
-}
-
-
-
-pub fn get_member_info(backend: Sender<BKCommand>,
-                       img: widgets::Avatar,
-                       username: gtk::Label,
-                       sender: String,
-                       size: i32, tries: i32) {
-
-    if tries <= 0 {
-        return;
-    }
-
-    let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-    backend.send(BKCommand::GetUserInfoAsync(sender.clone(), tx)).unwrap();
-    gtk::timeout_add(100, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
-        Ok((name, avatar)) => {
-            if let Ok(_) = Pixbuf::new_from_file_at_scale(&avatar, size, size, false) {
-                img.circle(avatar, Some(size));
-            } else {
-                // trying again if fail
-                img.default(String::from("avatar-default-symbolic"), Some(size));
-                get_member_info(backend.clone(), img.clone(), username.clone(), sender.clone(), size, tries - 1);
-                return gtk::Continue(false);
-            }
-
-            if !name.is_empty() {
-                username.set_text(&name);
-            } else {
-                get_member_info(backend.clone(), img.clone(), username.clone(), sender.clone(), size, tries - 1);
-            }
-
-            gtk::Continue(false)
-        }
-    });
 }

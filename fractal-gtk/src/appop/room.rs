@@ -1,5 +1,4 @@
 extern crate gtk;
-extern crate gdk_pixbuf;
 extern crate rand;
 
 use i18n::{i18n, i18n_k};
@@ -17,14 +16,12 @@ use backend::BKCommand;
 use globals;
 use cache;
 use widgets;
-use widgets::AvatarExt;
 
 use types::Room;
 use types::Message;
 
 use util::markup_text;
 
-use self::gdk_pixbuf::Pixbuf;
 use self::rand::{thread_rng, Rng};
 
 
@@ -419,7 +416,7 @@ impl AppOp {
         };
     }
 
-    pub fn set_current_room_avatar(&self, avatar: Option<String>, size: i32) {
+    pub fn set_current_room_avatar(&self, _avatar: Option<String>, _size: i32) {
         let image = self.ui.builder
             .get_object::<gtk::Box>("room_image")
             .expect("Can't find room_image in ui file.");
@@ -427,6 +424,8 @@ impl AppOp {
             image.remove(&ch);
         }
 
+        /*
+         * This will be removed soon.
         let config = self.ui.builder
             .get_object::<gtk::Image>("room_avatar_image")
             .expect("Can't find room_avatar_image in ui file.");
@@ -442,6 +441,7 @@ impl AppOp {
             image.add(&w);
             config.set_from_icon_name("camera-photo-symbolic", 1);
         }
+        */
     }
 
     pub fn filter_rooms(&self, term: Option<String>) {

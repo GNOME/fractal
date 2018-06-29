@@ -1,25 +1,27 @@
 extern crate gtk;
 extern crate gdk;
+extern crate glib;
 extern crate gdk_pixbuf;
 extern crate cairo;
+extern crate letter_avatar;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use self::gtk::prelude::*;
 pub use self::gtk::DrawingArea;
 use self::gdk_pixbuf::Pixbuf;
 use self::gdk_pixbuf::PixbufExt;
 use self::gdk::ContextExt;
-
+use fractal_api::util::cache_path;
 
 pub type Avatar = gtk::Box;
 
 pub trait AvatarExt {
     fn avatar_new(size: Option<i32>) -> gtk::Box;
-    fn circle_avatar(path: String, size: Option<i32>) -> gtk::Box;
     fn clean(&self);
     fn create_da(&self, size: Option<i32>) -> DrawingArea;
-
-    fn circle(&self, path: String, size: Option<i32>);
-    fn default(&self, icon: String, size: Option<i32>);
+    fn circle(&self, uid: String, username: Option<String>, size: i32);
 }
 
 impl AvatarExt for gtk::Box {
@@ -51,101 +53,71 @@ impl AvatarExt for gtk::Box {
         b
     }
 
-    fn circle_avatar(path: String, size: Option<i32>) -> gtk::Box {
-        let b = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        b.create_da(size);
-        b.circle(path, size);
-        b.show_all();
-        if let Some(style) = b.get_style_context() {
-            style.add_class("avatar");
+    fn circle(&self, uid: String, username: Option<String>, size: i32) {
+        struct Data {
+            cache : Result<Pixbuf, glib::Error>,
+            fallback: cairo::ImageSurface
         }
 
-        b
-    }
-
-    fn default(&self, icon: String, size: Option<i32>) {
         self.clean();
-        let da = self.create_da(size);
-        let s = size.unwrap_or(40);
-
-        let pixbuf = match gtk::IconTheme::get_default() {
-            None => None,
-            Some(i1) => match i1.load_icon(&icon[..], s, gtk::IconLookupFlags::empty()) {
-                Err(_) => None,
-                Ok(i2) => i2,
-            }
+        let da = self.create_da(Some(size));
+        let path = cache_path(&uid).unwrap_or(String::from(""));
+        let user_avatar = Pixbuf::new_from_file_at_scale(&path, size, -1, true);
+        /* remove IRC postfix from the username */
+        let username =  if let Some(u) = username {
+            Some(u.trim_right_matches(" (IRC)").to_owned())
+        }else {
+            None
         };
+        /* This function should never fail */
+        let fallback = letter_avatar::generate::new(uid, username, size as f64).unwrap();
 
+        let user_cache: Rc<RefCell<Data>> = Rc::new(RefCell::new(Data {cache: user_avatar, fallback: fallback}));
+
+        let user_cache = user_cache.clone();
         da.connect_draw(move |da, g| {
             use std::f64::consts::PI;
+            let width = size as f64;
+            let height = size as f64;
 
-            let width = s as f64;
-            let height = s as f64;
-
-            let context = da.get_style_context().unwrap();
-
-            gtk::render_background(&context, g, 0.0, 0.0, width, height);
-
-            if let Some(ref pb) = pixbuf {
-                let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
-
-                g.arc(width / 2.0, height / 2.0, width.min(height) / 2.5, 0.0, 2.0 * PI);
-                g.clip();
-
-                g.set_source_pixbuf(&pb, 0.0, hpos);
-                g.rectangle(0.0, 0.0, width, height);
-                g.fill();
-            }
-
-            Inhibit(false)
-        });
-    }
-
-    fn circle(&self, path: String, size: Option<i32>) {
-        if path.starts_with("mxc:") {
-            self.default(String::from("image-loading-symbolic"), size);
-            return;
-        }
-
-        self.clean();
-        let da = self.create_da(size);
-        let s = size.unwrap_or(40);
-
-        let pixbuf = Pixbuf::new_from_file_at_scale(&path, s, -1, true);
-
-        da.connect_draw(move |da, g| {
-            use std::f64::consts::PI;
             g.set_antialias(cairo::Antialias::Best);
 
-            let width = s as f64;
-            let height = s as f64;
+            {
+                let data = user_cache.borrow();
+                if let Ok(ref pb) = data.cache {
+                    let context = da.get_style_context().unwrap();
+                    gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-            let context = da.get_style_context().unwrap();
+                    g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
+                    g.clip();
 
-            gtk::render_background(&context, g, 0.0, 0.0, width, height);
-
-            if let Ok(ref pb) = pixbuf {
-                let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
-
-                g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
-                g.clip();
-
-                g.set_source_pixbuf(&pb, 0.0, hpos);
-                g.rectangle(0.0, 0.0, width, height);
-                g.fill();
+                    let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
+                    g.set_source_pixbuf(&pb, 0.0, hpos);
+                } else {
+                    /* use fallback */
+                    g.set_source_surface(&data.fallback, 0f64, 0f64);
+                }
             }
+            /* we should look into the cache only if the cache has changed, but this information is
+             * not yet available, we could also create our own signal and not use the draw signal*/
+            {
+                let mut data = user_cache.borrow_mut();
+                let new_avatar = Pixbuf::new_from_file_at_scale(&path, size, -1, true);
+                data.cache = new_avatar; 
+            }
+
+            g.rectangle(0.0, 0.0, width, height);
+            g.fill();
 
             Inhibit(false)
         });
     }
 }
-
 
 pub enum AdminColor {
     Gold,
     Silver,
 }
-
 
 pub fn admin_badge(kind: AdminColor, size: Option<i32>) -> gtk::DrawingArea {
     let s = size.unwrap_or(10);

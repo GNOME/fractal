@@ -44,7 +44,7 @@ impl AppOp {
         body.truncate(80);
 
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-        self.backend.send(BKCommand::GetUserInfoAsync(msg.sender.clone(), tx)).unwrap();
+        self.backend.send(BKCommand::GetUserInfoAsync(msg.sender.clone(), Some(tx))).unwrap();
         let bk = self.internal.clone();
         let m = msg.clone();
         gtk::timeout_add(50, move || match rx.try_recv() {

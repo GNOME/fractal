@@ -12,6 +12,8 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 
 use util::json_q;
+use util::dw_media;
+use util::cache_path;
 
 use types::Room;
 use types::Protocol;
@@ -74,6 +76,7 @@ pub fn room_search(bk: &Backend,
     }
 
     let url = bk.url("publicRooms", params)?;
+    let base = bk.get_base_url()?;
 
     let mut attrs = json!({"limit": globals::ROOM_DIRECTORY_LIMIT});
 
@@ -104,13 +107,19 @@ pub fn room_search(bk: &Backend,
                 let alias = String::from(room["canonical_alias"].as_str().unwrap_or(""));
                 let id = String::from(room["room_id"].as_str().unwrap_or(""));
                 let name = String::from(room["name"].as_str().unwrap_or(""));
-                let mut r = Room::new(id, Some(name));
+                let mut r = Room::new(id.clone(), Some(name));
                 r.alias = Some(alias);
                 r.avatar = Some(String::from(room["avatar_url"].as_str().unwrap_or("")));
                 r.topic = Some(String::from(room["topic"].as_str().unwrap_or("")));
                 r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
                 r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
                 r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
+                /* download the avatar */
+                if let Some(avatar) = r.avatar.clone() {
+                    if let Ok(dest) = cache_path(&id) {
+                        media!(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
+                    }
+                }
                 rooms.push(r);
             }
 
