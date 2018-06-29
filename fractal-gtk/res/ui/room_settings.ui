@@ -199,7 +199,7 @@
                         <property name="label" translatable="yes">No room description</property>
                         <property name="margin_bottom">24</property>
                         <style>
-                          <class name="room-settings-type"/>
+                          <class name="dim-label"/>
                         </style>
                       </object>
                       <packing>
