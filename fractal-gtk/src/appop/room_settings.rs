@@ -76,6 +76,7 @@ impl AppOp {
         self.room_settings_show_group_room(is_room || is_group);
         self.room_settings_show_admin_groupe(is_group && edit);
         self.room_settings_show_admin_room(is_room && edit);
+        self.room_settings_hide_not_implemented_widgets();
 
         None
     }
@@ -444,6 +445,41 @@ impl AppOp {
         button.hide();
         entry.set_editable(true);
         self.reset_action_button(button);
+    }
+
+    fn room_settings_hide_not_implemented_widgets(&self) -> Option<()> {
+        let notification = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_notification_sounds")
+            .expect("Can't find room_settings_notification_sounds in ui file.");
+        let media = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_media")
+            .expect("Can't find room_settings_media in ui file.");
+        let switch = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_notification_switch")
+            .expect("Can't find room_settings_notification_switch in ui file.");
+        let history = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_history_visibility")
+            .expect("Can't find room_settings_history_visibility in ui file.");
+        let join = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_join")
+            .expect("Can't find room_settings_join in ui file.");
+        let room = self.ui
+            .builder
+            .get_object::<gtk::Frame>("room_settings_room_visibility")
+            .expect("Can't find room_settings_room_visibility in ui file.");
+        notification.hide();
+        media.hide();
+        switch.hide();
+        history.hide();
+        room.hide();
+        join.hide();
+
+        None
     }
 
     fn room_settings_show_members(&self, members: Vec<Member>) -> Option<()> {
