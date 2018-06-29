@@ -112,6 +112,15 @@ impl AvatarExt for gtk::Box {
         let s = size.unwrap_or(40);
 
         let pixbuf = Pixbuf::new_from_file_at_scale(&path, s, -1, true);
+        let icon = "avatar-default-symbolic";
+        let fallback = match gtk::IconTheme::get_default() {
+            None => None,
+            Some(i1) => match i1.load_icon(&icon[..], s, gtk::IconLookupFlags::empty()) {
+                Err(_) => None,
+                Ok(i2) => i2,
+            }
+        };
+
 
         da.connect_draw(move |da, g| {
             use std::f64::consts::PI;
@@ -124,22 +133,27 @@ impl AvatarExt for gtk::Box {
 
             gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
+
+            g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
+            g.clip();
+
             if let Ok(ref pb) = pixbuf {
                 let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
-
-                g.arc(width / 2.0, height / 2.0, width.min(height) / 2.0, 0.0, 2.0 * PI);
-                g.clip();
-
                 g.set_source_pixbuf(&pb, 0.0, hpos);
-                g.rectangle(0.0, 0.0, width, height);
-                g.fill();
+            } else {
+                if let Some(ref pb) = fallback {
+                    let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
+                    g.set_source_pixbuf(&pb, 0.0, hpos);
+                }
             }
+
+            g.rectangle(0.0, 0.0, width, height);
+            g.fill();
 
             Inhibit(false)
         });
     }
 }
-
 
 pub enum AdminColor {
     Gold,
