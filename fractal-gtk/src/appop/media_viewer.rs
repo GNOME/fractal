@@ -228,6 +228,17 @@ impl AppOp {
         headerbar_revealer.add_events(8192);
 
         stack_header.remove(&media_viewer_headerbar_box);
+
+        let media_viewer_headerbar = self.ui.builder
+            .get_object::<gtk::HeaderBar>("media_viewer_headerbar")
+            .expect("Can't find media_viewer_headerbar in ui file.");
+        let media_viewer_back_button = self.ui.builder
+            .get_object::<gtk::Button>("media_viewer_back_button")
+            .expect("Can't find media_viewer_back_button in ui file.");
+
+        media_viewer_headerbar.remove(&media_viewer_back_button);
+        media_viewer_headerbar.set_show_close_button(false);
+
         headerbar_revealer.add(&media_viewer_headerbar_box);
 
         self.update_media_viewport();
@@ -252,6 +263,18 @@ impl AppOp {
         if let Some(ch) = headerbar_revealer.get_child() {
             headerbar_revealer.remove(&ch);
         }
+
+        let media_viewer_headerbar = self.ui.builder
+            .get_object::<gtk::HeaderBar>("media_viewer_headerbar")
+            .expect("Can't find media_viewer_headerbar in ui file.");
+        let media_viewer_back_button = self.ui.builder
+            .get_object::<gtk::Button>("media_viewer_back_button")
+            .expect("Can't find media_viewer_back_button in ui file.");
+
+        media_viewer_headerbar.pack_start(&media_viewer_back_button);
+        media_viewer_headerbar.set_child_position(&media_viewer_back_button, 0);
+        media_viewer_headerbar.set_show_close_button(true);
+
         stack_header.add_named(&media_viewer_headerbar_box, "media-viewer");
         stack_header.set_visible_child_name("media-viewer");
 
