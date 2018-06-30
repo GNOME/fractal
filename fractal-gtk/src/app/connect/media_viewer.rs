@@ -39,11 +39,21 @@ impl App {
         });
 
         let op = self.op.clone();
+        let ui = self.ui.clone();
         let full_screen_button = self.ui.builder
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
         full_screen_button.connect_clicked(move |_| {
-            op.lock().unwrap().enter_full_screen();
+            let main_window = ui.builder
+                .get_object::<gtk::Window>("main_window")
+                .expect("Cant find main_window in ui file.");
+            if let Some(win) = main_window.get_window() {
+                if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
+                    op.lock().unwrap().enter_full_screen();
+                } else {
+                    op.lock().unwrap().leave_full_screen()
+                }
+            }
         });
 
         let op = self.op.clone();
