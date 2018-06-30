@@ -4,6 +4,8 @@ extern crate gdk;
 
 use self::gtk::prelude::*;
 use self::gdk::WindowExt;
+use self::gdk::DisplayExt;
+use self::gdk::SeatExt;
 
 use glib;
 use std::sync::{Arc, Mutex};
@@ -97,6 +99,22 @@ impl App {
                 let mut id = source_id.lock().unwrap();
                 if let Some(sid) = id.take() {
                     glib::source::source_remove(sid);
+                }
+            }
+
+            let main_window = ui.builder
+                .get_object::<gtk::Window>("main_window")
+                .expect("Cant find main_window in ui file.");
+            if let Some(win) = main_window.get_window() {
+                if let Some(disp) = gdk::Display::get_default() {
+                    if let Some(seat) = disp.get_default_seat() {
+                        if let Some(ptr) = seat.get_pointer() {
+                            let (_, _, y, _) = win.get_device_position(&ptr);
+                            if y <= 6 && win.get_state().contains(gdk::WindowState::FULLSCREEN) {
+                                headerbar_revealer.set_reveal_child(true);
+                            }
+                        }
+                    }
                 }
             }
 
