@@ -222,6 +222,10 @@ impl AppOp {
         let headerbar_revealer = self.ui.builder
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
+        // gdk::EventMask::ENTER_NOTIFY_MASK = 4096
+        headerbar_revealer.add_events(4096);
+        // gdk::EventMask::LEAVE_NOTIFY_MASK = 8192
+        headerbar_revealer.add_events(8192);
 
         stack_header.remove(&media_viewer_headerbar_box);
         headerbar_revealer.add(&media_viewer_headerbar_box);

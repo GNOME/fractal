@@ -57,19 +57,36 @@ impl App {
 
     pub fn connect_media_viewer_box(&self) {
         let ui = self.ui.clone();
-        let hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+        let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+        let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+
+        let headerbar_revealer = ui.builder
+            .get_object::<gtk::Revealer>("headerbar_revealer")
+            .expect("Can't find headerbar_revealer in ui file.");
+
+        headerbar_revealer.connect_enter_notify_event(clone!(header_hovered => move |_, _| {
+            *(header_hovered.lock().unwrap()) = true;
+
+            Inhibit(false)
+        }));
+
+        headerbar_revealer.connect_leave_notify_event(clone!(header_hovered => move |_, _| {
+            *(header_hovered.lock().unwrap()) = false;
+
+            Inhibit(false)
+        }));
 
         let previous_media_button = ui.builder
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
 
-        previous_media_button.connect_enter_notify_event(clone!(hovered => move |_, _| {
-            *(hovered.lock().unwrap()) = true;
+        previous_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
+            *(nav_hovered.lock().unwrap()) = true;
 
             Inhibit(false)
         }));
-        previous_media_button.connect_leave_notify_event(clone!(hovered => move |_, _| {
-            *(hovered.lock().unwrap()) = false;
+        previous_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
+            *(nav_hovered.lock().unwrap()) = false;
 
             Inhibit(false)
         }));
@@ -78,13 +95,13 @@ impl App {
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
 
-        next_media_button.connect_enter_notify_event(clone!(hovered => move |_, _| {
-            *(hovered.lock().unwrap()) = true;
+        next_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
+            *(nav_hovered.lock().unwrap()) = true;
 
             Inhibit(false)
         }));
-        next_media_button.connect_leave_notify_event(clone!(hovered => move |_, _| {
-            *(hovered.lock().unwrap()) = false;
+        next_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
+            *(nav_hovered.lock().unwrap()) = false;
 
             Inhibit(false)
         }));
@@ -128,8 +145,15 @@ impl App {
                 .expect("Cant find next_media_revealer in ui file.");
             next_media_revealer.set_reveal_child(true);
 
-            let sid = gtk::timeout_add(1000, clone!(ui, hovered, source_id => move || {
-                if !*hovered.lock().unwrap() {
+            let sid = gtk::timeout_add(1000, clone!(ui, header_hovered, nav_hovered, source_id => move || {
+                if !*header_hovered.lock().unwrap() {
+                    let headerbar_revealer = ui.builder
+                        .get_object::<gtk::Revealer>("headerbar_revealer")
+                        .expect("Can't find headerbar_revealer in ui file.");
+                    headerbar_revealer.set_reveal_child(false);
+                }
+
+                if !*nav_hovered.lock().unwrap() {
                     let previous_media_revealer = ui.builder
                         .get_object::<gtk::Revealer>("previous_media_revealer")
                         .expect("Cant find previous_media_revealer in ui file.");
