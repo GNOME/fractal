@@ -30,6 +30,26 @@
           </packing>
         </child>
         <child type="overlay">
+          <object class="GtkOverlay" id="headerbar_overlay">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="valign">start</property>
+            <child>
+              <object class="GtkRevealer" id="headerbar_revealer">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="index">-1</property>
+              </packing>
+            </child>
+          </object>
+        </child>
+        <child type="overlay">
           <object class="GtkOverlay" id="previous_media_overlay">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
