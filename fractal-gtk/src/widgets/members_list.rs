@@ -47,8 +47,15 @@ impl MembersList {
     }
 
     /* removes the content of the row with index i */
-    pub fn update(&self, i: usize) -> Option<()> {
-        let widget = self.container.get_row_at_index(i as i32)?;
+    pub fn update(&self, uid: String) -> Option<()> {
+        let mut index = None;
+        for (i, member) in self.members.iter().enumerate() {
+            if member.uid == uid {
+                index = Some(i);
+                break;
+            }
+        }
+        let widget = self.container.get_row_at_index(index? as i32)?;
         let child = widget.get_child()?;
         widget.remove(&child);
         /* We don't need to create a new widget because the draw signal
@@ -67,7 +74,7 @@ impl MembersList {
                 members.clone(),
                 error.clone(),
                 w.get_text(),
-            );
+                );
         });
         /* we need to remove the handler when the member list is destroyed */
         let id: Rc<RefCell<Option<signal::SignalHandlerId>>> = Rc::new(RefCell::new(Some(id)));

@@ -17,7 +17,6 @@ mod markdown;
 mod media_viewer;
 mod more_members;
 mod new_room;
-mod room_config;
 mod roomlist_search;
 mod scroll;
 mod search;
@@ -82,7 +81,6 @@ impl App {
         self.connect_spellcheck();
 
         self.connect_directory();
-        self.connect_room_config();
         self.connect_leave_room_dialog();
         self.connect_new_room_dialog();
         self.connect_join_room_dialog();
