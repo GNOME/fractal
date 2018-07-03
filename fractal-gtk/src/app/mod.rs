@@ -114,16 +114,6 @@ impl App {
             stack.add_named(&child, "account-settings");
             stack_header.add_named(&child_header, "account-settings");
 
-            /* Add room settings view to the main stack */
-            let child = ui.builder
-                .get_object::<gtk::Box>("room_settings_box")
-                .expect("Can't find room_settings_box in ui file.");
-            let child_header = ui.builder
-                .get_object::<gtk::Box>("room_settings_headerbar")
-                .expect("Can't find room_settings_headerbar in ui file.");
-            stack.add_named(&child, "room-settings");
-            stack_header.add_named(&child_header, "room-settings");
-
             /* Add media viewer to the main stack */
             let child = ui.builder
                 .get_object::<gtk::Box>("media_viewer_box")
