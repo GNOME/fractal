@@ -379,18 +379,7 @@ impl AppOp {
         };
     }
 
-    pub fn set_current_room_avatar(&self, _avatar: Option<String>, size: i32) {
-        let image = self.ui.builder
-            .get_object::<gtk::Box>("room_image")
-            .expect("Can't find room_image in ui file.");
-        for ch in image.get_children() {
-            image.remove(&ch);
-        }
-
-        download_to_cache(self.backend.clone(), self.uid.clone().unwrap_or_default());
-        let w = widgets::Avatar::avatar_new(Some(size));
-        w.circle(self.uid.clone().unwrap_or_default(), self.username.clone(), size);
-        image.add(&w);
+    pub fn set_current_room_avatar(&self, _avatar: Option<String>, _size: i32) {
     }
 
     pub fn filter_rooms(&self, term: Option<String>) {
