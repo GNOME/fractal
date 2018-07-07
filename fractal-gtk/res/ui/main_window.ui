@@ -539,9 +539,32 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkListBox" id="directory_room_list">
-                        <property name="visible">True</property>
+                      <object class="GtkStack" id="directory_stack">
                         <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkListBox" id="directory_room_list">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="directory_spinner">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkSpinner">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="active">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
