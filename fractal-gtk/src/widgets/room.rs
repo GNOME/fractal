@@ -34,7 +34,18 @@ impl<'a> RoomBox<'a> {
         }
     }
 
-    pub fn widget(&self) -> gtk::Box {
+    pub fn widget(&self) -> gtk::ListBoxRow {
+        let row = gtk::ListBoxRow::new();
+        let room_box = self.build_room_box();
+
+        row.set_selectable(false);
+        row.add(&room_box);
+        row.show_all();
+
+        row
+    }
+
+    fn build_room_box(&self) -> gtk::Box {
         let room = self.room;
 
         let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
