@@ -82,10 +82,13 @@ impl AppOp {
                 directory.remove(&ch);
             }
 
-            let spinner = gtk::Spinner::new();
-            spinner.start();
-            spinner.show();
-            directory.add(&spinner);
+            let directory_stack = self.ui.builder
+                .get_object::<gtk::Stack>("directory_stack")
+                .expect("Can't find directory_stack in ui file.");
+            let directory_spinner = self.ui.builder
+                .get_object::<gtk::Box>("directory_spinner")
+                .expect("Can't find directory_spinner in ui file.");
+            directory_stack.set_visible_child(&directory_spinner);
 
             self.directory.clear();
 
@@ -116,11 +119,13 @@ impl AppOp {
             .expect("Can't find directory_room_list in ui file.");
         directory.get_style_context().map(|c| c.add_class("room-directory"));
 
-        if directory.get_children().len() == 1 {
-            for ch in directory.get_children().iter().take(1) {
-                directory.remove(ch);
-            }
-        }
+        let directory_stack = self.ui.builder
+            .get_object::<gtk::Stack>("directory_stack")
+            .expect("Can't find directory_stack in ui file.");
+        let directory_room_list = self.ui.builder
+            .get_object::<gtk::ListBox>("directory_room_list")
+            .expect("Can't find directory_room_list in ui file.");
+        directory_stack.set_visible_child(&directory_room_list);
 
         for r in self.directory.iter() {
             let rb = widgets::RoomBox::new(&r, &self);
@@ -140,13 +145,12 @@ impl AppOp {
             .expect("Can't find directory_search_entry in ui file.");
         q.set_sensitive(true);
 
-        let directory = self.ui.builder
+        let directory_stack = self.ui.builder
+            .get_object::<gtk::Stack>("directory_stack")
+            .expect("Can't find directory_stack in ui file.");
+        let directory_room_list = self.ui.builder
             .get_object::<gtk::ListBox>("directory_room_list")
             .expect("Can't find directory_room_list in ui file.");
-        if directory.get_children().len() == 1 {
-            for ch in directory.get_children().iter().take(1) {
-                directory.remove(ch);
-            }
-        }
+        directory_stack.set_visible_child(&directory_room_list);
     }
 }
