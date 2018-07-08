@@ -247,6 +247,7 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         let room = join.get(k).ok_or(Error::BackendError)?;
         let stevents = &room["state"]["events"];
         let timeline = &room["timeline"];
+        let ephemeral = &room["ephemeral"];
         let dataevs = &room["account_data"]["events"];
         let name = calculate_room_name(stevents, userid)?;
         let mut r = Room::new(k.clone(), name);
@@ -273,6 +274,10 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         if let Some(evs) = timeline["events"].as_array() {
             let ms = Message::from_json_events_iter(k.clone(), evs.iter());
             r.messages.extend(ms);
+        }
+
+        if let Some(evs) = ephemeral["events"].as_array() {
+            r.add_receipt_from_json(evs.into_iter().filter(|ev| ev["type"] == "m.receipt").collect::<Vec<&JsonValue>>());
         }
 
         let mevents = stevents.as_array().unwrap()
