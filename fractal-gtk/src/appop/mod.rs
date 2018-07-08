@@ -158,7 +158,6 @@ impl AppOp {
         if let Ok(data) = cache::load() {
             let r: Vec<Room> = data.rooms.values().cloned().collect();
             self.set_rooms(&r, None);
-            self.last_viewed_messages = data.last_viewed_messages;
             self.since = Some(data.since);
             self.username = Some(data.username);
             self.uid = Some(data.uid);

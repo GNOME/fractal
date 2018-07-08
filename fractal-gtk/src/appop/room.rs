@@ -330,7 +330,7 @@ impl AppOp {
 
     pub fn cache_rooms(&self) {
         // serializing rooms
-        if let Err(_) = cache::store(&self.rooms, self.last_viewed_messages.clone(), self.since.clone().unwrap_or_default(), self.username.clone().unwrap_or_default(), self.uid.clone().unwrap_or_default()) {
+        if let Err(_) = cache::store(&self.rooms, self.since.clone().unwrap_or_default(), self.username.clone().unwrap_or_default(), self.uid.clone().unwrap_or_default()) {
             println!("Error caching rooms");
         };
     }
