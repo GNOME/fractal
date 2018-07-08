@@ -4,6 +4,7 @@ extern crate tree_magic;
 use i18n::i18n;
 
 use std::path::Path;
+use std::collections::HashMap;
 
 use gtk;
 use gtk::prelude::*;
@@ -316,6 +317,7 @@ impl AppOp {
             id: None,
             formatted_body: None,
             format: None,
+            receipt: HashMap::new(),
         };
 
         if msg.starts_with("/me ") {
@@ -381,6 +383,7 @@ impl AppOp {
             id: None,
             formatted_body: None,
             format: None,
+            receipt: HashMap::new(),
         };
 
         m.id = Some(m.get_txn_id());

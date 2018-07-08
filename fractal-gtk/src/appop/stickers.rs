@@ -21,6 +21,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::TryRecvError;
 
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 use app::InternalCommand;
 use appop::AppOp;
@@ -198,6 +199,7 @@ impl AppOp {
             thumb: Some(sticker.thumbnail.clone()),
             formatted_body: None,
             format: None,
+            receipt: HashMap::new(),
         };
 
         self.add_tmp_room_message(msg);

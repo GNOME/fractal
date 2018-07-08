@@ -4,6 +4,7 @@ extern crate serde_json;
 extern crate time;
 use self::chrono::prelude::*;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use self::serde_json::Value as JsonValue;
 use self::time::Duration;
 
@@ -20,6 +21,7 @@ pub struct Message {
     pub id: Option<String>,
     pub formatted_body: Option<String>,
     pub format: Option<String>,
+    pub receipt: HashMap<String, i64>, // This `HashMap` associates the user ID with a timestamp
 }
 
 impl Clone for Message {
@@ -35,6 +37,7 @@ impl Clone for Message {
             id: self.id.clone(),
             formatted_body: self.formatted_body.clone(),
             format: self.format.clone(),
+            receipt: self.receipt.clone(),
         }
     }
 }
@@ -52,6 +55,7 @@ impl Default for Message {
             id: None,
             formatted_body: None,
             format: None,
+            receipt: HashMap::new(),
         }
     }
 }
@@ -138,6 +142,7 @@ impl Message {
             thumb: None,
             formatted_body: None,
             format: None,
+            receipt: HashMap::new(),
         };
 
         let c = &msg["content"];
