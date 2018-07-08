@@ -45,6 +45,8 @@ impl AppOp {
         for r in rooms.iter() {
             self.backend.send(BKCommand::GetRoomAvatar(r.id.clone())).unwrap();
         }
+
+        self.set_last_viewed_messages();
     }
 
     pub fn new_rooms(&mut self, rooms: Vec<Room>) {
@@ -66,6 +68,8 @@ impl AppOp {
                 self.remove_room(r.id.clone());
             }
         }
+
+        self.set_last_viewed_messages();
     }
 
     pub fn remove_room(&mut self, id: String) {

@@ -238,6 +238,20 @@ impl AppOp {
         }
     }
 
+    pub fn set_last_viewed_messages(&mut self) {
+        if let Some(uid) = self.uid.clone() {
+            for room in self.rooms.values() {
+                let roomid = room.id.clone();
+
+                if !self.last_viewed_messages.contains_key(&roomid) {
+                    if let Some(lvm) = room.messages.iter().filter(|msg| msg.receipt.contains_key(&uid) && msg.id.is_some()).next() {
+                        self.last_viewed_messages.insert(roomid, lvm.id.clone().unwrap_or_default());
+                    }
+                }
+            }
+        }
+    }
+
     pub fn mark_as_read(&mut self, msg: &Message, Force(force): Force) {
         let window: gtk::Window = self.ui.builder
             .get_object("main_window")
