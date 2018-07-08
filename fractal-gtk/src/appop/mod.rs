@@ -13,7 +13,6 @@ use backend::BKCommand;
 use backend;
 
 use types::Member;
-use types::Message;
 use types::Room;
 use types::RoomList;
 use types::StickerGroup;
@@ -64,7 +63,7 @@ pub struct AppOp {
     pub msg_queue: Vec<TmpMsg>,
     pub sending_message: bool,
     shown_messages: usize,
-    pub last_viewed_messages: HashMap<String, Message>,
+    pub last_viewed_messages: HashMap<String, String>,
 
     pub username: Option<String>,
     pub uid: Option<String>,

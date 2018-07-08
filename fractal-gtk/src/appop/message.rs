@@ -95,7 +95,7 @@ impl AppOp {
 
     pub fn is_last_viewed(&self, msg: &Message) -> LastViewed {
         match self.last_viewed_messages.get(&msg.room) {
-            Some(lvm) if lvm == msg => {
+            Some(lvm_id) if msg.id.clone().map_or(false, |id| *lvm_id == id) => {
                 match self.rooms.get(&msg.room) {
                     Some(r) => {
                         match r.messages.last() {
@@ -243,7 +243,7 @@ impl AppOp {
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
         if window.is_active() || force {
-            self.last_viewed_messages.insert(msg.room.clone(), msg.clone());
+            self.last_viewed_messages.insert(msg.room.clone(), msg.id.clone().unwrap_or_default());
             self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
                                                     msg.id.clone().unwrap_or_default())).unwrap();
         }
