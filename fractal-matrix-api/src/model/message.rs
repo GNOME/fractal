@@ -217,4 +217,8 @@ impl Message {
         let diff = Duration::seconds(age / 1000);
         now - diff
     }
+
+    pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {
+        self.receipt = receipt;
+    }
 }

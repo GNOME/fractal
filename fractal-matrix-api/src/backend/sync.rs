@@ -35,7 +35,7 @@ pub fn sync(bk: &Backend) -> Result<(), Error> {
                     \"types\": [\"m.room.message\", \"m.sticker\"],
                     \"limit\": {}
                 }},
-                \"ephemeral\": {{ \"types\": [] }}
+                \"ephemeral\": {{ \"types\": [\"m.receipt\"] }}
             }},
             \"presence\": {{ \"types\": [] }},
             \"event_format\": \"client\",
