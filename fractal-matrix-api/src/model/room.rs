@@ -1,3 +1,7 @@
+extern crate serde_json;
+
+use self::serde_json::Value as JsonValue;
+
 use std::collections::HashMap;
 use model::message::Message;
 use model::member::MemberList;
@@ -49,6 +53,34 @@ impl Room {
             direct: false,
             inv_sender: None,
             power_levels: HashMap::new(),
+        }
+    }
+
+    pub fn add_receipt_from_json(&mut self, mut events: Vec<&JsonValue>) {
+        let receipts = events.pop().and_then(|ev| ev["content"].as_object()).and_then(|content| {
+            let mut msgs: HashMap<String, HashMap<String, i64>> = HashMap::new();
+
+            for (mid, obj) in content.iter() {
+                if let Some(reads) = obj["m.read"].as_object() {
+                    let mut receipts: HashMap<String, i64> = HashMap::new();
+
+                    for (uid, ts) in reads.iter() {
+                        receipts.insert(uid.to_string(), ts["ts"].as_i64().unwrap());
+                    }
+
+                    msgs.insert(mid.to_string(), receipts);
+                }
+            }
+
+            Some(msgs)
+        });
+
+        if let Some(receipts) = receipts.clone() {
+            for msg in self.messages.iter_mut() {
+                if let Some(r) = msg.id.clone().and_then(|id| receipts.get(&id)) {
+                    msg.set_receipt(r.clone());
+                }
+            }
         }
     }
 }
