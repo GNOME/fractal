@@ -203,18 +203,22 @@ impl AppOp {
 
                 m.set_focus_on_click(false);
 
+                if first_new && !self.new_message_marked {
+                    println!("[DEBUG] Marking: {:?}", msg);
+                    let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
+                    match msgpos {
+                        MsgPos::Bottom => messages.insert(&divider, -1),
+                        MsgPos::Top => messages.insert(&divider, 1),
+                    };
+
+                    self.new_message_marked = true;
+                }
+
                 match msgpos {
-                    MsgPos::Bottom => messages.add(&m),
+                    MsgPos::Bottom => messages.insert(&m, -1),
                     MsgPos::Top => messages.insert(&m, 1),
                 };
 
-                if last == LastViewed::Inline && msg.sender != self.uid.clone().unwrap_or_default() {
-                    let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
-                    match msgpos {
-                        MsgPos::Bottom => messages.add(&divider),
-                        MsgPos::Top => messages.insert(&divider, 2),
-                    };
-                }
                 self.shown_messages += 1;
             }
         }
