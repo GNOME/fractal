@@ -110,6 +110,46 @@ impl AppOp {
         }
     }
 
+    pub fn get_first_new_from_last(&self, last_msg: &Message) -> Option<&Message> {
+        match self.is_last_viewed(last_msg) {
+            LastViewed::Last | LastViewed::No => None,
+            LastViewed::Inline => {
+                self.rooms.get(&last_msg.room).and_then(|r| {
+                    r.messages.iter()
+                              .filter(|msg| *msg > last_msg && msg.sender !=
+                                      self.uid.clone().unwrap_or_default())
+                              .next()
+                })
+            }
+        }
+    }
+
+    pub fn get_msg_from_id(&self, roomid: &str, msg_id: &str) -> Option<&Message> {
+        let room = self.rooms.get(roomid);
+
+        room.and_then(|r| r.messages.iter()
+                                    .filter(|msg| msg.id.clone().unwrap_or_default() == msg_id)
+                                    .next())
+    }
+
+    pub fn is_first_new(&self, msg: &Message) -> bool {
+        let roomid = msg.room.clone();
+        let lvm = self.last_viewed_messages.get(&roomid);
+
+        lvm.map_or(false, |lvm_id| {
+            match self.get_msg_from_id(&roomid, &lvm_id) {
+                None => false,
+                Some(lvm) => {
+                    let first_new = self.get_first_new_from_last(lvm);
+
+                    first_new.map_or(false, |first_new| {
+                        *msg == *first_new
+                    })
+                }
+            }
+        })
+    }
+
     pub fn add_room_message(&mut self,
                             msg: Message,
                             msgpos: MsgPos,
