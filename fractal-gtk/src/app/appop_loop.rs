@@ -1,7 +1,6 @@
 use app::App;
 
 use appop::MsgPos;
-use appop::LastViewed;
 use appop::RoomPanel;
 
 use std::thread;
@@ -17,7 +16,7 @@ use types::StickerGroup;
 
 #[derive(Debug)]
 pub enum InternalCommand {
-    AddRoomMessage(Message, MsgPos, Option<Message>, bool, LastViewed),
+    AddRoomMessage(Message, MsgPos, Option<Message>, bool, bool),
     SetPanel(RoomPanel),
     NotifyClicked(Message),
     SelectRoom(Room),
@@ -41,8 +40,8 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
         loop {
             let recv = rx.recv();
             match recv {
-                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, last)) => {
-                    APPOP!(add_room_message, (msg, pos, prev, force_full, last));
+                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, first_new)) => {
+                    APPOP!(add_room_message, (msg, pos, prev, force_full, first_new));
                 }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));

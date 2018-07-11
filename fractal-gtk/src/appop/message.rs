@@ -155,7 +155,7 @@ impl AppOp {
                             msgpos: MsgPos,
                             prev: Option<Message>,
                             force_full: bool,
-                            last: LastViewed) {
+                            first_new: bool) {
         let msg_entry: gtk::Entry = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -512,7 +512,7 @@ impl AppOp {
                                                                   MsgPos::Top,
                                                                   None,
                                                                   i == msgs.len() - 1,
-                                                                  self.is_last_viewed(&msg));
+                                                                  self.is_first_new(&msg));
                     self.internal.send(command).unwrap();
                 }
                 self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
@@ -557,7 +557,7 @@ impl AppOp {
             }
 
             let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, prev, false,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new(&msg));
             self.internal.send(command).unwrap();
             prev = Some(msg.clone());
 
@@ -604,7 +604,7 @@ impl AppOp {
             };
 
             let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Top, prev, false,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new(&msg));
             self.internal.send(command).unwrap();
 
         }

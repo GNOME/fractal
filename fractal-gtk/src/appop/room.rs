@@ -186,7 +186,7 @@ impl AppOp {
                                                           MsgPos::Top,
                                                           None,
                                                           i == msgs.len() - 1,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new(&msg));
             self.internal.send(command).unwrap();
         }
         self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
