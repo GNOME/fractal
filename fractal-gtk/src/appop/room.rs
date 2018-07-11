@@ -104,6 +104,7 @@ impl AppOp {
         self.roomlist.add_rooms(rooms.iter().cloned().collect());
         container.add(&self.roomlist.widget());
         self.roomlist.set_selected(selected_room);
+        self.new_message_marked = false;
 
         let bk = self.internal.clone();
         self.roomlist.connect(move |room| {
@@ -186,7 +187,7 @@ impl AppOp {
                                                           MsgPos::Top,
                                                           None,
                                                           i == msgs.len() - 1,
-                                                          self.is_last_viewed(&msg));
+                                                          self.is_first_new(&msg));
             self.internal.send(command).unwrap();
         }
         self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
@@ -280,11 +281,12 @@ impl AppOp {
         let fakeroom = Room::new(internal_id.clone(), Some(n));
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
+        self.new_message_marked = false;
         self.set_active_room_by_id(internal_id);
         self.room_panel(RoomPanel::Loading);
     }
 
-    pub fn room_panel(&self, t: RoomPanel) {
+    pub fn room_panel(&mut self, t: RoomPanel) {
         let s = self.ui.builder
             .get_object::<gtk::Stack>("room_view_stack")
             .expect("Can't find room_view_stack in ui file.");
@@ -305,7 +307,9 @@ impl AppOp {
                 for ch in headerbar.get_children().iter() {
                     ch.hide();
                 }
+                self.new_message_marked = false;
                 self.roomlist.set_selected(None);
+                self.new_message_marked = false;
             },
             "room_view" => {
                 for ch in headerbar.get_children().iter() {
@@ -520,6 +524,7 @@ impl AppOp {
         self.roomlist.add_room(r.clone());
         self.roomlist.moveup(r.id.clone());
         self.roomlist.set_selected(Some(r.id.clone()));
+        self.new_message_marked = false;
 
         self.set_active_room_by_id(r.id);
     }
