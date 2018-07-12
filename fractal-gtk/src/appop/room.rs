@@ -104,7 +104,6 @@ impl AppOp {
         self.roomlist.add_rooms(rooms.iter().cloned().collect());
         container.add(&self.roomlist.widget());
         self.roomlist.set_selected(selected_room);
-        self.new_message_marked = false;
 
         let bk = self.internal.clone();
         self.roomlist.connect(move |room| {
@@ -144,17 +143,26 @@ impl AppOp {
             room = Some(r.clone());
         }
 
-        if let Some(r) = room {
+        if let Some(mut r) = room {
             if r.inv {
                 self.show_inv_dialog(&r);
                 return;
             }
 
-            self.set_active_room(&r);
+            self.set_active_room(&mut r);
         }
     }
 
-    pub fn set_active_room(&mut self, room: &Room) {
+    pub fn set_active_room(&mut self, room: &mut Room) {
+        if let Some(lvm_id) = self.last_viewed_messages.clone().get(&room.id) {
+            if let Some(lvm) = self.get_msg_from_id(&room.id, &lvm_id) {
+                match self.get_first_new_from_last(&lvm) {
+                    None => self.first_new_messages.insert(room.id.clone(), None),
+                    Some(new_msg) => self.first_new_messages.insert(room.id.clone(), Some(new_msg.clone())),
+                };
+            }
+        }
+
         self.member_limit = 50;
         self.room_panel(RoomPanel::Loading);
 
@@ -281,7 +289,6 @@ impl AppOp {
         let fakeroom = Room::new(internal_id.clone(), Some(n));
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
-        self.new_message_marked = false;
         self.set_active_room_by_id(internal_id);
         self.room_panel(RoomPanel::Loading);
     }
@@ -308,7 +315,6 @@ impl AppOp {
                     ch.hide();
                 }
                 self.roomlist.set_selected(None);
-                self.new_message_marked = false;
             },
             "room_view" => {
                 for ch in headerbar.get_children().iter() {
@@ -523,7 +529,6 @@ impl AppOp {
         self.roomlist.add_room(r.clone());
         self.roomlist.moveup(r.id.clone());
         self.roomlist.set_selected(Some(r.id.clone()));
-        self.new_message_marked = false;
 
         self.set_active_room_by_id(r.id);
     }

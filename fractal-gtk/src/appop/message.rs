@@ -21,6 +21,7 @@ use globals;
 use widgets;
 use backend::BKCommand;
 
+use types::Room;
 use types::Message;
 
 
@@ -110,13 +111,13 @@ impl AppOp {
         }
     }
 
-    pub fn get_first_new_from_last(&self, last_msg: &Message) -> Option<&Message> {
+    pub fn get_first_new_from_last(&self, last_msg: &Message) -> Option<Message> {
         match self.is_last_viewed(last_msg) {
             LastViewed::Last | LastViewed::No => None,
             LastViewed::Inline => {
                 self.rooms.get(&last_msg.room).and_then(|r| {
-                    r.messages.iter()
-                              .filter(|msg| *msg > last_msg && msg.sender !=
+                    r.messages.clone().into_iter()
+                              .filter(|msg| *msg > *last_msg && msg.sender !=
                                       self.uid.clone().unwrap_or_default())
                               .next()
                 })
@@ -124,30 +125,24 @@ impl AppOp {
         }
     }
 
-    pub fn get_msg_from_id(&self, roomid: &str, msg_id: &str) -> Option<&Message> {
+    pub fn get_msg_from_id(&self, roomid: &str, msg_id: &str) -> Option<Message> {
         let room = self.rooms.get(roomid);
 
-        room.and_then(|r| r.messages.iter()
+        room.and_then(|r| r.messages.clone().into_iter()
                                     .filter(|msg| msg.id.clone().unwrap_or_default() == msg_id)
                                     .next())
     }
 
     pub fn is_first_new(&self, msg: &Message) -> bool {
-        let roomid = msg.room.clone();
-        let lvm = self.last_viewed_messages.get(&roomid);
-
-        lvm.map_or(false, |lvm_id| {
-            match self.get_msg_from_id(&roomid, &lvm_id) {
-                None => false,
-                Some(lvm) => {
-                    let first_new = self.get_first_new_from_last(lvm);
-
-                    first_new.map_or(false, |first_new| {
-                        *msg == *first_new
-                    })
+        match self.first_new_messages.get(&msg.room) {
+            None => false,
+            Some(new_msg) => {
+                match new_msg {
+                    None => false,
+                    Some(new_msg) => new_msg == msg,
                 }
             }
-        })
+        }
     }
 
     pub fn add_room_message(&mut self,
@@ -174,7 +169,7 @@ impl AppOp {
         }
 
         if msg.room == self.active_room.clone().unwrap_or_default() {
-            if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+            if let Some(r) = self.rooms.clone().get(&self.active_room.clone().unwrap_or_default()) {
                 let m;
                 {
                     let mb = widgets::MessageBox::new(r, &msg, &self);
@@ -207,7 +202,7 @@ impl AppOp {
                     MsgPos::Bottom => {
                         messages.insert(&m, -1);
 
-                        if first_new && !self.new_message_marked {
+                        if first_new {
                             println!("[DEBUG] Marking on bottom: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, -1);
@@ -216,7 +211,7 @@ impl AppOp {
                     MsgPos::Top => {
                         messages.insert(&m, 1);
 
-                        if first_new && !self.new_message_marked {
+                        if first_new {
                             println!("[DEBUG] Marking on top: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, 1);
