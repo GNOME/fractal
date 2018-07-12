@@ -64,7 +64,6 @@ pub struct AppOp {
     pub sending_message: bool,
     shown_messages: usize,
     pub last_viewed_messages: HashMap<String, String>,
-    pub new_message_marked: bool,
 
     pub username: Option<String>,
     pub uid: Option<String>,
@@ -129,7 +128,6 @@ impl AppOp {
             sending_message: false,
             shown_messages: 0,
             last_viewed_messages: HashMap::new(),
-            new_message_marked: false,
             state: AppState::Login,
             roomlist: widgets::RoomList::new(None),
             since: None,

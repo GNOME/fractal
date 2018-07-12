@@ -21,6 +21,7 @@ use globals;
 use widgets;
 use backend::BKCommand;
 
+use types::Room;
 use types::Message;
 
 
@@ -150,6 +151,26 @@ impl AppOp {
         })
     }
 
+    pub fn reset_marks(&mut self, room: &mut Room) {
+        for msg in room.messages.iter_mut().filter(|msg| msg.marked_as_new) {
+            println!("[DEBUG] Resetting: {:?}", msg);
+            msg.marked_as_new = false;
+        }
+    }
+
+    pub fn mark_as_new(&mut self, roomid: &str, msg: &Message) {
+        if let Some(room) = self.rooms.get_mut(roomid) {
+            for m in room.messages.iter_mut().filter(|m| *m == msg) {
+                println!("[DEBUG] Marking as new: {:?}", m);
+                m.marked_as_new = true;
+            }
+        }
+    }
+
+    pub fn has_marked_message(&self, room: &Room) -> bool {
+        room.messages.iter().filter(|msg| msg.marked_as_new).count() != 0
+    }
+
     pub fn add_room_message(&mut self,
                             msg: Message,
                             msgpos: MsgPos,
@@ -174,7 +195,7 @@ impl AppOp {
         }
 
         if msg.room == self.active_room.clone().unwrap_or_default() {
-            if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+            if let Some(r) = self.rooms.clone().get(&self.active_room.clone().unwrap_or_default()) {
                 let m;
                 {
                     let mb = widgets::MessageBox::new(r, &msg, &self);
@@ -207,19 +228,23 @@ impl AppOp {
                     MsgPos::Bottom => {
                         messages.insert(&m, -1);
 
-                        if first_new && !self.new_message_marked {
+                        if first_new && !self.has_marked_message(r) {
                             println!("[DEBUG] Marking on bottom: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, -1);
+
+                            self.mark_as_new(&r.id, &msg);
                         }
                     },
                     MsgPos::Top => {
                         messages.insert(&m, 1);
 
-                        if first_new && !self.new_message_marked {
+                        if first_new && !self.has_marked_message(r) {
                             println!("[DEBUG] Marking on top: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, 1);
+
+                            self.mark_as_new(&r.id, &msg);
                         }
                     },
                 };
@@ -381,6 +406,7 @@ impl AppOp {
             formatted_body: None,
             format: None,
             receipt: HashMap::new(),
+            marked_as_new: false,
         };
 
         if msg.starts_with("/me ") {
@@ -447,6 +473,7 @@ impl AppOp {
             formatted_body: None,
             format: None,
             receipt: HashMap::new(),
+            marked_as_new: false,
         };
 
         m.id = Some(m.get_txn_id());

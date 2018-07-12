@@ -200,6 +200,7 @@ impl AppOp {
             formatted_body: None,
             format: None,
             receipt: HashMap::new(),
+            marked_as_new: false,
         };
 
         self.add_tmp_room_message(msg);

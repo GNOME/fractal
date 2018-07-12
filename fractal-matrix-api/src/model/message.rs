@@ -22,6 +22,7 @@ pub struct Message {
     pub formatted_body: Option<String>,
     pub format: Option<String>,
     pub receipt: HashMap<String, i64>, // This `HashMap` associates the user ID with a timestamp
+    pub marked_as_new: bool,
 }
 
 impl Clone for Message {
@@ -38,6 +39,7 @@ impl Clone for Message {
             formatted_body: self.formatted_body.clone(),
             format: self.format.clone(),
             receipt: self.receipt.clone(),
+            marked_as_new: false,
         }
     }
 }
@@ -56,6 +58,7 @@ impl Default for Message {
             formatted_body: None,
             format: None,
             receipt: HashMap::new(),
+            marked_as_new: false,
         }
     }
 }
@@ -143,6 +146,7 @@ impl Message {
             formatted_body: None,
             format: None,
             receipt: HashMap::new(),
+            marked_as_new: false,
         };
 
         let c = &msg["content"];
