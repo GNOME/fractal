@@ -30,7 +30,6 @@ impl AppOp {
 
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
-        self.new_message_marked = false;
         self.set_active_room_by_id(internal_id);
         self.room_panel(RoomPanel::Loading);
     }

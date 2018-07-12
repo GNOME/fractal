@@ -150,6 +150,14 @@ impl AppOp {
         })
     }
 
+    pub fn is_last_room_message(&self, msg: &Message) -> bool {
+        let room = self.rooms.get(&msg.room);
+
+        room.map_or(false, |room| {
+            room.messages.iter().last().map_or(false, |last_msg| *last_msg == *msg)
+        })
+    }
+
     pub fn add_room_message(&mut self,
                             msg: Message,
                             msgpos: MsgPos,
@@ -211,6 +219,8 @@ impl AppOp {
                             println!("[DEBUG] Marking on bottom: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, -1);
+
+                            self.new_message_marked = true;
                         }
                     },
                     MsgPos::Top => {
@@ -220,9 +230,17 @@ impl AppOp {
                             println!("[DEBUG] Marking on top: {:?}", msg);
                             let divider: gtk::ListBoxRow = widgets::divider::new(i18n("New Messages").as_str());
                             messages.insert(&divider, 1);
+
+                            self.new_message_marked = true;
                         }
                     },
                 };
+
+
+                if !self.new_message_marked && self.is_last_room_message(&msg) {
+                    println!("[DEBUG] Last message: {:?}", msg);
+                    self.new_message_marked = true;
+                }
 
                 self.shown_messages += 1;
             }

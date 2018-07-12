@@ -104,7 +104,6 @@ impl AppOp {
         self.roomlist.add_rooms(rooms.iter().cloned().collect());
         container.add(&self.roomlist.widget());
         self.roomlist.set_selected(selected_room);
-        self.new_message_marked = false;
 
         let bk = self.internal.clone();
         self.roomlist.connect(move |room| {
@@ -155,6 +154,9 @@ impl AppOp {
     }
 
     pub fn set_active_room(&mut self, room: &Room) {
+        println!("[DEBUG] Setting to false");
+        self.new_message_marked = false;
+
         self.member_limit = 50;
         self.room_panel(RoomPanel::Loading);
 
@@ -281,7 +283,6 @@ impl AppOp {
         let fakeroom = Room::new(internal_id.clone(), Some(n));
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
-        self.new_message_marked = false;
         self.set_active_room_by_id(internal_id);
         self.room_panel(RoomPanel::Loading);
     }
@@ -308,7 +309,6 @@ impl AppOp {
                     ch.hide();
                 }
                 self.roomlist.set_selected(None);
-                self.new_message_marked = false;
             },
             "room_view" => {
                 for ch in headerbar.get_children().iter() {
@@ -523,7 +523,6 @@ impl AppOp {
         self.roomlist.add_room(r.clone());
         self.roomlist.moveup(r.id.clone());
         self.roomlist.set_selected(Some(r.id.clone()));
-        self.new_message_marked = false;
 
         self.set_active_room_by_id(r.id);
     }
