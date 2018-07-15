@@ -1,4 +1,5 @@
 extern crate comrak;
+extern crate sourceview;
 extern crate tree_magic;
 
 use i18n::i18n;
@@ -149,7 +150,7 @@ impl AppOp {
                             prev: Option<Message>,
                             force_full: bool,
                             first_new: bool) {
-        let msg_entry: gtk::Entry = self.ui.builder
+        let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
         let messages = self.ui.builder
@@ -177,11 +178,10 @@ impl AppOp {
                         if let Some(label) = eb.get_children().iter().next() {
                             if let Ok(l) = label.clone().downcast::<gtk::Label>() {
                                 if let Some(t) = l.get_text() {
-                                    let mut pos = entry.get_position();
-                                    entry.insert_text(&t[..], &mut pos);
-                                    pos = entry.get_text_length() as i32;
-                                    entry.set_position(pos);
-                                    entry.grab_focus_without_selecting();
+                                    if let Some(buffer) = entry.get_buffer() {
+                                        buffer.insert_at_cursor(&t[..]);
+                                    }
+                                    entry.grab_focus();
                                 }
                             }
                         }

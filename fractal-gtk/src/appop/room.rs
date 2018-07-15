@@ -1,5 +1,6 @@
 extern crate gtk;
 extern crate rand;
+extern crate sourceview;
 
 use i18n::{i18n, i18n_k};
 
@@ -164,15 +165,25 @@ impl AppOp {
         self.member_limit = 50;
         self.room_panel(RoomPanel::Loading);
 
-        let msg_entry: gtk::Entry = self.ui.builder
+        let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
-        if let Some(msg) = msg_entry.get_text() {
-            let active_room_id = self.active_room.clone().unwrap_or_default();
-            if msg.len() > 0 {
-                self.unsent_messages.insert(active_room_id, (msg, msg_entry.get_position()));
-            } else {
-                self.unsent_messages.remove(&active_room_id);
+        if let Some(buffer) = msg_entry.get_buffer() {
+            let start = buffer.get_start_iter();
+            let end = buffer.get_end_iter();
+
+            if let Some(msg) = buffer.get_text(&start, &end, false) {
+                let active_room_id = self.active_room.clone().unwrap_or_default();
+                if msg.len() > 0 {
+                    if let Some(mark) = buffer.get_insert() {
+                        let iter = buffer.get_iter_at_mark(&mark);
+                        let msg_position = iter.get_offset();
+
+                        self.unsent_messages.insert(active_room_id, (msg, msg_position));
+                    }
+                } else {
+                    self.unsent_messages.remove(&active_room_id);
+                }
             }
         }
 
@@ -310,7 +321,7 @@ impl AppOp {
                     ch.show();
                 }
 
-                let msg_entry: gtk::Entry = self.ui.builder
+                let msg_entry: sourceview::View = self.ui.builder
                     .get_object("msg_entry")
                     .expect("Couldn't find msg_entry in ui file.");
                 msg_entry.grab_focus();
@@ -319,8 +330,12 @@ impl AppOp {
                 let msg = self.unsent_messages
                     .get(&active_room_id).cloned()
                     .unwrap_or((String::new(), 0));
-                msg_entry.set_text(&msg.0);
-                msg_entry.set_position(msg.1);
+                if let Some(buffer) = msg_entry.get_buffer() {
+                    buffer.set_text(&msg.0);
+
+                    let iter = buffer.get_iter_at_offset(msg.1);
+                    buffer.place_cursor(&iter);
+                }
             },
             _ => {
                 for ch in headerbar.get_children().iter() {
