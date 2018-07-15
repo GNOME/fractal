@@ -1,4 +1,5 @@
 extern crate gtk;
+extern crate sourceview;
 
 use i18n::ni18n_k;
 
@@ -53,7 +54,7 @@ impl AppOp {
             .get_object("member_list")
             .expect("Couldn't find member_list in ui file.");
 
-        let msg_entry: gtk::Entry = self.ui.builder
+        let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
@@ -67,17 +68,15 @@ impl AppOp {
                 w = mb.widget(false);
             }
 
-            let msg = msg_entry.clone();
-            w.connect_button_press_event(move |_, _| {
+            w.connect_button_press_event(clone!( msg_entry => move |_, _| {
                 if let Some(ref a) = m.alias {
-                    let mut pos = msg.get_position();
-                    msg.insert_text(&a.clone(), &mut pos);
-                    pos = msg.get_text_length() as i32;
-                    msg.grab_focus_without_selecting();
-                    msg.set_position(pos);
+                    if let Some(buffer) = msg_entry.get_buffer() {
+                        buffer.insert_at_cursor(&a.clone());
+                    }
+                    msg_entry.grab_focus();
                 }
                 glib::signal::Inhibit(true)
-            });
+            }));
 
             let p = mlist.get_children().len() - 1;
             mlist.insert(&w, p as i32);
