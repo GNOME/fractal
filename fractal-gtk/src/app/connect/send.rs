@@ -1,19 +1,38 @@
+extern crate gdk;
 extern crate gtk;
+extern crate sourceview;
+
 use self::gtk::prelude::*;
 
 use app::App;
 
 impl App {
     pub fn connect_send(&self) {
-        let msg_entry: gtk::Entry = self.ui.builder
+        let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
         let mut op = self.op.clone();
-        msg_entry.connect_activate(move |entry| if let Some(text) = entry.get_text() {
-            let mut mut_text = text;
-            op.lock().unwrap().send_message(mut_text);
-            entry.set_text("");
+        msg_entry.connect_key_press_event(move |entry, key| {
+            match key.get_keyval() {
+                gdk::enums::key::Return | gdk::enums::key::KP_Enter
+                if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                    if let Some(buffer) = entry.get_buffer() {
+                        let start = buffer.get_start_iter();
+                        let end = buffer.get_end_iter();
+
+                        if let Some(text) = buffer.get_text(&start, &end, false) {
+                            let mut mut_text = text;
+                            op.lock().unwrap().send_message(mut_text);
+                        }
+
+                        buffer.set_text("");
+                    }
+
+                    Inhibit(true)
+                },
+                _ => Inhibit(false)
+            }
         });
 
         op = self.op.clone();
