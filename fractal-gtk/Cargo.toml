@@ -50,3 +50,6 @@ git = "https://gitlab.gnome.org/jsparber/gspell-rs"
 [dependencies.gtk]
 features = ["v3_22"]
 version = "0.4.0"
+
+[dependencies.sourceview]
+version = "0.4.0"
