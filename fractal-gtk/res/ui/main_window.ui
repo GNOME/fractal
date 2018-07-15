@@ -327,10 +327,10 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="msg_entry">
+                                  <object class="GtkSourceView" id="msg_entry">
                                     <property name="can_focus">True</property>
-                                    <property name="valign">center</property>
-                                    <property name="show_emoji_icon">True</property>
+                                    <property name="wrap_mode">word</property>
+                                    <property name="indent_on_tab">False</property>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
