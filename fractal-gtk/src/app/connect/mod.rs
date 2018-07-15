@@ -7,6 +7,7 @@ mod autocomplete;
 mod direct;
 mod account;
 mod directory;
+mod emoji;
 mod headerbar;
 mod invite;
 mod join_room;
@@ -83,6 +84,7 @@ impl App {
         self.connect_markdown();
         self.connect_media_viewer_headerbar();
         self.connect_media_viewer_box();
+        self.connect_emoji();
         //self.connect_stickers();
         self.connect_autocomplete();
         self.connect_spellcheck();
