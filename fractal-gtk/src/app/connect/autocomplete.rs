@@ -1,4 +1,5 @@
 extern crate gtk;
+extern crate sourceview;
 
 use widgets;
 
@@ -6,7 +7,7 @@ use app::App;
 
 impl App {
     pub fn connect_autocomplete(&self) {
-        let msg_entry: gtk::Entry = self.ui.builder
+        let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
         let popover = self.ui.builder
