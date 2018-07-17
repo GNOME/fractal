@@ -41,7 +41,7 @@ flatpak:
     only:
         - master
     before_script:
-        - dnf install -y rust cargo meson make gtk3-devel gspell-devel openssl-devel gmp-devel \
+        - dnf install -y rust cargo meson make gtk3-devel gtksourceview3-devel gspell-devel openssl-devel gmp-devel \
             gstreamer1-devel gstreamer1-plugins-base-tools \
             gstreamer1-plugins-base-devel \
             gstreamer1-plugins-good gstreamer1-plugins-good-extras \
