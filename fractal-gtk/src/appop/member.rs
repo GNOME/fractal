@@ -1,7 +1,5 @@
 extern crate gtk;
 
-use i18n::ni18n_k;
-
 use self::gtk::prelude::*;
 
 use std::collections::HashMap;
@@ -24,100 +22,13 @@ pub enum SearchType {
 
 
 impl AppOp {
-    pub fn clean_member_list(&self) {
-        let mlist: gtk::ListBox = self.ui.builder
-            .get_object("member_list")
-            .expect("Couldn't find member_list in ui file.");
-
-        let childs = mlist.get_children();
-        let n = childs.len() - 1;
-        for ch in childs.iter().take(n) {
-            mlist.remove(ch);
-        }
-    }
-
     pub fn member_level(&self, member: &Member) -> i32 {
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             if let Some(level) = r.power_levels.get(&member.uid) {
                 return *level;
             }
         }
-
         0
-    }
-
-    pub fn show_members(&self, members: Vec<Member>) {
-        self.clean_member_list();
-
-        let mlist: gtk::ListBox = self.ui.builder
-            .get_object("member_list")
-            .expect("Couldn't find member_list in ui file.");
-
-        let msg_entry: gtk::Entry = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
-
-        // limiting the number of members to show in the list
-        for member in members.iter().take(self.member_limit) {
-            let w;
-            let m = member.clone();
-
-            {
-                let mb = widgets::MemberBox::new(&m, &self);
-                w = mb.widget(false);
-            }
-
-            let msg = msg_entry.clone();
-            w.connect_button_press_event(move |_, _| {
-                if let Some(ref a) = m.alias {
-                    let mut pos = msg.get_position();
-                    msg.insert_text(&a.clone(), &mut pos);
-                    pos = msg.get_text_length() as i32;
-                    msg.grab_focus_without_selecting();
-                    msg.set_position(pos);
-                }
-                glib::signal::Inhibit(true)
-            });
-
-            let p = mlist.get_children().len() - 1;
-            mlist.insert(&w, p as i32);
-        }
-
-        if members.len() > self.member_limit {
-            let n = (members.len() - self.member_limit) as u32;
-            let newlabel = ni18n_k("and one more", "and {member_count} more", n,
-                                   &[("member_count", &n.to_string())]);
-            self.more_members_btn.set_label(&newlabel);
-            self.more_members_btn.show();
-        } else {
-            self.more_members_btn.hide();
-        }
-    }
-
-    pub fn show_all_members(&self) {
-        let inp: gtk::SearchEntry = self.ui.builder
-            .get_object("members_search")
-            .expect("Couldn't find members_searcn in ui file.");
-        let text = inp.get_text();
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            let mut members: Vec<Member> = match text {
-                // all members if no search text
-                None => r.members.values().cloned().collect(),
-                Some(t) => {
-                    // members with the text in the alias
-                    r.members.values().filter(move |x| {
-                        match x.alias {
-                            None => false,
-                            Some(ref a) => a.to_lowercase().contains(&t.to_lowercase())
-                        }
-                    }).cloned().collect()
-                }
-            };
-            members.sort_by_key(|m| {
-                -r.power_levels.get(&m.uid).unwrap_or(&0)
-            });
-            self.show_members(members);
-        }
     }
 
     pub fn set_room_members(&mut self, roomid: String, members: Vec<Member>) {
@@ -130,20 +41,10 @@ impl AppOp {
 
         self.recalculate_room_name(roomid.clone());
 
-        if let Some(aroom) = self.active_room.clone() {
-            if aroom == roomid {
-                self.reload_members();
-            }
-        }
         /* FIXME: update the current room settings insteat of creating a new one */
         if self.room_settings.is_some() {
             self.create_room_settings();
         }
-    }
-
-    pub fn reload_members(&mut self) {
-        self.clean_member_list();
-        self.show_all_members();
     }
 
     pub fn room_member_event(&mut self, ev: Event) {
@@ -166,22 +67,6 @@ impl AppOp {
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
                     r.members.insert(m.uid.clone(), m.clone());
                 }
-            }
-            // ignoring other memberships
-            _ => {}
-        }
-
-        if ev.room != self.active_room.clone().unwrap_or_default() {
-            // if it isn't the current room, this event we don't need to update the UI
-            return;
-        }
-
-        match ev.content["membership"].as_str() {
-            Some("leave") => {
-                self.show_all_members();
-            }
-            Some("join") => {
-                self.show_all_members();
             }
             // ignoring other memberships
             _ => {}
