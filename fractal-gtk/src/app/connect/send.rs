@@ -12,11 +12,16 @@ impl App {
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
+        let autocomplete_popover = self.ui.builder
+            .get_object::<gtk::Popover>("autocomplete_popover")
+            .expect("Can't find autocomplete_popover in ui file.");
+
         let mut op = self.op.clone();
         msg_entry.connect_key_press_event(move |entry, key| {
             match key.get_keyval() {
                 gdk::enums::key::Return | gdk::enums::key::KP_Enter
-                if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK) => {
+                if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK) &&
+                   !autocomplete_popover.is_visible() => {
                     if let Some(buffer) = entry.get_buffer() {
                         let start = buffer.get_start_iter();
                         let end = buffer.get_end_iter();
