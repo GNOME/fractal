@@ -208,7 +208,6 @@ impl AppOp {
 
         // getting room details
         self.backend.send(BKCommand::SetRoom(room.clone())).unwrap();
-        self.reload_members();
 
         self.set_room_topic_label(room.topic.clone());
 

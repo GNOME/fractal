@@ -15,7 +15,6 @@ mod load_more;
 mod login;
 mod markdown;
 mod media_viewer;
-mod more_members;
 mod new_room;
 mod roomlist_search;
 mod scroll;
@@ -69,7 +68,6 @@ impl App {
         });
 
         self.create_load_more_spn();
-        self.connect_more_members_btn();
         self.create_actions();
 
         self.connect_headerbars();
@@ -94,7 +92,6 @@ impl App {
 
         self.connect_search();
 
-        self.connect_member_search();
         self.connect_invite_dialog();
         self.connect_invite_user();
         self.connect_direct_chat();
