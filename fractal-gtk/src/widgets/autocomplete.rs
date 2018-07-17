@@ -1,5 +1,5 @@
 extern crate gtk;
-extern crate pango;
+extern crate sourceview;
 extern crate gdk;
 
 use std::sync::{Arc, Mutex};
@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 use glib;
 use self::gtk::prelude::*;
-use self::pango::LayoutExt;
+use self::gtk::TextTag;
 
 use types::Member;
 //use types::Room;
@@ -19,7 +19,7 @@ use widgets;
 use appop::AppOp;
 
 pub struct Autocomplete {
-    entry: gtk::Entry,
+    entry: sourceview::View,
     listbox: gtk::ListBox,
     popover: gtk::Popover,
     window: gtk::Window,
@@ -31,7 +31,7 @@ pub struct Autocomplete {
 }
 
 impl Autocomplete {
-    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: gtk::Entry, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
+    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
             listbox: listbox,
@@ -48,6 +48,26 @@ impl Autocomplete {
     pub fn connect(self) {
         let this: Rc<RefCell<Autocomplete>> = Rc::new(RefCell::new(self));
 
+        if let Some(context) = gtk::Widget::get_style_context(&this.borrow().entry.clone().upcast::<gtk::Widget>()) {
+            if let Some(fg) = gtk::StyleContext::lookup_color(&context, "theme_selected_bg_color") {
+                let color = gdk::RGBA {
+                    red: fg.red,
+                    green: fg.green,
+                    blue: fg.blue,
+                    alpha: 1.0,
+                };
+
+                let tag = TextTag::new("alias-highlight");
+                tag.set_property_foreground_rgba(Some(&color));
+
+                if let Some(buffer) = this.borrow().entry.get_buffer() {
+                    if let Some(tag_table) = buffer.get_tag_table() {
+                        tag_table.add(&tag);
+                    }
+                }
+            }
+        }
+
         let own = this.clone();
         this.borrow().window.connect_button_press_event(move |_, _| {
             if own.borrow().popover_position.is_some() {
@@ -60,48 +80,48 @@ impl Autocomplete {
         });
 
         let own = this.clone();
-        this.borrow().entry.connect_property_cursor_position_notify(move |w| {
-            if let Ok(item) = own.try_borrow() {
-                if let Some(input) = w.get_text() {
-                    if let Some(attr) = item.add_highlight(input) {
-                        w.set_attributes(&attr);
+        if let Some(buffer) = this.borrow().entry.get_buffer() {
+            buffer.connect_property_cursor_position_notify(move |buffer| {
+                if let Ok(item) = own.try_borrow() {
+                    let start_iter = buffer.get_start_iter();
+                    let end_iter = buffer.get_end_iter();
+
+                    if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
+                        item.add_highlight(input);
                     }
                 }
-            }
-        });
+            });
+        }
 
         let own = this.clone();
-        this.borrow().entry.connect_property_selection_bound_notify(move |w| {
-            if let Ok(item) = own.try_borrow() {
-                if let Some(input) = w.get_text() {
-                    if let Some(attr) = item.add_highlight(input) {
-                        w.set_attributes(&attr);
+        if let Some(buffer) = this.borrow().entry.get_buffer() {
+            buffer.connect_changed(move |buffer| {
+                if let Ok(item) = own.try_borrow() {
+                    let start_iter = buffer.get_start_iter();
+                    let end_iter = buffer.get_end_iter();
+
+                    if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
+                        item.add_highlight(input);
                     }
                 }
-            }
-        });
+            });
+        }
 
         let own = this.clone();
-        this.borrow().entry.connect_changed(move |w| {
-            if let Ok(item) = own.try_borrow() {
-                if let Some(input) = w.get_text() {
-                    if let Some(attr) = item.add_highlight(input) {
-                        w.set_attributes(&attr);
-                    }
-                }
-            }
-        });
+        if let Some(buffer) = this.borrow().entry.get_buffer() {
+            buffer.connect_delete_range(move |_, start_iter, end_iter| {
+                let start = start_iter.get_offset();
+                let end = end_iter.get_offset();
 
-        let own = this.clone();
-        this.borrow().entry.connect_delete_text(move |_, start, end| {
-            if let Ok(mut item) = own.try_borrow_mut() {
-                if let Some(pos) = item.popover_position {
-                    if end <= pos + 1 || (start <= pos && end > pos){
-                        item.autocomplete_enter();
+                if let Ok(mut item) = own.try_borrow_mut() {
+                    if let Some(pos) = item.popover_position {
+                        if end <= pos + 1 || (start <= pos && end > pos){
+                            item.autocomplete_enter();
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |_, k| {
@@ -121,11 +141,16 @@ impl Autocomplete {
         this.borrow().entry.connect_key_press_event(move |w, ev| {
             match ev.get_keyval() {
                 gdk::enums::key::BackSpace => {
-                    match w.get_text() {
-                        Some(ref t) if t == "" => { own.borrow_mut().autocomplete_enter(); }
-                        None => { own.borrow_mut().autocomplete_enter(); }
-                        _ => { }
-                    };
+                    if let Some(buffer) = w.get_buffer() {
+                        let start = buffer.get_start_iter();
+                        let end = buffer.get_end_iter();
+
+                        match buffer.get_text(&start, &end, false) {
+                            Some(ref t) if t == "" => { own.borrow_mut().autocomplete_enter(); }
+                            None => { own.borrow_mut().autocomplete_enter(); }
+                            _ => { }
+                        }
+                    }
 
                     return glib::signal::Inhibit(false);
                 },
@@ -175,120 +200,138 @@ impl Autocomplete {
 
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |e, ev| {
-            let is_tab = ev.get_keyval() == gdk::enums::key::Tab;
-            let text = e.get_text();
-            /* when closing popover with tab */
-            {
-                if own.borrow().popover_closing {
-                    own.borrow_mut().popover_closing = false;
-                    return Inhibit(false);
-                }
-            }
-            /* allow popover opening with tab
-             * don't update popover when the input didn't change */
-            if !is_tab {
-                if let Some(ref text) = text {
-                    if let Some(ref old) = own.borrow().popover_search {
-                        if text == old {
-                            return Inhibit(false);
-                        }
+            if let Some(buffer) = e.get_buffer() {
+                let is_tab = ev.get_keyval() == gdk::enums::key::Tab;
+
+                let start = buffer.get_start_iter();
+                let end = buffer.get_end_iter();
+                let text = buffer.get_text(&start, &end, false);
+
+                /* when closing popover with tab */
+                {
+                    if own.borrow().popover_closing {
+                        own.borrow_mut().popover_closing = false;
+                        return Inhibit(false);
                     }
                 }
-            }
-            /* update the popover when closed and tab is released
-             * don't update the popover the arrow keys are pressed */
-            if (is_tab && own.borrow().popover_position.is_none()) ||
-                (ev.get_keyval() != gdk::enums::key::Up && ev.get_keyval() != gdk::enums::key::Down) {
-                    own.borrow_mut().popover_search = text.clone();
-                    let pos = e.get_position();
-                    if let Some(text) = text.clone() {
-                        let graphs = text.chars().collect::<Vec<char>>();
-
-                        if pos as usize > graphs.len() {
-                            return Inhibit(false);
-                        }
-
-                        let (p1, _) = graphs.split_at(pos as usize);
-                        let first = p1.into_iter().collect::<String>();
-                        if own.borrow().popover_position.is_none() {
-                            if !is_tab {
-                                if let Some(at_pos) = first.rfind("@") {
-                                    own.borrow_mut().popover_position = Some(at_pos as i32);
-                                }
-                            }
-                            else {
-                                if let Some(space_pos) = first.rfind(" ") {
-                                    own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
-                                }
-                                else {
-                                    own.borrow_mut().popover_position = Some(0);
-                                }
+                /* allow popover opening with tab
+                 * don't update popover when the input didn't change */
+                if !is_tab {
+                    if let Some(ref text) = text {
+                        if let Some(ref old) = own.borrow().popover_search {
+                            if text == old {
+                                return Inhibit(false);
                             }
                         }
                     }
+                }
+                /* update the popover when closed and tab is released
+                 * don't update the popover the arrow keys are pressed */
+                if (is_tab && own.borrow().popover_position.is_none()) ||
+                    (ev.get_keyval() != gdk::enums::key::Up && ev.get_keyval() != gdk::enums::key::Down) {
+                        own.borrow_mut().popover_search = text.clone();
+                        if let Some(buffer) = e.get_buffer() {
+                            let pos = buffer.get_property_cursor_position();
 
-                    if own.borrow().popover_position.is_some() {
-                        let list = {
-                            own.borrow().autocomplete(text, e.get_position())
-                        };
-                        let widget_list = {
-                            own.borrow_mut().autocomplete_show_popover(list)
-                        };
-                        for (alias, widget) in widget_list.iter() {
-                            widget.connect_button_press_event(clone!(own, alias => move |_, ev| {
-                                own.borrow_mut().autocomplete_insert(alias.clone());
-                                if ev.is::<gdk::EventKey>() {
-                                    let ev = {
-                                        let ev: &gdk::Event = ev;
-                                        ev.clone().downcast::<gdk::EventKey>().unwrap()
-                                    };
-                                    /* Submit on enter */
-                                    if ev.get_keyval() == gdk::enums::key::Return || ev.get_keyval() == gdk::enums::key::Tab  {
-                                        own.borrow_mut().autocomplete_enter();
+                            if let Some(text) = text.clone() {
+                                let graphs = text.chars().collect::<Vec<char>>();
+
+                                if pos as usize > graphs.len() {
+                                    return Inhibit(false);
+                                }
+
+                                let (p1, _) = graphs.split_at(pos as usize);
+                                let first = p1.into_iter().collect::<String>();
+                                if own.borrow().popover_position.is_none() {
+                                    if !is_tab {
+                                        if let Some(at_pos) = first.rfind("@") {
+                                            own.borrow_mut().popover_position = Some(at_pos as i32);
+                                        }
+                                    }
+                                    else {
+                                        if let Some(space_pos) = first.rfind(" ") {
+                                            own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
+                                        }
+                                        else {
+                                            own.borrow_mut().popover_position = Some(0);
+                                        }
                                     }
                                 }
-                                else if ev.is::<gdk::EventButton>() {
-                                    own.borrow_mut().autocomplete_enter();
+                            }
+
+                            if own.borrow().popover_position.is_some() {
+                                let list = {
+                                    own.borrow().autocomplete(text, buffer.get_property_cursor_position())
+                                };
+                                let widget_list = {
+                                    own.borrow_mut().autocomplete_show_popover(list)
+                                };
+                                for (alias, widget) in widget_list.iter() {
+                                    widget.connect_button_press_event(clone!(own, alias => move |_, ev| {
+                                        own.borrow_mut().autocomplete_insert(alias.clone());
+                                        if ev.is::<gdk::EventKey>() {
+                                            let ev = {
+                                                let ev: &gdk::Event = ev;
+                                                ev.clone().downcast::<gdk::EventKey>().unwrap()
+                                            };
+                                            /* Submit on enter */
+                                            if ev.get_keyval() == gdk::enums::key::Return || ev.get_keyval() == gdk::enums::key::Tab  {
+                                                own.borrow_mut().autocomplete_enter();
+                                            }
+                                        }
+                                        else if ev.is::<gdk::EventButton>() {
+                                            own.borrow_mut().autocomplete_enter();
+                                        }
+                                        Inhibit(true)
+                                    }));
                                 }
-                                Inhibit(true)
-                            }));
+                            }
                         }
-                        /*for element in op.lock().unwrap().highlighted_entry.iter() {
-                          println!("Saved aliases {}", element);
-                          }
-                          */
                     }
-                }
+            }
+
             Inhibit(false)
         });
     }
 
     pub fn autocomplete_insert(&mut self, alias: String) {
         if let Some(start_pos) = self.popover_position {
-            let mut start_pos = start_pos as i32;
-            let end_pos = self.entry.get_position();
-            self.entry.delete_text(start_pos, end_pos);
-            self.entry.insert_text(&alias, &mut start_pos);
-            self.entry.set_position(start_pos);
+            if let Some(buffer) = self.entry.get_buffer() {
+                if let Some(mark) = buffer.get_insert() {
+                    let mut start_iter = buffer.get_iter_at_offset(start_pos as i32);
+                    let mut end_iter = buffer.get_iter_at_mark(&mark);
+                    buffer.delete(&mut start_iter, &mut end_iter);
+                    buffer.insert(&mut start_iter, &alias);
+                    buffer.place_cursor(&start_iter);
+                }
+            }
 
             /* highlight member inside the entry */
             /* we need to set the highlight here the first time
              * because the ui changes from others are blocked as long we hold the look */
-            if let Some(input) = self.entry.get_text() {
+            if let Some(buffer) = self.entry.get_buffer() {
                 self.highlighted_entry.push(alias);
-                if let Some(attr) = self.add_highlight(input) {
-                    self.entry.set_attributes(&attr);
+
+                let start_iter = buffer.get_start_iter();
+                let end_iter = buffer.get_end_iter();
+
+                if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
+                    self.add_highlight(input);
                 }
             }
         }
     }
 
     pub fn autocomplete_enter(&mut self) -> bool {
-        if let Some(input) = self.entry.get_text() {
-            if let Some(attr) = self.add_highlight(input) {
-                self.entry.set_attributes(&attr);
+        if let Some(buffer) = self.entry.get_buffer() {
+            let start_iter = buffer.get_start_iter();
+            let end_iter = buffer.get_end_iter();
+
+            if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
+                self.add_highlight(input);
             }
         }
+
         self.popover_position = None;
         self.popover_search = None;
         let visible = self.popover.is_visible();
@@ -298,80 +341,25 @@ impl Autocomplete {
         visible
     }
 
-    pub fn add_highlight(&self, input: String) -> Option<pango::AttrList> {
-        fn contains((start, end): (i32, i32), item: i32) -> bool {
-            match start <= end {
-                true => start <= item && end > item,
-                false => start <= item || end > item,
-            }
-        }
-
+    pub fn add_highlight(&self, input: String) -> Option<()> {
         let input = input.to_lowercase();
-        let bounds = self.entry.get_selection_bounds();
-        let context = gtk::Widget::get_style_context (&self.entry.clone().upcast::<gtk::Widget>())?;
-        let fg  = gtk::StyleContext::lookup_color (&context, "theme_selected_bg_color")?;
-        let red = fg.red * 65535. + 0.5;
-        let green = fg.green * 65535. + 0.5;
-        let blue = fg.blue * 65535. + 0.5;
-        let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-        let attr = pango::AttrList::new();
-        for (_, alias) in self.highlighted_entry.iter().enumerate() {
-            let mut input = input.clone();
-            let alias = &alias.to_lowercase();
-            let mut removed_char = 0;
-            let mut found = false;
-            while input.contains(alias) {
-                let pos = {
-                    let start = input.find(alias)? as i32;
-                    (start, start + alias.len() as i32)
-                };
-                let mut color = color.clone();
-                let mark_start = removed_char as i32 + pos.0;
-                let mark_end = removed_char as i32 + pos.1;
-                let mut final_pos = Some((mark_start, mark_end));
-                /* exclude selected text */
-                if let Some((bounds_start, bounds_end)) = bounds {
-                    /* If the selection is within the alias */
-                    if contains((mark_start, mark_end), bounds_start) &&
-                        contains((mark_start, mark_end), bounds_end) {
-                            final_pos = Some((mark_start, bounds_start));
-                            /* Add blue color after a selection */
-                            let mut color = color.clone();
-                            color.set_start_index(bounds_end as u32);
-                            color.set_end_index(mark_end as u32);
-                            attr.insert(color);
-                        } else {
-                            /* The alias starts inside a selection */
-                            if contains(bounds?, mark_start) {
-                                final_pos = Some((bounds_end, final_pos?.1));
-                            }
-                            /* The alias ends inside a selection */
-                            if contains(bounds?, mark_end - 1) {
-                                final_pos = Some((final_pos?.0, bounds_start));
-                            }
-                        }
-                }
+        if let Some(buffer) = self.entry.get_buffer() {
+            let start_iter = buffer.get_start_iter();
+            let end_iter = buffer.get_end_iter();
+            buffer.remove_all_tags(&start_iter, &end_iter);
 
-                if let Some((start, end)) = final_pos {
-                    color.set_start_index(start as u32);
-                    color.set_end_index(end as u32);
-                    attr.insert(color);
+            for alias in self.highlighted_entry.iter().map(|alias| alias.to_lowercase()) {
+                for (index, text) in input.match_indices(&alias) {
+                    let start_iter = buffer.get_iter_at_offset(index as i32);
+                    let end_iter = buffer.get_iter_at_offset((index + text.len()) as i32);
+
+                    buffer.apply_tag_by_name("alias-highlight", &start_iter, &end_iter);
                 }
-                {
-                    let end = pos.1 as usize;
-                    input.drain(0..end);
-                }
-                removed_char = removed_char + pos.1 as u32;
-                found = true;
-            }
-            if !found {
-                //guard.highlighted_entry.remove(i);
-                //println!("Should remove {} form store", alias);
             }
         }
 
-        Some(attr)
+        Some(())
     }
 
     pub fn autocomplete_arrow(&mut self, direction: i32) -> Option<gtk::Widget> {
@@ -435,19 +423,8 @@ impl Autocomplete {
             }
 
             self.popover.set_relative_to(Some(&self.entry));
+            self.popover.set_pointing_to(&self.entry.get_cursor_locations(None).0);
             self.popover.set_modal(false);
-            /* calculate position for popover */
-
-            if let Some(text_index) = self.popover_position {
-                let offset = self.entry.get_layout_offsets().0;
-                if let Some(layout) = self.entry.get_layout() {
-                    let layout_index = self.entry.text_index_to_layout_index(text_index);
-                    let (_, index) = layout.get_cursor_pos(layout_index);
-
-                    pango::extents_to_pixels(Some(&index), None);
-                    self.popover.set_pointing_to(&gdk::Rectangle{x: index.x + offset + 10, y: 0, width: 0, height: 0});
-                }
-            }
 
             if let Some(row) = self.listbox.get_row_at_index(0) {
                 self.listbox.select_row(&row);
