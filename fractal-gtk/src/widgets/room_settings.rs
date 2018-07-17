@@ -6,13 +6,13 @@ use std::rc::Rc;
 use self::gtk::prelude::*;
 
 use backend::BKCommand;
-use std::sync::mpsc::Sender;
+use cache::download_to_cache;
 use fractal_api::types::Room;
+use std::sync::mpsc::Sender;
 use types::Member;
 use widgets;
 use widgets::avatar::AvatarExt;
 use widgets::members_list::MembersList;
-use cache::download_to_cache;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {
@@ -24,24 +24,25 @@ pub struct RoomSettings {
 }
 
 impl RoomSettings {
-     pub fn new(backend: Sender<BKCommand>, uid: Option<String>, room: Room) -> RoomSettings {
+    pub fn new(backend: Sender<BKCommand>, uid: Option<String>, room: Room) -> RoomSettings {
         let builder = gtk::Builder::new();
 
-        builder.add_from_resource("/org/gnome/Fractal/ui/room_settings.ui")
-               .expect("Can't load ui file: room_settings.ui");
+        builder
+            .add_from_resource("/org/gnome/Fractal/ui/room_settings.ui")
+            .expect("Can't load ui file: room_settings.ui");
 
         RoomSettings {
             room: room,
             uid: uid,
             builder: builder,
             members_list: None,
-            backend: backend
+            backend: backend,
         }
     }
 
     /* creates a empty list with members.len() rows, the content will be loaded when the row is
-	 * drawn */
-	pub fn create(&mut self) -> Option<(gtk::Box, gtk::Box)> {
+     * drawn */
+    pub fn create(&mut self) -> Option<(gtk::Box, gtk::Box)> {
         let body = self.builder
             .get_object::<gtk::Box>("room_settings_box")
             .expect("Can't find room_settings_box in ui file.");
@@ -55,8 +56,7 @@ impl RoomSettings {
         /*as long we don't have an avatar, room topic, members list we show a spinner */
         if self.room.avatar.is_none() || self.room.topic.is_none() || self.room.members.len() < 1 {
             stack.set_visible_child_name("loading")
-        }
-        else {
+        } else {
             stack.set_visible_child_name("info")
         }
 
@@ -147,12 +147,19 @@ impl RoomSettings {
         }));
     }
 
-    fn create_file_chooser(&mut self, w: &gtk::Button) -> Option<()> {  
+    fn create_file_chooser(&mut self, w: &gtk::Button) -> Option<()> {
         let window = w.get_toplevel()?;
         if let Ok(window) = window.downcast::<gtk::Window>() {
             /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
-            let file_chooser = gtk::FileChooserNative::new("Pick a new room avatar", Some(&window), gtk::FileChooserAction::Open, Some("Select"), None);
-            let result = gtk::NativeDialog::run(&file_chooser.clone().upcast::<gtk::NativeDialog>());
+            let file_chooser = gtk::FileChooserNative::new(
+                "Pick a new room avatar",
+                Some(&window),
+                gtk::FileChooserAction::Open,
+                Some("Select"),
+                None,
+            );
+            let result =
+                gtk::NativeDialog::run(&file_chooser.clone().upcast::<gtk::NativeDialog>());
             if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
                 if let Some(file) = file_chooser.get_filename() {
                     if let Some(path) = file.to_str() {
@@ -165,7 +172,6 @@ impl RoomSettings {
     }
 
     fn init_room_settings(&mut self) -> Option<()> {
-        let avatar = self.room.avatar.clone();
         let name = self.room.name.clone();
         let topic = self.room.topic.clone();
         let mut is_room = true;
@@ -187,7 +193,7 @@ impl RoomSettings {
             Some(format!("Room · {} members", members.len()))
         };
 
-        self.room_settings_show_avatar(avatar, edit);
+        self.room_settings_show_avatar(edit);
         self.room_settings_show_room_name(name, edit);
         self.room_settings_show_room_topic(topic, is_room, edit);
         self.room_settings_show_room_type(description);
@@ -215,12 +221,10 @@ impl RoomSettings {
     }
 
     pub fn close_room_settings(&mut self) {
-        let scroll = self
-            .builder
+        let scroll = self.builder
             .get_object::<gtk::ScrolledWindow>("room_settings_scroll")
             .expect("Can't find room_settings_scroll in ui file.");
-        let b = self
-            .builder
+        let b = self.builder
             .get_object::<gtk::Frame>("room_settings_members_list")
             .expect("Can't find room_settings_members_list in ui file.");
         for w in b.get_children().iter() {
@@ -236,12 +240,10 @@ impl RoomSettings {
         let label = self.builder
             .get_object::<gtk::Label>("room_settings_room_name")
             .expect("Can't find room_settings_room_name in ui file.");
-        let b = self
-            .builder
+        let b = self.builder
             .get_object::<gtk::Box>("room_settings_room_name_box")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let entry = self
-            .builder
+        let entry = self.builder
             .get_object::<gtk::Entry>("room_settings_room_name_entry")
             .expect("Can't find room_settings_room_name_entry in ui file.");
         let button = self.builder
@@ -389,7 +391,7 @@ impl RoomSettings {
         None
     }
 
-    fn room_settings_show_avatar(&self, avatar: Option<String>, edit: bool) -> Option<()> {
+    fn room_settings_show_avatar(&self, edit: bool) -> Option<()> {
         let container = self.builder
             .get_object::<gtk::Box>("room_settings_avatar_box")
             .expect("Can't find room_settings_avatar_box in ui file.");
@@ -446,7 +448,7 @@ impl RoomSettings {
         let room = &self.room;
         let command = BKCommand::SetRoomAvatar(room.id.clone(), file.clone());
         self.backend.send(command).unwrap();
-        self.room_settings_show_avatar(Some(file), true);
+        self.room_settings_show_avatar(true);
         avatar_btn.set_sensitive(false);
         avatar_spinner.show();
         None

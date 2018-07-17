@@ -135,6 +135,10 @@ impl AppOp {
                 self.reload_members();
             }
         }
+        /* FIXME: update the current room settings insteat of creating a new one */
+        if self.room_settings.is_some() {
+            self.create_room_settings();
+        }
     }
 
     pub fn reload_members(&mut self) {

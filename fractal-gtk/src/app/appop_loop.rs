@@ -3,6 +3,7 @@ use app::App;
 use appop::MsgPos;
 use appop::LastViewed;
 use appop::RoomPanel;
+use appop::AppState;
 
 use std::thread;
 use std::sync::mpsc::Receiver;
@@ -19,6 +20,7 @@ use types::StickerGroup;
 pub enum InternalCommand {
     AddRoomMessage(Message, MsgPos, Option<Message>, bool, LastViewed),
     SetPanel(RoomPanel),
+    SetView(AppState),
     NotifyClicked(Message),
     SelectRoom(Room),
     LoadMoreNormal,
@@ -52,6 +54,9 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
                 }
                 Ok(InternalCommand::SetPanel(st)) => {
                     APPOP!(room_panel, (st));
+                }
+                Ok(InternalCommand::SetView(view)) => {
+                    APPOP!(set_state, (view));
                 }
                 Ok(InternalCommand::NotifyClicked(msg)) => {
                     APPOP!(notification_cliked, (msg));

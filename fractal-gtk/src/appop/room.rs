@@ -5,7 +5,6 @@ use i18n::{i18n, i18n_k};
 
 use self::gtk::prelude::*;
 
-use cache::download_to_cache;
 use appop::AppOp;
 use appop::AppState;
 use appop::MsgPos;
@@ -17,7 +16,6 @@ use backend::BKCommand;
 use globals;
 use cache;
 use widgets;
-use widgets::avatar::AvatarExt;
 
 use types::Room;
 use types::Message;

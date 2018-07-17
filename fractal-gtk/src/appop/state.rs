@@ -8,7 +8,7 @@ use appop::AppOp;
 use appop::room::RoomPanel;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AppState {
     Login,
     Chat,
@@ -74,6 +74,11 @@ impl AppOp {
 
         if let AppState::Directory = self.state {
             self.search_rooms(false);
+        }
+
+        /* FIXME: Find better solution to remove reference to widget */
+        if self.state != AppState::RoomSettings && self.room_settings.is_some() {
+            self.close_room_settings();
         }
     }
 
