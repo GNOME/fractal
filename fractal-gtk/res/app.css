@@ -208,6 +208,17 @@ row .timestamp {
   padding: 18px;
 }
 
+.message-input {
+    background-color: @theme_base_color;
+    border-radius: 3px;
+    border: 1px solid @borders;
+    padding: 6px;
+}
+
+.message-input:focus {
+    border: 1px solid blue;
+}
+
 /*#FIXME css style to remove round corners in the header*/
 stack headerbar:last-child:not(:only-child) {
   border-top-left-radius: 0px;
