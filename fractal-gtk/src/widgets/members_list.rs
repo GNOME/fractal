@@ -6,6 +6,7 @@ use std::rc::Rc;
 use self::gtk::prelude::*;
 use glib::signal;
 
+use i18n::i18n;
 use types::Member;
 use widgets;
 use widgets::avatar::AvatarExt;
@@ -38,7 +39,7 @@ impl MembersList {
         self.error
             .get_style_context()?
             .add_class("no_member_search");
-        self.error.set_text("Nothing found");
+        self.error.set_text(&i18n("No matching members found"));
         b.pack_start(&self.error, true, true, 0);
         self.connect();
         b.show_all();

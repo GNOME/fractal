@@ -4,6 +4,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use self::gtk::prelude::*;
+use i18n::i18n;
+use i18n::ni18n_f;
 
 use backend::BKCommand;
 use cache::download_to_cache;
@@ -144,7 +146,7 @@ impl RoomSettings {
         if let Ok(window) = window.downcast::<gtk::Window>() {
             /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
             let file_chooser = gtk::FileChooserNative::new(
-                "Pick a new room avatar",
+                i18n("Pick a new room avatar").as_str(),
                 Some(&window),
                 gtk::FileChooserAction::Open,
                 Some("Select"),
@@ -182,7 +184,10 @@ impl RoomSettings {
                let description = Some(format!("Private Group · {} members", members.len()));
                */
             //Some(format!("Public Room · {} members", members.len()))
-            Some(format!("Room · {} members", members.len()))
+
+            Some(ni18n_f("Room · {} member", "Room · {} members",
+                         members.len() as u32,
+                         &[&members.len().to_string()]))
         };
 
         self.room_settings_show_avatar(edit);
@@ -240,7 +245,7 @@ impl RoomSettings {
             if let Some(text) = text {
                 label.set_text(&text);
             } else {
-                label.set_text("Noname");
+                label.set_text("");
             }
             b.hide();
             label.show();
@@ -578,7 +583,7 @@ impl RoomSettings {
         for w in b.get_children().iter() {
             b.remove(w);
         }
-        label.set_text(&format!("{} members", members.len()));
+        label.set_text(ni18n_f("{} member", "{} members", members.len() as u32, &[&members.len().to_string()]).as_str());
         let list = widgets::MembersList::new(members.clone(), entry);
         let w = list.create()?;
         b.add(&w);
