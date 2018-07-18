@@ -376,7 +376,7 @@ dependencies = [
  "gettext-rs 0.3.0 (git+https://github.com/danigm/gettext-rs?branch=no-gettext)",
  "gio 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gspell 0.1.0 (git+https://gitlab.gnome.org/jsparber/gspell-rs)",
+ "gspell 0.1.1 (git+https://gitlab.gnome.org/jsparber/gspell-rs)",
  "gstreamer 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -604,8 +604,8 @@ dependencies = [
 
 [[package]]
 name = "gspell"
-version = "0.1.0"
-source = "git+https://gitlab.gnome.org/jsparber/gspell-rs#667699e3006d6f43499376181d0ad928a06282a1"
+version = "0.1.1"
+source = "git+https://gitlab.gnome.org/jsparber/gspell-rs#1501c997e2450378ea7e8291c94fa8189bb360df"
 dependencies = [
  "bitflags 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -627,7 +627,7 @@ dependencies = [
 [[package]]
 name = "gspell-sys"
 version = "0.2.0"
-source = "git+https://gitlab.gnome.org/jsparber/gspell-sys-rs#96e2dd5fd909892e7092927cbe1d386124854277"
+source = "git+https://gitlab.gnome.org/jsparber/gspell-sys-rs#158e8ebbe5aeafc96663e3e76fc9a25715198264"
 dependencies = [
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2266,7 +2266,7 @@ dependencies = [
 "checksum glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5e0be1b1432e227bcd1a9b28db9dc1474a7e7fd4227e08e16f35304f32d09b61"
 "checksum glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "615bef979b5838526aee99241afc80cfb2e34a8735d4bcb8ec6072598c18a408"
 "checksum gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "70409d6405db8b1591602fcd0cbe8af52cd9976dd39194442b4c149ba343f86d"
-"checksum gspell 0.1.0 (git+https://gitlab.gnome.org/jsparber/gspell-rs)" = "<none>"
+"checksum gspell 0.1.1 (git+https://gitlab.gnome.org/jsparber/gspell-rs)" = "<none>"
 "checksum gspell-sys 0.2.0 (git+https://gitlab.gnome.org/jsparber/gspell-sys-rs)" = "<none>"
 "checksum gstreamer 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a7fcbc083ea31ca8aee35b78ca5eb00af9a59bd765508d8fa836cfb1a4fbb4dd"
 "checksum gstreamer-base 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05ec7a84b4160b61c72ea27ccf3f46eb9c8f996c5991746623e69e3e532e3cb5"

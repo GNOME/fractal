@@ -280,6 +280,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
@@ -304,6 +305,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage" id="md_img">
                                         <property name="visible">True</property>
@@ -331,6 +333,9 @@
                                     <property name="can_focus">True</property>
                                     <property name="wrap_mode">word</property>
                                     <property name="indent_on_tab">False</property>
+                                    <style>
+                                      <class name="message-input"/>
+                                    </style>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
@@ -343,6 +348,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
