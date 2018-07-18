@@ -117,7 +117,7 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="room_settings_room_name_button">
-                            <property name="visible">True</property>
+                            <property name="visible">False</property>
                             <property name="can_focus">True</property>
                             <child>
                               <object class="GtkImage">
@@ -173,7 +173,7 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="room_settings_room_topic_button">
-                            <property name="visible">True</property>
+                            <property name="visible">False</property>
                             <property name="can_focus">True</property>
                             <child>
                               <object class="GtkImage">
