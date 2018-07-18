@@ -280,6 +280,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
@@ -304,6 +305,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage" id="md_img">
                                         <property name="visible">True</property>
@@ -327,10 +329,25 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSourceView" id="msg_entry">
+                                  <object class="GtkBox" id="msg_entry_box">
+                                    <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="wrap_mode">word</property>
-                                    <property name="indent_on_tab">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <style>
+                                      <class name="message-input"/>
+                                    </style>
+                                    <child>
+                                      <object class="GtkSourceView" id="msg_entry">
+                                        <property name="can_focus">True</property>
+                                        <property name="wrap_mode">word</property>
+                                        <property name="indent_on_tab">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
@@ -343,6 +360,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
+                                    <property name="valign">end</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>

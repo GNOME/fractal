@@ -8,6 +8,10 @@ use app::App;
 
 impl App {
     pub fn connect_send(&self) {
+        let msg_entry_box = self.ui.builder
+            .get_object::<gtk::Box>("msg_entry_box")
+            .expect("Can't find msg_entry_box in ui file.");
+
         let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
@@ -44,5 +48,21 @@ impl App {
         msg_entry.connect_paste_clipboard(move |_| {
             op.lock().unwrap().paste();
         });
+
+        msg_entry.connect_focus_in_event(clone!(msg_entry_box => move |_, _| {
+            if let Some(style) = msg_entry_box.get_style_context() {
+                style.add_class("message-input-focused");
+            }
+
+            Inhibit(false)
+        }));
+
+        msg_entry.connect_focus_out_event(clone!(msg_entry_box => move |_, _| {
+            if let Some(style) = msg_entry_box.get_style_context() {
+                style.remove_class("message-input-focused");
+            }
+
+            Inhibit(false)
+        }));
     }
 }
