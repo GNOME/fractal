@@ -63,6 +63,16 @@
             ]
         },
         {
+            "name" : "gtksourceview",
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://git.gnome.org/browse/gtksourceview",
+                    "branch" : "gnome-3-24"
+                }
+            ]
+        },
+        {
             "name" : "fractal",
             "buildsystem" : "meson",
             "sources" : [
