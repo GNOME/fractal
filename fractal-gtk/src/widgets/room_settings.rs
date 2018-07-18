@@ -85,9 +85,6 @@ impl RoomSettings {
     }
 
     pub fn connect(&self) {
-        let back = self.builder
-            .get_object::<gtk::Button>("room_settings_back_button")
-            .expect("Can't find room_settings_back_button in ui file.");
         let name_btn = self.builder
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_room_name_button in ui file.");
@@ -105,11 +102,6 @@ impl RoomSettings {
             .expect("Can't find room_settings_avatar_button in ui file.");
 
         let this: Rc<RefCell<RoomSettings>> = Rc::new(RefCell::new(self.clone()));
-
-        /* Headerbar */
-        back.connect_clicked(clone!(this => move |_| {
-           this.borrow_mut().close_room_settings();
-        }));
 
         let button = name_btn.clone();
         name_entry.connect_property_text_notify(clone!(this => move |w| {
@@ -218,22 +210,6 @@ impl RoomSettings {
             }
         }
         uid
-    }
-
-    pub fn close_room_settings(&mut self) {
-        let scroll = self.builder
-            .get_object::<gtk::ScrolledWindow>("room_settings_scroll")
-            .expect("Can't find room_settings_scroll in ui file.");
-        let b = self.builder
-            .get_object::<gtk::Frame>("room_settings_members_list")
-            .expect("Can't find room_settings_members_list in ui file.");
-        for w in b.get_children().iter() {
-            b.remove(w);
-        }
-        if let Some(adj) = scroll.get_vadjustment() {
-            adj.set_value(0f64);
-        }
-        //self.set_state(AppState::Chat);
     }
 
     pub fn room_settings_show_room_name(&self, text: Option<String>, edit: bool) -> Option<()> {
