@@ -1,7 +1,4 @@
-#![deny(unused)]
-
 extern crate gtk;
-extern crate sourceview;
 
 use self::gtk::prelude::*;
 
@@ -32,83 +29,6 @@ impl AppOp {
             }
         }
         0
-    }
-
-    pub fn show_members(&self, members: Vec<Member>) {
-        self.clean_member_list();
-
-        let mlist: gtk::ListBox = self.ui.builder
-            .get_object("member_list")
-            .expect("Couldn't find member_list in ui file.");
-
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
-
-        // limiting the number of members to show in the list
-        for member in members.iter().take(self.member_limit) {
-            let w;
-            let m = member.clone();
-
-            {
-                let mb = widgets::MemberBox::new(&m, &self);
-                w = mb.widget(false);
-            }
-
-            w.connect_button_press_event(clone!( msg_entry => move |_, _| {
-                if let Some(ref a) = m.alias {
-                    if let Some(buffer) = msg_entry.get_buffer() {
-                        buffer.insert_at_cursor(&a.clone());
-                    }
-                    msg_entry.grab_focus();
-                }
-                glib::signal::Inhibit(true)
-            }));
-
-            let p = mlist.get_children().len() - 1;
-            mlist.insert(&w, p as i32);
-        }
-
-        if members.len() > self.member_limit {
-            let n = (members.len() - self.member_limit) as u32;
-            let newlabel = ni18n_k("and one more", "and {member_count} more", n,
-                                   &[("member_count", &n.to_string())]);
-            self.more_members_btn.set_label(&newlabel);
-            self.more_members_btn.show();
-        } else {
-            self.more_members_btn.hide();
-        }
-
-        let members_count = self.ui.builder
-            .get_object::<gtk::Label>("members_count")
-            .expect("Can't find member_count in ui file.");
-        members_count.set_text(&format!("{}", members.len()));
-    }
-
-    pub fn show_all_members(&self) {
-        let inp: gtk::SearchEntry = self.ui.builder
-            .get_object("members_search")
-            .expect("Couldn't find members_searcn in ui file.");
-        let text = inp.get_text();
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            let mut members: Vec<Member> = match text {
-                // all members if no search text
-                None => r.members.values().cloned().collect(),
-                Some(t) => {
-                    // members with the text in the alias
-                    r.members.values().filter(move |x| {
-                        match x.alias {
-                            None => false,
-                            Some(ref a) => a.to_lowercase().contains(&t.to_lowercase())
-                        }
-                    }).cloned().collect()
-                }
-            };
-            members.sort_by_key(|m| {
-                -r.power_levels.get(&m.uid).unwrap_or(&0)
-            });
-            self.show_members(members);
-        }
     }
 
     pub fn set_room_members(&mut self, roomid: String, members: Vec<Member>) {
