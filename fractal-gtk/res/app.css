@@ -229,6 +229,22 @@ row .timestamp {
   background: @theme_base_color;
 }
 
+.message-input {
+  background-color: @theme_base_color;
+  border-radius: 3px;
+  border: 1px solid @borders;
+  padding: 6px;
+}
+
+.message-input-focused {
+  border: 1px solid @theme_selected_bg_color;
+}
+
+.message-input-area {
+  border-top: 1px solid @borders;
+  padding: 6px;
+}
+
 /*#FIXME css style to remove round corners in the header*/
 stack headerbar:last-child:not(:only-child) {
   border-top-left-radius: 0px;
