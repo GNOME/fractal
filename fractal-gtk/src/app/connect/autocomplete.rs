@@ -10,6 +10,9 @@ impl App {
         let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
+            let buffer: sourceview::Buffer = self.ui.builder
+                .get_object("msg_entry_buffer")
+                .expect("Couldn't find msg_entry_buffer in ui file.");
         let popover = self.ui.builder
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
@@ -21,6 +24,6 @@ impl App {
             .expect("Can't find main_window in ui file.");
 
         let op = self.op.clone();
-        widgets::Autocomplete::new(op, window, msg_entry, popover, listbox).connect();
+        widgets::Autocomplete::new(op, window, msg_entry, buffer, popover, listbox).connect();
     }
 }
