@@ -10,6 +10,7 @@ use std::rc::Rc;
 use glib;
 use self::gtk::prelude::*;
 use self::gtk::TextTag;
+use self::sourceview::prelude::*;
 
 use types::Member;
 //use types::Room;
@@ -20,6 +21,7 @@ use appop::AppOp;
 
 pub struct Autocomplete {
     entry: sourceview::View,
+    buffer: sourceview::Buffer,
     listbox: gtk::ListBox,
     popover: gtk::Popover,
     window: gtk::Window,
@@ -31,9 +33,10 @@ pub struct Autocomplete {
 }
 
 impl Autocomplete {
-    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
+    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, buffer: sourceview::Buffer, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
+            buffer: buffer,
             listbox: listbox,
             popover: popover,
             window: window,
@@ -174,6 +177,10 @@ impl Autocomplete {
                 },
                 /* Arrow key */
                 gdk::enums::key::Up => {
+                    if own.borrow().popover_position.is_none() {
+                        return glib::signal::Inhibit(false);
+                    }
+
                     let widget = {
                         own.borrow_mut().autocomplete_arrow(-1)
                     };
@@ -184,6 +191,10 @@ impl Autocomplete {
                 },
                 /* Arrow key */
                 gdk::enums::key::Down => {
+                    if own.borrow().popover_position.is_none() {
+                        return glib::signal::Inhibit(false);
+                    }
+
                     let widget = {
                         own.borrow_mut().autocomplete_arrow(1)
                     };
@@ -341,13 +352,13 @@ impl Autocomplete {
         visible
     }
 
-    pub fn add_highlight(&self, input: String) -> Option<()> {
+    pub fn add_highlight(&self, input: String) {
         let input = input.to_lowercase();
 
         if let Some(buffer) = self.entry.get_buffer() {
             let start_iter = buffer.get_start_iter();
             let end_iter = buffer.get_end_iter();
-            buffer.remove_all_tags(&start_iter, &end_iter);
+            buffer.remove_tag_by_name("alias-highlight", &start_iter, &end_iter);
 
             for alias in self.highlighted_entry.iter().map(|alias| alias.to_lowercase()) {
                 for (index, text) in input.match_indices(&alias) {
@@ -358,8 +369,6 @@ impl Autocomplete {
                 }
             }
         }
-
-        Some(())
     }
 
     pub fn autocomplete_arrow(&mut self, direction: i32) -> Option<gtk::Widget> {
