@@ -177,6 +177,10 @@ impl Autocomplete {
                 },
                 /* Arrow key */
                 gdk::enums::key::Up => {
+                    if own.borrow().popover_position.is_none() {
+                        return glib::signal::Inhibit(false);
+                    }
+
                     let widget = {
                         own.borrow_mut().autocomplete_arrow(-1)
                     };
@@ -187,6 +191,10 @@ impl Autocomplete {
                 },
                 /* Arrow key */
                 gdk::enums::key::Down => {
+                    if own.borrow().popover_position.is_none() {
+                        return glib::signal::Inhibit(false);
+                    }
+
                     let widget = {
                         own.borrow_mut().autocomplete_arrow(1)
                     };
