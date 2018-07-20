@@ -3,6 +3,7 @@ extern crate gtk;
 extern crate sourceview;
 
 use self::gtk::prelude::*;
+use self::sourceview::BufferExt;
 
 use app::App;
 
@@ -21,6 +22,11 @@ impl App {
         let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
+
+        let buffer: sourceview::Buffer = self.ui.builder
+            .get_object("msg_entry_buffer")
+            .expect("Couldn't find msg_entry_buffer in ui file.");
+        buffer.set_highlight_matching_brackets(false);
 
         let autocomplete_popover = self.ui.builder
             .get_object::<gtk::Popover>("autocomplete_popover")
