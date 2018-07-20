@@ -3,6 +3,9 @@
 <interface>
   <requires lib="gtk+" version="3.20"/>
 
+  <object class="GtkSourceBuffer" id="msg_entry_buffer">
+  </object>
+
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
     <property name="default_width">860</property>
@@ -343,6 +346,7 @@
                                         <property name="can_focus">True</property>
                                         <property name="wrap_mode">word</property>
                                         <property name="indent_on_tab">False</property>
+                                        <property name="buffer">msg_entry_buffer</property>
                                       </object>
                                       <packing>
                                         <property name="expand">True</property>
