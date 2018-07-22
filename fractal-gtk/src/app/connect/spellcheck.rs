@@ -13,7 +13,7 @@ impl App {
             .get_object("msg_entry")
             .expect("Couldn't find msg_entry in ui file.");
 
-        let msg_entry: gtk::TextView = msg_entry.clone().upcast();
+        let _msg_entry: gtk::TextView = msg_entry.clone().upcast();
 
         /* Add gspell to the send TextView and enable the basic configuration */
         // if let Some(gspell_text_view) = gspell:TextView::get_from_gtk_text_view(&msg_entry) {

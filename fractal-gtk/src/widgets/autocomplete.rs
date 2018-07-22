@@ -10,7 +10,6 @@ use std::rc::Rc;
 use glib;
 use self::gtk::prelude::*;
 use self::gtk::TextTag;
-use self::sourceview::prelude::*;
 
 use types::Member;
 //use types::Room;
@@ -21,7 +20,6 @@ use appop::AppOp;
 
 pub struct Autocomplete {
     entry: sourceview::View,
-    buffer: sourceview::Buffer,
     listbox: gtk::ListBox,
     popover: gtk::Popover,
     window: gtk::Window,
@@ -33,10 +31,9 @@ pub struct Autocomplete {
 }
 
 impl Autocomplete {
-    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, buffer: sourceview::Buffer, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
+    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
-            buffer: buffer,
             listbox: listbox,
             popover: popover,
             window: window,
