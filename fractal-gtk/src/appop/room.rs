@@ -16,6 +16,9 @@ use backend::BKCommand;
 use globals;
 use cache;
 use widgets;
+use widgets::RowHistory;
+use widgets::RoomHistory;
+use widgets::RowType;
 
 use types::Room;
 use types::Message;
@@ -24,17 +27,13 @@ use util::markup_text;
 
 use self::rand::{thread_rng, Rng};
 
-
 pub struct Force(pub bool);
-
 
 #[derive(Debug, Clone)]
 pub enum RoomPanel {
     Room,
     NoRoom,
-    Loading,
 }
-
 
 impl AppOp {
     pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
@@ -162,7 +161,7 @@ impl AppOp {
         }
 
         self.member_limit = 50;
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
 
         let msg_entry: gtk::Entry = self.ui.builder
             .get_object("msg_entry")
@@ -182,29 +181,40 @@ impl AppOp {
 
         self.remove_messages();
 
-        let mut getmessages = true;
+        let mut getmessages = false;
         self.shown_messages = 0;
 
-        let msgs = room.messages.iter().rev()
+        let msgs = room.messages.iter()
                                 .take(globals::INITIAL_MESSAGES)
                                 .collect::<Vec<&Message>>();
-        for (i, msg) in msgs.iter().enumerate() {
-            let command = InternalCommand::AddRoomMessage((*msg).clone(),
-                                                          MsgPos::Top,
-                                                          None,
-                                                          i == msgs.len() - 1,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
-        }
-        self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
-        self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
-        if !room.messages.is_empty() {
-            getmessages = false;
-            if let Some(msg) = room.messages.iter().last() {
-                self.mark_as_read(msg, Force(false));
-            }
+        //create a list of the lists (vec) needed for the room history
+        let mut messages = vec![];
+        for msg in msgs.iter() {
+            let row = RowHistory {
+                message: (*msg).clone(),
+                t: Some(RowType::WithHeader),
+            };
+            messages.push(row);
         }
+        let listbox = self.ui.builder
+            .get_object::<gtk::ListBox>("message_list")
+            .expect("Can't find message_list in ui file.");
+        let mut history = RoomHistory::new(messages, listbox, self.backend.clone());
+        history.create();
+        self.room_history = Some(history);
+
+        /* Readd tmp messages
+           self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
+           self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
+
+           if !room.messages.is_empty() {
+           getmessages = false;
+           if let Some(msg) = room.messages.iter().last() {
+           self.mark_as_read(msg, Force(false));
+           }
+           }
+           */
 
         // getting room details
         self.backend.send(BKCommand::SetRoom(room.clone())).unwrap();
@@ -217,18 +227,11 @@ impl AppOp {
 
         name_label.set_text(&room.name.clone().unwrap_or_default());
 
-        let mut size = 24;
-        if let Some(r) = room.topic.clone() {
-            if !r.is_empty() {
-                size = 16;
-            }
-        }
-
-        self.set_current_room_avatar(room.avatar.clone(), size);
         self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
         self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
 
         if getmessages {
+            println!("we load room messages because we don't have any");
             self.backend.send(BKCommand::GetRoomMessages(self.active_room.clone().unwrap_or_default())).unwrap();
         }
     }
@@ -279,7 +282,7 @@ impl AppOp {
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
     }
 
     pub fn room_panel(&self, t: RoomPanel) {
@@ -291,7 +294,6 @@ impl AppOp {
             .expect("Can't find room_header_bar in ui file.");
 
         let v = match t {
-            RoomPanel::Loading => "loading",
             RoomPanel::Room => "room_view",
             RoomPanel::NoRoom => "noroom",
         };
@@ -357,16 +359,6 @@ impl AppOp {
             r.avatar = avatar.clone();
             self.roomlist.set_room_avatar(roomid.clone(), r.avatar.clone());
         }
-
-        if roomid == self.active_room.clone().unwrap_or_default() {
-            let mut size = 24;
-            if let Some(r) = self.rooms.get_mut(&roomid) {
-                if !r.clone().topic.unwrap_or_default().is_empty() {
-                    size = 16;
-                }
-            }
-            self.set_current_room_avatar(avatar, size);
-        }
     }
 
     pub fn set_current_room_detail(&self, key: String, value: Option<String>) {
@@ -385,9 +377,6 @@ impl AppOp {
             }
             _ => println!("no key {}", key),
         };
-    }
-
-    pub fn set_current_room_avatar(&self, _avatar: Option<String>, _size: i32) {
     }
 
     pub fn filter_rooms(&self, term: Option<String>) {

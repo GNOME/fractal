@@ -18,6 +18,7 @@ use types::Room;
 use self::chrono::prelude::*;
 
 use backend::BKCommand;
+use backend::Backend;
 
 use util::markup_text;
 
@@ -27,7 +28,6 @@ use std::sync::mpsc::TryRecvError;
 
 use cache::download_to_cache;
 
-use appop::AppOp;
 use globals;
 use widgets;
 use widgets::AvatarExt;
@@ -35,22 +35,20 @@ use widgets::AvatarData;
 
 // Room Message item
 pub struct MessageBox<'a> {
-    room: &'a Room,
     msg: &'a Message,
-    op: &'a AppOp,
+    backend: &'a Sender<BKCommand>,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
 }
 
 impl<'a> MessageBox<'a> {
-    pub fn new(room: &'a Room, msg: &'a Message, op: &'a AppOp) -> MessageBox<'a> {
+    pub fn new(msg: &'a Message, backend: &'a Sender<BKCommand>) -> MessageBox<'a> {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
 
         MessageBox {
             msg: msg,
-            room: room,
-            op: op,
+            backend: backend,
             username: username,
             username_event_box: eb,
         }
@@ -139,45 +137,37 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_avatar(&self) -> widgets::Avatar {
-        let uid = self.msg.sender.clone();
+        let member = self.msg.sender.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
-        let m = self.room.members.get(&uid);
 
-        let data = match m {
-            Some(member) => {
-                self.username.set_text(&member.get_alias());
-                let username = Some(member.get_alias());
-                avatar.circle(uid.clone(), username, globals::MSG_ICON_SIZE)
-            }
-            None => {
-                let backend = self.op.backend.clone();
-                let data = avatar.circle(uid.clone(), None, globals::MSG_ICON_SIZE);
-                set_username_async(backend, &uid, self.username.clone(),
-                                   Some(data.clone()));
-                data
-            }
-        };
+        self.username.set_text(&member);
+        let username = Some(member.clone());
+        let data = avatar.circle(member.clone(), username, globals::MSG_ICON_SIZE);
+            /*
+               let data = match m {
+               Some(member) => {
+               self.username.set_text(&member.get_alias());
+               let username = Some(member.get_alias());
+               avatar.circle(uid.clone(), username, globals::MSG_ICON_SIZE)
+               }
+               None => {
+               let backend = self.op.backend.clone();
+               let data = avatar.circle(uid.clone(), None, globals::MSG_ICON_SIZE);
+               set_username_async(backend, &uid, self.username.clone(),
+               Some(data.clone()));
+               data
+               }
+               };
 
-        download_to_cache(self.op.backend.clone(), uid.clone(),
-                          data.clone());
+                          */
+        download_to_cache(self.backend.clone(), member.clone(), data.clone());
 
         avatar
     }
 
-    fn build_room_msg_username(&self, sender: &str, member: Option<&Member>, small: bool) -> gtk::Label {
-        let uname = match member {
-            Some(m) => m.get_alias(),
-            None => {
-                // in small widget, the avatar doesn't download the username
-                // so we need to download here
-                if small {
-                    let backend = self.op.backend.clone();
-                    set_username_async(backend, sender, self.username.clone(), None);
-                }
-                String::from(sender)
-            }
-        };
+    fn build_room_msg_username(&self, sender: &str) -> gtk::Label {
+        let uname = String::from(sender);
 
         self.username.set_text(&uname);
         self.username.set_justify(gtk::Justification::Left);
@@ -195,18 +185,15 @@ impl<'a> MessageBox<'a> {
     ///                 sender is not app user
     ///  * msg-emote: if the message is an emote
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
-        let uname = &self.op.username.clone().unwrap_or_default();
-        let uid = self.op.uid.clone().unwrap_or_default();
-        let msg = self.msg;
-        let body: &str = &msg.body;
-
         if let Some(style) = w.get_style_context() {
             // mentions
+            /* disable mentions for now
             if String::from(body).contains(uname) && msg.sender != uid {
                 style.add_class("msg-mention");
             }
+            */
             // emotes
-            if msg.mtype == "m.emote" {
+            if self.msg.mtype == "m.emote" {
                 style.add_class("msg-emote");
             }
         }
@@ -225,12 +212,13 @@ impl<'a> MessageBox<'a> {
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let msg = gtk::Label::new("");
-        let uname = self.op.username.clone().unwrap_or_default();
+        let uname = "";
 
         msg.set_markup(&markup_text(body));
         self.set_label_styles(&msg);
 
-        if self.msg.sender != self.op.uid.clone().unwrap_or_default()
+        /*
+        if self.msg.sender != self.uid.clone().unwrap_or_default()
             && String::from(body).contains(&uname) {
 
             let name = uname.clone();
@@ -257,6 +245,7 @@ impl<'a> MessageBox<'a> {
                 }
             }
         }
+        */
 
         bx.add(&msg);
         bx
@@ -266,14 +255,14 @@ impl<'a> MessageBox<'a> {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let backend = self.op.backend.clone();
         let img_path = match msg.thumb {
             Some(ref m) => m.clone(),
             None => msg.url.clone().unwrap_or_default(),
         };
-        let image = widgets::image::Image::new(&backend, &img_path)
+        let image = widgets::image::Image::new(&self.backend.clone(), &img_path)
                         .size(Some(globals::MAX_IMAGE_SIZE)).build();
 
+        /*
         let msg = msg.clone();
         let room_id = self.room.id.clone();
         image.widget.connect_button_press_event(move |_, _| {
@@ -283,6 +272,7 @@ impl<'a> MessageBox<'a> {
 
             Inhibit(true)
         });
+        */
 
         if let Some(style) = image.widget.get_style_context() {
             style.add_class("image-widget");
@@ -296,7 +286,7 @@ impl<'a> MessageBox<'a> {
     fn build_room_msg_sticker(&self) -> gtk::Box {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
         let image = widgets::image::Image::new(&backend,
                         &msg.url.clone().unwrap_or_default())
                         .size(Some(globals::MAX_STICKER_SIZE)).build();
@@ -315,7 +305,7 @@ impl<'a> MessageBox<'a> {
 
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
 
         let (tx, rx): (Sender<String>, Receiver<String>) = channel();
         backend.send(BKCommand::GetMediaUrl(url.clone(), tx)).unwrap();
@@ -376,7 +366,7 @@ impl<'a> MessageBox<'a> {
         let viewbtn = gtk::Button::new();
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
         viewbtn.connect_clicked(move |btn| {
             let popover = gtk::Popover::new(btn);
 
@@ -460,8 +450,8 @@ impl<'a> MessageBox<'a> {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let member = self.room.members.get(&msg.sender);
-        let username = self.build_room_msg_username(&msg.sender, member, small);
+        let member = msg.sender.clone();
+        let username = self.build_room_msg_username(&msg.sender);
         let date = self.build_room_msg_date(&msg.date);
 
         self.username_event_box.add(&username);
@@ -474,13 +464,10 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let member = self.room.members.get(&msg.sender);
+        let member = msg.sender.clone();
         let sender: &str = &msg.sender;
 
-        let sname = match member {
-            Some(m) => m.get_alias(),
-            None => String::from(sender),
-        };
+        let sname = String::from(sender);
 
         let msg_label = gtk::Label::new("");
         let body: &str = &msg.body;

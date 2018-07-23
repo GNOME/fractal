@@ -43,7 +43,7 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
             let recv = rx.recv();
             match recv {
                 Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, first_new)) => {
-                    APPOP!(add_room_message, (msg, pos, prev, force_full, first_new));
+                    APPOP!(add_room_message, (msg));
                 }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));

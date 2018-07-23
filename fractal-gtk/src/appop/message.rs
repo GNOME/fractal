@@ -19,20 +19,17 @@ use appop::room::Force;
 use glib;
 use globals;
 use widgets;
+use widgets::RowHistory;
+use widgets::RoomHistory;
+use widgets::RowType;
 use backend::BKCommand;
 
 use types::Message;
-
 
 #[derive(Debug, Clone)]
 pub enum MsgPos {
     Top,
     Bottom,
-}
-
-pub struct TmpMsg {
-    pub msg: Message,
-    pub widget: Option<gtk::Widget>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,6 +39,10 @@ pub enum LastViewed {
     No,
 }
 
+pub struct TmpMsg {
+    pub msg: Message,
+    pub widget: Option<gtk::Widget>,
+}
 
 impl AppOp {
     pub fn remove_messages(&mut self) {
@@ -143,79 +144,11 @@ impl AppOp {
         }
     }
 
-    pub fn add_room_message(&mut self,
-                            msg: Message,
-                            msgpos: MsgPos,
-                            prev: Option<Message>,
-                            force_full: bool,
-                            first_new: bool) {
-        let msg_entry: gtk::Entry = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
-
-        let mut calc_prev = prev;
-        if !force_full && calc_prev.is_none() {
-            if let Some(r) = self.rooms.get(&msg.room) {
-                calc_prev = match r.messages.iter().position(|ref m| m.id == msg.id) {
-                    Some(pos) if pos > 0 => r.messages.get(pos - 1).cloned(),
-                    _ => None
-                };
-            }
-        }
-
+    pub fn add_room_message(&mut self, msg: Message) {
+        println!("new incomming message"); 
         if msg.room == self.active_room.clone().unwrap_or_default() {
             if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-                let m;
-                {
-                    let mb = widgets::MessageBox::new(r, &msg, &self);
-                    let entry = msg_entry.clone();
-                    mb.username_event_box.set_focus_on_click(false);
-                    mb.username_event_box.connect_button_press_event(move |eb, _| {
-                        if let Some(label) = eb.get_children().iter().next() {
-                            if let Ok(l) = label.clone().downcast::<gtk::Label>() {
-                                if let Some(t) = l.get_text() {
-                                    let mut pos = entry.get_position();
-                                    entry.insert_text(&t[..], &mut pos);
-                                    pos = entry.get_text_length() as i32;
-                                    entry.set_position(pos);
-                                    entry.grab_focus_without_selecting();
-                                }
-                            }
-                        }
-                        glib::signal::Inhibit(false)
-                    });
-                    m = match calc_prev {
-                        Some(ref p) if self.should_group(&msg, p) => mb.small_widget(),
-                        Some(_) if self.has_small_mtype(&msg) => mb.small_widget(),
-                        _ => mb.widget(),
-                    }
-                }
-
-                m.set_focus_on_click(false);
-
-                match msgpos {
-                    MsgPos::Bottom => {
-                        messages.insert(&m, -1);
-
-                        if first_new {
-                            let divider = widgets::divider::new(i18n("New Messages").as_str());
-                            messages.insert(&divider, -1);
-                        }
-                    },
-                    MsgPos::Top => {
-                        messages.insert(&m, 1);
-
-                        if first_new {
-                            let divider = widgets::divider::new(i18n("New Messages").as_str());
-                            messages.insert(&divider, 1);
-                        }
-                    },
-                };
-
-                self.shown_messages += 1;
+                /* Handle loading older messages */
             }
         }
     }
@@ -228,7 +161,7 @@ impl AppOp {
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let m;
             {
-                let mb = widgets::MessageBox::new(r, &msg, &self);
+                let mb = widgets::MessageBox::new(&msg, &self.backend);
                 m = mb.tmpwidget();
             }
 
@@ -262,7 +195,7 @@ impl AppOp {
             for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
                 let m;
                 {
-                    let mb = widgets::MessageBox::new(r, &t.msg, &self);
+                    let mb = widgets::MessageBox::new(&t.msg, &self.backend);
                     m = mb.tmpwidget();
                 }
 
@@ -539,7 +472,6 @@ impl AppOp {
             }
         }
 
-        let mut prev = None;
         for msg in msgs.iter() {
             let mut should_notify = msg.body.contains(&self.username.clone()?) || {
                 match self.rooms.get(&msg.room) {
@@ -556,10 +488,16 @@ impl AppOp {
                 self.notify(msg);
             }
 
-            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, prev, false,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
-            prev = Some(msg.clone());
+            /* add new message to room history only if they are from the active room */
+            if msg.room == self.active_room.clone().unwrap_or_default() {
+                if let Some(ref mut history) = self.room_history {
+                    let row = RowHistory {
+                        message: (*msg).clone(),
+                        t: Some(RowType::WithHeader),
+                    };
+                    history.add_new_message(row);
+                }
+            }
 
             if !init {
                 self.roomlist.moveup(msg.room.clone());

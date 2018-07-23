@@ -31,7 +31,7 @@ impl AppOp {
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
     }
 
     pub fn show_direct_chat_dialog(&mut self) {

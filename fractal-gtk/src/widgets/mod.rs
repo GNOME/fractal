@@ -1,5 +1,6 @@
 mod message;
 mod room;
+mod room_history;
 mod member;
 mod roomrow;
 mod roomlist;
@@ -14,6 +15,9 @@ mod inline_player;
 
 pub use self::message::MessageBox;
 pub use self::room::RoomBox;
+pub use self::room_history::RoomHistory;
+pub use self::room_history::RowHistory;
+pub use self::room_history::RowType;
 pub use self::member::MemberBox;
 pub use self::autocomplete::Autocomplete;
 pub use self::address::Address;
