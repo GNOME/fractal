@@ -30,4 +30,29 @@ impl MessageMenu {
 
         menu_popover.popup();
     }
+
+    pub fn display_source_dialog(&self) {
+        let dialog: gtk::MessageDialog = self.ui.builder
+            .get_object("source_dialog")
+            .expect("Can't find source_dialog in ui file.");
+
+        dialog.set_property_secondary_text(Some(
+            self.msg.source.clone().unwrap_or("This message has no source.".to_string()).as_str()
+        ));
+
+        dialog.connect_response(move |d, res| {
+            if gtk::ResponseType::from(res) == gtk::ResponseType::Accept {
+                let atom = gdk::Atom::intern("CLIPBOARD");
+                let clipboard = gtk::Clipboard::get(&atom);
+
+                if let Some(src) = d.get_property_secondary_text() {
+                    clipboard.set_text(&src);
+                }
+            } else {
+                d.hide();
+            }
+        });
+
+        dialog.show();
+    }
 }
