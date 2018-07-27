@@ -34,6 +34,8 @@ impl UI {
                .expect("Can't load ui file: stickers_popover.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/media_viewer_menu.ui")
                .expect("Can't load ui file: media_viewer_menu.ui");
+        builder.add_from_resource("/org/gnome/Fractal/ui/message_menu.ui")
+               .expect("Can't load ui file: message_menu.ui");
 
         builder.add_from_resource("/org/gnome/Fractal/ui/main_window.ui")
                .expect("Can't load ui file: main_window.ui");
