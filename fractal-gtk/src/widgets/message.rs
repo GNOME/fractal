@@ -32,6 +32,7 @@ use globals;
 use widgets;
 use widgets::AvatarExt;
 use widgets::AvatarData;
+use widgets::message_menu::MessageMenu;
 
 // Room Message item
 pub struct MessageBox<'a> {
@@ -40,6 +41,7 @@ pub struct MessageBox<'a> {
     op: &'a AppOp,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
+    pub row_event_box: gtk::EventBox,
 }
 
 impl<'a> MessageBox<'a> {
@@ -47,12 +49,25 @@ impl<'a> MessageBox<'a> {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
 
+        let row_eb = gtk::EventBox::new();
+        let message_menu = op.message_menu.clone();
+        let ui = op.ui.clone();
+        row_eb.connect_button_press_event(clone!(msg => move |eb, btn| {
+            if btn.get_button() == 3 {
+                *message_menu.write().unwrap() = Some(MessageMenu::new_message_menu(ui.clone(), msg.clone()));
+                message_menu.read().unwrap().clone().unwrap().show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+            }
+
+            Inhibit(false)
+        }));
+
         MessageBox {
             msg: msg,
             room: room,
             op: op,
             username: username,
             username_event_box: eb,
+            row_event_box: row_eb,
         }
     }
 
@@ -77,11 +92,13 @@ impl<'a> MessageBox<'a> {
         msg_widget.pack_start(&avatar, false, false, 0);
         msg_widget.pack_start(&content, true, true, 0);
 
+        self.row_event_box.add(&msg_widget);
+
         let row = gtk::ListBoxRow::new();
         self.set_msg_styles(&row);
         row.set_selectable(false);
         row.set_margin_top(12);
-        row.add(&msg_widget);
+        row.add(&self.row_event_box);
         row.show_all();
 
         row
@@ -98,10 +115,12 @@ impl<'a> MessageBox<'a> {
 
         msg_widget.pack_start(&content, true, true, 50);
 
+        self.row_event_box.add(&msg_widget);
+
         let row = gtk::ListBoxRow::new();
         self.set_msg_styles(&row);
         row.set_selectable(false);
-        row.add(&msg_widget);
+        row.add(&self.row_event_box);
         row.show_all();
 
         row
@@ -227,6 +246,7 @@ impl<'a> MessageBox<'a> {
         let msg = gtk::Label::new("");
         let uname = self.op.username.clone().unwrap_or_default();
 
+        self.connect_right_click_menu(msg.clone().upcast::<gtk::Widget>());
         msg.set_markup(&markup_text(body));
         self.set_label_styles(&msg);
 
@@ -276,12 +296,16 @@ impl<'a> MessageBox<'a> {
 
         let msg = msg.clone();
         let room_id = self.room.id.clone();
-        image.widget.connect_button_press_event(move |_, _| {
-            let msg = msg.clone();
-            let rid = room_id.clone();
-            APPOP!(display_media_viewer, (msg, rid));
+        image.widget.connect_button_press_event(move |_, btn| {
+            if btn.get_button() != 3 {
+                let msg = msg.clone();
+                let rid = room_id.clone();
+                APPOP!(display_media_viewer, (msg, rid));
 
-            Inhibit(true)
+                Inhibit(true)
+            } else {
+                Inhibit(false)
+            }
         });
 
         if let Some(style) = image.widget.get_style_context() {
@@ -485,12 +509,31 @@ impl<'a> MessageBox<'a> {
         let msg_label = gtk::Label::new("");
         let body: &str = &msg.body;
 
+        self.connect_right_click_menu(msg_label.clone().upcast::<gtk::Widget>());
         msg_label.set_markup(&format!("<b>{}</b> {}", sname, markup_text(body)));
 
         self.set_label_styles(&msg_label);
 
         bx.add(&msg_label);
         bx
+    }
+
+    fn connect_right_click_menu(&self, w: gtk::Widget) {
+        let eb = self.row_event_box.clone();
+        let message_menu = self.op.message_menu.clone();
+        let ui = self.op.ui.clone();
+        let msg = self.msg.clone();
+
+        w.connect_button_press_event(move |_, btn| {
+            if btn.get_button() == 3 {
+                *message_menu.write().unwrap() = Some(MessageMenu::new_message_menu(ui.clone(), msg.clone()));
+                message_menu.read().unwrap().clone().unwrap().show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+
+                Inhibit(true)
+            } else {
+                Inhibit(false)
+            }
+        });
     }
 }
 

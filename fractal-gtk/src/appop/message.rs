@@ -174,17 +174,20 @@ impl AppOp {
                     let mb = widgets::MessageBox::new(r, &msg, &self);
                     let entry = msg_entry.clone();
                     mb.username_event_box.set_focus_on_click(false);
-                    mb.username_event_box.connect_button_press_event(move |eb, _| {
-                        if let Some(label) = eb.get_children().iter().next() {
-                            if let Ok(l) = label.clone().downcast::<gtk::Label>() {
-                                if let Some(t) = l.get_text() {
-                                    if let Some(buffer) = entry.get_buffer() {
-                                        buffer.insert_at_cursor(&t[..]);
+                    mb.username_event_box.connect_button_press_event(move |eb, btn| {
+                        if btn.get_button() != 3 {
+                            if let Some(label) = eb.get_children().iter().next() {
+                                if let Ok(l) = label.clone().downcast::<gtk::Label>() {
+                                    if let Some(t) = l.get_text() {
+                                        if let Some(buffer) = entry.get_buffer() {
+                                            buffer.insert_at_cursor(&t[..]);
+                                        }
+                                        entry.grab_focus();
                                     }
-                                    entry.grab_focus();
                                 }
                             }
                         }
+
                         glib::signal::Inhibit(false)
                     });
                     m = match calc_prev {

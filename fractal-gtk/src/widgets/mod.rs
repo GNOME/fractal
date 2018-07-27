@@ -11,6 +11,7 @@ pub mod room_settings;
 pub mod divider;
 pub mod image;
 mod inline_player;
+pub mod message_menu;
 
 pub use self::message::MessageBox;
 pub use self::room::RoomBox;
