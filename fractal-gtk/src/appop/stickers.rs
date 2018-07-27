@@ -199,6 +199,7 @@ impl AppOp {
             thumb: Some(sticker.thumbnail.clone()),
             formatted_body: None,
             format: None,
+            source: None,
             receipt: HashMap::new(),
         };
 

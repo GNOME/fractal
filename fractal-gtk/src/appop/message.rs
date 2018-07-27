@@ -374,6 +374,7 @@ impl AppOp {
             id: None,
             formatted_body: None,
             format: None,
+            source: None,
             receipt: HashMap::new(),
         };
 
@@ -440,6 +441,7 @@ impl AppOp {
             id: None,
             formatted_body: None,
             format: None,
+            source: None,
             receipt: HashMap::new(),
         };
 
