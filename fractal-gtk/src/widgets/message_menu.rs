@@ -31,6 +31,22 @@ impl MessageMenu {
         menu_popover.popup();
     }
 
+    pub fn insert_quote(&self) {
+        let msg_entry: sourceview::View = self.ui.builder
+            .get_object("msg_entry")
+            .expect("Can't find msg_entry in ui file.");
+
+        if let Some(buffer) = msg_entry.get_buffer() {
+            let quote = self.msg.body.lines().map(|l| "> ".to_owned() + l + "\n")
+                                .collect::<Vec<String>>().join("\n") + "\n";
+
+            let mut start = buffer.get_start_iter();
+            buffer.insert(&mut start, &quote);
+
+            msg_entry.grab_focus();
+        }
+    }
+
     pub fn copy_text(&self) {
         let atom = gdk::Atom::intern("CLIPBOARD");
         let clipboard = gtk::Clipboard::get(&atom);
