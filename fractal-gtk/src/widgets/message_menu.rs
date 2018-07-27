@@ -31,6 +31,13 @@ impl MessageMenu {
         menu_popover.popup();
     }
 
+    pub fn copy_text(&self) {
+        let atom = gdk::Atom::intern("CLIPBOARD");
+        let clipboard = gtk::Clipboard::get(&atom);
+
+        clipboard.set_text(&self.msg.body);
+    }
+
     pub fn display_source_dialog(&self) {
         let dialog: gtk::MessageDialog = self.ui.builder
             .get_object("source_dialog")
