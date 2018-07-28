@@ -11,7 +11,7 @@ use uibuilder::UI;
 #[derive(Clone)]
 pub struct MessageMenu {
     ui: UI,
-    msg: Message,
+    pub msg: Message,
 }
 
 impl MessageMenu {

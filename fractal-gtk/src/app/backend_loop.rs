@@ -261,6 +261,10 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         }
                     }
                 }
+                Ok(BKResponse::SendMsgRedactionError(_)) => {
+                    let error = i18n("Error deleting message");
+                    APPOP!(show_error, (error));
+                }
                 Ok(BKResponse::DirectoryError(_)) => {
                     let error = i18n("Error searching for rooms");
                     APPOP!(reset_directory_state);
