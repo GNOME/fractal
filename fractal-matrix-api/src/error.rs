@@ -18,6 +18,7 @@ pub enum Error {
     ReqwestError(reqwest::Error),
     MatrixError(JsonValue),
     SendMsgError(String),
+    SendMsgRedactionError(String),
 }
 
 impl From<reqwest::Error> for Error {

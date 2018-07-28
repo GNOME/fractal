@@ -234,6 +234,31 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn redact_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
+    let roomid = msg.room.clone();
+    let msgid = msg.id.clone().unwrap_or_default();
+    let txnid = msg.get_txn_id();
+
+    let url = bk.url(&format!("rooms/{}/redact/{}/{}", roomid, msgid, txnid), vec![])?;
+
+    let attrs = json!({
+        "reason": "Deletion requested by the sender"
+    });
+
+    let tx = bk.tx.clone();
+    query!("put", &url, &attrs,
+        move |js: JsonValue| {
+            let evid = js["event_id"].as_str().unwrap_or_default();
+            tx.send(BKResponse::SentMsgRedaction(msgid, evid.to_string())).unwrap();
+        },
+        |_| {
+            tx.send(BKResponse::SendMsgRedactionError(Error::SendMsgRedactionError(msgid))).unwrap();
+        }
+    );
+
+    Ok(())
+}
+
 pub fn join_room(bk: &Backend, roomid: String) -> Result<(), Error> {
     let url = bk.url(&format!("join/{}", urlencoding::encode(&roomid)), vec![])?;
 
