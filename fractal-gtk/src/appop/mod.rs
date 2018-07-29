@@ -46,8 +46,6 @@ mod stickers;
 
 pub use self::state::AppState;
 use self::message::TmpMsg;
-pub use self::message::MsgPos;
-pub use self::message::LastViewed;
 pub use self::room::RoomPanel;
 use self::member::SearchType;
 use self::media_viewer::MediaViewer;

@@ -4,6 +4,7 @@ use std::fs::File;
 use std::fs::remove_dir_all;
 use std::io::prelude::*;
 use gtk;
+use gtk::LabelExt;
 
 use types::RoomList;
 use error::Error;
@@ -14,6 +15,7 @@ use globals;
 /* includes for avatar download */
 use backend::BKCommand;
 use std::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 
@@ -89,6 +91,28 @@ pub fn download_to_cache(backend: Sender<BKCommand>,
         Err(TryRecvError::Disconnected) => gtk::Continue(false),
         Ok(_resp) => {
             data.borrow_mut().redraw_pixbuf();
+            gtk::Continue(false)
+        }
+    });
+}
+
+/* Get username based on the MXID, we should cache the username */
+pub fn download_to_cache_username(backend: Sender<BKCommand>,
+                         uid: &str,
+                         label: gtk::Label,
+                         avatar: Option<Rc<RefCell<AvatarData>>>) {
+    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+    backend.send(BKCommand::GetUserNameAsync(uid.to_string(), tx)).unwrap();
+    gtk::timeout_add(50, move || match rx.try_recv() {
+        Err(TryRecvError::Empty) => gtk::Continue(true),
+        Err(TryRecvError::Disconnected) => gtk::Continue(false),
+        Ok(username) => {
+            label.set_text(&username);
+            if let Some(ref rc_data) = avatar {
+                let mut data = rc_data.borrow_mut();
+                data.redraw_fallback(Some(username));
+            }
+
             gtk::Continue(false)
         }
     });

@@ -11,8 +11,6 @@ use std::rc::Rc;
 
 use self::gtk::prelude::*;
 
-use types::Message;
-use types::Member;
 use types::Room;
 
 use self::chrono::prelude::*;
@@ -27,11 +25,14 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::TryRecvError;
 
 use cache::download_to_cache;
+use cache::download_to_cache_username;
 
 use globals;
 use widgets;
 use widgets::AvatarExt;
 use widgets::AvatarData;
+use widgets::RowType;
+use widgets::MessageContent as Message;
 
 // Room Message item
 pub struct MessageBox<'a> {
@@ -122,6 +123,7 @@ impl<'a> MessageBox<'a> {
             content.pack_start(&info, false, false, 0);
         }
 
+        /*
         let body = match msg.mtype.as_ref() {
             "m.sticker" => self.build_room_msg_sticker(),
             "m.image" => self.build_room_msg_image(),
@@ -130,6 +132,8 @@ impl<'a> MessageBox<'a> {
             "m.video" | "m.file" => self.build_room_msg_file(),
             _ => self.build_room_msg_body(&msg.body),
         };
+        */
+        let body = self.build_room_msg_body(&msg.body);
 
         content.pack_start(&body, true, true, 0);
 
@@ -137,31 +141,19 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_avatar(&self) -> widgets::Avatar {
-        let member = self.msg.sender.clone();
+        let uid = self.msg.sender.clone();
+        let alias = self.msg.sender_name.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
+        let data = avatar.circle(uid.clone(), alias.clone(), globals::MSG_ICON_SIZE);
+        if let Some(name) = alias {
+            self.username.set_text(&name);
+        } else {
+            self.username.set_text(&uid);
+        }
 
-        self.username.set_text(&member);
-        let username = Some(member.clone());
-        let data = avatar.circle(member.clone(), username, globals::MSG_ICON_SIZE);
-            /*
-               let data = match m {
-               Some(member) => {
-               self.username.set_text(&member.get_alias());
-               let username = Some(member.get_alias());
-               avatar.circle(uid.clone(), username, globals::MSG_ICON_SIZE)
-               }
-               None => {
-               let backend = self.op.backend.clone();
-               let data = avatar.circle(uid.clone(), None, globals::MSG_ICON_SIZE);
-               set_username_async(backend, &uid, self.username.clone(),
-               Some(data.clone()));
-               data
-               }
-               };
-
-                          */
-        download_to_cache(self.backend.clone(), member.clone(), data.clone());
+        download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+        download_to_cache_username(self.backend.clone(), &uid, self.username.clone(), Some(data.clone()));
 
         avatar
     }
@@ -181,20 +173,14 @@ impl<'a> MessageBox<'a> {
 
     /// Add classes to the widget depending on the properties:
     ///
-    ///  * msg-mention: if the message contains the username in the body and
-    ///                 sender is not app user
+    ///  * msg-mention: if the message contains a keyword, e.g. the username
     ///  * msg-emote: if the message is an emote
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
         if let Some(style) = w.get_style_context() {
-            // mentions
-            /* disable mentions for now
-            if String::from(body).contains(uname) && msg.sender != uid {
-                style.add_class("msg-mention");
-            }
-            */
-            // emotes
-            if self.msg.mtype == "m.emote" {
-                style.add_class("msg-emote");
+            match self.msg.mtype {
+                RowType::Mention => style.add_class("msg-mention"),
+                RowType::Emote => style.add_class("msg-emote"),
+                _ => {},
             }
         }
     }
@@ -547,25 +533,4 @@ fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Optio
     }
 
     Some(attr)
-}
-
-fn set_username_async(backend: Sender<BKCommand>,
-                      uid: &str,
-                      label: gtk::Label,
-                      avatar: Option<Rc<RefCell<AvatarData>>>) {
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend.send(BKCommand::GetUserNameAsync(uid.to_string(), tx)).unwrap();
-    gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
-        Ok(username) => {
-            label.set_text(&username);
-            if let Some(ref rc_data) = avatar {
-                let mut data = rc_data.borrow_mut();
-                data.redraw_fallback(Some(username));
-            }
-
-            gtk::Continue(false)
-        }
-    });
 }

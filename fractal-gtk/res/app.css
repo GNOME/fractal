@@ -258,3 +258,7 @@ stack.titlebar:not(headerbar) > box > separator {
   border-radius: 99999px;
   opacity: 1;
 }
+
+.white-background {
+  background: @theme_base_color;
+}
