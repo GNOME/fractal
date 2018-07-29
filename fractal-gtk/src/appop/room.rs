@@ -7,7 +7,6 @@ use self::gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
-use appop::MsgPos;
 use app::InternalCommand;
 
 use backend;
@@ -16,9 +15,9 @@ use backend::BKCommand;
 use globals;
 use cache;
 use widgets;
-use widgets::RowHistory;
 use widgets::RoomHistory;
-use widgets::RowType;
+/* Struct containing all data for a row in the history */
+use widgets::MessageContent;
 
 use types::Room;
 use types::Message;
@@ -46,7 +45,7 @@ impl AppOp {
             self.backend.send(BKCommand::GetRoomAvatar(r.id.clone())).unwrap();
         }
 
-        self.set_last_viewed_messages();
+        //self.set_last_viewed_messages();
     }
 
     pub fn new_rooms(&mut self, rooms: Vec<Room>) {
@@ -69,7 +68,7 @@ impl AppOp {
             }
         }
 
-        self.set_last_viewed_messages();
+        //self.set_last_viewed_messages();
     }
 
     pub fn remove_room(&mut self, id: String) {
@@ -154,13 +153,6 @@ impl AppOp {
     }
 
     pub fn set_active_room(&mut self, room: &Room) {
-        if let Some(lvm_id) = self.last_viewed_messages.clone().get(&room.id) {
-            if let Some(lvm) = self.get_msg_from_id(&room.id, &lvm_id) {
-                let new_msg = self.get_first_new_from_last(&lvm);
-                self.first_new_messages.insert(room.id.clone(), new_msg);
-            }
-        }
-
         self.member_limit = 50;
         self.room_panel(RoomPanel::Room);
 
@@ -190,8 +182,6 @@ impl AppOp {
         self.clear_tmp_msgs();
         self.autoscroll = true;
 
-        self.remove_messages();
-
         let mut getmessages = false;
         self.shown_messages = 0;
 
@@ -212,11 +202,10 @@ impl AppOp {
         //create a list of the lists (vec) needed for the room history
         let mut messages = vec![];
         for msg in msgs.iter() {
-            let row = RowHistory {
-                message: (*msg).clone(),
-                t: Some(RowType::WithHeader),
-            };
-            messages.push(row);
+            let row = self.create_new_room_message(msg);
+            if let Some(row) = row {
+                messages.push(row);
+            }
         }
         let listbox = self.ui.builder
             .get_object::<gtk::ListBox>("message_list")
@@ -417,7 +406,6 @@ impl AppOp {
 
     pub fn search(&mut self, term: Option<String>) {
         let r = self.active_room.clone().unwrap_or_default();
-        self.remove_messages();
         self.backend.send(BKCommand::Search(r, term)).unwrap();
 
         self.ui.builder
