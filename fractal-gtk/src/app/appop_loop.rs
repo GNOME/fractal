@@ -1,6 +1,5 @@
 use app::App;
 
-use appop::MsgPos;
 use appop::RoomPanel;
 use appop::AppState;
 
@@ -17,13 +16,10 @@ use types::StickerGroup;
 
 #[derive(Debug)]
 pub enum InternalCommand {
-    AddRoomMessage(Message, MsgPos, Option<Message>, bool, bool),
     SetPanel(RoomPanel),
     SetView(AppState),
     NotifyClicked(Message),
     SelectRoom(Room),
-    LoadMore,
-    LoadMoreNormal,
     RemoveInv(String),
     AppendTmpMessages,
     ForceDequeueMessage,
@@ -43,9 +39,6 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
         loop {
             let recv = rx.recv();
             match recv {
-                Ok(InternalCommand::AddRoomMessage(msg, pos, prev, force_full, first_new)) => {
-                    APPOP!(add_room_message, (msg));
-                }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));
                 }
@@ -64,12 +57,6 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
                 Ok(InternalCommand::SelectRoom(r)) => {
                     let id = r.id;
                     APPOP!(set_active_room_by_id, (id));
-                }
-                Ok(InternalCommand::LoadMore) => {
-                    APPOP!(load_more_messages);
-                }
-                Ok(InternalCommand::LoadMoreNormal) => {
-                    APPOP!(load_more_normal);
                 }
                 Ok(InternalCommand::RemoveInv(rid)) => {
                     APPOP!(remove_inv, (rid));
