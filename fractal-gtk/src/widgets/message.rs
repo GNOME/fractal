@@ -242,44 +242,107 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
-        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let msg = gtk::Label::new("");
+        let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let uname = self.op.username.clone().unwrap_or_default();
 
-        self.connect_right_click_menu(msg.clone().upcast::<gtk::Widget>());
-        msg.set_markup(&markup_text(body));
-        self.set_label_styles(&msg);
+        let msg_parts = self.calculate_msg_parts(body);
 
         if self.msg.sender != self.op.uid.clone().unwrap_or_default()
             && String::from(body).contains(&uname) {
-
-            let name = uname.clone();
-            msg.connect_property_cursor_position_notify(move |w| {
-                if let Some(text) = w.get_text() {
-                    if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                        w.set_attributes(&attr);
+            for msg in msg_parts.iter() {
+                let name = uname.clone();
+                msg.connect_property_cursor_position_notify(move |w| {
+                    if let Some(text) = w.get_text() {
+                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
+                            w.set_attributes(&attr);
+                        }
                     }
-                }
-            });
+                });
 
-            let name = uname.clone();
-            msg.connect_property_selection_bound_notify(move |w| {
-                if let Some(text) = w.get_text() {
-                    if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                        w.set_attributes(&attr);
+                let name = uname.clone();
+                msg.connect_property_selection_bound_notify(move |w| {
+                    if let Some(text) = w.get_text() {
+                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
+                            w.set_attributes(&attr);
+                        }
                     }
-                }
-            });
+                });
 
-            if let Some(text) = msg.get_text() {
-                if let Some(attr) = highlight_username(msg.clone(), &uname, text) {
-                    msg.set_attributes(&attr);
+                if let Some(text) = msg.get_text() {
+                    if let Some(attr) = highlight_username(msg.clone(), &uname, text) {
+                        msg.set_attributes(&attr);
+                    }
                 }
             }
         }
 
-        bx.add(&msg);
+        for part in msg_parts {
+            bx.add(&part);
+        }
         bx
+    }
+
+    fn calculate_msg_parts(&self, body: &str) -> Vec<gtk::Label> {
+        let mut parts_labels: Vec<gtk::Label> = vec![];
+
+        let lines: Vec<&str> = body.lines().collect();
+        let mut lines_read: usize = 0;
+        let mut parts_lines: Vec<(Vec<&str>, bool)> = vec![];
+
+        while lines_read < lines.len() {
+            if let Some(line) = lines.get(lines_read) {
+                let is_quote = line.starts_with(">");
+
+                let part_lines: Vec<&str> = if is_quote {
+                    lines.iter().skip(lines_read).take_while(|line| {
+                        if line.starts_with(">") {
+                            lines_read += 1;
+                            true
+                        } else {
+                            false
+                        }
+                    }).map(|line| *line).collect()
+                } else {
+                    lines.iter().skip(lines_read).take_while(|line| {
+                        if !line.starts_with(">") {
+                            lines_read += 1;
+                            true
+                        } else {
+                            false
+                        }
+                    }).map(|line| *line).collect()
+                };
+
+                parts_lines.push((part_lines, is_quote));
+            }
+        }
+
+        for (lines, is_quote) in parts_lines.iter_mut() {
+            for line in lines {
+                if *is_quote {
+                    *line = line.trim_left_matches(">").trim_left();
+                }
+            }
+        }
+
+        let parts: Vec<(String, bool)> = parts_lines.iter().map(|(part_lines, is_quote)| (part_lines.join("\n"), *is_quote)).collect();
+
+        for (part, is_quote) in parts {
+            let msg_part = gtk::Label::new("");
+            self.connect_right_click_menu(msg_part.clone().upcast::<gtk::Widget>());
+            msg_part.set_markup(&markup_text(&part));
+            self.set_label_styles(&msg_part);
+
+            if is_quote {
+                if let Some(style) = msg_part.get_style_context() {
+                    style.add_class("quote");
+                }
+            }
+
+            parts_labels.push(msg_part);
+        }
+
+        parts_labels
     }
 
     fn build_room_msg_image(&self) -> gtk::Box {
