@@ -79,15 +79,11 @@ impl RoomHistory {
          * scrollbar. 52 is the normal height of a message with one line */
         /* Lacy load initial messages */
         gtk::idle_add(move || {
-            if let Some(item) = data.borrow_mut().pop() {
-                let mut has_header = true;
-                if let Some(last) = rows.borrow().last() {
-                    if last.sender == item.sender {
-                        has_header = false;
-                    }
-                }
+            let mut data = data.borrow_mut();
+            if let Some(item) = data.pop() {
+                let last = data.last();
+                let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
-                    last = item.sender.clone();
                     rows.borrow_mut().push(item);
                     listbox.insert(&row, 1);
                 }
@@ -101,12 +97,9 @@ impl RoomHistory {
 
     /* this adds new incomming messages at then end of the list */
     pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {
-        let mut has_header = true;
-        if let Some(last) = self.rows.borrow().last() {
-            if last.sender == item.sender {
-                has_header = false;
-            }
-        }
+        let rows = self.rows.borrow();
+        let last = rows.last();
+        let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
 
         if let Some(row) = create_row(&item, has_header, self.backend.clone()) {
             self.rows.borrow_mut().push(item);
@@ -115,16 +108,19 @@ impl RoomHistory {
         None
     }
 
-    /* this adds messages to to the top of the list */
+    /* this adds messages to the top of the list */
     pub fn add_old_message(&mut self, item: MessageContent) -> Option<()> {
-        let mut has_header = true;
-        if let Some(last) = self.rows.borrow().last() {
-            if last.sender == item.sender {
-                has_header = false;
-            }
-        }
+        /* We need to update the message before the new message because it could be possibile that
+         * we need to remove the header */
+        /*
+        let rows = self.rows.borrow();
+        let last = rows.last();
+        let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+        */
+        let has_header = true;
+
         if let Some(row) = create_row(&item, has_header, self.backend.clone()) {
-            //self.rows.insert(0, item);
+            self.rows.borrow_mut().insert(0, item);
             self.listbox.insert(&row, 1);
         }
         None
