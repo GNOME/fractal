@@ -183,7 +183,6 @@ impl AppOp {
         self.autoscroll = true;
 
         let mut getmessages = false;
-        self.shown_messages = 0;
 
         let msgs = room.messages.iter()
                                 .take(globals::INITIAL_MESSAGES)
@@ -210,8 +209,8 @@ impl AppOp {
         let listbox = self.ui.builder
             .get_object::<gtk::ListBox>("message_list")
             .expect("Can't find message_list in ui file.");
-        let mut history = RoomHistory::new(messages, listbox, self.backend.clone());
-        history.create();
+        let mut history = RoomHistory::new(listbox, self.backend.clone());
+        history.create(messages);
         self.room_history = Some(history);
 
         /* Readd tmp messages

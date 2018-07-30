@@ -19,10 +19,12 @@ impl App {
             .get_object::<gtk::Revealer>("scroll_btn_revealer")
             .expect("Can't find scroll_btn_revealer in ui file.");
 
+        /*
         let op = self.op.clone();
         s.connect_edge_overshot(move |_, dir| if dir == gtk::PositionType::Top {
             op.lock().unwrap().load_more_messages();
         });
+        */
 
         /* From clutter-easing.c, based on Robert Penner's
          * infamous easing equations, MIT license.
@@ -82,6 +84,13 @@ impl App {
                 } else {
                     r.set_reveal_child(true);
                     op.lock().unwrap().autoscroll = false;
+                }
+                /* the scroll view is getting close to the upper edge therefore loading more
+                 * messages
+                 * FIXME: Load more messages only when the user scrolles to the upper eage */
+
+                if adj.get_value() < 100f64 {
+                    op.lock().unwrap().load_more_messages();
                 }
             });
         }
