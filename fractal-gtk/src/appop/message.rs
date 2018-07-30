@@ -328,33 +328,20 @@ impl AppOp {
     }
 
     pub fn load_more_messages(&mut self) {
+        println!("We have to load more messages");
         if self.loading_more {
             return;
         }
+
 
         self.loading_more = true;
         self.load_more_spn.start();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            if self.shown_messages < r.messages.len() {
-                let msgs = r.messages.iter().rev()
-                                     .skip(self.shown_messages)
-                                     .take(globals::INITIAL_MESSAGES)
-                                     .collect::<Vec<&Message>>();
-                for (i, msg) in msgs.iter().enumerate() {
-                    println!("Load old message");
-                    // Add old messages
-                    /*
-                    let command = InternalCommand::AddRoomMessage((*msg).clone(),
-                                                                  MsgPos::Top,
-                                                                  None,
-                                                                  i == msgs.len() - 1,
-                                                                  self.is_first_new(&msg));
-                    self.internal.send(command).unwrap();
-                    */
-                }
-            } else if let Some(m) = r.messages.get(0) {
+            if let Some(m) = r.messages.get(0) {
                 self.backend.send(BKCommand::GetMessageContext(m.clone())).unwrap();
+            } else {
+                info!("The active room has no messages");
             }
         }
     }
@@ -440,24 +427,35 @@ impl AppOp {
     }
 
     pub fn show_room_messages_top(&mut self, msgs: Vec<Message>) {
+        self.loading_more = false;
+        /* FIXME: the context api returns the messages in the correct order, our backend does
+         * revert the order for some reason */
         for msg in msgs.iter().rev() {
             if let Some(r) = self.rooms.get_mut(&msg.room) {
                 r.messages.insert(0, msg.clone());
             }
         }
-        println!("We have to add old messages to the room history");
 
-        /* Add all new message to the top of the view
-           for i in msgs.iter() {
-
-           }
-           */
+        if let Some(active_room) = self.active_room.clone() {
+            for msg in msgs.iter().rev() {
+                /* add old message to room history only if they are from the active room */
+                if msg.room == active_room {
+                    let row = self.create_new_room_message(msg);
+                    if let Some(ref mut history) = self.room_history {
+                        if let Some(row) = row {
+                            history.add_old_message(row);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 /* FIXME: don't convert msg to ui messages here */
 fn create_ui_message (msg: Message, t: RowType) -> MessageContent {
     MessageContent {
+        id: msg.id.unwrap_or(String::from("")),
         sender: msg.sender,
         sender_name: None,
         mtype: t,
