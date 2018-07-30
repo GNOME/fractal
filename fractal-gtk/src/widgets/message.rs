@@ -2,7 +2,9 @@ extern crate gtk;
 extern crate chrono;
 extern crate pango;
 extern crate glib;
+extern crate regex;
 
+use self::regex::Regex;
 use itertools::Itertools;
 use app::App;
 use i18n::i18n;
@@ -656,10 +658,38 @@ enum MsgPartType {
 }
 
 fn kind_of_line(line: &&str) -> MsgPartType {
+    let r = Regex::new(r"^\s*> ?").unwrap();
+
     match line {
-        l if l.starts_with(">") => MsgPartType::Quote,
+        l if r.is_match(l) => MsgPartType::Quote,
         _ => MsgPartType::Normal,
     }
+}
+
+fn trim_left_quote(line: &str) -> String {
+    let r = Regex::new(r"^\s*> ?").unwrap();
+
+    match r.is_match(line) {
+        true => r.replace(line, "").to_string(),
+        false => line.to_string(),
+    }
+}
+
+fn trim_blank_lines(lines: String) -> String {
+    let mut ret = lines;
+
+    let r_start = Regex::new(r"^(\s*\n)+").unwrap();
+    let r_end = Regex::new(r"(\n\s*)+$").unwrap();
+
+    if r_start.is_match(&ret) {
+        ret = r_start.replace(&ret, "").to_string();
+    }
+
+    if r_end.is_match(&ret) {
+        ret = r_end.replace(&ret, "").to_string();
+    }
+
+    ret
 }
 
 /// Split a message into parts depending on the kind
@@ -670,12 +700,12 @@ fn split_msg(body: &str) -> Vec<(String, MsgPartType)> {
     let mut parts: Vec<(String, MsgPartType)> = vec![];
 
     for (k, group) in body.lines()
-                          .map(|l| l.trim())
+                          .map(|l| l.trim_right())
                           .group_by(kind_of_line).into_iter() {
-        let v: Vec<&str> = group
-            .map(|l| l.trim_left_matches(">").trim_left())
+        let v: Vec<String> = group
+            .map(|l| trim_left_quote(l))
             .collect();
-        let s = v.join("\n").trim().to_string();
+        let s = trim_blank_lines(v.join("\n"));
         parts.push((s, k));
     }
 
