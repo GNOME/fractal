@@ -3,7 +3,7 @@ stages:
   - deploy
 
 flatpak:
-    image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:3.28
+    image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master
     stage: test
     script:
         # Build the flatpak deps
