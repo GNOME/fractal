@@ -17,7 +17,6 @@ use widgets;
 
 #[derive(Debug, Clone)]
 pub struct RoomHistory {
-    messages: Vec<MessageContent>,
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<Vec<MessageContent>>>,
     backend: Sender<BKCommand>,
@@ -29,6 +28,7 @@ pub struct RoomHistory {
  * To-Do: this should be moved to a file collecting all structs used in the UI */
 #[derive(Debug, Clone)]
 pub struct MessageContent {
+    pub id: String,
     pub sender: String,
     pub sender_name: Option<String>,
     pub mtype: RowType,
@@ -51,22 +51,22 @@ pub enum RowType {
 }
 
 impl RoomHistory {
-    pub fn new(messages: Vec<MessageContent>, listbox: gtk::ListBox, backend: Sender<BKCommand>) -> RoomHistory {
+    pub fn new(listbox: gtk::ListBox, backend: Sender<BKCommand>) -> RoomHistory {
         /* remove all old messages from the listbox */
         for ch in listbox.get_children().iter().skip(1) {
             listbox.remove(ch);
         }
 
+        println!("Create new room history");
+
         RoomHistory {
-            messages: messages,
             rows: Rc::new(RefCell::new(vec![])),
             listbox: listbox,
             backend: backend
         }
     }
 
-    pub fn create(&mut self) -> Option<()> {
-        let messages = self.messages.clone();
+    pub fn create(&mut self, messages: Vec<MessageContent>) -> Option<()> {
         let mut last = String::from("");
         /* lazy load this */
         //self.listbox.set_size_request(-1, 52 * messages.len() as i32);
@@ -81,6 +81,7 @@ impl RoomHistory {
         gtk::idle_add(move || {
             let mut data = data.borrow_mut();
             if let Some(item) = data.pop() {
+                println!("{} | {} | init or cache", item.id, item.date.to_string());
                 let last = data.last();
                 let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
@@ -95,14 +96,46 @@ impl RoomHistory {
         None
     }
 
+    /* updates the current message list, it adds new message and update exciting once */
+    pub fn update(&mut self, messages: Vec<MessageContent>) -> Option<()> {
+        let mut last = String::from("");
+        /* lazy load this */
+        //self.listbox.set_size_request(-1, 52 * messages.len() as i32);
+        let data: Rc<RefCell<Vec<MessageContent>>> = Rc::new(RefCell::new(messages));
+        let backend = self.backend.clone();
+        let data = data.clone();
+        let listbox = self.listbox.clone();
+        let rows = self.rows.clone();
+        gtk::idle_add(move || {
+            let mut data = data.borrow_mut();
+            if let Some(item) = data.pop() {
+                println!("{} | {} | init or cache", item.id, item.date.to_string());
+                let last = data.last();
+                let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+                if let Some(row) = create_row(&item, has_header, backend.clone()) {
+                    rows.borrow_mut().push(item);
+                    listbox.insert(&row, 1);
+                }
+            } else {
+                return gtk::Continue(false);
+            }
+            return gtk::Continue(true);
+        });
+        None
+    }
+
+
     /* this adds new incomming messages at then end of the list */
     pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {
-        let rows = self.rows.borrow();
-        let last = rows.last();
-        let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+        let mut rows = self.rows.borrow_mut();
+        let has_header = {
+            let last = rows.last();
+            !(last.is_some() && last.unwrap().sender == item.sender)
+        };
 
+        println!("{} | {} | new message bottom", item.id, item.date.to_string());
         if let Some(row) = create_row(&item, has_header, self.backend.clone()) {
-            self.rows.borrow_mut().push(item);
+            rows.push(item);
             self.listbox.insert(&row, -1);
         }
         None
@@ -113,12 +146,13 @@ impl RoomHistory {
         /* We need to update the message before the new message because it could be possibile that
          * we need to remove the header */
         /*
-        let rows = self.rows.borrow();
-        let last = rows.last();
-        let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
-        */
+           let rows = self.rows.borrow();
+           let last = rows.last();
+           let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+           */
         let has_header = true;
 
+        println!("{} | {} old message top", item.id, item.date.to_string());
         if let Some(row) = create_row(&item, has_header, self.backend.clone()) {
             self.rows.borrow_mut().insert(0, item);
             self.listbox.insert(&row, 1);
