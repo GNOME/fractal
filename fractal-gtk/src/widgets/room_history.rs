@@ -41,13 +41,18 @@ pub struct MessageContent {
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RowType {
     Divider,
     WithHeader,
     Mention,
     Emote,
     Message,
+    Sticker,
+    Image,
+    Audio,
+    Video,
+    File,
 }
 
 impl RoomHistory {
@@ -83,7 +88,7 @@ impl RoomHistory {
             if let Some(item) = data.pop() {
                 println!("{} | {} | init or cache", item.id, item.date.to_string());
                 let last = data.last();
-                let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+                let has_header = item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender);
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
                     rows.borrow_mut().push(item);
                     listbox.insert(&row, 1);
@@ -111,7 +116,7 @@ impl RoomHistory {
             if let Some(item) = data.pop() {
                 println!("{} | {} | init or cache", item.id, item.date.to_string());
                 let last = data.last();
-                let has_header = !(last.is_some() && last.unwrap().sender == item.sender);
+                let has_header = item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender);
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
                     rows.borrow_mut().push(item);
                     listbox.insert(&row, 1);
@@ -130,7 +135,7 @@ impl RoomHistory {
         let mut rows = self.rows.borrow_mut();
         let has_header = {
             let last = rows.last();
-            !(last.is_some() && last.unwrap().sender == item.sender)
+            item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender)
         };
 
         println!("{} | {} | new message bottom", item.id, item.date.to_string());
