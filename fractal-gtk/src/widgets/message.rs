@@ -123,17 +123,14 @@ impl<'a> MessageBox<'a> {
             content.pack_start(&info, false, false, 0);
         }
 
-        /*
-        let body = match msg.mtype.as_ref() {
-            "m.sticker" => self.build_room_msg_sticker(),
-            "m.image" => self.build_room_msg_image(),
-            "m.emote" => self.build_room_msg_emote(&msg),
-            "m.audio" => self.build_room_audio_player(),
-            "m.video" | "m.file" => self.build_room_msg_file(),
+        let body = match msg.mtype {
+            RowType::Sticker => self.build_room_msg_sticker(),
+            RowType::Image => self.build_room_msg_image(),
+            RowType::Emote => self.build_room_msg_emote(&msg),
+            RowType::Audio => self.build_room_audio_player(),
+            RowType::Video | RowType::File => self.build_room_msg_file(),
             _ => self.build_room_msg_body(&msg.body),
         };
-        */
-        let body = self.build_room_msg_body(&msg.body);
 
         content.pack_start(&body, true, true, 0);
 
@@ -450,10 +447,8 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let member = msg.sender.clone();
-        let sender: &str = &msg.sender;
-
-        let sname = String::from(sender);
+        /* Use MXID till we have a alias */
+        let sname = msg.sender_name.clone().unwrap_or(String::from(msg.sender.clone()));
 
         let msg_label = gtk::Label::new("");
         let body: &str = &msg.body;

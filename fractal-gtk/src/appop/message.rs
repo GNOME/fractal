@@ -419,7 +419,15 @@ impl AppOp {
             RowType::Message
         };
 
-        Some(create_ui_message(msg.clone(), t))
+        let room = self.rooms.get(&msg.room)?;
+        println!("Room: {:?}", room);
+        let name = if let Some(member) = room.members.get(&msg.sender) {
+            member.alias.clone()
+        } else {
+            None
+        };
+
+        Some(create_ui_message(msg.clone(), name, t))
     }
 
     pub fn show_room_messages_top(&mut self, msgs: Vec<Message>) {
@@ -449,11 +457,11 @@ impl AppOp {
 }
 
 /* FIXME: don't convert msg to ui messages here */
-fn create_ui_message (msg: Message, t: RowType) -> MessageContent {
+fn create_ui_message (msg: Message, name: Option<String>, t: RowType) -> MessageContent {
     MessageContent {
         id: msg.id.unwrap_or(String::from("")),
         sender: msg.sender,
-        sender_name: None,
+        sender_name: name,
         mtype: t,
         body: msg.body,
         date: msg.date,
