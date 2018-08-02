@@ -26,7 +26,7 @@ pub struct RoomHistory {
 /* MessageContent contains all data needed to display one row
  * therefore it should contain only one Message body with one format
  * To-Do: this should be moved to a file collecting all structs used in the UI */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MessageContent {
     pub id: String,
     pub sender: String,
@@ -73,7 +73,6 @@ impl RoomHistory {
 
     pub fn create(&mut self, messages: Vec<MessageContent>) -> Option<()> {
         let mut last = String::from("");
-        /* lazy load this */
         //self.listbox.set_size_request(-1, 52 * messages.len() as i32);
         let data: Rc<RefCell<Vec<MessageContent>>> = Rc::new(RefCell::new(messages));
         let backend = self.backend.clone();
@@ -86,7 +85,6 @@ impl RoomHistory {
         gtk::idle_add(move || {
             let mut data = data.borrow_mut();
             if let Some(item) = data.pop() {
-                println!("{} | {} | init or cache", item.id, item.date.to_string());
                 let last = data.last();
                 let has_header = item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender);
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
@@ -102,21 +100,71 @@ impl RoomHistory {
     }
 
     /* updates the current message list, it adds new message and update exciting once */
-    pub fn update(&mut self, messages: Vec<MessageContent>) -> Option<()> {
+    pub fn update(&mut self, mut messages: Vec<MessageContent>) -> Option<()> {
+        /* Steps update the listbox 
+         * 1. Find last old message in the new messages list (length N) if not present skip steps
+         *    to 4.
+         * 2. Add new messages, after last old message to the end of the listbox
+         * 3. Check if the last N messages in the resulting list are the same as in the new
+         *    messages list
+         * 4. Drop everything if the check in step 3. fails (if it fails we will still have a flash)
+         * 5. Create a complete new list
+         */
+
+        let mut new_msgs : Vec<MessageContent> = vec![];
+        let mut rows = self.rows.borrow_mut();
+        let mut found = false;
+        messages.reverse();
+        {
+            let last = rows.last();
+            if let Some(last) = last {
+                for (i, m) in messages.iter().enumerate() {
+                    if found {
+                        println!("Append new message");
+                        new_msgs.push(m.clone());
+
+                    } else {
+                        if last.id == m.id {
+                            println!("Found last message {}", last.body);
+                            found = true;
+                        }
+                    }
+                }
+            }
+            else {
+                println!("No last message");
+            }
+        }
+        if !found {
+            println!("not found clean everything");
+            /* remove old list and start over */
+            messages.reverse();
+            new_msgs = messages;
+            /* remove all old messages from the listbox */
+            for ch in self.listbox.get_children().iter().skip(1) {
+                self.listbox.remove(ch);
+            }
+            /* clean the vector */
+            rows.drain(..);
+        }
         let mut last = String::from("");
-        /* lazy load this */
         //self.listbox.set_size_request(-1, 52 * messages.len() as i32);
-        let data: Rc<RefCell<Vec<MessageContent>>> = Rc::new(RefCell::new(messages));
+        let data: Rc<RefCell<Vec<MessageContent>>> = Rc::new(RefCell::new(new_msgs));
         let backend = self.backend.clone();
         let data = data.clone();
         let listbox = self.listbox.clone();
         let rows = self.rows.clone();
+        /* TO-DO: we could set the listbox height the 52 * length of messages, to descrease jumps of the
+         * scrollbar. 52 is the normal height of a message with one line */
+        /* Lacy load initial messages */
         gtk::idle_add(move || {
             let mut data = data.borrow_mut();
             if let Some(item) = data.pop() {
-                println!("{} | {} | init or cache", item.id, item.date.to_string());
-                let last = data.last();
-                let has_header = item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender);
+                let has_header = {
+                    let rows = rows.borrow();
+                    let last = rows.last();
+                    item.mtype != RowType::Emote && !(last.is_some() && last.unwrap().sender == item.sender)
+                };
                 if let Some(row) = create_row(&item, has_header, backend.clone()) {
                     rows.borrow_mut().push(item);
                     listbox.insert(&row, 1);
@@ -126,9 +174,9 @@ impl RoomHistory {
             }
             return gtk::Continue(true);
         });
+
         None
     }
-
 
     /* this adds new incomming messages at then end of the list */
     pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {

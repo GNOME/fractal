@@ -321,11 +321,9 @@ impl AppOp {
     }
 
     pub fn load_more_messages(&mut self) {
-        println!("We have to load more messages");
         if self.loading_more {
             return;
         }
-
 
         self.loading_more = true;
         self.load_more_spn.start();
@@ -342,6 +340,7 @@ impl AppOp {
     pub fn show_room_messages(&mut self, newmsgs: Vec<Message>, init: bool) -> Option<()> {
         let mut msgs = vec![];
 
+        /* Remove message we already have and add them to the right room */
         for msg in newmsgs.iter() {
             if let Some(r) = self.rooms.get_mut(&msg.room) {
                 if !r.messages.contains(msg) {
@@ -351,35 +350,40 @@ impl AppOp {
             }
         }
 
-        for msg in msgs.iter() {
-            let mut should_notify = msg.body.contains(&self.username.clone()?) || {
-                match self.rooms.get(&msg.room) {
-                    None => false,
-                    Some(r) => r.direct,
-                }
-            };
-            // not notifying the initial messages
-            should_notify = should_notify && !init;
-            // not notifying my own messages
-            should_notify = should_notify && (msg.sender != self.uid.clone()?);
-
-            if should_notify {
-                self.notify(msg);
-            }
-
-            /* add new message to room history only if they are from the active room */
-            if msg.room == self.active_room.clone().unwrap_or_default() {
-                let row = self.create_new_room_message(msg);
-                if let Some(ref mut history) = self.room_history {
-                    if let Some(row) = row {
-                        history.add_new_message(row);
+        /* add only messages form the active room to the view */
+        if let Some(active) = self.active_room.clone() {
+            for msg in msgs.iter() {
+                if msg.room == active {
+                    let row = self.create_new_room_message(msg);
+                    if let Some(ref mut history) = self.room_history {
+                        if let Some(row) = row {
+                            history.add_new_message(row);
+                        }
                     }
                 }
             }
+        }
 
-            if !init {
-                self.roomlist.moveup(msg.room.clone());
-                self.roomlist.set_bold(msg.room.clone(), true);
+        /* Notifiy if the message contains our name, but not during init or on our one messages */
+        if !init {
+            for msg in msgs.iter() {
+                if let Some(username) = self.username.clone() {
+                    if msg.sender != self.uid.clone()? {
+                        let should_notify = msg.body.contains(&username) || {
+                            match self.rooms.get(&msg.room) {
+                                None => false,
+                                Some(r) => r.direct,
+                            }
+                        };
+
+                        if should_notify {
+                            self.notify(msg);
+                        }
+                    }
+
+                    self.roomlist.moveup(msg.room.clone());
+                    self.roomlist.set_bold(msg.room.clone(), true);
+                }
             }
         }
 
@@ -395,7 +399,7 @@ impl AppOp {
             self.room_panel(RoomPanel::Room);
         }
 
-        Some(())
+        None
     }
 
     /* parese a backend Message into a Message for the UI */
@@ -413,11 +417,11 @@ impl AppOp {
         } else if is_mention {
             RowType::Mention
         } else {
+            /*FIXME add other types */
             RowType::Message
         };
 
         let room = self.rooms.get(&msg.room)?;
-        println!("Room: {:?}", room);
         let name = if let Some(member) = room.members.get(&msg.sender) {
             member.alias.clone()
         } else {
