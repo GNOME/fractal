@@ -60,7 +60,6 @@ pub struct AppOp {
     pub syncing: bool,
     pub msg_queue: Vec<TmpMsg>,
     pub sending_message: bool,
-    shown_messages: usize,
     pub last_viewed_messages: HashMap<String, String>,
     pub first_new_messages: HashMap<String, Option<Message>>,
 
@@ -127,7 +126,6 @@ impl AppOp {
             syncing: false,
             msg_queue: vec![],
             sending_message: false,
-            shown_messages: 0,
             last_viewed_messages: HashMap::new(),
             first_new_messages: HashMap::new(),
             state: AppState::Login,

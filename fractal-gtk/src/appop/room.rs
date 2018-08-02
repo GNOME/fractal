@@ -112,6 +112,7 @@ impl AppOp {
             bk.send(BKCommand::AddToFav(room.id.clone(), tofav)).unwrap();
         });
 
+        /* We shouldn't change the app state after we finished the initial sync */
         let mut godef = def;
         if let Some(aroom) = self.active_room.clone() {
             if let Some(r) = self.rooms.get(&aroom) {
@@ -152,8 +153,8 @@ impl AppOp {
     }
 
     pub fn set_active_room(&mut self, room: &Room) {
-        self.member_limit = 50;
         self.room_panel(RoomPanel::Room);
+        let mut getmessages = false;
 
         let msg_entry: gtk::Entry = self.ui.builder
             .get_object("msg_entry")
@@ -167,11 +168,16 @@ impl AppOp {
             }
         }
 
+        let active_changed = if let Some(active) = self.active_room.clone() {
+            active != room.id.clone()
+        } else {
+            true
+        };
+
         self.active_room = Some(room.id.clone());
         self.clear_tmp_msgs();
         self.autoscroll = true;
 
-        let mut getmessages = false;
 
         let msgs = room.messages.iter().collect::<Vec<&Message>>();
 
@@ -183,13 +189,21 @@ impl AppOp {
                 messages.push(row);
             }
         }
-        let listbox = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
-        let mut history = RoomHistory::new(listbox, self.backend.clone());
-        history.create(messages);
-        self.room_history = Some(history);
+        if active_changed {
+            let listbox = self.ui.builder
+                .get_object::<gtk::ListBox>("message_list")
+                .expect("Can't find message_list in ui file.");
+            let mut history = RoomHistory::new(listbox, self.backend.clone());
+            history.create(messages);
+            self.room_history = Some(history);
 
+        } else {
+            /* Update the current message list */
+            println!("Same active room");
+            if let Some(ref mut history) = self.room_history {
+                history.update(messages);
+            }
+        }
         /* Readd tmp messages
            self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
            self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
