@@ -1,4 +1,5 @@
 extern crate gtk;
+extern crate sourceview;
 extern crate chrono;
 extern crate pango;
 extern crate glib;
@@ -49,12 +50,21 @@ impl<'a> MessageBox<'a> {
         let eb = gtk::EventBox::new();
 
         let row_eb = gtk::EventBox::new();
-        let message_menu = op.message_menu.clone();
-        let ui = op.ui.clone();
-        row_eb.connect_button_press_event(clone!(msg => move |eb, btn| {
+        let backend = op.backend.clone();
+        let msg_entry: sourceview::View = op.ui.builder
+            .get_object("msg_entry")
+            .expect("Can't find msg_entry in ui file.");
+        let source_dialog: gtk::MessageDialog = op.ui.builder
+            .get_object("source_dialog")
+            .expect("Can't find source_dialog in ui file.");
+        let buffer: sourceview::Buffer = op.ui.builder
+            .get_object("msg_source_buffer")
+            .expect("Can't find msg_source_buffer in ui file.");
+
+        row_eb.connect_button_press_event(clone!(msg_entry, source_dialog, buffer, msg => move |eb, btn| {
             if btn.get_button() == 3 {
-                *message_menu.write().unwrap() = Some(MessageMenu::new_message_menu(ui.clone(), msg.clone()));
-                message_menu.read().unwrap().clone().unwrap().show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+                let menu = MessageMenu::new_message_menu(source_dialog.clone(), buffer.clone(), msg_entry.clone(), backend.clone(), msg.clone());
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
             }
 
             Inhibit(false)
@@ -557,15 +567,22 @@ impl<'a> MessageBox<'a> {
 
     fn connect_right_click_menu(&self, w: gtk::Widget) {
         let eb = self.row_event_box.clone();
-        let message_menu = self.op.message_menu.clone();
-        let ui = self.op.ui.clone();
         let msg = self.msg.clone();
+        let backend = self.op.backend.clone();
+        let msg_entry: sourceview::View = self.op.ui.builder
+            .get_object("msg_entry")
+            .expect("Can't find msg_entry in ui file.");
+        let source_dialog: gtk::MessageDialog = self.op.ui.builder
+            .get_object("source_dialog")
+            .expect("Can't find source_dialog in ui file.");
+        let buffer: sourceview::Buffer = self.op.ui.builder
+            .get_object("msg_source_buffer")
+            .expect("Can't find msg_source_buffer in ui file.");
 
         w.connect_button_press_event(move |_, btn| {
             if btn.get_button() == 3 {
-                *message_menu.write().unwrap() = Some(MessageMenu::new_message_menu(ui.clone(), msg.clone()));
-                message_menu.read().unwrap().clone().unwrap().show_menu_popover(eb.clone().upcast::<gtk::Widget>());
-
+                let menu = MessageMenu::new_message_menu(source_dialog.clone(), buffer.clone(), msg_entry.clone(), backend.clone(), msg.clone());
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
                 Inhibit(true)
             } else {
                 Inhibit(false)

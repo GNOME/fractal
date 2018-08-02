@@ -49,7 +49,6 @@ fractal-gtk/src/app/connect/load_more.rs
 fractal-gtk/src/app/connect/login.rs
 fractal-gtk/src/app/connect/markdown.rs
 fractal-gtk/src/app/connect/media_viewer.rs
-fractal-gtk/src/app/connect/message_menu.rs
 fractal-gtk/src/app/connect/mod.rs
 fractal-gtk/src/app/connect/new_room.rs
 fractal-gtk/src/app/connect/roomlist_search.rs

@@ -15,7 +15,6 @@ mod load_more;
 mod login;
 mod markdown;
 mod media_viewer;
-mod message_menu;
 mod new_room;
 mod roomlist_search;
 mod scroll;
@@ -81,7 +80,6 @@ impl App {
         self.connect_markdown();
         self.connect_media_viewer_headerbar();
         self.connect_media_viewer_box();
-        self.connect_message_menu();
         //self.connect_stickers();
         self.connect_autocomplete();
         self.connect_spellcheck();
