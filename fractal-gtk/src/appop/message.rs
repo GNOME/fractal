@@ -412,9 +412,18 @@ impl AppOp {
             false
         };
 
+        let mut highlights = vec![];
         let t = if msg.mtype == "m.emote" {
             RowType::Emote
         } else if is_mention {
+            if let Some(user) = self.username.clone() {
+                highlights.push(user);
+            }
+            if let Some(mxid) = self.uid.clone() {
+                highlights.push(mxid);
+            }
+            highlights.push(String::from("message_menu"));
+
             RowType::Mention
         } else {
             /*FIXME add other types */
@@ -428,7 +437,7 @@ impl AppOp {
             None
         };
 
-        Some(create_ui_message(msg.clone(), name, t))
+        Some(create_ui_message(msg.clone(), name, t, highlights))
     }
 
     pub fn show_room_messages_top(&mut self, msgs: Vec<Message>) {
@@ -458,7 +467,7 @@ impl AppOp {
 }
 
 /* FIXME: don't convert msg to ui messages here */
-fn create_ui_message (msg: Message, name: Option<String>, t: RowType) -> MessageContent {
+fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>) -> MessageContent {
     MessageContent {
         id: msg.id.unwrap_or(String::from("")),
         sender: msg.sender,
@@ -470,5 +479,6 @@ fn create_ui_message (msg: Message, name: Option<String>, t: RowType) -> Message
         url: msg.url,
         formatted_body: msg.formatted_body,
         format: msg.format,
+        highlights: highlights,
     }
 }
