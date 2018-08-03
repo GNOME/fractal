@@ -38,6 +38,7 @@ pub struct MessageContent {
     pub url: Option<String>,
     pub formatted_body: Option<String>,
     pub format: Option<String>,
+    pub highlights: Vec<String>,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */

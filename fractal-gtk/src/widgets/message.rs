@@ -222,38 +222,40 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
-        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let msg = gtk::Label::new("");
-        let uname = "";
+        let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
 
-//        let msg_parts = self.calculate_msg_parts(body);
+        let msg_parts = self.calculate_msg_parts(body);
 
-        /*
-        if self.msg.sender != self.uid.clone().unwrap_or_default()
-            && String::from(body).contains(&uname) {
+        if self.msg.mtype == RowType::Mention {
             for msg in msg_parts.iter() {
-                let name = uname.clone();
+                let highlights = self.msg.highlights.clone();
                 msg.connect_property_cursor_position_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                            w.set_attributes(&attr);
-                        }
+                if let Some(text) = w.get_text() {
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, text.clone());
                     }
+                    w.set_attributes(&attr);
+                }
                 });
 
-                let name = uname.clone();
+                let highlights = self.msg.highlights.clone();
                 msg.connect_property_selection_bound_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                            w.set_attributes(&attr);
-                        }
+                if let Some(text) = w.get_text() {
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, text.clone());
                     }
+                    w.set_attributes(&attr);
+                }
                 });
 
                 if let Some(text) = msg.get_text() {
-                    if let Some(attr) = highlight_username(msg.clone(), &uname, text) {
-                        msg.set_attributes(&attr);
+                    let attr = pango::AttrList::new();
+                    for light in self.msg.highlights.clone() {
+                        highlight_username(msg.clone(), &attr, &light, text.clone());
                     }
+                    msg.set_attributes(&attr);
                 }
             }
         }
@@ -261,7 +263,6 @@ impl<'a> MessageBox<'a> {
         for part in msg_parts {
             bx.add(&part);
         }
-        */
         bx
     }
 
@@ -308,23 +309,23 @@ impl<'a> MessageBox<'a> {
             None => msg.url.clone().unwrap_or_default(),
         };
         let image = widgets::image::Image::new(&self.backend.clone(), &img_path)
-                        .size(Some(globals::MAX_IMAGE_SIZE)).build();
+            .size(Some(globals::MAX_IMAGE_SIZE)).build();
 
         /*
-        let msg = msg.clone();
-        let room_id = self.room.id.clone();
-        image.widget.connect_button_press_event(move |_, btn| {
-            if btn.get_button() != 3 {
-                let msg = msg.clone();
-                let rid = room_id.clone();
-                APPOP!(display_media_viewer, (msg, rid));
+           let msg = msg.clone();
+           let room_id = self.room.id.clone();
+           image.widget.connect_button_press_event(move |_, btn| {
+           if btn.get_button() != 3 {
+           let msg = msg.clone();
+           let rid = room_id.clone();
+           APPOP!(display_media_viewer, (msg, rid));
 
-                Inhibit(true)
-            } else {
-                Inhibit(false)
-            }
-        });
-        */
+           Inhibit(true)
+           } else {
+           Inhibit(false)
+           }
+           });
+           */
 
         if let Some(style) = image.widget.get_style_context() {
             style.add_class("image-widget");
@@ -565,7 +566,7 @@ impl<'a> MessageBox<'a> {
     */
 }
 
-fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Option<pango::AttrList> {
+fn highlight_username(label: gtk::Label, attr: &pango::AttrList, alias: &String, input: String) -> Option<()> {
     fn contains((start, end): (i32, i32), item: i32) -> bool {
         match start <= end {
             true => start <= item && end > item,
@@ -582,7 +583,6 @@ fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Optio
     let blue = fg.blue * 65535. + 0.5;
     let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-    let attr = pango::AttrList::new();
     let mut input = input.clone();
     let alias = &alias.to_lowercase();
     let mut removed_char = 0;
@@ -630,7 +630,7 @@ fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Optio
         removed_char = removed_char + pos.1 as u32;
     }
 
-    Some(attr)
+    None
 }
 
 #[derive(PartialEq)]
