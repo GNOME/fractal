@@ -91,12 +91,6 @@ impl App {
                 .expect("Couldn't find main_window in ui file.");
             window.set_application(gtk_app);
 
-            /* we have to overwrite the default behavior for valign of the title widget
-             * since it is force to be centered */
-            ui.builder
-            .get_object::<gtk::Button>("room_panel_title")
-            .expect("Can't find room_panel_title in ui file.").set_valign(gtk::Align::Fill);
-
             let stack = ui.builder
                 .get_object::<gtk::Stack>("main_content_stack")
                 .expect("Can't find main_content_stack in ui file.");
