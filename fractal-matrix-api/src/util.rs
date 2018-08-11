@@ -199,14 +199,12 @@ macro_rules! thumb {
 }
 
 pub fn evc(events: &JsonValue, t: &str, field: &str) -> String {
-    if let Some(arr) = events.as_array() {
-        return match arr.iter().find(|x| x["type"] == t) {
-            Some(js) => String::from(js["content"][field].as_str().unwrap_or("")),
-            None => String::new(),
-        };
-    }
-
-    String::new()
+    events
+        .as_array()
+        .and_then(|arr| arr.iter().find(|x| x["type"] == t))
+        .and_then(|js| js["content"][field].as_str())
+        .map(Into::into)
+        .unwrap_or_default()
 }
 
 pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<Vec<Room>, Error> {
