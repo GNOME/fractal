@@ -571,12 +571,6 @@
                       <object class="GtkStack" id="directory_stack">
                         <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkListBox" id="directory_room_list">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                          </object>
-                        </child>
-                        <child>
                           <object class="GtkBox" id="directory_spinner">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
