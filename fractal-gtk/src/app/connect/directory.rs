@@ -27,6 +27,7 @@ impl App {
         let column = column.downcast::<gtk::Container>().unwrap();
         column.set_hexpand(true);
         column.set_vexpand(true);
+        column.set_margin_top(24);
 
         let frame = gtk::Frame::new(None);
         frame.set_shadow_type(gtk::ShadowType::In);
