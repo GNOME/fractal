@@ -1,6 +1,9 @@
 extern crate gtk;
-use uibuilder::gtk::BuilderExt;
+use gtk::prelude::*;
 
+use uibuilder::gtk::BuilderExt;
+use libhandy::{Column, ColumnExt};
+use sourceview;
 
 #[derive(Clone)]
 pub struct UI {
@@ -38,6 +41,8 @@ impl UI {
         builder.add_from_resource("/org/gnome/Fractal/ui/main_window.ui")
                .expect("Can't load ui file: main_window.ui");
 
+        room_message_entry_reimpl(&builder);
+
         // Depends on main_window
         // These are all dialogs transient for main_window
         builder.add_from_resource("/org/gnome/Fractal/ui/direct_chat.ui")
@@ -69,4 +74,59 @@ impl UI {
 
         UI { builder }
     }
+}
+
+fn room_message_entry_reimpl(builder: &gtk::Builder) {
+    let column = Column::new();
+    column.set_maximum_width(800);
+    /* For some reason the Column is not seen as a gtk::container
+     * and therefore we can't call add() without the cast */
+    let column = column.upcast::<gtk::Widget>();
+    let column = column.downcast::<gtk::Container>().unwrap();
+    column.set_vexpand(false);
+
+    let room_msg_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    room_msg_box.set_vexpand(false);
+    room_msg_box.get_style_context().map(|c| c.add_class("message-input-area"));
+
+    let size = gtk::IconSize::Button.into();
+    let attach = gtk::Button::new();
+    let attach_img = gtk::Image::new_from_icon_name("mail-attachment-symbolic", size);
+    attach.set_image(&attach_img);
+    attach.set_valign(gtk::Align::End);
+
+    let markdown = gtk::MenuButton::new();
+    let markdown_img = gtk::Image::new_from_icon_name("format-justify-left-symbolic", size);
+    markdown.set_image(&markdown_img);
+    markdown.set_valign(gtk::Align::End);
+
+    let msg_entry_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    let scroll = gtk::ScrolledWindow::new(None, None);
+    let buffer = sourceview::Buffer::new(None);
+    let sv = sourceview::View::new_with_buffer(&buffer);
+
+    scroll.add(&sv);
+    scroll.set_hexpand(true);
+    scroll.set_vexpand(true);
+    scroll.set_policy(gtk::PolicyType::Never, gtk::PolicyType::External);
+    msg_entry_box.add(&scroll);
+
+    room_msg_box.pack_start(&attach, false, false, 0);
+    room_msg_box.pack_start(&markdown, false, false, 0);
+    room_msg_box.pack_start(&msg_entry_box, true, true, 0);
+
+    let parent: gtk::Box = builder.get_object("room_parent").unwrap();
+    column.add(&room_msg_box);
+    parent.add(&column);
+    column.show_all();
+
+    // Keep compatibilit with the rest of the codebase
+    builder.expose_object::<gtk::Box>("room_message_box", &room_msg_box);
+    builder.expose_object::<gtk::Button>("attach_button", &attach);
+    builder.expose_object::<gtk::MenuButton>("markdown_button", &markdown);
+    builder.expose_object::<gtk::Image>("md_img", &markdown_img);
+    builder.expose_object::<gtk::Box>("msg_entry_box", &msg_entry_box);
+    builder.expose_object::<gtk::ScrolledWindow>("input_scroll", &scroll);
+    builder.expose_object::<sourceview::View>("msg_entry", &sv);
+    builder.expose_object::<sourceview::Buffer>("msg_entry_buffer", &buffer);
 }
