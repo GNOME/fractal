@@ -3,6 +3,7 @@ extern crate glib;
 extern crate gio;
 extern crate gtk;
 extern crate gdk;
+extern crate sourceview;
 
 extern crate rand;
 extern crate itertools;
