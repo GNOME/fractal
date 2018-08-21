@@ -124,9 +124,7 @@ impl MessageMenu {
     }
 
     pub fn insert_quote(&self) {
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Can't find msg_entry in ui file.");
+        let msg_entry = &self.ui.sventry.view;
 
         if let Some(buffer) = msg_entry.get_buffer() {
             let quote = self.msg.body.lines().map(|l| "> ".to_owned() + l)

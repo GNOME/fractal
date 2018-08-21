@@ -11,24 +11,15 @@ const MAX_INPUT_HEIGHT: i32 = 100;
 
 impl App {
     pub fn connect_send(&self) {
-        let room_message_box = self.ui.builder
-            .get_object::<gtk::Box>("room_message_box")
-            .expect("Can't find room_message_box in ui file.");
-        room_message_box.set_redraw_on_allocate(true);
+        self.ui.sventry.container.set_redraw_on_allocate(true);
+        let msg_entry = self.ui.sventry.view.clone();
+        let buffer = &self.ui.sventry.buffer;
+        buffer.set_highlight_matching_brackets(false);
 
-        let msg_entry_box = self.ui.builder
-            .get_object::<gtk::Box>("msg_entry_box")
-            .expect("Can't find msg_entry_box in ui file.");
+        let msg_entry_box = self.ui.sventry.entry_box.clone();
         msg_entry_box.set_redraw_on_allocate(true);
 
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
-
-        let input_scroll = self.ui.builder
-            .get_object::<gtk::ScrolledWindow>("input_scroll")
-            .expect("Can't find input_scroll in ui file.");
-        if let Some(adjustment) = input_scroll.get_vadjustment() {
+        if let Some(adjustment) = self.ui.sventry.scroll.get_vadjustment() {
             adjustment.connect_value_changed(clone!(msg_entry => move |adj| {
                 if msg_entry.get_allocated_height() < MAX_INPUT_HEIGHT {
                     adj.set_value(0.0);
@@ -36,10 +27,6 @@ impl App {
             }));
         }
 
-        let buffer: sourceview::Buffer = self.ui.builder
-            .get_object("msg_entry_buffer")
-            .expect("Couldn't find msg_entry_buffer in ui file.");
-        buffer.set_highlight_matching_brackets(false);
 
         let autocomplete_popover = self.ui.builder
             .get_object::<gtk::Popover>("autocomplete_popover")
