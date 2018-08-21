@@ -251,8 +251,11 @@ row .timestamp {
   padding: 5px;
 }
 
+.messages-scroll {
+  border-bottom: 1px solid @borders;
+}
+
 .message-input-area {
-  border-top: 1px solid @borders;
   padding: 6px;
 }
 
