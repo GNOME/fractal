@@ -88,7 +88,6 @@ fn room_message_entry_reimpl(builder: &gtk::Builder) {
 
     let room_msg_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     room_msg_box.set_vexpand(false);
-    room_msg_box.get_style_context().map(|c| c.add_class("message-input-area"));
 
     let size = gtk::IconSize::Button.into();
     let attach = gtk::Button::new();
