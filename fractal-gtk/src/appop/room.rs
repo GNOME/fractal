@@ -1,5 +1,4 @@
 extern crate gtk;
-extern crate sourceview;
 
 use i18n::{i18n, i18n_k};
 
@@ -164,9 +163,7 @@ impl AppOp {
         self.member_limit = 50;
         self.room_panel(RoomPanel::Loading);
 
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
+        let msg_entry = self.ui.sventry.view.clone();
         if let Some(buffer) = msg_entry.get_buffer() {
             let start = buffer.get_start_iter();
             let end = buffer.get_end_iter();
@@ -326,16 +323,13 @@ impl AppOp {
                     ch.show();
                 }
 
-                let msg_entry: sourceview::View = self.ui.builder
-                    .get_object("msg_entry")
-                    .expect("Couldn't find msg_entry in ui file.");
-                msg_entry.grab_focus();
+                self.ui.sventry.view.grab_focus();
 
                 let active_room_id = self.active_room.clone().unwrap_or_default();
                 let msg = self.unsent_messages
                     .get(&active_room_id).cloned()
                     .unwrap_or((String::new(), 0));
-                if let Some(buffer) = msg_entry.get_buffer() {
+                if let Some(buffer) = self.ui.sventry.view.get_buffer() {
                     buffer.set_text(&msg.0);
 
                     let iter = buffer.get_iter_at_offset(msg.1);
