@@ -48,14 +48,15 @@ impl App {
         let ui = self.ui.clone();
         markdown_switch.clone().connect_property_active_notify(move |_| {
             op.lock().unwrap().md_enabled = markdown_switch.get_active();
+            let buffer: sourceview::Buffer = ui.builder
+                .get_object("msg_entry_buffer")
+                .expect("Couldn't find msg_entry_buffer in ui file.");
+
             if !markdown_switch.get_active() {
                 md_img.set_from_icon_name("format-justify-left-symbolic",1);
                 txt.get_style_context().unwrap().add_class("dim-label");
                 util::set_markdown_schema(false);
 
-                let buffer: sourceview::Buffer = ui.builder
-                    .get_object("msg_entry_buffer")
-                    .expect("Couldn't find msg_entry_buffer in ui file.");
                 buffer.set_highlight_matching_brackets(false);
                 buffer.set_language(None);
                 buffer.set_highlight_syntax(false);
@@ -65,9 +66,6 @@ impl App {
                 util::set_markdown_schema(true);
 
                 if let Some(md_lang) = md_lang.clone() {
-                    let buffer: sourceview::Buffer = ui.builder
-                        .get_object("msg_entry_buffer")
-                        .expect("Couldn't find msg_entry_buffer in ui file.");
                     buffer.set_highlight_matching_brackets(true);
                     buffer.set_language(&md_lang);
                     buffer.set_highlight_syntax(true);
