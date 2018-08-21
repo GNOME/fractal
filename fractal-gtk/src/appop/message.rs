@@ -1,5 +1,4 @@
 extern crate comrak;
-extern crate sourceview;
 extern crate tree_magic;
 
 use i18n::i18n;
@@ -148,9 +147,7 @@ impl AppOp {
                             prev: Option<Message>,
                             force_full: bool,
                             first_new: bool) {
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
+        let msg_entry = &self.ui.sventry.view;
         let messages = self.message_box.clone();
 
         let mut calc_prev = prev;

@@ -1,5 +1,4 @@
 extern crate gtk;
-extern crate sourceview;
 
 use widgets;
 
@@ -7,9 +6,6 @@ use app::App;
 
 impl App {
     pub fn connect_autocomplete(&self) {
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
         let popover = self.ui.builder
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
@@ -21,6 +17,6 @@ impl App {
             .expect("Can't find main_window in ui file.");
 
         let op = self.op.clone();
-        widgets::Autocomplete::new(op, window, msg_entry, popover, listbox).connect();
+        widgets::Autocomplete::new(op, window, self.ui.sventry.view.clone(), popover, listbox).connect();
     }
 }
