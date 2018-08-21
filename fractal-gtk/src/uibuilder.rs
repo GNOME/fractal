@@ -1,10 +1,10 @@
 use gtk::{self, prelude::*};
-use sourceview;
 use widgets::SVEntry;
 
 #[derive(Clone)]
 pub struct UI {
     pub builder: gtk::Builder,
+    pub sventry: SVEntry,
 }
 
 impl UI {
@@ -38,7 +38,10 @@ impl UI {
         builder.add_from_resource("/org/gnome/Fractal/ui/main_window.ui")
                .expect("Can't load ui file: main_window.ui");
 
-        room_message_entry_reimpl(&builder);
+        // Order which sventry is created matters
+        let sventry = SVEntry::default();
+        let parent: gtk::Box = builder.get_object("room_parent").unwrap();
+        parent.add(&sventry.column);
 
         // Depends on main_window
         // These are all dialogs transient for main_window
@@ -69,23 +72,6 @@ impl UI {
                .expect("Can't load ui file: filechooser.ui");
                */
 
-        UI { builder }
+        UI { builder, sventry }
     }
-}
-
-fn room_message_entry_reimpl(builder: &gtk::Builder) {
-    let entry = SVEntry::default();
-
-    let parent: gtk::Box = builder.get_object("room_parent").unwrap();
-    parent.add(&entry.column);
-
-    // Keep compatibilit with the rest of the codebase
-    builder.expose_object::<gtk::Box>("room_message_box", &entry.container);
-    builder.expose_object::<gtk::Button>("attach_button", &entry.attach);
-    builder.expose_object::<gtk::MenuButton>("markdown_button", &entry.markdown);
-    builder.expose_object::<gtk::Image>("md_img", &entry.markdown_img);
-    builder.expose_object::<gtk::Box>("msg_entry_box", &entry.entry_box);
-    builder.expose_object::<gtk::ScrolledWindow>("input_scroll", &entry.scroll);
-    builder.expose_object::<sourceview::View>("msg_entry", &entry.view);
-    builder.expose_object::<sourceview::Buffer>("msg_entry_buffer", &entry.buffer);
 }
