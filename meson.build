@@ -19,6 +19,8 @@ icondir = join_paths(datadir, 'icons')
 
 i18n = import('i18n')
 
+podir = join_paths (meson.source_root (), 'fractal-gtk', 'po')
+
 subdir('fractal-gtk/po')
 subdir('fractal-gtk/res')
 
