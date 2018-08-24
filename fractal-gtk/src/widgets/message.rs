@@ -442,61 +442,64 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_file(&self) -> gtk::Box {
         let msg = self.msg;
-        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        let btn_bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let viewbtn = gtk::Button::new();
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
-        viewbtn.connect_clicked(move |btn| {
-            let popover = gtk::Popover::new(btn);
+        let name_lbl = gtk::Label::new(Some(name.as_str()));
+        if let Some(style) = name_lbl.get_style_context() {
+            style.add_class("msg-redacted");
+        }
 
-            let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let download_btn = gtk::Button::new_from_icon_name(
+            "document-save-symbolic",
+            gtk::IconSize::Button.into()
+        );
+        download_btn.set_tooltip_text(i18n("Save").as_str());
 
-            let download_btn = gtk::ModelButton::new();
-            download_btn.set_label(&i18n("Download"));
+        download_btn.connect_clicked(clone!(name, url, backend => move |_| {
+            let (tx, rx): (Sender<String>, Receiver<String>) = channel();
 
-            download_btn.connect_clicked(clone!(name, url, backend => move |_| {
-                let (tx, rx): (Sender<String>, Receiver<String>) = channel();
 
-                backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+            backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
 
-                gtk::timeout_add(50, clone!(name => move || match rx.try_recv() {
-                    Err(TryRecvError::Empty) => gtk::Continue(true),
-                    Err(TryRecvError::Disconnected) => {
-                        let msg = i18n("Could not download the file");
-                        APPOP!(show_error, (msg));
+            gtk::timeout_add(50, clone!(name => move || match rx.try_recv() {
+                Err(TryRecvError::Empty) => gtk::Continue(true),
+                Err(TryRecvError::Disconnected) => {
+                    let msg = i18n("Could not download the file");
+                    APPOP!(show_error, (msg));
 
-                        gtk::Continue(true)
-                    },
-                    Ok(fname) => {
-                        let name = name.clone();
-                        APPOP!(save_file_as, (fname, name));
+                    gtk::Continue(true)
+                },
+                Ok(fname) => {
+                    let name = name.clone();
+                    APPOP!(save_file_as, (fname, name));
 
-                        gtk::Continue(false)
-                    }
-                }));
+                    gtk::Continue(false)
+                }
             }));
+        }));
 
-            vbox.pack_start(&download_btn, false, false, 6);
+        let open_btn = gtk::Button::new_from_icon_name(
+            "document-open-symbolic",
+            gtk::IconSize::Button.into()
+        );
+        open_btn.set_tooltip_text(i18n("Open").as_str());
 
-            let open_btn = gtk::ModelButton::new();
-            open_btn.set_label(&i18n("Open"));
+        open_btn.connect_clicked(clone!(url, backend => move |_| {
+            backend.send(BKCommand::GetMedia(url.clone())).unwrap();
+        }));
 
-            open_btn.connect_clicked(clone!(url, backend => move |_| {
-                backend.send(BKCommand::GetMedia(url.clone())).unwrap();
-            }));
+        btn_bx.pack_start(&open_btn, false, false, 0);
+        btn_bx.pack_start(&download_btn, false, false, 0);
+        if let Some(style) = btn_bx.get_style_context() {
+            style.add_class("linked");
+        }
 
-            vbox.pack_start(&open_btn, false, false, 6);
-
-            vbox.show_all();
-            popover.add(&vbox);
-            popover.popup();
-        });
-
-        viewbtn.set_label(&msg.body);
-
-        bx.add(&viewbtn);
+        bx.pack_start(&name_lbl, false, false, 0);
+        bx.pack_start(&btn_bx, false, false, 0);
         bx
     }
 
