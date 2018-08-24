@@ -48,7 +48,7 @@ flatpak:
 
     artifacts:
         paths:
-            - $BUNDLE
+            - "${BUNDLE}"
         expire_in: 2 days
     <<: *flatpak_cache
 
@@ -61,7 +61,7 @@ review:
         - echo "Generating flatpak deployment"
     artifacts:
         paths:
-            - $BUNDLE
+            - "${BUNDLE}"
         expire_in: 30 days
     environment:
         name: review/$CI_COMMIT_REF_NAME
