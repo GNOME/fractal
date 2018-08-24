@@ -240,7 +240,7 @@ impl<'a> MessageBox<'a> {
             }
 
             // emotes & membership
-            if msg.mtype == "m.emote" || msg.mtype == "m.room.message" {
+            if msg.mtype == "m.emote" || msg.mtype == "m.room.member" {
                 style.add_class("msg-emote");
             }
         }
