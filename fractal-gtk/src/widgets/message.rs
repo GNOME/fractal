@@ -448,7 +448,7 @@ impl<'a> MessageBox<'a> {
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.op.backend.clone();
-        let name_lbl = gtk::Label::new(Some(name.as_str()));
+        let name_lbl = gtk::Label::new(name.as_str());
         if let Some(style) = name_lbl.get_style_context() {
             style.add_class("msg-redacted");
         }
