@@ -11,13 +11,12 @@ use i18n::i18n;
 
 use self::gtk::prelude::*;
 
-use types::Message;
-use types::Member;
 use types::Room;
 
 use self::chrono::prelude::*;
 
 use backend::BKCommand;
+use backend::Backend;
 
 use util::markup_text;
 
@@ -26,36 +25,39 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::TryRecvError;
 
 use cache::download_to_cache;
+use cache::download_to_cache_username;
 
-use appop::AppOp;
 use globals;
 use widgets;
 use widgets::AvatarExt;
 use widgets::message_menu::MessageMenu;
+use widgets::AvatarData;
+use widgets::RowType;
+use widgets::MessageContent as Message;
+use uibuilder::UI;
 
 // Room Message item
 pub struct MessageBox<'a> {
-    room: &'a Room,
     msg: &'a Message,
-    op: &'a AppOp,
+    backend: Sender<BKCommand>,
+    ui: &'a UI,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     pub row_event_box: gtk::EventBox,
 }
 
 impl<'a> MessageBox<'a> {
-    pub fn new(room: &'a Room, msg: &'a Message, op: &'a AppOp) -> MessageBox<'a> {
+    pub fn new(msg: &'a Message, backend: Sender<BKCommand>, ui: &'a UI) -> MessageBox<'a> {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
 
         let row_eb = gtk::EventBox::new();
-        let backend = op.backend.clone();
-        let ui = op.ui.clone();
+        let source_msg = msg.msg.clone();
 
-        row_eb.connect_button_press_event(clone!(msg => move |eb, btn| {
+        row_eb.connect_button_press_event(clone!(source_msg, backend, ui => move |eb, btn| {
             if btn.get_button() == 3 {
                 let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
-                                                         msg.clone(), None);
+                                                         source_msg.clone(), None);
                 menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
             }
 
@@ -64,8 +66,8 @@ impl<'a> MessageBox<'a> {
 
         MessageBox {
             msg: msg,
-            room: room,
-            op: op,
+            backend: backend,
+            ui: ui,
             username: username,
             username_event_box: eb,
             row_event_box: row_eb,
@@ -138,18 +140,18 @@ impl<'a> MessageBox<'a> {
         let msg = self.msg;
 
         if !small {
-            let info = self.build_room_msg_info(self.msg, small);
+            let info = self.build_room_msg_info(self.msg);
             info.set_margin_top(2);
             info.set_margin_bottom(3);
             content.pack_start(&info, false, false, 0);
         }
 
-        let body = match msg.mtype.as_ref() {
-            "m.sticker" => self.build_room_msg_sticker(),
-            "m.image" => self.build_room_msg_image(),
-            "m.emote" => self.build_room_msg_emote(&msg),
-            "m.audio" => self.build_room_audio_player(),
-            "m.video" | "m.file" => self.build_room_msg_file(),
+        let body = match msg.mtype {
+            RowType::Sticker => self.build_room_msg_sticker(),
+            RowType::Image => self.build_room_msg_image(),
+            RowType::Emote => self.build_room_msg_emote(&msg),
+            RowType::Audio => self.build_room_audio_player(),
+            RowType::Video | RowType::File => self.build_room_msg_file(),
             _ => self.build_room_msg_body(&msg.body),
         };
 
@@ -160,52 +162,24 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_avatar(&self) -> widgets::Avatar {
         let uid = self.msg.sender.clone();
+        let alias = self.msg.sender_name.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
-        let m = self.room.members.get(&uid);
+        let data = avatar.circle(uid.clone(), alias.clone(), globals::MSG_ICON_SIZE);
+        if let Some(name) = alias {
+            self.username.set_text(&name);
+        } else {
+            self.username.set_text(&uid);
+        }
 
-        let data = match m {
-            Some(member) => {
-                self.username.set_text(&member.get_alias());
-                let username = Some(member.get_alias());
-                avatar.circle(uid.clone(), username, globals::MSG_ICON_SIZE)
-            }
-            None => {
-                let backend = self.op.backend.clone();
-                let data = avatar.circle(uid.clone(), None, globals::MSG_ICON_SIZE);
-                let l = self.username.clone();
-                let d = data.clone();
-                set_username_async(backend, &uid, move |uname| {
-                    l.set_text(&uname);
-                    let mut data = d.borrow_mut();
-                    data.redraw_fallback(Some(uname));
-                });
-                data
-            }
-        };
-
-        download_to_cache(self.op.backend.clone(), uid.clone(),
-                          data.clone());
+        download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+        download_to_cache_username(self.backend.clone(), &uid, self.username.clone(), Some(data.clone()));
 
         avatar
     }
 
-    fn build_room_msg_username(&self, sender: &str, member: Option<&Member>, small: bool) -> gtk::Label {
-        let uname = match member {
-            Some(m) => m.get_alias(),
-            None => {
-                // in small widget, the avatar doesn't download the username
-                // so we need to download here
-                if small {
-                    let backend = self.op.backend.clone();
-                    let l = self.username.clone();
-                    set_username_async(backend, sender, move |uname| {
-                        l.set_text(&uname);
-                    });
-                }
-                String::from(sender)
-            }
-        };
+    fn build_room_msg_username(&self, sender: &str) -> gtk::Label {
+        let uname = String::from(sender);
 
         self.username.set_text(&uname);
         self.username.set_justify(gtk::Justification::Left);
@@ -219,23 +193,14 @@ impl<'a> MessageBox<'a> {
 
     /// Add classes to the widget depending on the properties:
     ///
-    ///  * msg-mention: if the message contains the username in the body and
-    ///                 sender is not app user
+    ///  * msg-mention: if the message contains a keyword, e.g. the username
     ///  * msg-emote: if the message is an emote
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
-        let uname = &self.op.username.clone().unwrap_or_default();
-        let uid = self.op.uid.clone().unwrap_or_default();
-        let msg = self.msg;
-        let body: &str = &msg.body;
-
         if let Some(style) = w.get_style_context() {
-            // mentions
-            if String::from(body).contains(uname) && msg.sender != uid {
-                style.add_class("msg-mention");
-            }
-            // emotes
-            if msg.mtype == "m.emote" {
-                style.add_class("msg-emote");
+            match self.msg.mtype {
+                RowType::Mention => style.add_class("msg-mention"),
+                RowType::Emote => style.add_class("msg-emote"),
+                _ => {},
             }
         }
     }
@@ -252,35 +217,39 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let uname = self.op.username.clone().unwrap_or_default();
 
         let msg_parts = self.calculate_msg_parts(body);
 
-        if self.msg.sender != self.op.uid.clone().unwrap_or_default()
-            && String::from(body).contains(&uname) {
+        if self.msg.mtype == RowType::Mention {
             for msg in msg_parts.iter() {
-                let name = uname.clone();
+                let highlights = self.msg.highlights.clone();
                 msg.connect_property_cursor_position_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                            w.set_attributes(&attr);
-                        }
+                if let Some(text) = w.get_text() {
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, text.clone());
                     }
+                    w.set_attributes(&attr);
+                }
                 });
 
-                let name = uname.clone();
+                let highlights = self.msg.highlights.clone();
                 msg.connect_property_selection_bound_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        if let Some(attr) = highlight_username(w.clone(), &name, text) {
-                            w.set_attributes(&attr);
-                        }
+                if let Some(text) = w.get_text() {
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, text.clone());
                     }
+                    w.set_attributes(&attr);
+                }
                 });
 
                 if let Some(text) = msg.get_text() {
-                    if let Some(attr) = highlight_username(msg.clone(), &uname, text) {
-                        msg.set_attributes(&attr);
+                    let attr = pango::AttrList::new();
+                    for light in self.msg.highlights.clone() {
+                        highlight_username(msg.clone(), &attr, &light, text.clone());
                     }
+                    msg.set_attributes(&attr);
                 }
             }
         }
@@ -317,14 +286,14 @@ impl<'a> MessageBox<'a> {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let backend = self.op.backend.clone();
         let img_path = match msg.thumb {
             Some(ref m) => m.clone(),
             None => msg.url.clone().unwrap_or_default(),
         };
-        let image = widgets::image::Image::new(&backend, &img_path)
+        let image = widgets::image::Image::new(&self.backend, &img_path)
                         .size(Some(globals::MAX_IMAGE_SIZE)).build();
 
+        /*
         let msg = msg.clone();
         let room = self.room.clone();
         image.widget.connect_button_press_event(move |_, btn| {
@@ -338,6 +307,7 @@ impl<'a> MessageBox<'a> {
                 Inhibit(false)
             }
         });
+        */
 
         if let Some(style) = image.widget.get_style_context() {
             style.add_class("image-widget");
@@ -351,7 +321,7 @@ impl<'a> MessageBox<'a> {
     fn build_room_msg_sticker(&self) -> gtk::Box {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
         let image = widgets::image::Image::new(&backend,
                         &msg.url.clone().unwrap_or_default())
                         .size(Some(globals::MAX_STICKER_SIZE)).build();
@@ -370,7 +340,7 @@ impl<'a> MessageBox<'a> {
 
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
 
         let (tx, rx): (Sender<String>, Receiver<String>) = channel();
         backend.send(BKCommand::GetMediaUrl(url.clone(), tx)).unwrap();
@@ -431,7 +401,7 @@ impl<'a> MessageBox<'a> {
 
         let name = msg.body.clone();
         let url = msg.url.clone().unwrap_or_default();
-        let backend = self.op.backend.clone();
+        let backend = self.backend.clone();
         let name_lbl = gtk::Label::new(name.as_str());
         name_lbl.set_tooltip_text(name.as_str());
         name_lbl.set_ellipsize(pango::EllipsizeMode::End);
@@ -514,15 +484,15 @@ impl<'a> MessageBox<'a> {
         date
     }
 
-    fn build_room_msg_info(&self, msg: &Message, small: bool) -> gtk::Box {
+    fn build_room_msg_info(&self, msg: &Message) -> gtk::Box {
         // info
         // +----------+------+
         // | username | date |
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let member = self.room.members.get(&msg.sender);
-        let username = self.build_room_msg_username(&msg.sender, member, small);
+        let member = msg.sender.clone();
+        let username = self.build_room_msg_username(&msg.sender);
         let date = self.build_room_msg_date(&msg.date);
 
         self.username_event_box.add(&username);
@@ -535,18 +505,18 @@ impl<'a> MessageBox<'a> {
 
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let member = self.room.members.get(&msg.sender);
-        let sender: &str = &msg.sender;
-
+        /* Use MXID till we have a alias */
+        let sname = msg.sender_name.clone().unwrap_or(String::from(msg.sender.clone()));
         let msg_label = gtk::Label::new("");
         let body: &str = &msg.body;
         let markup = markup_text(body);
 
+        /*
         let m = markup.clone();
         let sname = match member {
             Some(m) => m.get_alias(),
             None => {
-                let backend = self.op.backend.clone();
+                let backend = self.backend.clone();
                 let label = msg_label.clone();
                 set_username_async(backend, sender, move |n| {
                     label.set_markup(&format!("<b>{}</b> {}", n, m));
@@ -554,6 +524,7 @@ impl<'a> MessageBox<'a> {
                 String::from(sender)
             }
         };
+        */
 
         self.connect_right_click_menu(msg_label.clone().upcast::<gtk::Widget>());
         msg_label.set_markup(&format!("<b>{}</b> {}", sname, markup));
@@ -566,8 +537,9 @@ impl<'a> MessageBox<'a> {
     fn connect_right_click_menu(&self, w: gtk::Widget) {
         let eb = self.row_event_box.clone();
         let msg = self.msg.clone();
-        let backend = self.op.backend.clone();
-        let ui = self.op.ui.clone();
+        let backend = self.backend.clone();
+        let ui = self.ui.clone();
+        let msg = self.msg.msg.clone();
 
         w.connect_button_press_event(move |w, btn| {
             if btn.get_button() == 3 {
@@ -582,7 +554,7 @@ impl<'a> MessageBox<'a> {
     }
 }
 
-fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Option<pango::AttrList> {
+fn highlight_username(label: gtk::Label, attr: &pango::AttrList, alias: &String, input: String) -> Option<()> {
     fn contains((start, end): (i32, i32), item: i32) -> bool {
         match start <= end {
             true => start <= item && end > item,
@@ -599,7 +571,6 @@ fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Optio
     let blue = fg.blue * 65535. + 0.5;
     let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-    let attr = pango::AttrList::new();
     let mut input = input.clone();
     let alias = &alias.to_lowercase();
     let mut removed_char = 0;
@@ -647,23 +618,7 @@ fn highlight_username(label: gtk::Label, alias: &String, input: String) -> Optio
         removed_char = removed_char + pos.1 as u32;
     }
 
-    Some(attr)
-}
-
-fn set_username_async<F>(backend: Sender<BKCommand>,
-                         uid: &str,
-                         cb: F)
-                         where F: Fn(String) + 'static {
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend.send(BKCommand::GetUserNameAsync(uid.to_string(), tx)).unwrap();
-    gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
-        Ok(username) => {
-            cb(username);
-            gtk::Continue(false)
-        }
-    });
+    None
 }
 
 #[derive(PartialEq)]
