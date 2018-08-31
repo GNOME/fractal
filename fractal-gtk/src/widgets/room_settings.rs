@@ -358,6 +358,7 @@ impl RoomSettings {
         let label = self.builder
             .get_object::<gtk::Label>("room_settings_room_description")
             .expect("Can't find room_settings_room_name in ui file.");
+        label.set_selectable(true);
 
         if let Some(text) = text {
             label.set_text(&text);
