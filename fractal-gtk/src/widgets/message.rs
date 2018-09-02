@@ -436,6 +436,10 @@ impl<'a> MessageBox<'a> {
         name_lbl.set_tooltip_text(name.as_str());
         name_lbl.set_ellipsize(pango::EllipsizeMode::End);
 
+        if let Some(style) = name_lbl.get_style_context() {
+            style.add_class("msg-highlighted");
+        }
+
         let download_btn = gtk::Button::new_from_icon_name(
             "document-save-symbolic",
             gtk::IconSize::Button.into()
