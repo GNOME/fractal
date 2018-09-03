@@ -16,8 +16,6 @@ impl App {
         let joinr = gio::SimpleAction::new("join_room", None);
         let logout = gio::SimpleAction::new("logout", None);
 
-        let save = gio::SimpleAction::new("save_as", None);
-
         let room = gio::SimpleAction::new("room_details", None);
         let inv = gio::SimpleAction::new("room_invite", None);
         let search = gio::SimpleAction::new("search", None);
@@ -37,8 +35,6 @@ impl App {
         op.lock().unwrap().gtk_app.add_action(&joinr);
         op.lock().unwrap().gtk_app.add_action(&logout);
 
-        op.lock().unwrap().gtk_app.add_action(&save);
-
         op.lock().unwrap().gtk_app.add_action(&room);
         op.lock().unwrap().gtk_app.add_action(&inv);
         op.lock().unwrap().gtk_app.add_action(&search);
@@ -55,8 +51,6 @@ impl App {
         settings.set_enabled(false);
 
         account.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_account_settings_dialog()) );
-
-        save.connect_activate(clone!(op => move |_, _| op.lock().unwrap().save_media() ));
 
         dir.connect_activate(clone!(op => move |_, _| op.lock().unwrap().set_state(AppState::Directory) ));
         logout.connect_activate(clone!(op => move |_, _| op.lock().unwrap().logout() ));

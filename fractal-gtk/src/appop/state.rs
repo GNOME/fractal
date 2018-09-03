@@ -1,8 +1,6 @@
 extern crate gtk;
-extern crate gdk;
 
 use self::gtk::prelude::*;
-use self::gdk::WindowExt;
 
 use appop::AppOp;
 use appop::room::RoomPanel;
@@ -82,17 +80,9 @@ impl AppOp {
         }
     }
 
-    pub fn escape(&mut self, w: &gtk::ApplicationWindow) -> bool {
+    pub fn escape(&mut self, _w: &gtk::ApplicationWindow) -> bool {
         if self.inhibit_escape {
             return true;
-        }
-
-        // leave full screen only if we're currently in fullscreen
-        if let Some(win) = w.get_window() {
-            if win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                self.leave_full_screen();
-                return true;
-            }
         }
 
         match self.state {
@@ -100,51 +90,6 @@ impl AppOp {
                 self.room_panel(RoomPanel::NoRoom);
                 self.active_room = None;
                 self.clear_tmp_msgs();
-                true
-            },
-            AppState::MediaViewer => {
-                self.hide_media_viewer();
-                true
-            },
-            _ => { false }
-        }
-    }
-
-    pub fn left(&mut self) -> bool {
-        match self.state {
-            AppState::MediaViewer => {
-                if self.media_viewer.is_none() {
-                    return false;
-                }
-
-                let mv = self.media_viewer.clone().unwrap();
-                let loading_more_media = *mv.loading_more_media.read().unwrap();
-                let no_more_media = *mv.no_more_media.read().unwrap();
-                if loading_more_media || no_more_media {
-                    return false;
-                }
-
-                self.previous_media();
-                true
-            },
-            _ => { false }
-        }
-    }
-
-    pub fn right(&mut self) -> bool {
-        match self.state {
-            AppState::MediaViewer => {
-                if self.media_viewer.is_none() {
-                    return false;
-                }
-
-                let mv = self.media_viewer.clone().unwrap();
-                let loading_more_media = *mv.loading_more_media.read().unwrap();
-                if loading_more_media {
-                    return false;
-                }
-
-                self.next_media();
                 true
             },
             _ => { false }
