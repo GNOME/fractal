@@ -326,12 +326,12 @@ impl<'a> MessageBox<'a> {
                         .size(Some(globals::MAX_IMAGE_SIZE)).build();
 
         let msg = msg.clone();
-        let room_id = self.room.id.clone();
+        let room = self.room.clone();
         image.widget.connect_button_press_event(move |_, btn| {
             if btn.get_button() != 3 {
                 let msg = msg.clone();
-                let rid = room_id.clone();
-                APPOP!(display_media_viewer, (msg, rid));
+                let room = room.clone();
+                APPOP!(create_media_viewer, (msg, room));
 
                 Inhibit(true)
             } else {

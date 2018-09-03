@@ -29,10 +29,10 @@ mod sync;
 mod user;
 mod account;
 mod room_settings;
+mod media_viewer;
 mod notifications;
 mod state;
 mod room;
-mod media_viewer;
 mod files;
 mod message;
 mod directory;
@@ -50,7 +50,6 @@ pub use self::message::MsgPos;
 pub use self::message::LastViewed;
 pub use self::room::RoomPanel;
 use self::member::SearchType;
-use self::media_viewer::MediaViewer;
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
@@ -97,7 +96,7 @@ pub struct AppOp {
 
     pub directory: Vec<Room>,
 
-    pub media_viewer: Option<MediaViewer>,
+    pub media_viewer: Option<widgets::MediaViewer>,
 }
 
 impl PasswordStorage for AppOp {}

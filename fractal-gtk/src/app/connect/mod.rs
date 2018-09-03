@@ -14,7 +14,6 @@ mod leave_room;
 mod load_more;
 mod login;
 mod markdown;
-mod media_viewer;
 mod new_room;
 mod roomlist_search;
 mod scroll;
@@ -49,12 +48,6 @@ impl App {
                 gdk::enums::key::Escape => {
                     Inhibit(op.lock().unwrap().escape(w))
                 },
-                gdk::enums::key::Left => {
-                    Inhibit(op.lock().unwrap().left())
-                },
-                gdk::enums::key::Right => {
-                    Inhibit(op.lock().unwrap().right())
-                },
                 _ => Inhibit(false)
             }
         });
@@ -77,8 +70,6 @@ impl App {
         self.connect_send();
         self.connect_attach();
         self.connect_markdown();
-        self.connect_media_viewer_headerbar();
-        self.connect_media_viewer_box();
         //self.connect_stickers();
         self.connect_autocomplete();
         self.connect_spellcheck();
