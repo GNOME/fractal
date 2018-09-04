@@ -127,6 +127,22 @@ impl<'a> MessageBox<'a> {
         row
     }
 
+    pub fn reply_widget(&self) -> gtk::Box {
+        let msg = self.msg;
+        let reply = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let member = self.room.members.get(&msg.sender);
+        let reply_user = self.build_room_msg_username(&msg.sender, member, false);
+        let reply_body = self.build_room_msg_body(&msg.body);
+
+        if let Some(s) = reply.get_style_context() {
+            s.add_class("reply-box");
+            s.add_class("frame");
+        }
+        reply.pack_start(&reply_user, false, false, 0);
+        reply.pack_start(&reply_body, false, false, 0);
+        reply
+    }
+
     fn build_room_msg_content(&self, small: bool) -> gtk::Box {
         // content
         // +------+
@@ -143,6 +159,12 @@ impl<'a> MessageBox<'a> {
             info.set_margin_bottom(3);
             content.pack_start(&info, false, false, 0);
         }
+
+        // if let Some(ref id) = msg.in_reply_to {
+            let reply_mb = MessageBox::new(&self.room, &msg_clone, &self.op);
+            let reply = reply_mb.reply_widget();
+            content.pack_start(&reply, false, false, 0);
+        // }
 
         let body = match msg.mtype.as_ref() {
             "m.sticker" => self.build_room_msg_sticker(),

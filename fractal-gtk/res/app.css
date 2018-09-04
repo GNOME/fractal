@@ -166,6 +166,14 @@ row.msg-emote {
   padding: 12px 0px;
 }
 
+row .reply-box {
+  border-radius: 3px;
+  border-left: 3px solid @theme_selected_bg_color;
+  padding: 7px;
+  margin: 5px;
+  background-color: alpha(@theme_bg_color, 0.8);
+}
+
 row .username {
   font-weight: bold;
   font-size: small;

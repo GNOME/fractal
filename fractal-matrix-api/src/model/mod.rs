@@ -5,3 +5,4 @@ pub mod event;
 pub mod message;
 pub mod stickers;
 pub mod userinfo;
+pub mod powerlevels;
