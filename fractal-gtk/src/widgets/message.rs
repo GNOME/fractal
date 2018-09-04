@@ -11,12 +11,9 @@ use i18n::i18n;
 
 use self::gtk::prelude::*;
 
-use types::Room;
-
 use self::chrono::prelude::*;
 
 use backend::BKCommand;
-use backend::Backend;
 
 use util::markup_text;
 
@@ -31,7 +28,6 @@ use globals;
 use widgets;
 use widgets::AvatarExt;
 use widgets::message_menu::MessageMenu;
-use widgets::AvatarData;
 use widgets::RowType;
 use widgets::MessageContent as Message;
 use uibuilder::UI;
@@ -477,7 +473,6 @@ impl<'a> MessageBox<'a> {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let member = msg.sender.clone();
         let username = self.build_room_msg_username(&msg.sender);
         let date = self.build_room_msg_date(&msg.date);
 
@@ -522,7 +517,6 @@ impl<'a> MessageBox<'a> {
 
     fn connect_right_click_menu(&self, w: gtk::Widget) {
         let eb = self.row_event_box.clone();
-        let msg = self.msg.clone();
         let backend = self.backend.clone();
         let ui = self.ui.clone();
         let msg = self.msg.msg.clone();

@@ -2,14 +2,12 @@ extern crate gtk;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::Sender;
 
 use chrono::prelude::DateTime;
 use chrono::prelude::Local;
 
 use i18n::i18n;
-use i18n::ni18n_f;
 use appop::AppOp;
 use uibuilder::UI;
 use backend::BKCommand;
@@ -51,7 +49,6 @@ pub struct MessageContent {
 #[derive(Debug, Clone, PartialEq)]
 pub enum RowType {
     Divider,
-    Redacted,
     Mention,
     Emote,
     Message,
