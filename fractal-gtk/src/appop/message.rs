@@ -14,6 +14,7 @@ use self::comrak::{markdown_to_html, ComrakOptions};
 
 use app::InternalCommand;
 use appop::AppOp;
+use app::App;
 use appop::RoomPanel;
 use appop::room::Force;
 
@@ -171,34 +172,49 @@ impl AppOp {
                 }
             }
 
-        if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
-            if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-                let m;
-                {
-                    let backend = self.backend.clone();
-                    let ui = self.ui.clone();
-                    let mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
-                    let entry = msg_entry.clone();
-                    mb.username_event_box.set_focus_on_click(false);
-                    mb.username_event_box.connect_button_press_event(move |eb, btn| {
-                        if btn.get_button() != 3 {
-                            if let Some(label) = eb.get_children().iter().next() {
-                                if let Ok(l) = label.clone().downcast::<gtk::Label>() {
-                                    if let Some(t) = l.get_text() {
-                                        if let Some(buffer) = entry.get_buffer() {
-                                            buffer.insert_at_cursor(&t[..]);
+            if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
+                if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+                    let m;
+                    {
+                        let backend = self.backend.clone();
+                        let ui = self.ui.clone();
+                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                        let entry = msg_entry.clone();
+                        mb.username_event_box.set_focus_on_click(false);
+                        mb.username_event_box.connect_button_press_event(move |eb, btn| {
+                            if btn.get_button() != 3 {
+                                if let Some(label) = eb.get_children().iter().next() {
+                                    if let Ok(l) = label.clone().downcast::<gtk::Label>() {
+                                        if let Some(t) = l.get_text() {
+                                            if let Some(buffer) = entry.get_buffer() {
+                                                buffer.insert_at_cursor(&t[..]);
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                        }
+                            }
                             glib::signal::Inhibit(false)
-                    });
+                        });
                         m = match calc_prev {
                             Some(ref p) if self.should_group(&msg, p) => mb.small_widget(),
                             Some(_) if self.has_small_mtype(&msg) => mb.small_widget(),
                             _ => mb.widget(),
+                        };
+                        if let Some(ref image) = mb.image {
+                            let msg = msg.clone();
+                            let room = r.clone();
+                            image.connect_button_press_event(move |_, btn| {
+                                if btn.get_button() != 3 {
+                                    let msg = msg.clone();
+                                    let room = room.clone();
+                                    APPOP!(create_media_viewer, (msg, room));
+
+                                    Inhibit(true)
+                                } else {
+                                    Inhibit(false)
+                                }
+                            });
                         }
                     }
 
@@ -240,8 +256,24 @@ impl AppOp {
                 {
                     let backend = self.backend.clone();
                     let ui = self.ui.clone();
-                    let mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                    let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
                     m = mb.tmpwidget();
+                    if let Some(ref image) = mb.image {
+                        println!("i have a image");
+                        let msg = msg.clone();
+                        let room = r.clone();
+                        image.connect_button_press_event(move |_, btn| {
+                            if btn.get_button() != 3 {
+                                let msg = msg.clone();
+                                let room = room.clone();
+                                APPOP!(create_media_viewer, (msg, room));
+
+                                Inhibit(true)
+                            } else {
+                                Inhibit(false)
+                            }
+                        });
+                    }
                 }
 
                 messages.add(&m);
@@ -278,8 +310,24 @@ impl AppOp {
                     {
                         let backend = self.backend.clone();
                         let ui = self.ui.clone();
-                        let mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
                         m = mb.tmpwidget();
+                        if let Some(ref image) = mb.image {
+                            println!("i have a image");
+                            let msg = t.msg.clone();
+                            let room = r.clone();
+                            image.connect_button_press_event(move |_, btn| {
+                                if btn.get_button() != 3 {
+                                    let msg = msg.clone();
+                                    let room = room.clone();
+                                    APPOP!(create_media_viewer, (msg, room));
+
+                                    Inhibit(true)
+                                } else {
+                                    Inhibit(false)
+                                }
+                            });
+                        }
                     }
 
                     messages.add(&m);

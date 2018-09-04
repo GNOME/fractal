@@ -44,6 +44,7 @@ pub struct MessageBox<'a> {
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     pub row_event_box: gtk::EventBox,
+    pub image: Option<gtk::DrawingArea>,
 }
 
 impl<'a> MessageBox<'a> {
@@ -71,10 +72,11 @@ impl<'a> MessageBox<'a> {
             username: username,
             username_event_box: eb,
             row_event_box: row_eb,
+            image: None,
         }
     }
 
-    pub fn tmpwidget(&self) -> gtk::ListBoxRow {
+    pub fn tmpwidget(&mut self) -> gtk::ListBoxRow {
         let w = self.widget();
         if let Some(style) = w.get_style_context() {
             style.add_class("msg-tmp");
@@ -82,7 +84,7 @@ impl<'a> MessageBox<'a> {
         w
     }
 
-    pub fn widget(&self) -> gtk::ListBoxRow {
+    pub fn widget(&mut self) -> gtk::ListBoxRow {
         // msg
         // +--------+---------+
         // | avatar | content |
@@ -107,7 +109,7 @@ impl<'a> MessageBox<'a> {
         row
     }
 
-    pub fn small_widget(&self) -> gtk::ListBoxRow {
+    pub fn small_widget(&mut self) -> gtk::ListBoxRow {
         // msg
         // +--------+---------+
         // |        | content |
@@ -129,7 +131,7 @@ impl<'a> MessageBox<'a> {
         row
     }
 
-    fn build_room_msg_content(&self, small: bool) -> gtk::Box {
+    fn build_room_msg_content(&mut self, small: bool) -> gtk::Box {
         // content
         // +------+
         // | info |
@@ -282,7 +284,7 @@ impl<'a> MessageBox<'a> {
         parts_labels
     }
 
-    fn build_room_msg_image(&self) -> gtk::Box {
+    fn build_room_msg_image(&mut self) -> gtk::Box {
         let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
@@ -292,29 +294,13 @@ impl<'a> MessageBox<'a> {
         };
         let image = widgets::image::Image::new(&self.backend, &img_path)
                         .size(Some(globals::MAX_IMAGE_SIZE)).build();
-
-        /*
-        let msg = msg.clone();
-        let room = self.room.clone();
-        image.widget.connect_button_press_event(move |_, btn| {
-            if btn.get_button() != 3 {
-                let msg = msg.clone();
-                let room = room.clone();
-                APPOP!(create_media_viewer, (msg, room));
-
-                Inhibit(true)
-            } else {
-                Inhibit(false)
-            }
-        });
-        */
-
         if let Some(style) = image.widget.get_style_context() {
             style.add_class("image-widget");
         }
 
         bx.pack_start(&image.widget, true, true, 0);
         bx.show_all();
+        self.image = Some(image.widget);
         bx
     }
 

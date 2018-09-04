@@ -233,7 +233,7 @@ fn create_row(row: &MessageContent, has_header: bool, backend: Sender<BKCommand>
         _ => {
             /* we need to create a message with the username, so that we don't have to pass
              * all information to the widget creating each row */
-            let mb = widgets::MessageBox::new(&row, backend, &ui);
+            let mut mb = widgets::MessageBox::new(&row, backend, &ui);
             if has_header {
                 Some(mb.widget())
             } else {
