@@ -52,11 +52,17 @@ impl<'a> MessageBox<'a> {
         let backend = op.backend.clone();
         let ui = op.ui.clone();
 
+        let uid = op.uid.clone().unwrap_or_default();
+        let power_level = match op.uid.clone().and_then(|uid| room.power_levels.get(&uid)) {
+            Some(&pl) => pl,
+            None => 0
+        };
+
         row_eb.connect_button_press_event(clone!(msg => move |eb, btn| {
             if btn.get_button() == 3 {
                 let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
                                                          msg.clone(), None);
-                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>(), uid.clone(), power_level);
             }
 
             Inhibit(false)
@@ -569,11 +575,17 @@ impl<'a> MessageBox<'a> {
         let backend = self.op.backend.clone();
         let ui = self.op.ui.clone();
 
+        let uid = self.op.uid.clone().unwrap_or_default();
+        let power_level = match self.op.uid.clone().and_then(|uid| self.room.power_levels.get(&uid)) {
+            Some(&pl) => pl,
+            None => 0
+        };
+
         w.connect_button_press_event(move |w, btn| {
             if btn.get_button() == 3 {
                 let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
                                                          msg.clone(), Some(w));
-                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>(), uid.clone(), power_level);
                 Inhibit(true)
             } else {
                 Inhibit(false)

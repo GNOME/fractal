@@ -55,11 +55,20 @@ impl MessageMenu {
         menu
     }
 
-    pub fn show_menu_popover(&self, w: gtk::Widget) {
-        let button: gtk::Widget = self.builder
-                                      .get_object("copy_selected_text_button")
-                                      .expect("Can't find copy_selected_text_button");
-        button.set_visible(self.selected_text.is_some());
+    pub fn show_menu_popover(&self, w: gtk::Widget, uid: String, power_level: i32) {
+        let copy_button: gtk::Widget = self.builder
+                                           .get_object("copy_selected_text_button")
+                                           .expect("Can't find copy_selected_text_button");
+        copy_button.set_visible(self.selected_text.is_some());
+
+        let delete_button: gtk::Widget = self.builder
+                                             .get_object("delete_message_button")
+                                             .expect("Can't find delete_message_button");
+        let message_menu_separator: gtk::Widget = self.builder
+                                                      .get_object("message_menu_separator")
+                                                      .expect("Can't find message_menu_separator");
+        delete_button.set_visible(power_level != 0 || uid == self.msg.sender);
+        message_menu_separator.set_visible(power_level != 0 || uid == self.msg.sender);
 
         gdk::Display::get_default()
             .and_then(|disp| disp.get_default_seat())
