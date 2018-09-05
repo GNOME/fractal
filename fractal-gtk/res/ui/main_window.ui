@@ -591,8 +591,11 @@
                         <property name="label" translatable="yes" context="big label">Log In</property>
                         <attributes>
                           <attribute name="scale" value="4"/>
-                          <attribute name="foreground" value="#88888a8a8585"/>
+                          <attribute name="weight" value="200"/>
                         </attributes>
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
