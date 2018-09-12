@@ -190,14 +190,21 @@ impl AppOp {
         self.clear_tmp_msgs();
         self.autoscroll = true;
 
-        self.remove_messages();
-
         let mut getmessages = true;
         self.shown_messages = 0;
 
         let msgs = room.messages.iter().rev()
                                 .take(globals::INITIAL_MESSAGES)
                                 .collect::<Vec<&Message>>();
+        /* FIXME: This is temporary code: the for loop should be removed and the initial list of
+         * messages should be passed to history.create(), which lazy loads the messages into the
+         * listbox */
+        let list = self.ui.builder
+            .get_object::<gtk::ListBox>("message_list")
+            .expect("Can't find message_list in ui file.");
+        let mut history = widgets::RoomHistory::new(list, self);
+        history.create(vec![]);
+        self.history = Some(history);
         for (i, msg) in msgs.iter().enumerate() {
             let command = InternalCommand::AddRoomMessage((*msg).clone(),
                                                           MsgPos::Top,
