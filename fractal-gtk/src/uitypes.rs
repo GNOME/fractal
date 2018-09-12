@@ -1,3 +1,5 @@
+extern crate gtk;
+
 use chrono::prelude::DateTime;
 use chrono::prelude::Local;
 use types::Message;
@@ -20,6 +22,7 @@ pub struct MessageContent {
     pub msg: Message,
     pub highlights: Vec<String>,
     pub redactable: bool,
+    pub widget: Option<gtk::ListBoxRow>,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */
