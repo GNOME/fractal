@@ -84,6 +84,7 @@ fractal-gtk/src/uibuilder.rs
 fractal-gtk/src/util.rs
 fractal-gtk/src/uitypes.rs
 fractal-gtk/src/widgets/address.rs
+fractal-gtk/src/widgets/room_history.rs
 fractal-gtk/src/widgets/autocomplete.rs
 fractal-gtk/src/widgets/avatar.rs
 fractal-gtk/src/widgets/divider.rs
