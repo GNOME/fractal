@@ -1,3 +1,5 @@
+extern crate gtk;
+
 use chrono::prelude::DateTime;
 use chrono::prelude::Local;
 use types::Message;
@@ -19,6 +21,7 @@ pub struct MessageContent {
     /* in some places we still need the backend message type (e.g. media viewer) */
     pub msg: Message,
     pub highlights: Vec<String>,
+    pub widget: Option<gtk::ListBoxRow>,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */
