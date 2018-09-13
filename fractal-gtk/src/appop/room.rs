@@ -26,14 +26,11 @@ use rand::distributions::Alphanumeric;
 
 pub struct Force(pub bool);
 
-
 #[derive(Debug, Clone)]
 pub enum RoomPanel {
     Room,
     NoRoom,
-    Loading,
 }
-
 
 impl AppOp {
     pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
@@ -161,7 +158,7 @@ impl AppOp {
         }
 
         self.member_limit = 50;
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
 
         let msg_entry: sourceview::View = self.ui.builder
             .get_object("msg_entry")
@@ -227,7 +224,6 @@ impl AppOp {
         }
 
         self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
-        self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
         if !room.messages.is_empty() {
             getmessages = false;
@@ -309,7 +305,7 @@ impl AppOp {
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
     }
 
     pub fn room_panel(&self, t: RoomPanel) {
@@ -321,7 +317,6 @@ impl AppOp {
             .expect("Can't find room_header_bar in ui file.");
 
         let v = match t {
-            RoomPanel::Loading => "loading",
             RoomPanel::Room => "room_view",
             RoomPanel::NoRoom => "noroom",
         };
