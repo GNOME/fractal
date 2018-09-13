@@ -7,7 +7,6 @@ use self::gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
-use appop::MsgPos;
 use app::InternalCommand;
 
 use backend;
@@ -191,28 +190,36 @@ impl AppOp {
         self.autoscroll = true;
 
         let mut getmessages = true;
-        self.shown_messages = 0;
 
-        let msgs = room.messages.iter().rev()
-                                .take(globals::INITIAL_MESSAGES)
-                                .collect::<Vec<&Message>>();
-        /* FIXME: This is temporary code: the for loop should be removed and the initial list of
-         * messages should be passed to history.create(), which lazy loads the messages into the
-         * listbox */
         let list = self.ui.builder
             .get_object::<gtk::ListBox>("message_list")
             .expect("Can't find message_list in ui file.");
-        let mut history = widgets::RoomHistory::new(list, self);
-        history.create(vec![]);
-        self.history = Some(history);
-        for (i, msg) in msgs.iter().enumerate() {
-            let command = InternalCommand::AddRoomMessage((*msg).clone(),
-                                                          MsgPos::Top,
-                                                          None,
-                                                          i == msgs.len() - 1,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
+
+        /* create the intitial list of messages to fill the new room history */
+        let active_room = self.active_room.clone().unwrap_or_default();
+        let mut messages = vec![];
+        for msg in room.messages.iter() {
+            /* Make sure the message is from this room and not redacted */
+            if msg.room == active_room && !msg.redacted {
+                let row = self.create_new_room_message(msg);
+                if let Some(row) = row {
+                    messages.push(row);
+                }
+            }
         }
+
+        /* FIXME: We show all messages always therefore we don't need to track how many messages we show */
+        self.shown_messages = messages.len();
+
+        /* make sure we remove the old room history first, because the lazy loading could try to
+         * load messages */
+        if let Some(history) = self.history.take() {
+            history.destroy();
+        }
+
+        let mut history = widgets::RoomHistory::new(list, self);
+        history.create(messages);
+        self.history = Some(history);
 
         let l = room.messages.len();
         if l > 0 && l < globals::INITIAL_MESSAGES {
