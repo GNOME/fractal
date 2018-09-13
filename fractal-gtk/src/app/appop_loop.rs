@@ -1,7 +1,6 @@
 use app::App;
 
 use appop::MsgPos;
-use appop::RoomPanel;
 use appop::AppState;
 
 use std::thread;
@@ -18,7 +17,6 @@ use types::StickerGroup;
 #[derive(Debug)]
 pub enum InternalCommand {
     AddRoomMessage(Message, MsgPos, Option<Message>, bool, bool),
-    SetPanel(RoomPanel),
     SetView(AppState),
     NotifyClicked(Message),
     SelectRoom(Room),
@@ -51,9 +49,6 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
                 }
                 Ok(InternalCommand::RmInvite(uid)) => {
                     APPOP!(rm_from_invite, (uid));
-                }
-                Ok(InternalCommand::SetPanel(st)) => {
-                    APPOP!(room_panel, (st));
                 }
                 Ok(InternalCommand::SetView(view)) => {
                     APPOP!(set_state, (view));
