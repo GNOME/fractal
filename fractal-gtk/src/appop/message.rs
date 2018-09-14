@@ -117,9 +117,9 @@ impl AppOp {
                             msg: Message,
                             msgpos: MsgPos,
                             first_new: bool) {
-        if let Some(mut history) = self.history.clone() {
-            if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
-                if let Some(ui_msg) = self.create_new_room_message(&msg) {
+        if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
+            if let Some(ui_msg) = self.create_new_room_message(&msg) {
+                if let Some(ref mut history) = self.history {
                     match msgpos {
                         MsgPos::Bottom => {
                             if first_new {
@@ -131,9 +131,10 @@ impl AppOp {
                             history.add_old_message(ui_msg);
                         }
                     }
+
                 }
-                self.shown_messages += 1;
             }
+            self.shown_messages += 1;
         }
     }
 
