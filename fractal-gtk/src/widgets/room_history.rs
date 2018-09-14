@@ -15,10 +15,11 @@ use uitypes::RowType;
 use App;
 
 use self::gtk::prelude::*;
+use glib::source;
 use globals;
 use widgets;
 
-#[derive(Clone)]
+//#[derive(Clone)]
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<Vec<MessageContent>>>,
@@ -28,6 +29,7 @@ pub struct RoomHistory {
     room: Room,
     listbox: gtk::ListBox,
     divider: Option<gtk::ListBoxRow>,
+    source_id: Rc<RefCell<Option<source::SourceId>>>,
 }
 
 impl RoomHistory {
@@ -52,6 +54,7 @@ impl RoomHistory {
                 .unwrap()
                 .clone(),
             divider: None,
+            source_id: Rc::new(RefCell::new(None)),
         }
     }
 
@@ -69,7 +72,8 @@ impl RoomHistory {
          * self.listbox.set_size_request(-1, 52 * messages.len() as i32); */
 
         /* Lacy load initial messages */
-        gtk::idle_add(move || {
+        let source_id = self.source_id.clone();
+        *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
             let mut data = data.borrow_mut();
             if let Some(item) = data.pop() {
                 let last = data.last();
@@ -87,11 +91,19 @@ impl RoomHistory {
                     listbox.insert(&row, 1);
                 }
             } else {
+                /* Remove the source id, since the closure is destoryed */
+                source_id.borrow_mut().take();
                 return gtk::Continue(false);
             }
             return gtk::Continue(true);
-        });
+        }));
         None
+    }
+
+    pub fn destroy(self) {
+        if let Some(id) = self.source_id.borrow_mut().take() {
+            source::source_remove(id);
+        }
     }
 
     /* This adds new incomming messages at then end of the list */
