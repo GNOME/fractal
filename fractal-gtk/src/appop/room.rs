@@ -207,6 +207,11 @@ impl AppOp {
                 }
             }
         }
+        /* make sure we remove the old room history first, because the lazy loading could try to
+         * load messages */
+        if let Some(history) = self.history.take() {
+            history.destroy();
+        }
         let mut history = widgets::RoomHistory::new(list, self);
         history.create(messages);
         self.history = Some(history);
