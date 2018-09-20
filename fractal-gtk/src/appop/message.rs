@@ -175,15 +175,9 @@ impl AppOp {
                 if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
                     let m;
                     {
-                        let uid = self.uid.clone().unwrap_or_default();
-                        let power_level = match self.uid.clone().and_then(|uid| r.power_levels.get(&uid)) {
-                            Some(&pl) => pl,
-                            None => 0
-                        };
-
                         let backend = self.backend.clone();
                         let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui, uid, power_level);
+                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
                         let entry = msg_entry.clone();
                         mb.username_event_box.set_focus_on_click(false);
                         mb.username_event_box.connect_button_press_event(move |eb, btn| {
@@ -259,15 +253,9 @@ impl AppOp {
             if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
                 let m;
                 {
-                    let uid = self.uid.clone().unwrap_or_default();
-                    let power_level = match self.uid.clone().and_then(|uid| r.power_levels.get(&uid)) {
-                        Some(&pl) => pl,
-                        None => 0
-                    };
-
                     let backend = self.backend.clone();
                     let ui = self.ui.clone();
-                    let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui, uid, power_level);
+                    let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
                     m = mb.tmpwidget();
                     if let Some(ref image) = mb.image {
                         let msg = msg.clone();
@@ -318,15 +306,9 @@ impl AppOp {
                 if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                     let m;
                     {
-                        let uid = self.uid.clone().unwrap_or_default();
-                        let power_level = match self.uid.clone().and_then(|uid| r.power_levels.get(&uid)) {
-                            Some(&pl) => pl,
-                            None => 0
-                        };
-
                         let backend = self.backend.clone();
                         let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui, uid, power_level);
+                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
                         m = mb.tmpwidget();
                         if let Some(ref image) = mb.image {
                             println!("i have a image");
@@ -732,12 +714,19 @@ impl AppOp {
             None
         };
 
-        Some(create_ui_message(msg.clone(), name, t, highlights))
+        let uid = self.uid.clone().unwrap_or_default();
+        let power_level = match self.uid.clone().and_then(|uid| room.power_levels.get(&uid)) {
+            Some(&pl) => pl,
+            None => 0,
+        };
+        let redactable = power_level != 0 || uid == msg.sender;
+
+        Some(create_ui_message(msg.clone(), name, t, highlights, redactable))
     }
 }
 
 /* FIXME: don't convert msg to ui messages here, we should later get a ui message from storage */
-fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>) -> MessageContent {
+fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>, redactable: bool) -> MessageContent {
         MessageContent {
         msg: msg.clone(),
         id: msg.id.unwrap_or(String::from("")),
@@ -751,5 +740,6 @@ fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights
         formatted_body: msg.formatted_body,
         format: msg.format,
         highlights: highlights,
+        redactable,
         }
 }

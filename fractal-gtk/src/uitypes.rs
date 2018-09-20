@@ -19,6 +19,7 @@ pub struct MessageContent {
     /* in some places we still need the backend message type (e.g. media viewer) */
     pub msg: Message,
     pub highlights: Vec<String>,
+    pub redactable: bool,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */

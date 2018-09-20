@@ -41,23 +41,20 @@ pub struct MessageBox<'a> {
     pub username_event_box: gtk::EventBox,
     pub row_event_box: gtk::EventBox,
     pub image: Option<gtk::DrawingArea>,
-    uid: String,
-    power_level: i32,
 }
 
 impl<'a> MessageBox<'a> {
-    pub fn new(msg: &'a Message, backend: Sender<BKCommand>, ui: &'a UI, uid: String, power_level: i32) -> MessageBox<'a> {
+    pub fn new(msg: &'a Message, backend: Sender<BKCommand>, ui: &'a UI) -> MessageBox<'a> {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
 
         let row_eb = gtk::EventBox::new();
-        let source_msg = msg.msg.clone();
 
-        row_eb.connect_button_press_event(clone!(source_msg, backend, ui, uid => move |eb, btn| {
+        row_eb.connect_button_press_event(clone!(msg, backend, ui => move |eb, btn| {
             if btn.get_button() == 3 {
                 let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
-                                                         source_msg.clone(), None);
-                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>(), uid.clone(), power_level);
+                                                         msg.clone(), None);
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
             }
 
             Inhibit(false)
@@ -71,8 +68,6 @@ impl<'a> MessageBox<'a> {
             username_event_box: eb,
             row_event_box: row_eb,
             image: None,
-            uid,
-            power_level,
         }
     }
 
@@ -511,15 +506,13 @@ impl<'a> MessageBox<'a> {
         let eb = self.row_event_box.clone();
         let backend = self.backend.clone();
         let ui = self.ui.clone();
-        let msg = self.msg.msg.clone();
-        let uid = self.uid.clone();
-        let power_level = self.power_level;
+        let msg = self.msg.clone();
 
         w.connect_button_press_event(move |w, btn| {
             if btn.get_button() == 3 {
                 let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
                                                          msg.clone(), Some(w));
-                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>(), uid.clone(), power_level);
+                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
                 Inhibit(true)
             } else {
                 Inhibit(false)

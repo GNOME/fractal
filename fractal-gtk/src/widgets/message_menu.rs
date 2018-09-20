@@ -19,7 +19,7 @@ use backend::BKCommand;
 use i18n::i18n;
 
 use uibuilder::UI;
-use types::Message;
+use uitypes::MessageContent;
 
 #[derive(Clone)]
 struct SelectedText {
@@ -35,13 +35,13 @@ pub struct MessageMenu {
     ui: UI,
     backend: Sender<BKCommand>,
     selected_text: Option<SelectedText>,
-    pub msg: Message,
+    pub msg: MessageContent,
 }
 
 impl MessageMenu {
     pub fn new_message_menu(ui: UI,
                             backend: Sender<BKCommand>,
-                            msg: Message,
+                            msg: MessageContent,
                             event_widget: Option<&gtk::Widget>) -> MessageMenu {
         let builder = gtk::Builder::new();
         builder.add_from_resource("/org/gnome/Fractal/ui/message_menu.ui")
@@ -61,7 +61,7 @@ impl MessageMenu {
         menu
     }
 
-    pub fn show_menu_popover(&self, w: gtk::Widget, uid: String, power_level: i32) {
+    pub fn show_menu_popover(&self, w: gtk::Widget) {
         let copy_button: gtk::Widget = self.builder
                                            .get_object("copy_selected_text_button")
                                            .expect("Can't find copy_selected_text_button");
@@ -73,28 +73,28 @@ impl MessageMenu {
         let message_menu_separator: gtk::Widget = self.builder
                                                       .get_object("message_menu_separator")
                                                       .expect("Can't find message_menu_separator");
-        delete_button.set_visible(power_level != 0 || uid == self.msg.sender);
-        message_menu_separator.set_visible(power_level != 0 || uid == self.msg.sender);
+        delete_button.set_visible(self.msg.redactable);
+        message_menu_separator.set_visible(self.msg.redactable);
 
         let open_with_button: gtk::Widget = self.builder
                                                 .get_object("open_with_button")
                                                 .expect("Can't find open_with_button");
-        open_with_button.set_visible(self.msg.mtype == "m.image");
+        open_with_button.set_visible(self.msg.msg.mtype == "m.image");
 
         let save_image_as_button: gtk::Widget = self.builder
                                                     .get_object("save_image_as_button")
                                                     .expect("Can't find save_image_as_button");
-        save_image_as_button.set_visible(self.msg.mtype == "m.image");
+        save_image_as_button.set_visible(self.msg.msg.mtype == "m.image");
 
         let copy_image_button: gtk::Widget = self.builder
                                                  .get_object("copy_image_button")
                                                  .expect("Can't find copy_image_button");
-        copy_image_button.set_visible(self.msg.mtype == "m.image");
+        copy_image_button.set_visible(self.msg.msg.mtype == "m.image");
 
         let copy_text_button: gtk::Widget = self.builder
                                                 .get_object("copy_text_button")
                                                 .expect("Can't find copy_text_button");
-        copy_text_button.set_visible(self.msg.mtype != "m.image");
+        copy_text_button.set_visible(self.msg.msg.mtype != "m.image");
 
         gdk::Display::get_default()
             .and_then(|disp| disp.get_default_seat())
@@ -226,7 +226,7 @@ impl MessageMenu {
             .get_object("msg_src_window")
             .expect("Can't find msg_src_window in ui file.");
 
-        source_buffer.set_text(self.msg.source.clone()
+        source_buffer.set_text(self.msg.msg.source.clone()
                                        .unwrap_or("This message has no source.".to_string())
                                        .as_str());
 
@@ -295,7 +295,7 @@ impl MessageMenu {
 
         let backend = self.backend.clone();
         delete_message_button.connect_clicked(clone!(this => move |_| {
-            backend.send(BKCommand::SendMsgRedaction(this.borrow().msg.clone())).unwrap();
+            backend.send(BKCommand::SendMsgRedaction(this.borrow().msg.msg.clone())).unwrap();
         }));
 
         view_source_button.connect_clicked(clone!(this => move |_| {
