@@ -36,6 +36,10 @@ flatpak:
         - |
           xvfb-run -a -s "-screen 0 1024x768x24" \
               flatpak-builder --run \
+              --env=FRACTAL_APP_ID="org.gnome.FractalDevel" \
+              --env=FRACTAL_LOCALEDIR="./fractal-gtk/po" \
+              --env=FRACTAL_NAME_SUFFIX="Test build" \
+              --env=FRACTAL_VERSION="0.0.0" \
               --env=CARGO_HOME="target/cargo-home" \
               --env=CARGO_TARGET_DIR="target_test/" \
               app ${MANIFEST_PATH} \
