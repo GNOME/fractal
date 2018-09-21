@@ -196,9 +196,8 @@ impl AppOp {
                             glib::signal::Inhibit(false)
                         });
                         m = match calc_prev {
-                            Some(ref p) if self.should_group(&msg, p) => mb.small_widget(),
-                            Some(_) if self.has_small_mtype(&msg) => mb.small_widget(),
-                            _ => mb.widget(),
+                            Some(ref p) if self.should_group(&msg, p) => mb.create(false),
+                            _ => mb.create(true),
                         };
                         if let Some(ref image) = mb.image {
                             let msg = msg.clone();

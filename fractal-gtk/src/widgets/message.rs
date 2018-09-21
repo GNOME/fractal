@@ -32,14 +32,15 @@ use uitypes::RowType;
 use uitypes::MessageContent as Message;
 use uibuilder::UI;
 
-// Room Message item
+/* A message row in the room history */
 pub struct MessageBox<'a> {
     msg: &'a Message,
     backend: Sender<BKCommand>,
     ui: &'a UI,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
-    pub row_event_box: gtk::EventBox,
+    widget: gtk::EventBox,
+    row: Option<gtk::ListBoxRow>,
     pub image: Option<gtk::DrawingArea>,
 }
 
@@ -66,64 +67,84 @@ impl<'a> MessageBox<'a> {
             ui: ui,
             username: username,
             username_event_box: eb,
-            row_event_box: row_eb,
+            widget: row_eb,
+            row: None,
             image: None,
         }
     }
 
+    /* create the message row with or without a header */
+    pub fn create(&mut self, has_header: bool) -> gtk::ListBoxRow {
+        let row = gtk::ListBoxRow::new();
+        self.set_msg_styles(&row);
+        row.set_selectable(false);
+        let w = if has_header && self.msg.mtype != RowType::Emote {
+            row.set_margin_top(12);
+            self.widget()
+        } else {
+            self.small_widget()
+        };
+
+        self.widget.add(&w);
+        row.add(&self.widget);
+        row.show_all();
+        self.row = Some(row.clone());
+        row
+    }
+
+    /* Updates the header of a message row */
+    #[allow(dead_code)]
+    pub fn update(&mut self, has_header: bool) -> Option<()> {
+        let row = self.row.clone()?;
+        let child = self.widget.get_child()?;
+        self.widget.remove(&child);
+        let w = if has_header && self.msg.mtype != RowType::Emote {
+            row.set_margin_top(12);
+            self.widget()
+        } else {
+            /* we need to reset the margin */
+            row.set_margin_top(0);
+            self.small_widget()
+        };
+
+        self.widget.add(&w);
+        row.show_all();
+        None
+    }
+
     pub fn tmpwidget(&mut self) -> gtk::ListBoxRow {
-        let w = self.widget();
+        let w = self.create(true);
         if let Some(style) = w.get_style_context() {
             style.add_class("msg-tmp");
         }
         w
     }
 
-    pub fn widget(&mut self) -> gtk::ListBoxRow {
+    fn widget(&mut self) -> gtk::Box {
         // msg
         // +--------+---------+
         // | avatar | content |
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-
         let content = self.build_room_msg_content(false);
         let avatar = self.build_room_msg_avatar();
 
         msg_widget.pack_start(&avatar, false, false, 0);
         msg_widget.pack_start(&content, true, true, 0);
 
-        self.row_event_box.add(&msg_widget);
-
-        let row = gtk::ListBoxRow::new();
-        self.set_msg_styles(&row);
-        row.set_selectable(false);
-        row.set_margin_top(12);
-        row.add(&self.row_event_box);
-        row.show_all();
-
-        row
+        msg_widget
     }
 
-    pub fn small_widget(&mut self) -> gtk::ListBoxRow {
+    fn small_widget(&mut self) -> gtk::Box {
         // msg
         // +--------+---------+
         // |        | content |
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-
         let content = self.build_room_msg_content(true);
-
         msg_widget.pack_start(&content, true, true, 50);
 
-        self.row_event_box.add(&msg_widget);
-
-        let row = gtk::ListBoxRow::new();
-        self.set_msg_styles(&row);
-        row.set_selectable(false);
-        row.add(&self.row_event_box);
-        row.show_all();
-
-        row
+        msg_widget
     }
 
     fn build_room_msg_content(&mut self, small: bool) -> gtk::Box {
@@ -188,10 +209,7 @@ impl<'a> MessageBox<'a> {
         self.username.clone()
     }
 
-    /// Add classes to the widget depending on the properties:
-    ///
-    ///  * msg-mention: if the message contains a keyword, e.g. the username
-    ///  * msg-emote: if the message is an emote
+    /* Add classes to the widget based on message type */
     fn set_msg_styles(&self, w: &gtk::ListBoxRow) {
         if let Some(style) = w.get_style_context() {
             match self.msg.mtype {
@@ -503,7 +521,7 @@ impl<'a> MessageBox<'a> {
     }
 
     fn connect_right_click_menu(&self, w: gtk::Widget) {
-        let eb = self.row_event_box.clone();
+        let eb = self.widget.clone();
         let backend = self.backend.clone();
         let ui = self.ui.clone();
         let msg = self.msg.clone();
