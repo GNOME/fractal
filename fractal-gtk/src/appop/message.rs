@@ -177,7 +177,7 @@ impl AppOp {
                     {
                         let backend = self.backend.clone();
                         let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                        let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
                         let entry = msg_entry.clone();
                         mb.username_event_box.set_focus_on_click(false);
                         mb.username_event_box.connect_button_press_event(move |eb, btn| {
@@ -254,7 +254,7 @@ impl AppOp {
                 {
                     let backend = self.backend.clone();
                     let ui = self.ui.clone();
-                    let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                    let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
                     m = mb.tmpwidget();
                     if let Some(ref image) = mb.image {
                         let msg = msg.clone();
@@ -307,7 +307,7 @@ impl AppOp {
                     {
                         let backend = self.backend.clone();
                         let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(&ui_msg, backend, &ui);
+                        let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
                         m = mb.tmpwidget();
                         if let Some(ref image) = mb.image {
                             println!("i have a image");

@@ -33,10 +33,12 @@ use uitypes::MessageContent as Message;
 use uibuilder::UI;
 
 /* A message row in the room history */
-pub struct MessageBox<'a> {
-    msg: &'a Message,
+#[derive(Clone)]
+pub struct MessageBox {
+    msg: Message,
     backend: Sender<BKCommand>,
-    ui: &'a UI,
+    /* FIXME: Remove UI */
+    ui: UI,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     widget: gtk::EventBox,
@@ -44,8 +46,8 @@ pub struct MessageBox<'a> {
     pub image: Option<gtk::DrawingArea>,
 }
 
-impl<'a> MessageBox<'a> {
-    pub fn new(msg: &'a Message, backend: Sender<BKCommand>, ui: &'a UI) -> MessageBox<'a> {
+impl MessageBox {
+    pub fn new(msg: Message, backend: Sender<BKCommand>, ui: UI) -> MessageBox {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
 
@@ -155,22 +157,21 @@ impl<'a> MessageBox<'a> {
         // | body |
         // +------+
         let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        let msg = self.msg;
 
         if !small {
-            let info = self.build_room_msg_info(self.msg);
+            let info = self.build_room_msg_info(&self.msg);
             info.set_margin_top(2);
             info.set_margin_bottom(3);
             content.pack_start(&info, false, false, 0);
         }
 
-        let body = match msg.mtype {
+        let body = match self.msg.mtype {
             RowType::Sticker => self.build_room_msg_sticker(),
             RowType::Image => self.build_room_msg_image(),
-            RowType::Emote => self.build_room_msg_emote(&msg),
+            RowType::Emote => self.build_room_msg_emote(&self.msg),
             RowType::Audio => self.build_room_audio_player(),
             RowType::Video | RowType::File => self.build_room_msg_file(),
-            _ => self.build_room_msg_body(&msg.body),
+            _ => self.build_room_msg_body(&self.msg.body),
         };
 
         content.pack_start(&body, true, true, 0);
@@ -298,12 +299,11 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_image(&mut self) -> gtk::Box {
-        let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let img_path = match msg.thumb {
+        let img_path = match self.msg.thumb {
             Some(ref m) => m.clone(),
-            None => msg.url.clone().unwrap_or_default(),
+            None => self.msg.url.clone().unwrap_or_default(),
         };
         let image = widgets::image::Image::new(&self.backend, &img_path)
                         .size(Some(globals::MAX_IMAGE_SIZE)).build();
@@ -319,11 +319,10 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_sticker(&self) -> gtk::Box {
-        let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let backend = self.backend.clone();
         let image = widgets::image::Image::new(&backend,
-                        &msg.url.clone().unwrap_or_default())
+                        &self.msg.url.clone().unwrap_or_default())
                         .size(Some(globals::MAX_STICKER_SIZE)).build();
         let w = image.widget.clone();
         w.set_tooltip_text(&self.msg.body[..]);
@@ -334,12 +333,11 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_audio_player(&self) -> gtk::Box {
-        let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         let player = widgets::AudioPlayerWidget::new();
 
-        let name = msg.body.clone();
-        let url = msg.url.clone().unwrap_or_default();
+        let name = self.msg.body.clone();
+        let url = self.msg.url.clone().unwrap_or_default();
         let backend = self.backend.clone();
 
         let (tx, rx): (Sender<String>, Receiver<String>) = channel();
@@ -395,12 +393,11 @@ impl<'a> MessageBox<'a> {
     }
 
     fn build_room_msg_file(&self) -> gtk::Box {
-        let msg = self.msg;
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 12);
         let btn_bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let name = msg.body.clone();
-        let url = msg.url.clone().unwrap_or_default();
+        let name = self.msg.body.clone();
+        let url = self.msg.url.clone().unwrap_or_default();
         let backend = self.backend.clone();
         let name_lbl = gtk::Label::new(name.as_str());
         name_lbl.set_tooltip_text(name.as_str());
