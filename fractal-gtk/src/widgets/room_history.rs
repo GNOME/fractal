@@ -4,6 +4,7 @@ extern crate gtk;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::collections::VecDeque;
 
 use appop::AppOp;
 use backend::BKCommand;
@@ -19,10 +20,56 @@ use glib::source;
 use globals;
 use widgets;
 
-//#[derive(Clone)]
+struct List {
+    list: VecDeque<Element>,
+    listbox: gtk::ListBox,
+}
+
+impl List {
+    pub fn new(listbox: gtk::ListBox) -> List {
+        List {
+            list: VecDeque::new(),
+            listbox,
+        }
+    }
+
+    pub fn add_top(&mut self, element: Element) -> Option<()> {
+        /* insert position is 1 because at position 0 is the spinner */
+        self.listbox.insert(&element.clone().widget?, 1);
+        self.list.push_back(element.clone());
+        /* TODO: update the previous message:
+         * we need to update the previous row because it could be that we have to remove the header */
+        None
+    }
+
+    pub fn add_bottom(&mut self, element: Element) -> Option<()> {
+        self.listbox.insert(&element.clone().widget?, -1);
+        self.list.push_front(element);
+        None
+    }
+}
+
+#[derive(Clone)]
+struct Element {
+    message: Option<MessageContent>,
+    /* TODO: we should add here the new message divider, or time divider */
+    widget: Option<gtk::ListBoxRow>,
+    row: Option<widgets::MessageBox>,
+}
+
+impl Element {
+    pub fn new(message: Option<MessageContent>, widget: Option<gtk::ListBoxRow>, row: Option<widgets::MessageBox>) -> Element {
+        Element {
+            message,
+            widget,
+            row,
+        }
+    }
+}
+
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
-    rows: Rc<RefCell<Vec<MessageContent>>>,
+    rows: Rc<RefCell<List>>,
     /* Op should be removed, but the MessageBox still needs it */
     ui: UI,
     backend: Sender<BKCommand>,
@@ -30,6 +77,7 @@ pub struct RoomHistory {
     listbox: gtk::ListBox,
     divider: Option<gtk::ListBoxRow>,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
+    queue: Rc<RefCell<VecDeque<MessageContent>>>,
 }
 
 impl RoomHistory {
@@ -40,10 +88,9 @@ impl RoomHistory {
             listbox.remove(ch);
         }
 
-        let ui = op.ui.clone();
         RoomHistory {
-            rows: Rc::new(RefCell::new(vec![])),
-            ui: ui,
+            rows: Rc::new(RefCell::new(List::new(listbox.clone()))),
+            ui: op.ui.clone(),
             listbox: listbox,
             backend: op.backend.clone(),
             /* FIXME: don't use unwarp, because it could fail:
@@ -55,15 +102,21 @@ impl RoomHistory {
                 .clone(),
             divider: None,
             source_id: Rc::new(RefCell::new(None)),
+            queue: Rc::new(RefCell::new(VecDeque::new())),
         }
     }
 
-    pub fn create(&mut self, messages: Vec<MessageContent>) -> Option<()> {
-        let data: Rc<RefCell<Vec<MessageContent>>> = Rc::new(RefCell::new(messages));
+    pub fn create(&mut self, mut messages: Vec<MessageContent>) -> Option<()> {
+        messages.reverse();
+        self.queue.borrow_mut().append(&mut VecDeque::from(messages));
+        self.run_queue();
+        None
+    }
+
+    fn run_queue(&mut self) -> Option<()> {
         let backend = self.backend.clone();
         let ui = self.ui.clone();
-        let data = data.clone();
-        let listbox = self.listbox.clone();
+        let queue = self.queue.clone();
         let rows = self.rows.clone();
         let room = self.room.clone();
 
@@ -71,12 +124,15 @@ impl RoomHistory {
          * scrollbar. 52 is the normal height of a message with one line
          * self.listbox.set_size_request(-1, 52 * messages.len() as i32); */
 
+        if self.source_id.borrow().is_some() {
+           /* We don't need a new loop, just keeping the old one */
+        } else {
         /* Lacy load initial messages */
         let source_id = self.source_id.clone();
         *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
-            let mut data = data.borrow_mut();
-            if let Some(item) = data.pop() {
-                let last = data.last();
+            let mut data = queue.borrow_mut();
+            if let Some(item) = data.pop_front() {
+                let last = data.front();
                 let has_header = {
                     if let Some(last) = last {
                         last.mtype == RowType::Emote || !should_group_message(&item, &last)
@@ -85,10 +141,9 @@ impl RoomHistory {
                     }
                 };
 
-                if let Some(row) = create_row(item.clone(), &room, has_header, backend.clone(), ui.clone())
+                if let Some((element, row)) = create_row(item.clone(), &room, has_header, backend.clone(), ui.clone())
                 {
-                    rows.borrow_mut().push(item);
-                    listbox.insert(&row, 1);
+                    rows.borrow_mut().add_top(Element::new(Some(item), Some(row), Some(element)));
                 }
             } else {
                 /* Remove the source id, since the closure is destoryed */
@@ -97,6 +152,7 @@ impl RoomHistory {
             }
             return gtk::Continue(true);
         }));
+        }
         None
     }
 
@@ -107,70 +163,34 @@ impl RoomHistory {
     }
 
     /* This adds new incomming messages at then end of the list */
-    pub fn add_new_message(&mut self, mut item: MessageContent) -> Option<()> {
+    pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
         let has_header = {
-            let last = rows.last();
+            let last = rows.list.front();
             if let Some(last) = last {
-                last.mtype == RowType::Emote || !should_group_message(&item, &last)
+                if let Some(ref last) = last.message {
+                    last.mtype == RowType::Emote || !should_group_message(&item, &last)
+                } else {
+                    true
+                }
             } else {
                 true
             }
         };
 
-        if let Some(row) = create_row(
-            item.clone(),
+        let (element, row) = create_row(item.clone(),
             &self.room.clone(),
             has_header,
             self.backend.clone(),
-            self.ui.clone(),
-        ) {
-            self.listbox.insert(&row, -1);
-            item.widget = Some(row);
-            rows.push(item);
-        }
+            self.ui.clone())?;
+        rows.add_bottom(Element::new(Some(item), Some(row), Some(element)));
         None
     }
 
     /* This adds messages to the top of the list */
-    pub fn add_old_message(&mut self, mut item: MessageContent) -> Option<()> {
-        let row = create_row(
-            item.clone(),
-            &self.room.clone(),
-            true,
-            self.backend.clone(),
-            self.ui.clone(),
-        )?;
-        self.listbox.insert(&row, 1);
-        item.widget = Some(row);
-        let old = item.clone();
-        self.rows.borrow_mut().insert(0, item);
-
-        /* update the previous message:
-         * we need to update the previous row because it could be that we have to remove the header */
-        let mut rows = self.rows.borrow_mut();
-        if let Some(previous) = rows.get_mut(1) {
-            /* we need the header if the previous message was a emote */
-            let has_header = !should_group_message(previous, &old) || old.mtype == RowType::Emote;
-            if !has_header {
-                let row = create_row(
-                    previous.clone(),
-                    &self.room.clone(),
-                    has_header,
-                    self.backend.clone(),
-                    self.ui.clone(),
-                )?;
-                previous.widget = if let Some(widget) = previous.widget.take() {
-                    let index = widget.get_index();
-                    widget.destroy();
-                    self.listbox.insert(&row, index);
-                    //widget = row;
-                    Some(row)
-                } else {
-                    None
-                };
-            }
-        }
+    pub fn add_old_message(&mut self, item: MessageContent) -> Option<()> {
+        self.queue.borrow_mut().push_back(item);
+        self.run_queue();
 
         None
     }
@@ -189,12 +209,12 @@ fn create_row(
     has_header: bool,
     backend: Sender<BKCommand>,
     ui: UI,
-) -> Option<gtk::ListBoxRow> {
+) -> Option<(widgets::MessageBox, gtk::ListBoxRow)> {
     let widget = {
         /* we need to create a message with the username, so that we don't have to pass
          * all information to the widget creating each row */
         let mut mb = widgets::MessageBox::new(row.clone(), backend, ui);
-        let w = Some(mb.create(has_header && row.mtype != RowType::Emote));
+        let w = mb.create(has_header && row.mtype != RowType::Emote);
 
         if let Some(ref image) = mb.image {
             let msg = row.msg.clone();
@@ -211,9 +231,9 @@ fn create_row(
                 }
             });
         }
-        w
+        Some((mb, w))
     };
-    return widget;
+    widget
 }
 
 /* returns if two messages should have only a single header or not */
