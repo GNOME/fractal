@@ -104,8 +104,15 @@ pages:
               app ${MANIFEST_PATH} \
               cargo rustdoc -p fractal-gtk -- --document-private-items
 
+        - flatpak-builder --run app ${MANIFEST_PATH} meson --prefix=/app -Dprofile=development _build
+        - flatpak-builder --run app ${MANIFEST_PATH} ninja -C _build install
+
+        - flatpak-builder --finish-only app ${MANIFEST_PATH}
+        - flatpak build-export repo app
+
         - rm -rf public
         - mv target/doc/ public
+        - mv repo public/repo
     artifacts:
         paths:
           - public
