@@ -577,8 +577,11 @@ impl AppOp {
                     self.internal.send(command).unwrap();
                 }
                 self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
-            } else if let Some(m) = r.messages.get(0) {
-                self.backend.send(BKCommand::GetMessageContext(m.clone())).unwrap();
+            } else if let Some(prev_batch) = r.prev_batch.clone() {
+                self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), prev_batch)).unwrap();
+            } else {
+                self.loading_more = false;
+                self.load_more_spn.stop();
             }
         }
     }
@@ -643,7 +646,11 @@ impl AppOp {
         Some(())
     }
 
-    pub fn show_room_messages_top(&mut self, msgs: Vec<Message>) {
+    pub fn show_room_messages_top(&mut self, msgs: Vec<Message>, roomid: String, prev_batch: Option<String>) {
+        if let Some(r) = self.rooms.get_mut(&roomid) {
+            r.prev_batch = prev_batch;
+        }
+
         if msgs.is_empty() {
             self.load_more_normal();
             return;

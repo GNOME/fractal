@@ -128,8 +128,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let init = true;
                     APPOP!(show_room_messages, (msgs, init));
                 }
-                Ok(BKResponse::RoomMessagesTo(msgs)) => {
-                    APPOP!(show_room_messages_top, (msgs));
+                Ok(BKResponse::RoomMessagesTo(msgs, room, prev_batch)) => {
+                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Ok(BKResponse::SentMsg(txid, evid)) => {
                     APPOP!(msg_sent, (txid, evid));

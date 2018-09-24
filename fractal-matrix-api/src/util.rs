@@ -219,6 +219,8 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
             .as_i64()
             .unwrap_or(0) as i32;
 
+        r.prev_batch = timeline["prev_batch"].as_str().map(|s| String::from(s));
+
         for ev in dataevs.as_array() {
             for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
                 if let Some(_) = tag["content"]["tags"]["m.favourite"].as_object() {
@@ -757,63 +759,6 @@ pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<St
     };
 
     Ok(Some(name))
-}
-
-/// Recursive function that tries to get at least @get Messages for the room.
-///
-/// The @limit is the first "limit" param in the GET request.
-/// The @end param is used as "from" param in the GET request, so we'll get
-/// messages before that.
-pub fn get_initial_room_messages(baseu: &Url,
-                                 tk: String,
-                                 roomid: String,
-                                 get: usize,
-                                 limit: i32,
-                                 end: Option<String>)
-                                 -> Result<(Vec<Message>, String, String), Error> {
-
-    let mut ms: Vec<Message> = vec![];
-    let mut nstart;
-    let mut nend;
-
-    let mut params = vec![
-        ("dir", String::from("b")),
-        ("limit", format!("{}", limit)),
-        ("access_token", tk.clone()),
-    ];
-
-    match end {
-        Some(ref e) => { params.push(("from", e.clone())) }
-        None => {}
-    };
-
-    let path = format!("rooms/{}/messages", roomid);
-    let url = client_url(baseu, &path, params)?;
-
-    let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
-    nend = String::from(r["end"].as_str().unwrap_or(""));
-    nstart = String::from(r["start"].as_str().unwrap_or(""));
-
-    let array = r["chunk"].as_array();
-    if array.is_none() || array.unwrap().len() == 0 {
-        return Ok((ms, nstart, nend));
-    }
-
-    let evs = array.unwrap().iter().rev();
-    let msgs = Message::from_json_events_iter(roomid.clone(), evs);
-    ms.extend(msgs);
-
-    if ms.len() < get {
-        let (more, s, e) =
-            get_initial_room_messages(baseu, tk, roomid, get, limit * 2, Some(nend))?;
-        nstart = s;
-        nend = e;
-        for m in more.iter().rev() {
-            ms.insert(0, m.clone());
-        }
-    }
-
-    Ok((ms, nstart, nend))
 }
 
 /// Recursive function that tries to get all messages in a room from a batch id to a batch id,
