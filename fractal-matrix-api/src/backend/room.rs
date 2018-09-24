@@ -12,7 +12,6 @@ use std::thread;
 use error::Error;
 
 use util::json_q;
-use util::get_initial_room_messages;
 use util::{client_url, media_url};
 use util::put_media;
 use util;
@@ -23,7 +22,6 @@ use backend::types::Backend;
 use backend::types::BKResponse;
 use backend::types::BKCommand;
 use backend::types::RoomType;
-use backend::room;
 
 use types::Room;
 use types::Member;
@@ -122,23 +120,28 @@ pub fn get_room_members(bk: &Backend, roomid: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn get_room_messages(bk: &Backend, roomid: String) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
-    let tk = bk.data.lock().unwrap().access_token.clone();
 
+/* Load older messages starting by prev_batch
+ * https://matrix.org/docs/spec/client_server/latest.html#get-matrix-client-r0-rooms-roomid-messages
+ */
+pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(), Error> {
+    let params = vec![
+        ("from", from),
+        ("dir", String::from("b")),
+        ("limit", format!("{}", globals::PAGE_LIMIT)),
+    ];
+    let url = bk.url(&format!("rooms/{}/messages", roomid), params)?;
     let tx = bk.tx.clone();
-    thread::spawn(move || {
-        match get_initial_room_messages(&baseu, tk, roomid.clone(),
-                                        globals::PAGE_LIMIT as usize,
-                                        globals::PAGE_LIMIT, None) {
-            Ok((ms, _, _)) => {
-                tx.send(BKResponse::RoomMessagesInit(ms)).unwrap();
-            }
-            Err(err) => {
-                tx.send(BKResponse::RoomMessagesError(err)).unwrap();
-            }
-        }
-    });
+    get!(&url,
+        |r: JsonValue| {
+            let array = r["chunk"].as_array();
+            let evs = array.unwrap().iter().rev();
+            let list = Message::from_json_events_iter(roomid.clone(), evs);
+            let prev_batch = r["end"].as_str().map(|s| String::from(s));
+            tx.send(BKResponse::RoomMessagesTo(list, roomid, prev_batch)).unwrap();
+        },
+        |err| { tx.send(BKResponse::RoomMembersError(err)).unwrap() }
+    );
 
     Ok(())
 }
@@ -172,7 +175,7 @@ fn parse_context(tx: Sender<BKResponse>, tk: String, baseu: Url, roomid: String,
                     tx.send(BKResponse::RoomMessagesError(err)).unwrap();
                 }
             } else {
-                tx.send(BKResponse::RoomMessagesTo(ms)).unwrap();
+                tx.send(BKResponse::RoomMessagesTo(ms, roomid, None)).unwrap();
             }
         },
         |err| { tx.send(BKResponse::RoomMessagesError(err)).unwrap() }
@@ -496,7 +499,7 @@ pub fn search(bk: &Backend, roomid: String, term: Option<String>) -> Result<(), 
         }
         _ => {
             tx.send(BKResponse::SearchEnd).unwrap();
-            room::get_room_messages(bk, roomid)
+            Ok(())
         }
     }
 }

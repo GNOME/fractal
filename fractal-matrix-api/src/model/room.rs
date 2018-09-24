@@ -25,6 +25,7 @@ pub struct Room {
     pub left: bool,
     pub inv: bool,
     pub direct: bool,
+    pub prev_batch: Option<String>,
     pub inv_sender: Option<Member>,
 
     /// Hashmap with the room users power levels
@@ -53,6 +54,7 @@ impl Room {
             direct: false,
             inv_sender: None,
             power_levels: HashMap::new(),
+            prev_batch: None,
         }
     }
 

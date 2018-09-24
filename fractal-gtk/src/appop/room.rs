@@ -192,7 +192,6 @@ impl AppOp {
 
         self.remove_messages();
 
-        let mut getmessages = true;
         self.shown_messages = 0;
 
         let msgs = room.messages.iter().rev()
@@ -215,11 +214,8 @@ impl AppOp {
         self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
         self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
-        if !room.messages.is_empty() {
-            getmessages = false;
-            if let Some(msg) = room.messages.iter().last() {
-                self.mark_as_read(msg, Force(false));
-            }
+        if let Some(msg) = room.messages.iter().last() {
+            self.mark_as_read(msg, Force(false));
         }
 
         // getting room details
@@ -243,10 +239,6 @@ impl AppOp {
         self.set_current_room_avatar(room.avatar.clone(), size);
         self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
         self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
-
-        if getmessages {
-            self.backend.send(BKCommand::GetRoomMessages(self.active_room.clone().unwrap_or_default())).unwrap();
-        }
     }
 
     pub fn really_leave_active_room(&mut self) {
