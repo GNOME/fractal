@@ -40,7 +40,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
                     \"types\": [\"m.room.message\", \"m.sticker\"],
                     \"limit\": {}
                 }},
-                \"ephemeral\": {{ \"types\": [] }}
+                \"ephemeral\": {{ \"types\": [\"m.typing\"] }}
             }},
             \"presence\": {{ \"types\": [] }},
             \"event_format\": \"client\",
