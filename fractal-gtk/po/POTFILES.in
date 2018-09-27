@@ -75,7 +75,7 @@ fractal-gtk/src/appop/state.rs
 fractal-gtk/src/appop/stickers.rs
 fractal-gtk/src/appop/sync.rs
 fractal-gtk/src/appop/user.rs
-fractal-gtk/src/cache.rs
+fractal-gtk/src/cache/mod.rs
 fractal-gtk/src/globals.rs
 fractal-gtk/src/main.rs
 fractal-gtk/src/passwd.rs

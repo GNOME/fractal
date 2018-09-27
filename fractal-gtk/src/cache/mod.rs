@@ -1,11 +1,10 @@
-extern crate serde_json;
-
 use std::fs::File;
 use std::fs::remove_dir_all;
 use std::io::prelude::*;
 use gtk;
 use gtk::LabelExt;
 
+use serde_json;
 use types::RoomList;
 use error::Error;
 
@@ -22,6 +21,10 @@ use std::sync::mpsc::TryRecvError;
 use std::cell::RefCell;
 use std::rc::Rc;
 use widgets::AvatarData;
+
+use mdl;
+use std::sync::{Arc, Mutex, MutexGuard};
+
 
 #[derive(Serialize, Deserialize)]
 pub struct CacheData {
@@ -144,4 +147,31 @@ pub fn download_to_cache_username_emote(backend: Sender<BKCommand>,
             gtk::Continue(false)
         }
     });
+}
+
+#[derive(Clone)]
+pub struct FCache {
+    cache: Arc<Mutex<mdl::Cache>>,
+}
+
+impl FCache {
+    pub fn c(&self) -> MutexGuard<mdl::Cache> {
+        self.cache.lock().unwrap()
+    }
+}
+
+// The cache object, it's the same for the whole process
+lazy_static! {
+    static ref CACHE: FCache = {
+        let db: String = cache_path("cache.mdl")
+            .expect("Fatal error: Can't start the cache");
+        let mdl_cache = mdl::Cache::new(&db)
+            .expect("Fatal error: Can't start the cache");
+        let cache = Arc::new(Mutex::new(mdl_cache));
+        FCache { cache }
+    };
+}
+
+pub fn get() -> FCache {
+    return CACHE.clone();
 }

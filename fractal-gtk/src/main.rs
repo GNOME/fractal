@@ -19,6 +19,7 @@ extern crate failure;
 
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
 #[macro_use]
 extern crate fractal_matrix_api as fractal_api;
@@ -30,6 +31,10 @@ extern crate gettextrs;
 extern crate chrono;
 
 extern crate fragile;
+
+extern crate mdl;
+#[macro_use]
+extern crate lazy_static;
 
 use fractal_api::backend;
 use fractal_api::types;
