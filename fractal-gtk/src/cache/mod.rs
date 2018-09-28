@@ -1,12 +1,12 @@
-use std::fs::File;
 use std::fs::remove_dir_all;
-use std::io::prelude::*;
 use gtk;
 use gtk::LabelExt;
 
-use serde_json;
 use types::RoomList;
-use error::Error;
+use types::Room;
+use failure::Error;
+use failure::err_msg;
+use std::collections::HashMap;
 
 use fractal_api::util::cache_path;
 use globals;
@@ -22,10 +22,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use widgets::AvatarData;
 
-use mdl;
-use std::sync::{Arc, Mutex, MutexGuard};
 
+mod state;
+pub use self::state::get;
+pub use self::state::FCache;
+pub use self::state::AppState;
 
+// TODO: remove this struct
 #[derive(Serialize, Deserialize)]
 pub struct CacheData {
     pub since: Option<String>,
@@ -41,10 +44,11 @@ pub fn store(
     username: String,
     uid: String
 ) -> Result<(), Error> {
-    let fname = cache_path("rooms.json")?;
 
-    let mut cacherooms = rooms.clone();
-    for r in cacherooms.values_mut() {
+    // don't store all messages in the cache
+    let mut cacherooms: Vec<Room> = vec![];
+    for r in rooms.values() {
+        let mut r = r.clone();
         let skip = match r.messages.len() {
             n if n > globals::CACHE_SIZE => n - globals::CACHE_SIZE,
             _ => 0,
@@ -53,36 +57,46 @@ pub fn store(
         // setting prev_batch to none because we're removing some messages so the
         // prev_batch isn't valid now, it's not pointing to the stored last msg
         r.prev_batch = None;
+        cacherooms.push(r);
     }
 
-    let data = CacheData {
-        since: since,
-        rooms: cacherooms,
-        username: username,
-        uid: uid,
-    };
+    let st = AppState { since, username, uid };
+    get().save_st(st)?;
 
-    let serialized = serde_json::to_string(&data)?;
-    File::create(fname)?.write_all(&serialized.into_bytes())?;
+    // This is slow because we iterate over all room msgs
+    // in the future we shouldn't do that, we should remove the
+    // Vec<Msg> from the room and treat messages as first level
+    // cache objects with something like cache.get_msgs(room),
+    // cache.get_msg(room_id, msg_id) and cache.save_msg(msg)
+    get().save_rooms(cacherooms)?;
 
     Ok(())
 }
 
 pub fn load() -> Result<CacheData, Error> {
-    let fname = cache_path("rooms.json")?;
+    let st = get().get_st()?;
+    let rooms = get().get_rooms()?;
+    let mut cacherooms: RoomList = HashMap::new();
 
-    let mut file = File::open(fname)?;
-    let mut serialized = String::new();
-    file.read_to_string(&mut serialized)?;
+    for r in rooms {
+        cacherooms.insert(r.id.clone(), r);
+    }
 
-   let deserialized: CacheData = serde_json::from_str(&serialized)?;
+    let data = CacheData {
+        since: st.since,
+        username: st.username,
+        uid: st.uid,
+        rooms: cacherooms,
+    };
 
-   Ok(deserialized)
+    Ok(data)
 }
 
 pub fn destroy() -> Result<(), Error> {
-    let fname = cache_path("")?;
-    remove_dir_all(fname).or_else(|_| Err(Error::CacheError))
+    let fname = cache_path("cache.mdl")
+        .or(Err(err_msg("Can't remove cache file")))?;
+    remove_dir_all(fname)
+        .or_else(|_| Err(err_msg("Can't remove cache file")))
 }
 
 /// this downloads a avatar and stores it in the cache folder
@@ -149,29 +163,4 @@ pub fn download_to_cache_username_emote(backend: Sender<BKCommand>,
     });
 }
 
-#[derive(Clone)]
-pub struct FCache {
-    cache: Arc<Mutex<mdl::Cache>>,
-}
 
-impl FCache {
-    pub fn c(&self) -> MutexGuard<mdl::Cache> {
-        self.cache.lock().unwrap()
-    }
-}
-
-// The cache object, it's the same for the whole process
-lazy_static! {
-    static ref CACHE: FCache = {
-        let db: String = cache_path("cache.mdl")
-            .expect("Fatal error: Can't start the cache");
-        let mdl_cache = mdl::Cache::new(&db)
-            .expect("Fatal error: Can't start the cache");
-        let cache = Arc::new(Mutex::new(mdl_cache));
-        FCache { cache }
-    };
-}
-
-pub fn get() -> FCache {
-    return CACHE.clone();
-}

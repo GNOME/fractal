@@ -351,7 +351,12 @@ impl AppOp {
 
     pub fn cache_rooms(&self) {
         // serializing rooms
-        if let Err(_) = cache::store(&self.rooms, self.since.clone(), self.username.clone().unwrap_or_default(), self.uid.clone().unwrap_or_default()) {
+        let rooms = self.rooms.clone();
+        let since = self.since.clone();
+        let username = self.username.clone().unwrap_or_default();
+        let uid = self.uid.clone().unwrap_or_default();
+
+        if let Err(_) = cache::store(&rooms, since, username, uid) {
             println!("Error caching rooms");
         };
     }
