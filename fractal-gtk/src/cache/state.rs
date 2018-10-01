@@ -90,19 +90,19 @@ pub struct FCache {
 }
 
 impl FCache {
-    pub fn c(&self) -> MutexGuard<Cache> {
+    pub fn get_store(&self) -> MutexGuard<Cache> {
         self.cache.lock().unwrap()
     }
 
     #[allow(dead_code)]
     pub fn get_room(&self, id: &str) -> Result<Room, Error> {
-        let cache = &*self.c();
+        let cache = &*self.get_store();
         let r = AppRoom::get(cache, id)?;
         Ok(r.room.into_inner())
     }
 
     pub fn get_rooms(&self) -> Result<Vec<Room>, Error> {
-        let cache = &*self.c();
+        let cache = &*self.get_store();
         let rooms = AppRoom::all(cache, "room")?
             .iter().map(|r| r.room.borrow().clone()).collect();
         Ok(rooms)
@@ -116,7 +116,7 @@ impl FCache {
     }
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
-        let cache = &*self.c();
+        let cache = &*self.get_store();
         let approom = AppRoom { room: RefCell::new(room) };
         approom.store(cache)?;
 
@@ -124,12 +124,12 @@ impl FCache {
     }
 
     pub fn get_st(&self) -> Result<AppState, Error> {
-        let cache = &*self.c();
+        let cache = &*self.get_store();
         AppState::get(cache, "state")
     }
 
     pub fn save_st(&self, st: AppState) -> Result<(), Error> {
-        let cache = &*self.c();
+        let cache = &*self.get_store();
         st.store(cache)?;
 
         Ok(())
