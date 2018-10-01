@@ -44,6 +44,7 @@ impl Model for AppState {
 }
 
 impl AppRoom {
+    #[allow(dead_code)]
     fn store_msgs<S: Store>(&self, store: &S) -> Result<(), Error> {
         for msg in self.room.borrow().messages.iter() {
             let m = AppMsg { msg: msg.clone() };
@@ -53,6 +54,7 @@ impl AppRoom {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn load_msgs<S: Store>(&mut self, store: &S) -> Result<(), Error> {
         let key = format!("msg:{}", self.room.borrow().id);
         let msgs: Vec<Message> = AppMsg::all(store, &key)?.iter()
@@ -62,6 +64,7 @@ impl AppRoom {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn clear_msgs(&self) {
         self.room.borrow_mut().messages = vec![];
     }
