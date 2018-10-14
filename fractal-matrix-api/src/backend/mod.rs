@@ -6,7 +6,7 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::RecvError;
 use std::collections::HashMap;
 
-use util::build_url;
+use util::client_url;
 
 use error::Error;
 
@@ -39,7 +39,7 @@ impl Backend {
             scalar_token: None,
             scalar_url: String::from("https://scalar.vector.im"),
             sticker_widget: None,
-            since: String::from(""),
+            since: None,
             rooms_since: String::from(""),
             join_to_room: String::from(""),
             m_direct: HashMap::new(),
@@ -66,7 +66,7 @@ impl Backend {
         let mut params2 = params.to_vec();
         params2.push(("access_token", tk.clone()));
 
-        client_url!(&base, path, params2)
+        client_url(&base, path, params2)
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {
@@ -179,8 +179,8 @@ impl Backend {
 
             // Sync module
 
-            Ok(BKCommand::Sync) => {
-                let r = sync::sync(self);
+            Ok(BKCommand::Sync(since, initial)) => {
+                let r = sync::sync(self, since, initial);
                 bkerror!(r, tx, BKResponse::SyncError);
             }
             Ok(BKCommand::SyncForced) => {
@@ -194,8 +194,12 @@ impl Backend {
                 let r = room::get_room_members(self, room);
                 bkerror!(r, tx, BKResponse::RoomMembersError);
             }
-            Ok(BKCommand::GetRoomMessages(room)) => {
-                let r = room::get_room_messages(self, room);
+            Ok(BKCommand::GetRoomMessages(room, from)) => {
+                let r = room::get_room_messages(self, room, from);
+                bkerror!(r, tx, BKResponse::RoomMessagesError);
+            }
+            Ok(BKCommand::GetRoomMessagesFromMsg(room, from)) => {
+                let r = room::get_room_messages_from_msg(self, room, from);
                 bkerror!(r, tx, BKResponse::RoomMessagesError);
             }
             Ok(BKCommand::GetMessageContext(message)) => {
@@ -261,10 +265,6 @@ impl Backend {
             Ok(BKCommand::AddToFav(roomid, tofav)) => {
                 let r = room::add_to_fav(self, roomid, tofav);
                 bkerror!(r, tx, BKResponse::AddToFavError);
-            }
-            Ok(BKCommand::Search(roomid, term)) => {
-                let r = room::search(self, roomid, term);
-                bkerror!(r, tx, BKResponse::SearchError);
             }
             Ok(BKCommand::AcceptInv(roomid)) => {
                 let r = room::join_room(self, roomid);

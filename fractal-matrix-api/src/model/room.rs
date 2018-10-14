@@ -7,7 +7,7 @@ use model::message::Message;
 use model::member::MemberList;
 use model::member::Member;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
     pub id: String,
     pub avatar: Option<String>,
@@ -25,6 +25,7 @@ pub struct Room {
     pub left: bool,
     pub inv: bool,
     pub direct: bool,
+    pub prev_batch: Option<String>,
     pub inv_sender: Option<Member>,
 
     /// Hashmap with the room users power levels
@@ -53,6 +54,7 @@ impl Room {
             direct: false,
             inv_sender: None,
             power_levels: HashMap::new(),
+            prev_batch: None,
         }
     }
 
@@ -87,31 +89,6 @@ impl Room {
     pub fn add_receipt_from_fully_read(&mut self, uid: &str, evid: &str) {
         for msg in self.messages.iter_mut().filter(|m| m.id == Some(evid.to_string())) {
             msg.receipt.insert(uid.to_string(), 0);
-        }
-    }
-}
-
-impl Clone for Room {
-    fn clone(&self) -> Room {
-        Room {
-            id: self.id.clone(),
-            name: self.name.clone(),
-            avatar: self.avatar.clone(),
-            topic: self.topic.clone(),
-            alias: self.alias.clone(),
-            guest_can_join: self.guest_can_join,
-            world_readable: self.world_readable,
-            n_members: self.n_members,
-            notifications: self.notifications,
-            highlight: self.highlight,
-            messages: self.messages.iter().cloned().collect(),
-            members: self.members.clone(),
-            fav: self.fav,
-            left: self.left,
-            inv: self.inv,
-            direct: self.direct,
-            inv_sender: self.inv_sender.clone(),
-            power_levels: self.power_levels.clone(),
         }
     }
 }

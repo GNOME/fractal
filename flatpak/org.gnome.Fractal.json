@@ -55,12 +55,21 @@
             ]
         },
         {
-            "name" : "gspell",
+            "name" : "libhandy",
+            "buildsystem" : "meson",
+            "config-opts" : [
+                "-Dprofiling=false",
+                "-Dintrospection=true",
+                "-Dgtk_doc=false",
+                "-Dtests=false",
+                "-Dexamples=false",
+                "-Dvapi=false",
+                "-Dglade_catalog=false"
+            ],
             "sources" : [
                 {
                     "type" : "git",
-                    "tag" : "1.8.0",
-                    "url" : "https://gitlab.gnome.org/GNOME/gspell.git"
+                    "url" : "https://source.puri.sm/Librem5/libhandy"
                 }
             ]
         },

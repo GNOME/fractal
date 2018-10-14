@@ -27,14 +27,13 @@ static mut OP: Option<Arc<Mutex<AppOp>>> = None;
 #[macro_export]
 macro_rules! APPOP {
     ($fn: ident, ($($x:ident),*) ) => {{
-        if let Some(ctx) = glib::MainContext::default() {
-            ctx.invoke(move || {
-                $( let $x = $x.clone(); )*
-                if let Some(op) = App::get_op() {
-                    op.lock().unwrap().$fn($($x),*);
-                }
-            });
-        }
+        let ctx = glib::MainContext::default();
+        ctx.invoke(move || {
+            $( let $x = $x.clone(); )*
+            if let Some(op) = App::get_op() {
+                op.lock().unwrap().$fn($($x),*);
+            }
+        });
     }};
     ($fn: ident) => {{
         APPOP!($fn, ( ) );
@@ -61,7 +60,7 @@ pub struct App {
 impl App {
     /// Create an App instance
     pub fn new() {
-        let appid = globals::APP_ID.to_string();
+        let appid = globals::APP_ID.unwrap_or("org.gnome.FractalDevel").to_string();
 
         let gtk_app = gtk::Application::new(Some(&appid[..]), gio::ApplicationFlags::empty())
             .expect("Failed to initialize GtkApplication");
@@ -80,7 +79,7 @@ impl App {
 
             // Set up the textdomain for gettext
             setlocale(LocaleCategory::LcAll, "");
-            bindtextdomain("fractal", globals::LOCALEDIR);
+            bindtextdomain("fractal", globals::LOCALEDIR.unwrap_or("./fractal-gtk/po"));
             textdomain("fractal");
 
 

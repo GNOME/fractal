@@ -3,9 +3,11 @@ extern crate glib;
 extern crate gio;
 extern crate gtk;
 extern crate gdk;
+extern crate sourceview;
 
 extern crate rand;
 extern crate itertools;
+extern crate dirs;
 
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
@@ -24,13 +26,17 @@ extern crate fractal_matrix_api as fractal_api;
 
 extern crate html2pango;
 
-extern crate gspell;
+extern crate libhandy;
 
 extern crate gettextrs;
 
 extern crate chrono;
 
 extern crate fragile;
+
+extern crate mdl;
+#[macro_use]
+extern crate lazy_static;
 
 use fractal_api::backend;
 use fractal_api::types;
@@ -41,6 +47,7 @@ mod globals;
 #[macro_use]
 mod util;
 mod cache;
+mod uitypes;
 mod uibuilder;
 mod static_resources;
 mod passwd;

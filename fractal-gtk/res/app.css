@@ -128,9 +128,17 @@ row:not(:selected) .member-uid {
 }
 
 /** message history **/
+.messages-box {
+  background-color: @theme_base_color;
+}
+
 .messages-history {
   background-color: @theme_base_color;
   padding: 0 18px 18px;
+}
+
+.history-view {
+  background-color: @theme_base_color;
 }
 
 .messages-history > row:not(.msg-mention) {
@@ -259,8 +267,11 @@ row .timestamp {
   padding: 5px;
 }
 
+.messages-scroll {
+  border-bottom: 1px solid @borders;
+}
+
 .message-input-area {
-  border-top: 1px solid @borders;
   padding: 6px;
 }
 
@@ -302,6 +313,10 @@ stack.titlebar:not(headerbar) > box > separator {
   color: alpha(@theme_fg_color, 0.1);
 }
 
-.devel headerbar:last-child label {
+.devel headerbar:last-child > box > label {
   color: @theme_fg_color;
+}
+
+.small-font {
+    font-size: small;
 }

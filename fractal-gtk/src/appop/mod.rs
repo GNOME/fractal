@@ -74,7 +74,9 @@ pub struct AppOp {
     pub active_room: Option<String>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
+    pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
+    pub message_box: gtk::ListBox,
     pub load_more_spn: gtk::Spinner,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
@@ -89,7 +91,7 @@ pub struct AppOp {
 
     pub invitation_roomid: Option<String>,
     pub md_enabled: bool,
-    invite_list: Vec<Member>,
+    pub invite_list: Vec<(Member, gtk::TextChildAnchor)>,
     search_type: SearchType,
 
     pub stickers: Vec<StickerGroup>,
@@ -109,12 +111,14 @@ impl AppOp {
             ui: ui,
             gtk_app: app,
             load_more_spn: gtk::Spinner::new(),
+            message_box: gtk::ListBox::new(),
             backend: tx,
             internal: itx,
             autoscroll: true,
             active_room: None,
             rooms: HashMap::new(),
             room_settings: None,
+            history: None,
             username: None,
             uid: None,
             avatar: None,
@@ -153,7 +157,8 @@ impl AppOp {
         if let Ok(data) = cache::load() {
             let r: Vec<Room> = data.rooms.values().cloned().collect();
             self.set_rooms(&r, None);
-            self.since = Some(data.since);
+            /* Make sure that since is never an empty string */
+            self.since = data.since.filter(|s| !s.is_empty());
             self.username = Some(data.username);
             self.uid = Some(data.uid);
         }

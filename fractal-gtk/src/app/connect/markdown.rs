@@ -10,9 +10,9 @@ use app::App;
 
 impl App {
     pub fn connect_markdown(&self) {
-        let md_popover_btn: gtk::MenuButton = self.ui.builder
-            .get_object("markdown_button")
-            .expect("Couldn't find markdown_button in ui file.");
+        let md_popover_btn = &self.ui.sventry.markdown;
+        let md_img = self.ui.sventry.markdown_img.clone();
+        let buffer = self.ui.sventry.buffer.clone();
 
         let popover: gtk::Popover = self.ui.builder
             .get_object("markdown_popover")
@@ -26,9 +26,6 @@ impl App {
             .get_object("tutorial_text_box")
             .expect("Couldn't find tutorial_text_box in ui file.");
 
-        let md_img = self.ui.builder
-            .get_object::<gtk::Image>("md_img")
-            .expect("Couldn't find md_img in ui file.");
 
         let md_lang = sourceview::LanguageManager::get_default()
                                                    .map_or(None, |lm| lm.get_language("markdown"));
@@ -45,17 +42,14 @@ impl App {
         }
 
         let op = op.clone();
-        let ui = self.ui.clone();
         markdown_switch.clone().connect_property_active_notify(move |_| {
             op.lock().unwrap().md_enabled = markdown_switch.get_active();
+
             if !markdown_switch.get_active() {
                 md_img.set_from_icon_name("format-justify-left-symbolic",1);
                 txt.get_style_context().unwrap().add_class("dim-label");
                 util::set_markdown_schema(false);
 
-                let buffer: sourceview::Buffer = ui.builder
-                    .get_object("msg_entry_buffer")
-                    .expect("Couldn't find msg_entry_buffer in ui file.");
                 buffer.set_highlight_matching_brackets(false);
                 buffer.set_language(None);
                 buffer.set_highlight_syntax(false);
@@ -65,9 +59,6 @@ impl App {
                 util::set_markdown_schema(true);
 
                 if let Some(md_lang) = md_lang.clone() {
-                    let buffer: sourceview::Buffer = ui.builder
-                        .get_object("msg_entry_buffer")
-                        .expect("Couldn't find msg_entry_buffer in ui file.");
                     buffer.set_highlight_matching_brackets(true);
                     buffer.set_language(&md_lang);
                     buffer.set_highlight_syntax(true);

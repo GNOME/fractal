@@ -4,6 +4,7 @@ use gdk;
 
 mod attach;
 mod autocomplete;
+mod column;
 mod direct;
 mod account;
 mod directory;
@@ -18,7 +19,6 @@ mod new_room;
 mod roomlist_search;
 mod scroll;
 mod send;
-mod spellcheck;
 mod stickers;
 
 use app::App;
@@ -59,6 +59,7 @@ impl App {
             }
         });
 
+        self.create_message_column();
         self.create_load_more_spn();
         self.create_actions();
 
@@ -72,7 +73,6 @@ impl App {
         self.connect_markdown();
         //self.connect_stickers();
         self.connect_autocomplete();
-        self.connect_spellcheck();
 
         self.connect_directory();
         self.connect_leave_room_dialog();

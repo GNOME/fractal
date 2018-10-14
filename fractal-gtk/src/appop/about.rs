@@ -14,15 +14,15 @@ impl AppOp {
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
 
-        let program_name = format!("Fractal{}", globals::NAME_SUFFIX);
+        let program_name = format!("Fractal{}", globals::NAME_SUFFIX.unwrap_or(" (Development)"));
 
         let dialog = gtk::AboutDialog::new();
-        dialog.set_logo_icon_name(globals::APP_ID);
+        dialog.set_logo_icon_name(globals::APP_ID.unwrap_or("org.gnome.FractalDevel"));
         dialog.set_comments(i18n("A Matrix.org client for GNOME").as_str());
         dialog.set_copyright(i18n("© 2017–2018 Daniel García Moreno, et al.").as_str());
         dialog.set_license_type(gtk::License::Gpl30);
         dialog.set_modal(true);
-        dialog.set_version(globals::VERSION);
+        dialog.set_version(globals::VERSION.unwrap_or("0.0.0"));
         dialog.set_program_name(&program_name);
         dialog.set_website("https://wiki.gnome.org/Fractal");
         dialog.set_website_label(i18n("Learn more about Fractal").as_str());

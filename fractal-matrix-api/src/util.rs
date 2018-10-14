@@ -3,7 +3,6 @@ extern crate url;
 extern crate reqwest;
 extern crate regex;
 extern crate serde_json;
-extern crate mime;
 extern crate tree_magic;
 
 use self::regex::Regex;
@@ -21,6 +20,8 @@ use std::fs::create_dir_all;
 use std::io::prelude::*;
 
 use std::collections::HashSet;
+use std::sync::{Mutex, Condvar, Arc};
+use std::thread;
 
 use std::time::Duration as StdDuration;
 
@@ -30,38 +31,36 @@ use types::Room;
 use types::Event;
 use types::Member;
 
-use self::reqwest::header::ContentType;
-use self::mime::Mime;
+use self::reqwest::header::CONTENT_TYPE;
 
 use globals;
 
-macro_rules! semaphore {
-    ($cv: expr, $blk: block) => {{
-        let thread_count = $cv.clone();
-        thread::spawn(move || {
-            // waiting, less than 20 threads at the same time
-            // this is a semaphore
-            // TODO: use std::sync::Semaphore when it's on stable version
-            // https://doc.rust-lang.org/1.1.0/std/sync/struct.Semaphore.html
-            let &(ref num, ref cvar) = &*thread_count;
-            {
-                let mut start = num.lock().unwrap();
-                while *start >= 20 {
-                    start = cvar.wait(start).unwrap()
-                }
-                *start += 1;
+pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
+where F: FnOnce() + Send + 'static
+{
+    thread::spawn(move || {
+        // waiting, less than 20 threads at the same time
+        // this is a semaphore
+        // TODO: use std::sync::Semaphore when it's on stable version
+        // https://doc.rust-lang.org/1.1.0/std/sync/struct.Semaphore.html
+        let &(ref num, ref cvar) = &*thread_count;
+        {
+            let mut start = num.lock().unwrap();
+            while *start >= 20 {
+                start = cvar.wait(start).unwrap()
             }
+            *start += 1;
+        }
 
-            $blk
+        func();
 
-            // freeing the cvar for new threads
-            {
-                let mut counter = num.lock().unwrap();
-                *counter -= 1;
-            }
-            cvar.notify_one();
-        });
-    }}
+        // freeing the cvar for new threads
+        {
+            let mut counter = num.lock().unwrap();
+            *counter -= 1;
+        }
+        cvar.notify_one();
+    });
 }
 
 // from https://stackoverflow.com/a/43992218/1592377
@@ -81,27 +80,6 @@ macro_rules! clone {
             move |$(clone!(@param $p),)+| $body
         }
     );
-}
-
-#[macro_export]
-macro_rules! client_url {
-    ($b: expr, $path: expr, $params: expr) => (
-        build_url($b, &format!("/_matrix/client/r0/{}", $path), $params)
-    )
-}
-
-#[macro_export]
-macro_rules! scalar_url {
-    ($b: expr, $path: expr, $params: expr) => (
-        build_url($b, &format!("api/{}", $path), $params)
-    )
-}
-
-#[macro_export]
-macro_rules! media_url {
-    ($b: expr, $path: expr, $params: expr) => (
-        build_url($b, &format!("/_matrix/media/r0/{}", $path), $params)
-    )
 }
 
 #[macro_export]
@@ -175,29 +153,6 @@ macro_rules! query {
     };
 }
 
-#[macro_export]
-macro_rules! media {
-    ($base: expr, $url: expr, $dest: expr) => {
-        dw_media($base, $url, false, $dest, 0, 0)
-    };
-    ($base: expr, $url: expr) => {
-        dw_media($base, $url, false, None, 0, 0)
-    };
-}
-
-#[macro_export]
-macro_rules! thumb {
-    ($base: expr, $url: expr) => {
-        dw_media($base, $url, true, None, 64, 64)
-    };
-    ($base: expr, $url: expr, $size: expr) => {
-        dw_media($base, $url, true, None, $size, $size)
-    };
-    ($base: expr, $url: expr, $w: expr, $h: expr) => {
-        dw_media($base, $url, true, None, $w, $h)
-    };
-}
-
 pub fn evc(events: &JsonValue, t: &str, field: &str) -> String {
     events
         .as_array()
@@ -263,6 +218,8 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         r.highlight = room["unread_notifications"]["highlight_count"]
             .as_i64()
             .unwrap_or(0) as i32;
+
+        r.prev_batch = timeline["prev_batch"].as_str().map(|s| String::from(s));
 
         for ev in dataevs.as_array() {
             for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
@@ -461,7 +418,7 @@ pub fn get_prev_batch_from(baseu: &Url, tk: String, roomid: String, evid: String
     ];
 
     let path = format!("rooms/{}/context/{}", roomid, evid);
-    let url = client_url!(baseu, &path, params)?;
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
@@ -493,7 +450,7 @@ pub fn get_room_media_list(baseu: &Url,
     };
 
     let path = format!("rooms/{}/messages", roomid);
-    let url = client_url!(baseu, &path, params)?;
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     let array = r["chunk"].as_array();
@@ -510,7 +467,7 @@ pub fn get_room_media_list(baseu: &Url,
 
 pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
     let client = reqwest::Client::new();
-    let mut conn = client.get(url);
+    let conn = client.get(url);
     let mut res = conn.send()?;
 
     let mut buffer = Vec::new();
@@ -521,12 +478,11 @@ pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
 
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
     let client = reqwest::Client::new();
-    let mut conn = client.post(url);
-    let mime: Mime = (&tree_magic::from_u8(&file)).parse().unwrap();
+    let mime = tree_magic::from_u8(&file);
 
-    conn.body(file);
-
-    conn.header(ContentType(mime));
+    let conn = client.post(url)
+                     .body(file)
+                     .header(CONTENT_TYPE, mime);
 
     let mut res = conn.send()?;
 
@@ -560,7 +516,7 @@ pub fn resolve_media_url(
         path = format!("download/{}/{}", server, media);
     }
 
-    media_url!(base, &path, params)
+    media_url(base, &path, params)
 }
 
 pub fn dw_media(base: &Url,
@@ -587,7 +543,7 @@ pub fn dw_media(base: &Url,
         path = format!("download/{}/{}", server, media);
     }
 
-    let url = media_url!(base, &path, params)?;
+    let url = media_url(base, &path, params)?;
 
     let fname = match dest {
         None if thumb => { cache_dir_path("thumbs", &media)?  }
@@ -596,6 +552,14 @@ pub fn dw_media(base: &Url,
     };
 
     download_file(url.as_str(), fname, dest)
+}
+
+pub fn media(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
+    dw_media(base, url, false, dest, 0, 0)
+}
+
+pub fn thumb(base: &Url, url: &str)-> Result<String, Error> {
+    dw_media(base, url, true, None, 64, 64)
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
@@ -621,7 +585,7 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
 }
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Result<JsonValue, Error> {
-    let mut clientb = reqwest::ClientBuilder::new();
+    let clientb = reqwest::ClientBuilder::new();
     let client = match timeout {
         0 => clientb.timeout(None).build()?,
         n => clientb.timeout(StdDuration::from_secs(n)).build()?
@@ -635,7 +599,7 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Resul
     };
 
     if !attrs.is_null() {
-        conn.json(attrs);
+        conn = conn.json(attrs);
     }
 
     let mut res = conn.send()?;
@@ -668,7 +632,7 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Resul
 }
 
 pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Error> {
-    let url = client_url!(baseu, &format!("profile/{}", userid), vec![])?;
+    let url = client_url(baseu, &format!("profile/{}", userid), vec![])?;
     let attrs = json!(null);
 
     match json_q("get", &url, &attrs, globals::TIMEOUT) {
@@ -693,7 +657,7 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
 }
 
 pub fn get_room_st(base: &Url, tk: &str, roomid: &str) -> Result<JsonValue, Error> {
-    let url = client_url!(base, &format!("rooms/{}/state", roomid), vec![("access_token", String::from(tk))])?;
+    let url = client_url(base, &format!("rooms/{}/state", roomid), vec![("access_token", String::from(tk))])?;
 
     let attrs = json!(null);
     let st = json_q("get", &url, &attrs, globals::TIMEOUT)?;
@@ -720,7 +684,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     let mut fname = match members.count() {
         1 => {
             if let Ok(dest) = cache_path(&roomid) {
-                 media!(&base, m1, Some(&dest)).unwrap_or_default()
+                 media(&base, m1, Some(&dest)).unwrap_or_default()
             } else {
                 String::new()
             }
@@ -797,63 +761,6 @@ pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<St
     Ok(Some(name))
 }
 
-/// Recursive function that tries to get at least @get Messages for the room.
-///
-/// The @limit is the first "limit" param in the GET request.
-/// The @end param is used as "from" param in the GET request, so we'll get
-/// messages before that.
-pub fn get_initial_room_messages(baseu: &Url,
-                                 tk: String,
-                                 roomid: String,
-                                 get: usize,
-                                 limit: i32,
-                                 end: Option<String>)
-                                 -> Result<(Vec<Message>, String, String), Error> {
-
-    let mut ms: Vec<Message> = vec![];
-    let mut nstart;
-    let mut nend;
-
-    let mut params = vec![
-        ("dir", String::from("b")),
-        ("limit", format!("{}", limit)),
-        ("access_token", tk.clone()),
-    ];
-
-    match end {
-        Some(ref e) => { params.push(("from", e.clone())) }
-        None => {}
-    };
-
-    let path = format!("rooms/{}/messages", roomid);
-    let url = client_url!(baseu, &path, params)?;
-
-    let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
-    nend = String::from(r["end"].as_str().unwrap_or(""));
-    nstart = String::from(r["start"].as_str().unwrap_or(""));
-
-    let array = r["chunk"].as_array();
-    if array.is_none() || array.unwrap().len() == 0 {
-        return Ok((ms, nstart, nend));
-    }
-
-    let evs = array.unwrap().iter().rev();
-    let msgs = Message::from_json_events_iter(roomid.clone(), evs);
-    ms.extend(msgs);
-
-    if ms.len() < get {
-        let (more, s, e) =
-            get_initial_room_messages(baseu, tk, roomid, get, limit * 2, Some(nend))?;
-        nstart = s;
-        nend = e;
-        for m in more.iter().rev() {
-            ms.insert(0, m.clone());
-        }
-    }
-
-    Ok((ms, nstart, nend))
-}
-
 /// Recursive function that tries to get all messages in a room from a batch id to a batch id,
 /// following the response pagination
 pub fn fill_room_gap(baseu: &Url,
@@ -876,7 +783,7 @@ pub fn fill_room_gap(baseu: &Url,
     params.push(("to", to.clone()));
 
     let path = format!("rooms/{}/messages", roomid);
-    let url = client_url!(baseu, &path, params)?;
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     nend = String::from(r["end"].as_str().unwrap_or(""));
@@ -914,6 +821,18 @@ pub fn build_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<
     }
 
     Ok(url)
+}
+
+pub fn client_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<Url, Error> {
+    build_url(base, &format!("/_matrix/client/r0/{}", path), params)
+}
+
+pub fn scalar_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<Url, Error> {
+    build_url(base, &format!("api/{}", path), params)
+}
+
+pub fn media_url(base: &Url, path: &str, params: Vec<(&str, String)>) -> Result<Url, Error> {
+    build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
 pub fn cache_path(name: &str) -> Result<String, Error> {

@@ -6,48 +6,51 @@ version = "3.30.0"
 workspace = "../"
 
 [dependencies]
-failure = "0.1.1"
-gdk = "0.8.0"
-gdk-pixbuf = "0.4.0"
-gdk-pixbuf-sys = "0.6.0"
-gio = "0.4.1"
-glib = "0.5.0"
-gstreamer = "0.11.4"
-gstreamer-player = "0.11.3"
+failure = "0.1.2"
+gdk = "0.9.0"
+gdk-pixbuf = "0.5.0"
+gdk-pixbuf-sys = "0.7.0"
+gio = "0.5.0"
+glib = "0.6.0"
+gstreamer = "0.12.0"
+gstreamer-player = "0.12.0"
 notify-rust = "3.4.2"
-pango = "0.4.0"
-pangocairo = "0.5.0"
+pango = "0.5.0"
+pangocairo = "0.6.0"
 secret-service = "0.4.0"
-serde = "1.0.70"
-serde_derive = "1.0.70"
-serde_json = "1.0.24"
+serde = "1.0.79"
+serde_derive = "1.0.79"
+serde_json = "1.0.28"
 url = "1.7.1"
-rand = "0.5.4"
+rand = "0.5.5"
 html2pango = { git = "https://gitlab.gnome.org/World/html2pango" }
-comrak = "0.2.14"
+comrak = "0.3.0"
 gettext-rs = { git = "https://github.com/danigm/gettext-rs", branch = "no-gettext", features = ["gettext-system"] }
-regex = "1.0.2"
+regex = "1.0.5"
 tree_magic = "0.2.0"
-log = "0.4.3"
-fragile = "0.2.1"
-letter-avatar = "0.1.1"
-sourceview = "0.4.0"
+log = "0.4.5"
+fragile = "0.3.0"
+letter-avatar = { git = "https://gitlab.gnome.org/danigm/letter-avatar.git", branch = "updatedep" }
+sourceview = "0.5.0"
 itertools = "0.7.8"
+dirs = "1.0.3"
+mdl = "1.0.4"
+lazy_static = "1.1.0"
 
 [dependencies.cairo-rs]
 features = ["png"]
-version = "0.4.1"
+version = "0.5.0"
 
 [dependencies.chrono]
 features = ["serde"]
-version = "0.4.4"
+version = "0.4.6"
 
 [dependencies.fractal-matrix-api]
 path = "../fractal-matrix-api"
 
-[dependencies.gspell]
-git = "https://gitlab.gnome.org/jsparber/gspell-rs"
+[dependencies.libhandy]
+git = "https://gitlab.gnome.org/jsparber/libhandy-rs"
 
 [dependencies.gtk]
 features = ["v3_22"]
-version = "0.4.1"
+version = "0.5.0"

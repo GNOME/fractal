@@ -30,7 +30,7 @@ pub fn guest(bk: &Backend, server: String) -> Result<(), Error> {
         let tk = String::from(r["access_token"].as_str().unwrap_or(""));
         data.lock().unwrap().user_id = uid.clone();
         data.lock().unwrap().access_token = tk.clone();
-        data.lock().unwrap().since = String::from("");
+        data.lock().unwrap().since = None;
         tx.send(BKResponse::Token(uid, tk)).unwrap();
         tx.send(BKResponse::Rooms(vec![], None)).unwrap();
     },
@@ -88,7 +88,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: String) -> Re
             } else {
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
-                data.lock().unwrap().since = String::new();
+                data.lock().unwrap().since = None;
                 tx.send(BKResponse::Token(uid, tk)).unwrap();
             }
         },
@@ -103,7 +103,7 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: String) -> Re
     bk.data.lock().unwrap().server_url = s;
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
-    bk.data.lock().unwrap().since = String::new();
+    bk.data.lock().unwrap().since = None;
     bk.tx.send(BKResponse::Token(uid, token)).unwrap();
 
     Ok(())
@@ -119,7 +119,7 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
         |_| {
             data.lock().unwrap().user_id = String::new();
             data.lock().unwrap().access_token = String::new();
-            data.lock().unwrap().since = String::new();
+            data.lock().unwrap().since = None;
             tx.send(BKResponse::Logout).unwrap();
         },
         |err| { tx.send(BKResponse::LogoutError(err)).unwrap() }
@@ -148,7 +148,7 @@ pub fn register(bk: &Backend, user: String, password: String, server: String) ->
 
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
-            data.lock().unwrap().since = String::from("");
+            data.lock().unwrap().since = None;
             tx.send(BKResponse::Token(uid, tk)).unwrap();
         },
         |err| { tx.send(BKResponse::LoginError(err)).unwrap() }

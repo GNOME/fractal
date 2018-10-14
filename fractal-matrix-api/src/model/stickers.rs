@@ -1,10 +1,7 @@
 extern crate serde_json;
 use self::serde_json::Value as JsonValue;
 
-
-#[derive(Debug)]
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sticker {
     pub name: String,
     pub description: String,
@@ -14,9 +11,7 @@ pub struct Sticker {
     pub size: (i32, i32),
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickerGroup {
     pub name: String,
     pub asset: String,

@@ -6,7 +6,7 @@ use self::chrono::prelude::*;
 
 use std::thread;
 use util::json_q;
-use util::build_url;
+use util::{scalar_url, client_url};
 use url::Url;
 use std::sync::{Arc, Mutex};
 use backend::BackendData;
@@ -170,7 +170,7 @@ fn url(data: Arc<Mutex<BackendData>>, path: &str, params: Vec<(&str, String)>) -
     let mut params2 = params.to_vec();
     params2.push(("access_token", tk.clone()));
 
-    client_url!(&base, path, params2)
+    client_url(&base, path, params2)
 }
 
 fn get_scalar_token(data: Arc<Mutex<BackendData>>) -> Result<String, Error> {
@@ -204,6 +204,6 @@ fn vurl(data: Arc<Mutex<BackendData>>, path: &str, params: Vec<(&str, String)>) 
     let mut params2 = params.to_vec();
     params2.push(("scalar_token", tk));
 
-    scalar_url!(&base, path, params2)
+    scalar_url(&base, path, params2)
 }
 

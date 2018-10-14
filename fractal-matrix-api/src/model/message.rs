@@ -1,15 +1,14 @@
 extern crate md5;
 extern crate chrono;
 extern crate serde_json;
-extern crate time;
 use self::chrono::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use self::serde_json::Value as JsonValue;
-use self::time::Duration;
+use self::chrono::TimeZone;
+use self::chrono::DateTime;
 
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub sender: String,
     pub mtype: String,
@@ -26,27 +25,6 @@ pub struct Message {
     pub redacted: bool,
     // The event ID of the message this is in reply to.
     pub in_reply_to: Option<String>,
-}
-
-impl Clone for Message {
-    fn clone(&self) -> Message {
-        Message {
-            sender: self.sender.clone(),
-            mtype: self.mtype.clone(),
-            body: self.body.clone(),
-            date: self.date.clone(),
-            room: self.room.clone(),
-            thumb: self.thumb.clone(),
-            url: self.url.clone(),
-            id: self.id.clone(),
-            formatted_body: self.formatted_body.clone(),
-            format: self.format.clone(),
-            source: self.source.clone(),
-            receipt: self.receipt.clone(),
-            redacted: self.redacted,
-            in_reply_to: self.in_reply_to.clone(),
-        }
-    }
 }
 
 impl Default for Message {
@@ -133,10 +111,9 @@ impl Message {
     /// * `msg` - The message event as Json
     pub fn parse_room_message(roomid: String, msg: &JsonValue) -> Message {
         let sender = msg["sender"].as_str().unwrap_or("");
-        let mut age = msg["age"].as_i64().unwrap_or(0);
-        if age == 0 {
-            age = msg["unsigned"]["age"].as_i64().unwrap_or(0);
-        }
+
+        let timestamp = msg["origin_server_ts"].as_i64().unwrap_or(0) / 1000;
+        let server_timestamp: DateTime<Local> = Local.timestamp(timestamp, 0);
 
         let id = msg["event_id"].as_str().unwrap_or("");
         let type_ = msg["type"].as_str().unwrap_or("");
@@ -145,7 +122,7 @@ impl Message {
 
         let mut message = Message {
             sender: sender.to_string(),
-            date: Message::age_to_datetime(age),
+            date: server_timestamp,
             room: roomid.clone(),
             id: Some(id.to_string()),
             mtype: type_.to_string(),
@@ -232,12 +209,6 @@ impl Message {
         }
 
         ms
-    }
-
-    fn age_to_datetime(age: i64) -> DateTime<Local> {
-        let now = Local::now();
-        let diff = Duration::seconds(age / 1000);
-        now - diff
     }
 
     pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {

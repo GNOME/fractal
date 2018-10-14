@@ -328,10 +328,10 @@ pub fn load_animation(pix: Arc<Mutex<Option<Pixbuf>>>, scaled: Arc<Mutex<Option<
         return;
     }
     let anim = res.unwrap();
-    let iter = anim.get_iter(&glib::get_current_time());
+    let iter = anim.get_iter(glib::get_current_time());
 
     gtk::timeout_add(iter.get_delay_time() as u32, move || {
-        iter.advance(&glib::get_current_time());
+        iter.advance(glib::get_current_time());
 
         if widget.is_drawable() {
             let px = iter.get_pixbuf();

@@ -37,7 +37,7 @@ impl AppOp {
         // initial sync, we're shoing some feedback to the user
         self.initial_sync(true);
 
-        self.sync();
+        self.sync(true);
 
         self.init_protocols();
     }

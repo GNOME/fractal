@@ -1,19 +1,25 @@
 extern crate gdk;
+extern crate gdk_pixbuf;
 extern crate gtk;
+extern crate glib;
 extern crate sourceview;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::TryRecvError;
 
 use self::gtk::prelude::*;
 use self::gdk::prelude::*;
 use self::sourceview::prelude::*;
 
+use app::App;
 use backend::BKCommand;
+use i18n::i18n;
 
 use uibuilder::UI;
-use types::Message;
+use uitypes::{MessageContent, RowType};
 
 #[derive(Clone)]
 struct SelectedText {
@@ -29,13 +35,13 @@ pub struct MessageMenu {
     ui: UI,
     backend: Sender<BKCommand>,
     selected_text: Option<SelectedText>,
-    pub msg: Message,
+    pub msg: MessageContent,
 }
 
 impl MessageMenu {
     pub fn new_message_menu(ui: UI,
                             backend: Sender<BKCommand>,
-                            msg: Message,
+                            msg: MessageContent,
                             event_widget: Option<&gtk::Widget>) -> MessageMenu {
         let builder = gtk::Builder::new();
         builder.add_from_resource("/org/gnome/Fractal/ui/message_menu.ui")
@@ -56,10 +62,39 @@ impl MessageMenu {
     }
 
     pub fn show_menu_popover(&self, w: gtk::Widget) {
-        let button: gtk::Widget = self.builder
-                                      .get_object("copy_selected_text_button")
-                                      .expect("Can't find copy_selected_text_button");
-        button.set_visible(self.selected_text.is_some());
+        let copy_button: gtk::Widget = self.builder
+                                           .get_object("copy_selected_text_button")
+                                           .expect("Can't find copy_selected_text_button");
+        copy_button.set_visible(self.selected_text.is_some());
+
+        let delete_button: gtk::Widget = self.builder
+                                             .get_object("delete_message_button")
+                                             .expect("Can't find delete_message_button");
+        let message_menu_separator: gtk::Widget = self.builder
+                                                      .get_object("message_menu_separator")
+                                                      .expect("Can't find message_menu_separator");
+        delete_button.set_visible(self.msg.redactable);
+        message_menu_separator.set_visible(self.msg.redactable);
+
+        let open_with_button: gtk::Widget = self.builder
+                                                .get_object("open_with_button")
+                                                .expect("Can't find open_with_button");
+        open_with_button.set_visible(self.msg.mtype == RowType::Image);
+
+        let save_image_as_button: gtk::Widget = self.builder
+                                                    .get_object("save_image_as_button")
+                                                    .expect("Can't find save_image_as_button");
+        save_image_as_button.set_visible(self.msg.mtype == RowType::Image);
+
+        let copy_image_button: gtk::Widget = self.builder
+                                                 .get_object("copy_image_button")
+                                                 .expect("Can't find copy_image_button");
+        copy_image_button.set_visible(self.msg.mtype == RowType::Image);
+
+        let copy_text_button: gtk::Widget = self.builder
+                                                .get_object("copy_text_button")
+                                                .expect("Can't find copy_text_button");
+        copy_text_button.set_visible(self.msg.mtype != RowType::Image);
 
         gdk::Display::get_default()
             .and_then(|disp| disp.get_default_seat())
@@ -89,9 +124,7 @@ impl MessageMenu {
     }
 
     pub fn insert_quote(&self) {
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Can't find msg_entry in ui file.");
+        let msg_entry = &self.ui.sventry.view;
 
         if let Some(buffer) = msg_entry.get_buffer() {
             let quote = self.msg.body.lines().map(|l| "> ".to_owned() + l)
@@ -102,6 +135,67 @@ impl MessageMenu {
 
             msg_entry.grab_focus();
         }
+    }
+
+    pub fn open_with(&self) {
+        let url = self.msg.url.clone().unwrap_or_default();
+
+        self.backend.send(BKCommand::GetMedia(url)).unwrap();
+    }
+
+    pub fn save_image_as(&self) {
+        let name = self.msg.body.clone();
+        let url = self.msg.url.clone().unwrap_or_default();
+        let backend = self.backend.clone();
+
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+        backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+
+        gtk::timeout_add(50, clone!(name => move || match rx.try_recv() {
+            Err(TryRecvError::Empty) => gtk::Continue(true),
+            Err(TryRecvError::Disconnected) => {
+                let msg = i18n("Could not download the file");
+                APPOP!(show_error, (msg));
+
+                gtk::Continue(true)
+            },
+            Ok(fname) => {
+                let name = name.clone();
+                APPOP!(save_file_as, (fname, name));
+
+                gtk::Continue(false)
+            }
+        }));
+    }
+
+    pub fn copy_image(&self) {
+        let url = self.msg.url.clone().unwrap_or_default();
+        let backend = self.backend.clone();
+
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+
+        backend.send(BKCommand::GetMediaAsync(url.clone(), tx)).unwrap();
+
+        gtk::timeout_add(50, move || match rx.try_recv() {
+            Err(TryRecvError::Empty) => gtk::Continue(true),
+            Err(TryRecvError::Disconnected) => {
+                let msg = i18n("Could not download the file");
+                APPOP!(show_error, (msg));
+
+                gtk::Continue(true)
+            },
+            Ok(fname) => {
+                if let Ok(pixbuf) = gdk_pixbuf::Pixbuf::new_from_file(fname) {
+                    let atom = gdk::Atom::intern("CLIPBOARD");
+                    let clipboard = gtk::Clipboard::get(&atom);
+
+                    clipboard.set_image(&pixbuf);
+                }
+
+                gtk::Continue(false)
+            }
+        });
     }
 
     pub fn copy_text(&self) {
@@ -130,7 +224,7 @@ impl MessageMenu {
             .get_object("msg_src_window")
             .expect("Can't find msg_src_window in ui file.");
 
-        source_buffer.set_text(self.msg.source.clone()
+        source_buffer.set_text(self.msg.msg.source.clone()
                                        .unwrap_or("This message has no source.".to_string())
                                        .as_str());
 
@@ -141,6 +235,18 @@ impl MessageMenu {
         let reply_button: gtk::ModelButton = self.builder
             .get_object("reply_button")
             .expect("Can't find reply_button in ui file.");
+
+        let open_with_button: gtk::ModelButton = self.builder
+            .get_object("open_with_button")
+            .expect("Can't find open_with_button in ui file.");
+
+        let save_image_as_button: gtk::ModelButton = self.builder
+            .get_object("save_image_as_button")
+            .expect("Can't find save_image_as_button in ui file.");
+
+        let copy_image_button: gtk::ModelButton = self.builder
+            .get_object("copy_image_button")
+            .expect("Can't find copy_image_button in ui file.");
 
         let copy_text_button: gtk::ModelButton = self.builder
             .get_object("copy_text_button")
@@ -165,6 +271,18 @@ impl MessageMenu {
             this.borrow().insert_quote();
         }));
 
+        open_with_button.connect_clicked(clone!(this => move |_| {
+            this.borrow().open_with();
+        }));
+
+        save_image_as_button.connect_clicked(clone!(this => move |_| {
+            this.borrow().save_image_as();
+        }));
+
+        copy_image_button.connect_clicked(clone!(this => move |_| {
+            this.borrow().copy_image();
+        }));
+
         copy_text_button.connect_clicked(clone!(this => move |_| {
             this.borrow().copy_text();
         }));
@@ -175,7 +293,7 @@ impl MessageMenu {
 
         let backend = self.backend.clone();
         delete_message_button.connect_clicked(clone!(this => move |_| {
-            backend.send(BKCommand::SendMsgRedaction(this.borrow().msg.clone())).unwrap();
+            backend.send(BKCommand::SendMsgRedaction(this.borrow().msg.msg.clone())).unwrap();
         }));
 
         view_source_button.connect_clicked(clone!(this => move |_| {
@@ -243,8 +361,10 @@ fn get_selected_text(event_widget: Option<&gtk::Widget>) -> Option<SelectedText>
     match w.get_selection_bounds() {
         Some((s, e)) => {
             let text = w.get_text()?;
-            let slice = text.get(s as usize..e as usize)?;
-            Some(SelectedText{ widget: w.clone(), text: slice.to_string(), start: s, end: e })
+            let slice: String = text.chars()
+                .take(e as usize).skip(s as usize)
+                .collect();
+            Some(SelectedText{ widget: w.clone(), text: slice, start: s, end: e })
         }
         _ => None
     }

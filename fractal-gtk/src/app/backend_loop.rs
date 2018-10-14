@@ -36,9 +36,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::ShutDown) => { shutting_down = true; }
                 Ok(BKResponse::Token(uid, tk)) => {
                     APPOP!(bk_login, (uid, tk));
-
-                    // after login
-                    APPOP!(sync);
                 }
                 Ok(BKResponse::Logout) => {
                     APPOP!(bk_logout);
@@ -121,19 +118,15 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_room_members, (room, members));
                 }
                 Ok(BKResponse::RoomMessages(msgs)) => {
-                    let init = false;
-                    APPOP!(show_room_messages, (msgs, init));
+                    APPOP!(show_room_messages, (msgs));
                 }
-                Ok(BKResponse::RoomMessagesInit(msgs)) => {
-                    let init = true;
-                    APPOP!(show_room_messages, (msgs, init));
-                }
-                Ok(BKResponse::RoomMessagesTo(msgs)) => {
-                    APPOP!(show_room_messages_top, (msgs));
+                Ok(BKResponse::RoomMessagesTo(msgs, room, prev_batch)) => {
+                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Ok(BKResponse::SentMsg(txid, evid)) => {
                     APPOP!(msg_sent, (txid, evid));
-                    APPOP!(sync);
+                    let initial = false;
+                    APPOP!(sync, (initial));
                 }
                 Ok(BKResponse::DirectoryProtocols(protocols)) => {
                     APPOP!(set_protocols, (protocols));

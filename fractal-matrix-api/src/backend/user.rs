@@ -11,12 +11,13 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use error::Error;
 use util::json_q;
-use util::build_url;
+use util::{build_url, media_url};
 use util::put_media;
 use util::get_user_avatar;
 use util::get_user_avatar_img;
 use backend::types::BKResponse;
 use backend::types::Backend;
+use util::semaphore;
 
 use types::Member;
 use types::UserInfo;
@@ -321,7 +322,7 @@ pub fn get_user_info_async(bk: &mut Backend,
     let cache_key = u.clone();
     let cache_value = info.clone();
 
-    semaphore!(bk.limit_threads, {
+    semaphore(bk.limit_threads.clone(), move || {
         let i0 = info.lock();
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
@@ -375,7 +376,7 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
     let uid = m.uid.clone();
     let avatar = m.avatar.clone();
 
-    semaphore!(bk.limit_threads, {
+    semaphore(bk.limit_threads.clone(), move || {
         match get_user_avatar_img(&baseu, uid,
                                   avatar.unwrap_or_default()) {
             Ok(fname) => { tx.send(fname.clone()).unwrap(); }
@@ -391,7 +392,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
-    let mediaurl = media_url!(&baseu, "upload", params)?;
+    let mediaurl = media_url(&baseu, "upload", params)?;
     let url = bk.url(&format!("profile/{}/avatar_url", id), vec![])?;
 
     let mut file = File::open(&avatar)?;
@@ -436,20 +437,12 @@ pub fn search(bk: &Backend, term: String) -> Result<(), Error> {
             let mut users: Vec<Member> = vec![];
             if let Some(arr) = js["results"].as_array() {
                 for member in arr.iter() {
-                    let alias = match member["display_name"].as_str() {
-                        None => None,
-                        Some(a) => Some(a.to_string()),
-                    };
-                    let avatar = match member["avatar_url"].as_str() {
-                        None => None,
-                        Some(a) => Some(a.to_string()),
-                    };
+                    let mut member_s: Member = serde_json::from_value(
+                        member.clone()).unwrap();
+                    member_s.uid = member["user_id"]
+                        .as_str().unwrap_or_default().to_string();
 
-                    users.push(Member{
-                        alias: alias,
-                        uid: member["user_id"].as_str().unwrap_or_default().to_string(),
-                        avatar: avatar,
-                    });
+                    users.push(member_s);
                 }
             }
             tx.send(BKResponse::UserSearch(users)).unwrap();
