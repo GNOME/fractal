@@ -163,10 +163,9 @@ impl MessageBox {
     }
 
     pub fn reply_widget(&self) -> gtk::Box {
-        let msg = self.msg;
+        let msg = self.msg.clone();
         let reply = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        let member = self.room.members.get(&msg.sender);
-        let reply_user = self.build_room_msg_username(&msg.sender, member, false);
+        let reply_user = self.build_room_msg_username(&msg.sender);
         let reply_body = self.build_room_msg_body(&msg.body);
 
         if let Some(s) = reply.get_style_context() {
@@ -195,7 +194,7 @@ impl MessageBox {
         }
 
         // if let Some(ref id) = msg.in_reply_to {
-            let reply_mb = MessageBox::new(&self.room, &msg_clone, &self.op);
+            let reply_mb = MessageBox::new(self.msg.clone(), self.backend.clone(), self.ui.clone());
             let reply = reply_mb.reply_widget();
             content.pack_start(&reply, false, false, 0);
         // }
