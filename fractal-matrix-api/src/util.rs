@@ -909,3 +909,33 @@ pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
         avatar: avatar_url,
     })
 }
+
+pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<&String, HashMap<String, bool>>, Error> {
+    let rooms = &r["rooms"];
+    let join = rooms["join"].as_object().ok_or(Error::BackendError)?;
+    let mut room_notifications = HashMap::new();
+
+    for k in join.keys() {
+        let room = join.get(k).ok_or(Error::BackendError)?;
+        let ephemerals = &room["ephemeral"]["events"].as_array();
+        if ephemerals.is_none() {
+            continue;
+        }
+        let ephemerals = ephemerals.unwrap();
+        for event in ephemerals.iter() {
+            let typing_users = event.get("content").and_then(|x| x.get("user_ids")).and_then(|x| x.as_array());
+            if typing_users.is_none() {
+                continue;
+            }
+            let typing_users = typing_users.unwrap();
+
+            let mut typing = HashMap::new();
+            for user in typing_users {
+                typing.insert(user.to_string(), true);
+            }
+            room_notifications.insert(k, typing);
+        }
+    }
+    Ok(room_notifications)
+
+}
