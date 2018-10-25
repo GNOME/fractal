@@ -1,7 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 fractal-gtk/res/gtk/help-overlay.ui
-fractal-gtk/res/gtk/menus.ui
 fractal-gtk/res/org.gnome.Fractal.appdata.xml.in.in
 fractal-gtk/res/org.gnome.Fractal.desktop.in.in
 fractal-gtk/res/org.gnome.Fractal.gschema.xml
