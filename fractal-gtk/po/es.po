@@ -51,7 +51,7 @@ msgid "Keyboard _Shortcuts"
 msgstr "Combinaciones de _teclas"
 
 #: fractal-gtk/res/gtk/menus.ui:10
-msgid "_About Fractal"
+msgid "_About"
 msgstr "_Acerca de"
 
 #: fractal-gtk/res/gtk/menus.ui:14

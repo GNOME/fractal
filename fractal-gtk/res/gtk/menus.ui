@@ -1,4 +1,23 @@
 <!-- Delete this file without breaking things -->
 <?xml version="1.0"?>
 <interface>
+<<<<<<< HEAD
+=======
+  <menu id="app-menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Keyboard _Shortcuts</attribute>
+        <attribute name="action">win.show-help-overlay</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_About</attribute>
+        <attribute name="action">app.about</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Quit</attribute>
+        <attribute name="action">app.quit</attribute>
+      </item>
+    </section>
+  </menu>
+>>>>>>> parent of b989f72... change 'About' to 'About Fractal'
 </interface>

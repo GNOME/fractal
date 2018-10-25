@@ -44,7 +44,7 @@ msgid "Keyboard _Shortcuts"
 msgstr "Klávesové _skratky"
 
 #: fractal-gtk/res/gtk/menus.ui:10
-msgid "_About Fractal"
+msgid "_About"
 msgstr "_O programe"
 
 #: fractal-gtk/res/gtk/menus.ui:14

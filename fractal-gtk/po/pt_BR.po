@@ -48,7 +48,7 @@ msgid "Keyboard _Shortcuts"
 msgstr "Atalho_s de teclado"
 
 #: fractal-gtk/res/gtk/menus.ui:10
-msgid "_About Fractal"
+msgid "_About"
 msgstr "S_obre"
 
 #: fractal-gtk/res/gtk/menus.ui:14

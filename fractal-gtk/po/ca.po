@@ -55,7 +55,7 @@ msgstr "Dreceres de te_clat"
 
 #: fractal-gtk/res/gtk/menus.ui:10
 #, fuzzy
-msgid "_About Fractal"
+msgid "_About"
 msgstr "&Quant al"
 
 #: fractal-gtk/res/gtk/menus.ui:14

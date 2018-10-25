@@ -50,7 +50,7 @@ msgid "Keyboard _Shortcuts"
 msgstr "Tasten_kombinationen"
 
 #: fractal-gtk/res/gtk/menus.ui:10
-msgid "_About Fractal"
+msgid "_About"
 msgstr "_Info"
 
 #: fractal-gtk/res/gtk/menus.ui:14

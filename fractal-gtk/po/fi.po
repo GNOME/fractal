@@ -48,7 +48,7 @@ msgid "Keyboard _Shortcuts"
 msgstr "_Pikanäppäimet"
 
 #: fractal-gtk/res/gtk/menus.ui:10
-msgid "_About Fractal"
+msgid "_About"
 msgstr "_Tietoja"
 
 #: fractal-gtk/res/gtk/menus.ui:14
