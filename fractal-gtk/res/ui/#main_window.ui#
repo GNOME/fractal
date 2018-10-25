@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.2 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkApplicationWindow" id="main_window">
@@ -7,6 +7,311 @@
     <property name="default_width">860</property>
     <property name="default_height">640</property>
     <property name="show_menubar">False</property>
+    <child type="titlebar">
+      <object class="HdyTitleBar">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkStack" id="headerbar_stack">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="hexpand">True</property>
+            <child>
+              <object class="GtkBox"> <!--message view-->
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkHeaderBar" id="left-header"> <!--left titlebar-->
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <!--<property name="show-close-button">True</property>-->
+                    <child>
+                      <object class="GtkMenuButton" id="user_menu_button">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="popover">user_popover</property>
+                        <child>
+                          <object class="GtkSpinner">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="active">True</property>
+                          </object>
+                        </child>
+                        <accessibility>
+
+                        </accessibility>
+                        <child internal-child="accessible">
+                          <object class="AtkObject" id="a11y-user_menu_button">
+                            <property name="AtkObject::accessible_name" translatable="yes">User</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuButton" id="add_room_menu">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="popover">add_room_popover</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">list-add-symbolic</property>
+                          </object>
+                        </child>
+                        <accessibility>
+
+                        </accessibility>
+                        <child internal-child="accessible">
+                          <object class="AtkObject" id="a11y-add_room_menu">
+                            <property name="AtkObject::accessible_name" translatable="yes">Add</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="room_search_button">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">system-search-symbolic</property>
+                          </object>
+                        </child>
+                        <accelerator key="k" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                        <style>
+                          <class name="room-search-button"/>
+                        </style>
+                        <accessibility>
+
+                        </accessibility>
+                        <child internal-child="accessible">
+                          <object class="AtkObject" id="a11y-room_search_button">
+                            <property name="AtkObject::accessible_name" translatable="yes">Room search</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <style>
+                      <class name="sidebar"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkHeaderBar" id="room_header_bar"> <!--right titlebar-->
+                    <property name="show-close-button">True</property>
+                    <property name="has-subtitle">False</property>
+                    <property name="hexpand">True</property>
+                    <child type="title">
+                      <object class="GtkBox" id="room_info">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="valign">fill</property>
+                        <property name="hexpand">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel" id="room_name">
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Room name</property>
+                            <property name="ellipsize">end</property>
+                            <style>
+                              <class name="title"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="room_topic">
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Room topic</property>
+                            <property name="ellipsize">end</property>
+                            <style>
+                              <class name="subtitle"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuButton" id="room_menu_button">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="popover">room_popover</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">view-more-symbolic</property>
+                          </object>
+                        </child>
+                        <accessibility>
+                        </accessibility>
+                        <child internal-child="accessible">
+                          <object class="AtkObject" id="a11y-room_menu_button">
+                            <property name="AtkObject::accessible_name" translatable="yes">Room Menu</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="name">normal</property>
+                <property name="title">normal</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox"> <!--login titlebar-->
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkHeaderBar">
+                    <property name="can_focus">False</property>
+                    <property name="show-close-button">True</property>
+                    <property name="title">Fractal</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="name">login</property>
+                <property name="title">login</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkHeaderBar">
+                    <property name="can_focus">False</property>
+                    <property name="show_close_button">True</property>
+                    <child>
+                      <object class="GtkButton" id="back_button">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">go-previous-symbolic</property>
+                          </object>
+                        </child>
+                        <child internal-child="accessible">
+                          <object class="AtkObject" id="back_button-atkobject">
+                            <property name="AtkObject::accessible-name" translatable="yes">Back</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="title">
+                      <object class="GtkSearchEntry" id="directory_search_entry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="width_chars">30</property>
+                        <property name="primary_icon_name">edit-find-symbolic</property>
+                        <property name="primary_icon_activatable">False</property>
+                        <property name="primary_icon_sensitive">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuButton" id="server_chooser_menu">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="popover">server_chooser_popover</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="directory_choice_label">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Default Matrix Server</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">pan-down-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="name">back</property>
+                <property name="title" translatable="yes">Back</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
     <child>
       <object class="GtkStack" id="main_content_stack">
         <property name="can_focus">False</property>
@@ -61,7 +366,15 @@
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
-                              <placeholder/>
+                              <object class="GtkListBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
                             </child>
                             <style>
                               <class name="rooms-sidebar"/>
@@ -86,17 +399,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSeparator">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkOverlay" id="inapp">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -116,6 +418,7 @@
                             <child>
                               <object class="GtkOverlay">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <child>
                                   <object class="GtkScrolledWindow" id="messages_scroll">
                                     <property name="visible">True</property>
@@ -125,9 +428,6 @@
                                     <property name="window_placement">bottom-left</property>
                                     <property name="min_content_width">300</property>
                                     <property name="min_content_height">300</property>
-                                    <style>
-                                      <class name="messages-scroll" />
-                                    </style>
                                     <child>
                                       <object class="GtkViewport">
                                         <property name="visible">True</property>
@@ -138,19 +438,24 @@
                                           <object class="GtkBox" id="message_column">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="expand">True</property>
                                           </object>
                                         </child>
                                       </object>
                                     </child>
+                                    <style>
+                                      <class name="messages-scroll"/>
+                                    </style>
                                   </object>
+                                  <packing>
+                                    <property name="index">-1</property>
+                                  </packing>
                                 </child>
                                 <child type="overlay">
                                   <object class="GtkOverlay">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="valign">end</property>
                                     <property name="halign">end</property>
+                                    <property name="valign">end</property>
                                     <property name="margin_end">24</property>
                                     <property name="margin_bottom">24</property>
                                     <child>
@@ -162,6 +467,7 @@
                                           <object class="GtkButton" id="scroll_btn">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="receives_default">False</property>
                                             <child>
                                               <object class="GtkImage">
                                                 <property name="visible">True</property>
@@ -182,7 +488,6 @@
                                         </child>
                                       </object>
                                       <packing>
-                                        <property name="pass_through">False</property>
                                         <property name="index">-1</property>
                                       </packing>
                                     </child>
@@ -198,10 +503,16 @@
                             <child>
                               <object class="GtkBox" id="room_parent">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <style>
-                                  <class name="message-input-area" />
+                                  <class name="message-input-area"/>
                                 </style>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
@@ -232,9 +543,9 @@
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="margin_bottom">30</property>
                         <property name="valign">center</property>
+                        <property name="margin_bottom">30</property>
+                        <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkImage">
                             <property name="visible">True</property>
@@ -242,13 +553,18 @@
                             <property name="margin_bottom">16</property>
                             <property name="resource">/org/gnome/Fractal/icons/chat-icon.svg</property>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
                         </child>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">No room selected</property>
                             <property name="margin_bottom">3</property>
+                            <property name="label" translatable="yes">No room selected</property>
                             <property name="justify">center</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
@@ -257,6 +573,11 @@
                               <class name="noroom-title"/>
                             </style>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
                         </child>
                         <child>
                           <object class="GtkLabel">
@@ -268,6 +589,11 @@
                               <class name="noroom-description"/>
                             </style>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
                         </child>
                       </object>
                       <packing>
@@ -285,8 +611,8 @@
                   <object class="GtkOverlay" id="inapp_notify">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="valign">start</property>
                     <property name="halign">center</property>
+                    <property name="valign">start</property>
                     <child>
                       <object class="GtkRevealer" id="inapp_revealer">
                         <property name="visible">True</property>
@@ -306,8 +632,8 @@
                                 <child>
                                   <object class="GtkSpinner" id="inapp_spinner">
                                     <property name="visible">True</property>
-                                    <property name="active">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="active">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -352,6 +678,17 @@
                 <property name="fill">True</property>
                 <property name="pack_type">end</property>
                 <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -610,7 +947,6 @@
                                 <property name="width_request">330</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="text"></property>
                                 <property name="placeholder_text" translatable="yes">Matrix Server</property>
                                 <property name="input_purpose">url</property>
                                 <accessibility>
@@ -629,7 +965,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="margin_bottom">6</property>
-                                <property name="text"></property>
                                 <property name="placeholder_text" translatable="yes">Identity server</property>
                                 <property name="input_purpose">url</property>
                                 <accessibility>
@@ -792,320 +1127,12 @@
         </child>
       </object>
     </child>
-    <child type="titlebar">
-      <object class="HdyTitleBar">
-        <property name="visible">True</property>
-        <child>
-          <object class="GtkStack" id="headerbar_stack">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="hexpand">True</property>
-            <child>
-              <object class="GtkBox"> <!--message view-->
-                <property name="visible">True</property>
-                <child>
-                  <object class="GtkHeaderBar" id="left-header"> <!--left titlebar-->
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <!--<property name="show-close-button">True</property>-->
-                    <child>
-                      <object class="GtkMenuButton" id="user_menu_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="popover">user_popover</property>
-                        <child>
-                          <object class="GtkSpinner">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="active">True</property>
-                          </object>
-                        </child>
-                        <accessibility>
-
-                        </accessibility>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="a11y-user_menu_button">
-                            <property name="AtkObject::accessible_name" translatable="yes">User</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkMenuButton" id="add_room_menu">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="popover">add_room_popover</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                        <accessibility>
-
-                        </accessibility>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="a11y-add_room_menu">
-                            <property name="AtkObject::accessible_name" translatable="yes">Add</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkToggleButton" id="room_search_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">system-search-symbolic</property>
-                          </object>
-                        </child>
-                        <accelerator key="k" signal="activate" modifiers="GDK_CONTROL_MASK"/>
-                        <style>
-                          <class name="room-search-button"/>
-                        </style>
-                        <accessibility>
-
-                        </accessibility>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="a11y-room_search_button">
-                            <property name="AtkObject::accessible_name" translatable="yes">Room search</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkSeparator">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <style>
-                      <class name="sidebar"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkHeaderBar" id="room_header_bar"> <!--right titlebar-->
-                    <property name="show-close-button">True</property>
-                    <property name="has-subtitle">False</property>
-                    <property name="hexpand">True</property>
-                    <child type="title">
-                      <object class="GtkBox" id="room_info">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="valign">fill</property>
-                        <property name="hexpand">True</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkLabel" id="room_name">
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Room name</property>
-                            <property name="ellipsize">end</property>
-                            <style>
-                              <class name="title"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="room_topic">
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Room topic</property>
-                            <property name="ellipsize">end</property>
-                            <style>
-                              <class name="subtitle"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuButton" id="room_menu_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="popover">room_popover</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">view-more-symbolic</property>
-                          </object>
-                        </child>
-                        <accessibility>
-                        </accessibility>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="a11y-room_menu_button">
-                            <property name="AtkObject::accessible_name" translatable="yes">Room Menu</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="name">normal</property>
-                <property name="title">normal</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox"> <!--login titlebar-->
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkHeaderBar">
-                    <property name="can_focus">False</property>
-                    <property name="show-close-button">True</property>
-                    <property name="title">Fractal</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="name">login</property>
-                <property name="title">login</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkHeaderBar">
-                    <property name="can_focus">False</property>
-                    <property name="show_close_button">True</property>
-                    <child>
-                      <object class="GtkButton" id="back_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">go-previous-symbolic</property>
-                          </object>
-                        </child>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="back_button-atkobject">
-                            <property name="AtkObject::accessible-name" translatable="yes">Back</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                    <child type="title">
-                      <object class="GtkSearchEntry" id="directory_search_entry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">30</property>
-                        <property name="primary_icon_name">edit-find-symbolic</property>
-                        <property name="primary_icon_activatable">False</property>
-                        <property name="primary_icon_sensitive">False</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuButton" id="server_chooser_menu">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="popover">server_chooser_popover</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="spacing">6</property>
-                            <child>
-                              <object class="GtkLabel" id="directory_choice_label">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Default Matrix Server</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">pan-down-symbolic</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="name">back</property>
-                <property name="title" translatable="yes">Back</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-        </child>
-      </object>
-    </child>
     <style>
       <class name="main-window"/>
     </style>
   </object>
-<!-- Synchronize left header and sidebar -->
   <object class="GtkSizeGroup">
-    <property name="mode">horizontal</property>
     <widgets>
-      <widget name="left-header"/>
       <widget name="sidebar-box"/>
     </widgets>
   </object>
