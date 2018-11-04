@@ -47,7 +47,7 @@ impl App {
         quit.connect_activate(clone!(op => move |_, _| op.lock().unwrap().quit() ));
         about.connect_activate(clone!(op => move |_, _| op.lock().unwrap().about_dialog() ));
 
-        settings.connect_activate(move |_, _| { println!("SETTINGS"); });
+        settings.connect_activate(move |_, _| { info!("SETTINGS"); });
         settings.set_enabled(false);
 
         account.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_account_settings_dialog()) );

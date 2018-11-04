@@ -96,7 +96,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_new_avatar, (av));
                 }
                 Ok(BKResponse::Sync(since)) => {
-                    println!("SYNC");
+                    info!("SYNC");
                     let s = Some(since);
                     APPOP!(synced, (s));
                 }
@@ -195,26 +195,26 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 // errors
                 Ok(BKResponse::AccountDestructionError(err)) => {
                     let error = i18n("Couldn’t delete the account");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_error_dialog, (error));
                 },
                 Ok(BKResponse::ChangePasswordError(err)) => {
                     let error = i18n("Couldn’t change the password");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_password_error_dialog, (error));
                 },
                 Ok(BKResponse::GetTokenEmailError(err)) => {
                     let error = i18n("Couldn’t add the email address.");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 },
                 Ok(BKResponse::GetTokenPhoneError(err)) => {
                     let error = i18n("Couldn’t add the phone number.");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 },
                 Ok(BKResponse::NewRoomError(err, internal_id)) => {
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
 
                     let error = i18n("Can’t create the room, try again");
                     let panel = RoomPanel::NoRoom;
@@ -223,7 +223,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(room_panel, (panel));
                 },
                 Ok(BKResponse::JoinRoomError(err)) => {
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     let error = format!("{}", i18n("Can’t join the room, try again."));
                     let panel = RoomPanel::NoRoom;
                     APPOP!(show_error, (error));
@@ -236,13 +236,13 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_state, (st));
                 },
                 Ok(BKResponse::AttachFileError(err)) => {
-                    println!("ERROR attaching {:?}: retrying send", err);
+                    error!("attaching {:?}: retrying send", err);
                     APPOP!(retry_send);
                 }
                 Ok(BKResponse::SendMsgError(err)) => {
                     match err {
                         Error::SendMsgError(txid) => {
-                            println!("ERROR sending {}: retrying send", txid);
+                            error!("sending {}: retrying send", txid);
                             APPOP!(retry_send);
                         },
                         _ => {
@@ -261,11 +261,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                 }
                 Ok(BKResponse::SyncError(err)) => {
-                    println!("SYNC Error: {:?}", err);
+                    error!("SYNC Error: {:?}", err);
                     APPOP!(sync_error);
                 }
                 Ok(err) => {
-                    println!("Query error: {:?}", err);
+                    error!("Query error: {:?}", err);
                 }
             };
         }
