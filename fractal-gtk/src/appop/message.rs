@@ -202,7 +202,7 @@ impl AppOp {
                         let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
                         m = mb.tmpwidget();
                         if let Some(ref image) = mb.image {
-                            println!("i have a image");
+                            info!("i have a image");
                             let msg = t.msg.clone();
                             let room = r.clone();
                             image.connect_button_press_event(move |_, btn| {

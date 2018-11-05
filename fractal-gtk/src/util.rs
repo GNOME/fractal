@@ -28,7 +28,7 @@ macro_rules! glib_thread {
         gtk::timeout_add(50, move || match rx.try_recv() {
             Err(TryRecvError::Empty) => gtk::Continue(true),
             Err(TryRecvError::Disconnected) => {
-                eprintln!("glib_thread error");
+                error!("glib_thread error");
                 gtk::Continue(false)
             }
             Ok(output) => {

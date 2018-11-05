@@ -394,7 +394,7 @@ pub fn parse_sync_events(r: &JsonValue) -> Result<Vec<Event>, Error> {
             .filter(|x| x["type"] != "m.room.message");
 
         for ev in events {
-            //println!("ev: {:#?}", ev);
+            //info!("ev: {:#?}", ev);
             evs.push(Event {
                 room: k.clone(),
                 sender: String::from(ev["sender"].as_str().unwrap_or("")),
@@ -618,7 +618,7 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Resul
             let js2 = js.clone();
             if let Some(error) = js.as_object() {
                 if error.contains_key("errcode") {
-                    println!("ERROR: {:#?}", js2);
+                    error!("{:#?}", js2);
                     return Err(Error::MatrixError(js2));
                 }
             }

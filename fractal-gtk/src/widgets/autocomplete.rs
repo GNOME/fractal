@@ -459,7 +459,7 @@ impl Autocomplete {
                         txt.get(start..end)
                     };
                     if let Some(last) = last {
-                        println!("Matching string '{}'", last);
+                        info!("Matching string '{}'", last);
                         /*remove @ from string*/
                         let w = if last.starts_with("@") {
                             last[1..].to_lowercase()

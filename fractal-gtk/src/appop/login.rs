@@ -24,7 +24,7 @@ impl AppOp {
         self.logged_in = true;
         self.clean_login();
         if let Err(_) = self.store_token(uid.clone(), token) {
-            eprintln!("Error: Can't store the token using libsecret");
+            error!("Can't store the token using libsecret");
         }
 
         self.set_state(AppState::Chat);
@@ -47,7 +47,7 @@ impl AppOp {
     pub fn bk_logout(&mut self) {
         self.set_rooms(&vec![], None);
         if let Err(_) = cache::destroy() {
-            eprintln!("Error removing cache file");
+            error!("Error removing cache file");
         }
 
         self.logged_in = false;
@@ -193,7 +193,7 @@ impl AppOp {
         //self.store_pass(username.clone(), password.clone(), server_url.clone())
         //    .unwrap_or_else(|_| {
         //        // TODO: show an error
-        //        println!("Error: Can't store the password using libsecret");
+        //        error!("Can't store the password using libsecret");
         //    });
 
         let uname = username.clone();
@@ -216,7 +216,7 @@ impl AppOp {
         self.store_pass(username.clone()?, password.clone()?, self.server_url.clone(), self.identity_url.clone())
             .unwrap_or_else(|_| {
                 // TODO: show an error
-                eprintln!("Error: Can't store the password using libsecret");
+                error!("Can't store the password using libsecret");
             });
 
         let uname = username?;

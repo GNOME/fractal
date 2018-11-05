@@ -244,7 +244,7 @@ pub fn change_password(bk: &Backend, username: String, old_password: String, new
     let tx = bk.tx.clone();
     post!(&url, &attrs,
           |r: JsonValue| {
-              println!("{}", r);
+              info!("{}", r);
               tx.send(BKResponse::ChangePassword).unwrap();
           },
           |err| {
@@ -270,7 +270,7 @@ pub fn account_destruction(bk: &Backend, username: String, password: String, fla
     let tx = bk.tx.clone();
     post!(&url, &attrs,
           |r: JsonValue| {
-              println!("{}", r);
+              info!("{}", r);
               tx.send(BKResponse::AccountDestruction).unwrap();
           },
           |err| {

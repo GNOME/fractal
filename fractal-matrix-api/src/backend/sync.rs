@@ -112,7 +112,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                                         // This event is managed in the room list
                                     }
                                     _ => {
-                                        eprintln!("EVENT NOT MANAGED: {:?}", ev);
+                                        error!("EVENT NOT MANAGED: {:?}", ev);
                                     }
                                 }
                             }
@@ -148,7 +148,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             },
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
-                eprintln!("Sync Error, waiting 10 seconds to respond for the next sync");
+                error!("Sync Error, waiting 10 seconds to respond for the next sync");
                 let ten_seconds = time::Duration::from_millis(10000);
                 thread::sleep(ten_seconds);
 

@@ -362,7 +362,7 @@ impl MessageBox {
                     gtk::Continue(true)
                 },
                 Ok(uri) => {
-                    println!("AUDIO URI: {}", &uri);
+                    info!("AUDIO URI: {}", &uri);
                     player.initialize_stream(&uri);
                     gtk::Continue(false)
                 }

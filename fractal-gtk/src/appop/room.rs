@@ -351,7 +351,7 @@ impl AppOp {
         let device_id = self.device_id.clone().unwrap_or_default();
 
         if let Err(_) = cache::store(&rooms, since, username, uid, device_id) {
-            println!("Error caching rooms");
+            error!("Error caching rooms");
         };
     }
 
@@ -401,7 +401,7 @@ impl AppOp {
             "m.room.topic" => {
                 self.set_room_topic_label(Some(value.clone()));
             }
-            _ => println!("no key {}", key),
+            _ => warn!("no key {}", key),
         };
     }
 

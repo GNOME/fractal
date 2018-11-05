@@ -508,7 +508,7 @@ pub fn direct_chat(bk: &Backend, user: Member, internal_id: String) -> Result<()
             let attrs = json!(directs.clone());
             match json_q("put", &direct_url, &attrs, 0) {
                 Ok(_js) => { }
-                Err(err) => { println!("Error {:?}", err); }
+                Err(err) => { error!("{:?}", err); }
             };
         },
         |err| { tx.send(BKResponse::NewRoomError(err, internal_id)).unwrap(); }

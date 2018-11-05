@@ -339,7 +339,7 @@ impl AppOp {
             .get_object::<gtk::Button>("account_settings_avatar_button")
             .expect("Can't find account_settings_avatar_button in ui file.");
 
-        println!("Request finished");
+        info!("Request finished");
         self.set_avatar(path.clone());
         avatar_spinner.hide();
         avatar_btn.set_sensitive(true);
@@ -464,7 +464,7 @@ impl AppOp {
         advanced_box.queue_draw();
         delete_box.queue_draw();
         b.queue_draw();
-        println!("Going back");
+        info!("Going back");
 
         self.set_state(AppState::Chat);
     }
