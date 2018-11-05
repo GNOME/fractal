@@ -4,6 +4,8 @@
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate log;
 
 extern crate urlencoding;
 extern crate reqwest;
@@ -13,6 +15,7 @@ extern crate regex;
 extern crate tree_magic;
 extern crate chrono;
 extern crate glib;
+
 
 extern crate url;
 
