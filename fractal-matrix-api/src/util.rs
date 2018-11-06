@@ -2,9 +2,7 @@ use reqwest;
 use regex::Regex;
 
 use serde_json::Value as JsonValue;
-
-use self::serde_json::Value as JsonValue;
-use self::serde_json::from_value;
+use serde_json::from_value;
 
 use tree_magic;
 use glib;
