@@ -31,8 +31,6 @@ pub struct Room {
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
     pub power_levels: HashMap<String, i32>,
-    /// Hashmap with typing users. The key is also userid, and the value is true
-    pub typing_notifications: HashMap<String, bool>,
 }
 
 impl Room {
@@ -56,7 +54,6 @@ impl Room {
             direct: false,
             inv_sender: None,
             power_levels: HashMap::new(),
-            typing_notifications: HashMap::new(),
             prev_batch: None,
         }
     }
@@ -92,24 +89,6 @@ impl Room {
     pub fn add_receipt_from_fully_read(&mut self, uid: &str, evid: &str) {
         for msg in self.messages.iter_mut().filter(|m| m.id == Some(evid.to_string())) {
             msg.receipt.insert(uid.to_string(), 0);
-        }
-    }
-
-    pub fn add_typing_from_json(&mut self, event: &JsonValue) {
-        let typing_users = &event.get("content").map(|e| e.get("user_ids"));
-
-        // This is not important enough to crash over, so let's just let it fail silently
-        if !typing_users.is_none() {
-            let typing_users = typing_users.unwrap();
-            if !typing_users.is_none() {
-                let mut typing = HashMap::new();
-
-                let typing_users = typing_users.unwrap().as_array();
-                for uid in typing_users.unwrap() {
-                    typing.insert(uid.to_string(), true);
-                }
-                self.typing_notifications = typing;
-            }
         }
     }
 }

@@ -25,6 +25,8 @@ use util::markup_text;
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 
+use std::collections::HashMap;
+
 pub struct Force(pub bool);
 
 
@@ -226,6 +228,14 @@ impl AppOp {
         let name_label = self.ui.builder
             .get_object::<gtk::Label>("room_name")
             .expect("Can't find room_name in ui file.");
+
+        // Hide the typing label, so typing notifications from other rooms won't show after
+        // changing rooms
+        self.ui.builder
+            .get_object::<gtk::Label>("typing_label")
+            .expect("Can't find typing_label in ui file.")
+            .hide();
+
 
         name_label.set_text(&room.name.clone().unwrap_or_default());
 
@@ -573,5 +583,50 @@ impl AppOp {
         }
 
         self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
+    }
+
+    pub fn typing_notification(&mut self, rooms: HashMap<String, Vec<String>>) {
+        let active_room = self.active_room.clone().unwrap_or_default();
+
+        if rooms.contains_key(&active_room) {
+            let typing_label = self.ui.builder
+                .get_object::<gtk::Label>("typing_label")
+                .expect("Can't find typing_label in ui file.");
+
+            let mut typing_string: String = "".to_string();
+            let cur_room = rooms.get(&active_room).unwrap();
+            if cur_room.len() == 0 {
+                typing_label.hide();
+
+            } else if cur_room.len() > 3 {
+                typing_label.show();
+                typing_label.set_text("Several users are typing");
+            } else {
+                typing_label.show();
+                let mut index = 0;
+
+                for uid in cur_room {
+                    if index > 0 && index != cur_room.len()-1 {
+                        typing_string.push_str(", ");
+                    } else if index > 0 {
+                        typing_string.push_str(" and ")
+                    }
+                    let user = &self.rooms.get(&active_room).unwrap().members.get(uid).unwrap().get_alias();
+
+                    typing_string.push_str(user.as_str());
+                    index = index + 1;
+                }
+
+                if cur_room.len() > 1 {
+                    typing_string.push_str(" are");
+                } else {
+                    typing_string.push_str(" is");
+                }
+
+                typing_string.push_str(" typing");
+                typing_label.set_text(&typing_string);
+
+            }
+        }
     }
 }

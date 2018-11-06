@@ -193,6 +193,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::Stickers(stickers)) => {
                     APPOP!(stickers_loaded, (stickers));
                 }
+                Ok(BKResponse::Typing(rooms)) => {
+                    APPOP!(typing_notification, (rooms));
+                }
 
                 // errors
                 Ok(BKResponse::AccountDestructionError(err)) => {

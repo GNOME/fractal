@@ -119,7 +119,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
 
                     match parse_typing_notifications(&r) {
                         Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
-                        Ok(rooms) => tx.send(BKResponse::TypingNotifications(rooms)).unwrap(),
+                        Ok(rooms) => tx.send(BKResponse::Typing(rooms)).unwrap(),
                     }
 
                 } else {

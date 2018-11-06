@@ -8,6 +8,7 @@ extern crate tree_magic;
 use self::regex::Regex;
 
 use self::serde_json::Value as JsonValue;
+use self::serde_json::from_value;
 
 use self::url::Url;
 use std::io::Read;
@@ -203,7 +204,6 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         let room = join.get(k).ok_or(Error::BackendError)?;
         let stevents = &room["state"]["events"];
         let timeline = &room["timeline"];
-        let ephemeral = &room["ephemeral"];
         let dataevs = &room["account_data"]["events"];
         let name = calculate_room_name(stevents, userid)?;
         let mut r = Room::new(k.clone(), name);
@@ -234,13 +234,6 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
             r.messages.extend(ms);
         }
 
-        if let Some(evs) = ephemeral["events"].as_array() {
-            r.add_receipt_from_json(evs.into_iter().filter(|ev| ev["type"] == "m.receipt").collect::<Vec<&JsonValue>>());
-            let typing_event = evs.into_iter().filter(|ev| ev["type"] == "m.typing").next();
-            if typing_event.is_some() {
-              r.add_typing_from_json(typing_event.unwrap());
-            }
-        }
         // Adding fully read to the receipts events
         if let Some(evs) = dataevs.as_array() {
             if let Some(fread) = evs.into_iter().filter(|x| x["type"] == "m.fully_read").next() {
@@ -931,7 +924,8 @@ pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<String, Vec<S
 
             let mut typing = Vec::new();
             for user in typing_users {
-                typing.push(user.to_string());
+                let user: String = from_value(user.to_owned()).unwrap();
+                typing.push(user);
             }
             room_notifications.insert(k.to_owned(), typing);
         }
