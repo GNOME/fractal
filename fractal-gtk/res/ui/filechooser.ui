@@ -27,7 +27,6 @@
     <property name="modal">True</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>
-    <property name="attached_to">room_config_dialog</property>
     <property name="create_folders">False</property>
     <property name="filter">imagefilter</property>
     <property name="preview_widget">file_chooser_preview</property>

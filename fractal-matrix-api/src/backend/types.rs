@@ -37,10 +37,11 @@ pub enum BKCommand {
     AccountDestruction(String, String, bool),
     GetAvatar,
     SetUserAvatar(String),
-    Sync(Option<String>),
+    Sync(Option<String>, bool),
     SyncForced,
     GetRoomMembers(String),
     GetRoomMessages(String, String),
+    GetRoomMessagesFromMsg(String, Message),
     GetMessageContext(Message),
     GetRoomAvatar(String),
     GetThumbAsync(String, Sender<String>),
@@ -80,7 +81,7 @@ pub enum BKCommand {
 #[derive(Debug)]
 pub enum BKResponse {
     ShutDown,
-    Token(String, String),
+    Token(String, String, Option<String>),
     Logout,
     Name(String),
     SetUserName(String),

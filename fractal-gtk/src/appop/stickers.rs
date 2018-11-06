@@ -1,20 +1,18 @@
-extern crate glib;
-extern crate gtk;
-extern crate gdk_pixbuf;
-extern crate chrono;
+use chrono::prelude::*;
 
-use self::chrono::prelude::*;
+use glib;
 
-use self::gtk::ContainerExt;
-use self::gtk::StackExt;
-use self::gtk::WidgetExt;
-use self::gtk::LabelExt;
-use self::gtk::BoxExt;
-use self::gtk::ButtonExt;
+use gtk;
+use gtk::ContainerExt;
+use gtk::StackExt;
+use gtk::WidgetExt;
+use gtk::LabelExt;
+use gtk::BoxExt;
+use gtk::ButtonExt;
 
-use self::gdk_pixbuf::Pixbuf;
-use self::gtk::ImageExt;
-use self::gdk_pixbuf::PixbufExt;
+use gdk_pixbuf::Pixbuf;
+use gtk::ImageExt;
+use gdk_pixbuf::PixbufExt;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender, Receiver};
@@ -203,6 +201,7 @@ impl AppOp {
             receipt: HashMap::new(),
             redacted: false,
             in_reply_to: None,
+            extra_content: None,
         };
 
         self.add_tmp_room_message(msg);

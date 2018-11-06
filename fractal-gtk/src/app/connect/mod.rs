@@ -4,6 +4,7 @@ use gdk;
 
 mod attach;
 mod autocomplete;
+mod column;
 mod direct;
 mod account;
 mod directory;
@@ -58,6 +59,7 @@ impl App {
             }
         });
 
+        self.create_message_column();
         self.create_load_more_spn();
         self.create_actions();
 

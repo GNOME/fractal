@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/org/gnome/Fractal/">
-      <file preprocess="xml-stripblanks">gtk/menus.ui</file>
       <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
-      <file preprocess="xml-stripblanks">icons/src/org.gnome.Fractal.svg</file>
+      <file preprocess="xml-stripblanks" alias="org.gnome.Fractal.svg">icons/hicolor/scalable/apps/org.gnome.Fractal.svg</file>
       <file preprocess="xml-stripblanks">icons/chat-icon.svg</file>
       <file>app.css</file>
       <file preprocess="xml-stripblanks">ui/audio_player.ui</file>
@@ -20,7 +19,7 @@
       <file preprocess="xml-stripblanks">ui/message_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/new_room.ui</file>
       <file preprocess="xml-stripblanks">ui/room_menu.ui</file>
-      <file preprocess="xml-stripblanks">ui/user_menu.ui</file>
+      <file preprocess="xml-stripblanks">ui/main_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/account_settings.ui</file>
       <file preprocess="xml-stripblanks">ui/room_settings.ui</file>
       <file preprocess="xml-stripblanks">ui/password_dialog.ui</file>

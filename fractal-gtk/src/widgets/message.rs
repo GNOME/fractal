@@ -1,16 +1,12 @@
-extern crate gtk;
-extern crate chrono;
-extern crate pango;
-extern crate glib;
-extern crate regex;
-
-use self::regex::Regex;
 use itertools::Itertools;
 use app::App;
 use i18n::i18n;
 
-use self::gtk::prelude::*;
-use self::chrono::prelude::*;
+use pango;
+use glib;
+use gtk;
+use gtk::prelude::*;
+use chrono::prelude::*;
 
 use backend::BKCommand;
 
@@ -142,6 +138,7 @@ impl MessageBox {
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 10);
         let content = self.build_room_msg_content(false);
+        /* Todo: make build_room_msg_avatar() faster (currently ~1ms) */
         let avatar = self.build_room_msg_avatar();
 
         msg_widget.pack_start(&avatar, false, false, 0);
@@ -247,7 +244,7 @@ impl MessageBox {
     fn build_room_msg_body(&self, body: &str) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
 
-        let msg_parts = self.calculate_msg_parts(body);
+        let msg_parts = self.create_msg_parts(body);
 
         if self.msg.mtype == RowType::Mention {
             for msg in msg_parts.iter() {
@@ -289,26 +286,40 @@ impl MessageBox {
         bx
     }
 
-    fn calculate_msg_parts(&self, body: &str) -> Vec<gtk::Label> {
+    fn create_msg_parts(&self, body: &str) -> Vec<gtk::Label> {
         let mut parts_labels: Vec<gtk::Label> = vec![];
 
-        for (part, kind) in split_msg(body) {
-            let msg_part = gtk::Label::new("");
-            self.connect_right_click_menu(msg_part.clone().upcast::<gtk::Widget>());
-            msg_part.set_markup(&markup_text(&part));
-            self.set_label_styles(&msg_part);
-
-            match kind {
-                MsgPartType::Quote => {
-                    msg_part.get_style_context().map(|s| s.add_class("quote"));
-                }
-                _ => {}
+        for (k, group) in body.lines().group_by(kind_of_line).into_iter() {
+            let mut v: Vec<&str> = if k == MsgPartType::Quote {
+                group.map(|l| trim_start_quote(l)).collect()
+            } else {
+                group.collect()
+            };
+            /* We need to remove the first and last empty line (if any) because quotes use /n/n */
+            if v.starts_with(&[""]) {
+                v.drain(..1);
             }
+            if v.ends_with(&[""]) {
+                v.pop();
+            }
+            let part = v.join("\n");
 
-            parts_labels.push(msg_part);
+            parts_labels.push(self.create_msg(part.as_str(), k));
         }
 
         parts_labels
+    }
+
+    fn create_msg(&self, body: &str, k: MsgPartType) -> gtk::Label {
+        let msg_part = gtk::Label::new("");
+        self.connect_right_click_menu(msg_part.clone().upcast::<gtk::Widget>());
+        msg_part.set_markup(&markup_text(&body));
+        self.set_label_styles(&msg_part);
+
+        if k == MsgPartType::Quote {
+            msg_part.get_style_context().map(|s| s.add_class("quote"));
+        }
+        msg_part
     }
 
     fn build_room_msg_image(&mut self) -> gtk::Box {
@@ -623,51 +634,13 @@ enum MsgPartType {
 }
 
 fn kind_of_line(line: &&str) -> MsgPartType {
-    let r = Regex::new(r"^\s*> ?").unwrap();
-
-    match line {
-        l if r.is_match(l) => MsgPartType::Quote,
-        _ => MsgPartType::Normal,
+    if line.trim_start().starts_with(">") {
+        MsgPartType::Quote
+    } else {
+        MsgPartType::Normal
     }
 }
 
-fn trim_left_quote(line: &str) -> String {
-    let r = Regex::new(r"^\s*> ?").unwrap();
-
-    match r.is_match(line) {
-        true => r.replace(line, "").to_string(),
-        false => line.to_string(),
-    }
-}
-
-fn trim_blank_lines(lines: String) -> String {
-    let mut ret = lines;
-
-    let r_start = Regex::new(r"^(\s*\n)+").unwrap();
-
-    if r_start.is_match(&ret) {
-        ret = r_start.replace(&ret, "").to_string();
-    }
-
-    ret.trim_right().to_string()
-}
-
-/// Split a message into parts depending on the kind
-/// Currently supported types:
-///  * Normal
-///  * Quote
-fn split_msg(body: &str) -> Vec<(String, MsgPartType)> {
-    let mut parts: Vec<(String, MsgPartType)> = vec![];
-
-    for (k, group) in body.lines()
-                          .map(|l| l.trim_right())
-                          .group_by(kind_of_line).into_iter() {
-        let v: Vec<String> = group
-            .map(|l| trim_left_quote(l))
-            .collect();
-        let s = trim_blank_lines(v.join("\n"));
-        parts.push((s, k));
-    }
-
-    parts
+fn trim_start_quote(line: &str) -> &str {
+    line.trim_start().get(1..).unwrap_or(line).trim_start()
 }

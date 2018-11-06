@@ -1,18 +1,17 @@
-extern crate gdk;
-extern crate gdk_pixbuf;
-extern crate gtk;
-extern crate glib;
-extern crate sourceview;
-
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::TryRecvError;
 
-use self::gtk::prelude::*;
-use self::gdk::prelude::*;
-use self::sourceview::prelude::*;
+use sourceview;
+use glib;
+use gtk;
+use gtk::prelude::*;
+use gdk;
+use gdk::prelude::*;
+use sourceview::prelude::*;
+use gdk_pixbuf;
 
 use app::App;
 use backend::BKCommand;
@@ -124,9 +123,7 @@ impl MessageMenu {
     }
 
     pub fn insert_quote(&self) {
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Can't find msg_entry in ui file.");
+        let msg_entry = &self.ui.sventry.view;
 
         if let Some(buffer) = msg_entry.get_buffer() {
             let quote = self.msg.body.lines().map(|l| "> ".to_owned() + l)

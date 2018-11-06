@@ -1,11 +1,8 @@
-extern crate cairo;
-extern crate gdk;
-extern crate gdk_pixbuf;
-
-use self::gdk_pixbuf::Pixbuf;
-use self::gdk_pixbuf::PixbufExt;
+use cairo;
+use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufExt;
 use failure::Error;
-use self::gdk::ContextExt;
+use gdk::ContextExt;
 use gio::{SettingsExt, Settings, SettingsSchemaSource};
 
 use html2pango::{html_escape, markup_links};

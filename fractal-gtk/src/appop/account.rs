@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
@@ -169,6 +168,9 @@ impl AppOp {
         let uid = self.ui.builder
             .get_object::<gtk::Label>("account_settings_uid")
             .expect("Can't find account_settings_uid in ui file.");
+        let device_id = self.ui.builder
+            .get_object::<gtk::Label>("account_settings_device_id")
+            .expect("Can't find account_settings_device_id in ui file.");
         let homeserver = self.ui.builder
             .get_object::<gtk::Label>("account_settings_homeserver")
             .expect("Can't find account_settings_homeserver in ui file.");
@@ -206,6 +208,7 @@ impl AppOp {
         stack.set_visible_child_name("loading");
         self.get_three_pid();
         uid.set_text(&self.uid.clone().unwrap_or_default());
+        device_id.set_text(&self.device_id.clone().unwrap_or_default());
         homeserver.set_text(&self.server_url);
         name.set_text(&self.username.clone().unwrap_or_default());
         name.grab_focus_without_selecting();

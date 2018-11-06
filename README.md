@@ -100,10 +100,14 @@ Full reference in: <https://matrix.org/docs/spec/client\_server/r0.2.0.html#m-ro
 * Does Fractal have encryption support? Will it ever?
 
 Fractal does not currently have encryption support, but
-does plan to implement it some day. There are details
-about the encryption flow for the Matrix team to work out,
-and bindings for the encryption library, olm, need to
-be created.
+there is an initiative for it.
+
+The current effort is to create a monolithic module for Fractal to interact with.
+Said module will handle all cryptographic tasks.
+The goal is to reduce the amount of work required for implementing end-to-end encryption
+by having one thing to interact with, instead of a huge API surface.
+
+Code and further information for this module can be found at [World/metaolm](https://gitlab.gnome.org/World/metaolm).
 
 * Can I run Fractal with the window closed?
 

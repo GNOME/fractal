@@ -1,5 +1,4 @@
-extern crate serde_json;
-use self::serde_json::Value as JsonValue;
+use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sticker {

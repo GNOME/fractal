@@ -1,16 +1,19 @@
-extern crate glib;
-extern crate url;
-extern crate reqwest;
-extern crate regex;
-extern crate serde_json;
-extern crate tree_magic;
+use reqwest;
+use regex::Regex;
 
-use self::regex::Regex;
+use serde_json::Value as JsonValue;
 
+<<<<<<< HEAD
 use self::serde_json::Value as JsonValue;
 use self::serde_json::from_value;
 
 use self::url::Url;
+=======
+use tree_magic;
+use glib;
+use url::Url;
+use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
+>>>>>>> master
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
@@ -32,7 +35,7 @@ use types::Room;
 use types::Event;
 use types::Member;
 
-use self::reqwest::header::CONTENT_TYPE;
+use reqwest::header::CONTENT_TYPE;
 
 use globals;
 
@@ -629,7 +632,7 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue, timeout: u64) -> Resul
 }
 
 pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Error> {
-    let url = client_url(baseu, &format!("profile/{}", userid), vec![])?;
+    let url = client_url(baseu, &format!("profile/{}", encode_uid(userid)), vec![])?;
     let attrs = json!(null);
 
     match json_q("get", &url, &attrs, globals::TIMEOUT) {
@@ -932,3 +935,8 @@ pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<String, Vec<S
     }
     Ok(room_notifications)
 }
+
+pub fn encode_uid(userid: &str) -> String {
+    utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect::<String>()
+}
+

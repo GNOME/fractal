@@ -1,8 +1,5 @@
-extern crate serde_json;
-extern crate md5;
-extern crate chrono;
-
-use self::chrono::prelude::*;
+use md5;
+use chrono::prelude::*;
 
 use std::thread;
 use util::json_q;
@@ -20,7 +17,7 @@ use backend::types::BKResponse;
 use backend::types::BKCommand;
 use types::StickerGroup;
 use types::Sticker;
-use self::serde_json::Value as JsonValue;
+use serde_json::Value as JsonValue;
 
 
 /// Queries scalar.vector.im to list all the stickers

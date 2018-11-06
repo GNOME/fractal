@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::RoomPanel;
@@ -22,16 +21,16 @@ impl AppOp {
         let user = self.invite_list[0].clone();
 
         let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
-        self.backend.send(BKCommand::DirectChat(user.clone(), internal_id.clone())).unwrap();
+        self.backend.send(BKCommand::DirectChat(user.0.clone(), internal_id.clone())).unwrap();
         self.close_direct_chat_dialog();
 
-        let mut fakeroom = Room::new(internal_id.clone(), user.alias.clone());
+        let mut fakeroom = Room::new(internal_id.clone(), user.0.alias.clone());
         fakeroom.direct = true;
 
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
     }
 
     pub fn show_direct_chat_dialog(&mut self) {
@@ -56,25 +55,30 @@ impl AppOp {
         let scroll = self.ui.builder
             .get_object::<gtk::Widget>("direct_chat_search_scroll")
             .expect("Can't find direct_chat_search_scroll in ui file.");
-        let to_invite = self.ui.builder
-            .get_object::<gtk::ListBox>("to_chat")
-            .expect("Can't find to_chat in ui file.");
+        let to_chat_entry = self.ui.builder
+            .get_object::<gtk::TextView>("to_chat_entry")
+            .expect("Can't find to_chat_entry in ui file.");
         let entry = self.ui.builder
-            .get_object::<gtk::Entry>("to_chat_entry")
+            .get_object::<gtk::TextView>("to_chat_entry")
             .expect("Can't find to_chat_entry in ui file.");
         let dialog = self.ui.builder
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
 
         self.invite_list = vec![];
-        for ch in to_invite.get_children().iter() {
-            to_invite.remove(ch);
+        if let Some(buffer) = to_chat_entry.get_buffer() {
+            let mut start = buffer.get_start_iter();
+            let mut end = buffer.get_end_iter();
+
+            buffer.delete(&mut start, &mut end);
         }
         for ch in listbox.get_children().iter() {
             listbox.remove(ch);
         }
         scroll.hide();
-        entry.set_text("");
+        if let Some(buffer) = entry.get_buffer() {
+            buffer.set_text("");
+        }
         dialog.hide();
         dialog.resize(300, 200);
     }

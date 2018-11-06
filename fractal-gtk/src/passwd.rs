@@ -1,9 +1,9 @@
-extern crate secret_service;
-extern crate serde_json;
+use secret_service;
 
 use gio::{Settings, SettingsSchemaSource};
 use gio::SettingsExt;
 
+use serde_json;
 use std;
 
 #[derive(Debug)]

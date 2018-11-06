@@ -1,5 +1,5 @@
-extern crate gtk;
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppState;
 

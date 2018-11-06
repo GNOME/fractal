@@ -179,8 +179,8 @@ impl Backend {
 
             // Sync module
 
-            Ok(BKCommand::Sync(since)) => {
-                let r = sync::sync(self, since);
+            Ok(BKCommand::Sync(since, initial)) => {
+                let r = sync::sync(self, since, initial);
                 bkerror!(r, tx, BKResponse::SyncError);
             }
             Ok(BKCommand::SyncForced) => {
@@ -196,6 +196,10 @@ impl Backend {
             }
             Ok(BKCommand::GetRoomMessages(room, from)) => {
                 let r = room::get_room_messages(self, room, from);
+                bkerror!(r, tx, BKResponse::RoomMessagesError);
+            }
+            Ok(BKCommand::GetRoomMessagesFromMsg(room, from)) => {
+                let r = room::get_room_messages_from_msg(self, room, from);
                 bkerror!(r, tx, BKResponse::RoomMessagesError);
             }
             Ok(BKCommand::GetMessageContext(message)) => {

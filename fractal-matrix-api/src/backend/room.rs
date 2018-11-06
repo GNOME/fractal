@@ -1,11 +1,10 @@
-extern crate url;
-extern crate urlencoding;
-extern crate serde_json;
+use urlencoding;
+use serde_json;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::mpsc::Sender;
-use self::url::Url;
+use url::Url;
 
 use globals;
 use std::thread;
@@ -147,6 +146,25 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
     Ok(())
 }
 
+pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) -> Result<(), Error> {
+    // first of all, we calculate the from param using the context api, then we call the
+    // normal get_room_messages
+    let baseu = bk.get_base_url()?;
+    let tk = bk.data.lock().unwrap().access_token.clone();
+    let id = msg.id.unwrap_or("".to_string());
+    let tx = bk.internal_tx.clone();
+
+    thread::spawn(move || {
+        if let Ok(from) = util::get_prev_batch_from(&baseu, tk, roomid.clone(), id) {
+            if let Some(t) = tx {
+                t.send(BKCommand::GetRoomMessages(roomid, from)).unwrap();
+            }
+        }
+    });
+
+    Ok(())
+}
+
 fn parse_context(tx: Sender<BKResponse>, tk: String, baseu: Url, roomid: String, eid: String, limit: i32) -> Result<(), Error> {
     let url = client_url(&baseu, &format!("rooms/{}/context/{}", roomid, eid),
         vec![("limit", format!("{}", limit)), ("access_token", tk.clone())])?;
@@ -215,6 +233,14 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
     if let (Some(f), Some(f_b)) = (msg.format, msg.formatted_body) {
         attrs["formatted_body"] = json!(f_b);
         attrs["format"] = json!(f);
+    }
+
+    if let Some(xctx) = msg.extra_content {
+        if let Some(xctx) = xctx.as_object() {
+            for (k, v) in xctx {
+                attrs[k] = v.clone();
+            }
+        }
     }
 
     let tx = bk.tx.clone();

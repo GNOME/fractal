@@ -1,8 +1,9 @@
-extern crate gtk;
+use gtk;
 
 use i18n::i18n;
 
-use self::gtk::prelude::*;
+use gtk::prelude::*;
+use libhandy::{Column, ColumnExt};
 
 use app::App;
 
@@ -11,6 +12,36 @@ impl App {
         let q = self.ui.builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
+
+        let directory_stack = self.ui.builder
+            .get_object::<gtk::Stack>("directory_stack")
+            .expect("Can't find directory_stack in ui file.");
+
+        let column = Column::new();
+        let listbox = gtk::ListBox::new();
+
+        column.set_maximum_width(800);
+        /* For some reason the Column is not seen as a gtk::container
+         * and therefore we can't call add() without the cast */
+        let column = column.upcast::<gtk::Widget>();
+        let column = column.downcast::<gtk::Container>().unwrap();
+        column.set_hexpand(true);
+        column.set_vexpand(true);
+        column.set_margin_top(24);
+
+        let frame = gtk::Frame::new(None);
+        frame.set_shadow_type(gtk::ShadowType::In);
+        frame.add(&listbox);
+        column.add(&frame);
+        listbox.show();
+        frame.show();
+        column.show();
+        directory_stack.add_named(&column, "directory_column");
+
+        let column = column.upcast::<gtk::Widget>();
+        let column = column.downcast::<Column>().unwrap();
+        self.ui.builder.expose_object::<gtk::ListBox>("directory_room_list", &listbox);
+        self.ui.builder.expose_object::<Column>("directory_column", &column);
 
         let directory_choice_label = self.ui.builder
             .get_object::<gtk::Label>("directory_choice_label")

@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 
@@ -55,11 +54,6 @@ impl AppOp {
             stack.set_visible_child_name("spinner");
         }
 
-        /* update user menu button avatar */
-        let button = self.ui.builder
-            .get_object::<gtk::MenuButton>("user_menu_button")
-            .expect("Can't find user_menu_button in ui file.");
-
         let eb = gtk::EventBox::new();
         match self.avatar.clone() {
             Some(_) => {
@@ -79,7 +73,6 @@ impl AppOp {
         };
 
         eb.connect_button_press_event(move |_, _| { Inhibit(false) });
-        button.set_image(&eb);
     }
 
     pub fn set_username(&mut self, username: Option<String>) {
@@ -90,6 +83,10 @@ impl AppOp {
     pub fn set_uid(&mut self, uid: Option<String>) {
         self.uid = uid;
         self.show_user_info();
+    }
+
+    pub fn set_device(&mut self, device: Option<String>) {
+        self.device_id = device;
     }
 
     pub fn set_avatar(&mut self, fname: Option<String>) {

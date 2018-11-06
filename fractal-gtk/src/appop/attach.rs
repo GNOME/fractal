@@ -1,10 +1,6 @@
-extern crate glib;
-extern crate gdk;
-extern crate gdk_pixbuf;
-extern crate gtk;
-
 use i18n::i18n;
 
+use std::sync::{Arc, Mutex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -12,35 +8,21 @@ use std::path::PathBuf;
 use failure::Error;
 use failure::err_msg;
 
-use self::gtk::prelude::*;
+use glib;
+use gdk;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use app::InternalCommand;
 
-use self::gdk_pixbuf::Pixbuf;
-use self::gdk_pixbuf::PixbufExt;
+use gdk_pixbuf;
+use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufExt;
 use util::get_pixbuf_data;
 
 
 impl AppOp {
-    pub fn paste(&self) {
-        if let Some(display) = gdk::Display::get_default() {
-            if let Some(clipboard) = gtk::Clipboard::get_default(&display) {
-                if clipboard.wait_is_image_available() {
-                    if let Some(pixb) = clipboard.wait_for_image() {
-                        self.draw_image_paste_dialog(&pixb);
-
-                        // removing text from clipboard
-                        clipboard.set_text("");
-                        clipboard.set_image(&pixb);
-                    }
-                } else {
-                    // TODO: manage code pasting
-                }
-            }
-        }
-    }
-
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {
         let w = pixb.get_width();
         let h = pixb.get_height();
@@ -107,4 +89,29 @@ fn store_pixbuf(pixb: &Pixbuf) -> Result<String, Error> {
     f.sync_data()?;
 
     Ok(file)
+}
+
+/// This function receives the appop mutex to avoid lock the interface
+/// This was previously an appop method that receives &self, but that
+/// force us to lock the interface for the entire function that causes
+/// problems because we call to wait_is_image_available that makes that
+/// tries to continue the loop and that give us to a deadlock so
+/// this function minimize the lock and avoid that kind of problems
+/// See: https://gitlab.gnome.org/World/fractal/issues/284
+pub fn paste(op: Arc<Mutex<AppOp>>) {
+    if let Some(display) = gdk::Display::get_default() {
+        if let Some(clipboard) = gtk::Clipboard::get_default(&display) {
+            if clipboard.wait_is_image_available() {
+                if let Some(pixb) = clipboard.wait_for_image() {
+                    op.lock().unwrap().draw_image_paste_dialog(&pixb);
+
+                    // removing text from clipboard
+                    clipboard.set_text("");
+                    clipboard.set_image(&pixb);
+                }
+            } else {
+                // TODO: manage code pasting
+            }
+        }
+    }
 }

@@ -1,13 +1,13 @@
-extern crate gdk;
-extern crate glib;
-extern crate gtk;
+use gdk;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use self::gtk::prelude::*;
-use self::gtk::ResponseType;
+use gtk;
+use gtk::prelude::*;
+use gtk::ResponseType;
 use gdk::*;
+use glib;
 use glib::signal;
 use i18n::i18n;
 use dirs;
@@ -212,7 +212,7 @@ impl Data {
             previous_media_button.set_visible(true);
         }
 
-        if self.current_media_index >= self.media_list.len() - 1 {
+        if self.media_list.len() > 0 && self.current_media_index >= self.media_list.len() - 1 {
             next_media_button.set_visible(false);
         } else {
             next_media_button.set_visible(true);
@@ -804,60 +804,29 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
 /* FIXME: The following two functions should be moved to a different file,
  * so that they can be used again in different locations */
 fn save_file_as(main_window: &gtk::Window, src: String, name: String) {
-    let file_chooser = gtk::FileChooserDialog::new(
-        Some(&i18n("Save media as")),
+    let file_chooser = gtk::FileChooserNative::new(
+        Some(i18n("Save media as").as_str()),
         Some(main_window),
         gtk::FileChooserAction::Save,
+        Some(i18n("_Save").as_str()),
+        Some(i18n("_Cancel").as_str())
     );
 
-    file_chooser.set_modal(true);
-    file_chooser.add_buttons(&[
-        (&i18n("_Cancel"), ResponseType::Cancel.into()),
-        (&i18n("_Save"), ResponseType::Accept.into()),
-    ]);
-    file_chooser.set_current_folder(dirs::home_dir().unwrap_or_default());
+    file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(&name);
 
     let main_window = main_window.clone();
     file_chooser.connect_response(move |fcd, res| {
         let main_window = main_window.clone();
         if ResponseType::from(res) == ResponseType::Accept {
-            if fcd.get_filename().unwrap_or_default().exists() {
-                let confirm_dialog = gtk::MessageDialog::new(
-                    Some(fcd),
-                    gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT,
-                    gtk::MessageType::Question,
-                    gtk::ButtonsType::YesNo,
-                    &i18n("Do you want to overwrite the file?"),
-                );
-
-                confirm_dialog.connect_response(clone!(fcd, src => move |cd, res| {
-                        if ResponseType::from(res) == ResponseType::Yes {
-                            if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
-                                let err = i18n("Could not save the file");
-								show_error(&main_window, err);
-                            }
-                            cd.destroy();
-                            fcd.destroy();
-                        } else {
-                            cd.destroy();
-                        }
-                    }));
-
-                confirm_dialog.show_all();
-            } else {
-                if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
-                    let err = i18n("Could not save the file");
-                    show_error(&main_window, err);
-                }
-                fcd.destroy();
+            if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
+                let err = i18n("Could not save the file");
+                show_error(&main_window, err);
             }
-        } else {
-            fcd.destroy();
         }
     });
 
-    file_chooser.show_all();
+    file_chooser.run();
 }
 
 fn show_error(window: &gtk::Window, msg: String) {

@@ -1,9 +1,8 @@
-extern crate gtk;
-
 use i18n::i18n;
 
 use globals;
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::state::AppState;
@@ -21,7 +20,7 @@ use app::backend_loop;
 use passwd::PasswordStorage;
 
 impl AppOp {
-    pub fn bk_login(&mut self, uid: String, token: String) {
+    pub fn bk_login(&mut self, uid: String, token: String, device: Option<String>) {
         self.logged_in = true;
         self.clean_login();
         if let Err(_) = self.store_token(uid.clone(), token) {
@@ -30,6 +29,9 @@ impl AppOp {
 
         self.set_state(AppState::Chat);
         self.set_uid(Some(uid.clone()));
+        if self.device_id == None {
+            self.set_device(device);
+        }
         /* Do we need to set the username to uid
         self.set_username(Some(uid));*/
         self.get_username();
@@ -37,7 +39,7 @@ impl AppOp {
         // initial sync, we're shoing some feedback to the user
         self.initial_sync(true);
 
-        self.sync();
+        self.sync(true);
 
         self.init_protocols();
     }
@@ -53,6 +55,7 @@ impl AppOp {
 
         self.set_state(AppState::Login);
         self.set_uid(None);
+        self.set_device(None);
         self.set_username(None);
         self.set_avatar(None);
 

@@ -12,7 +12,7 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 use types::Room;
 
-pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
+pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
     if tk.is_empty() {
         return Err(Error::BackendError);
@@ -28,25 +28,28 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
 
     if let Some(since) = since.clone() {
         params.push(("since", since));
+    }
+
+    if !initial {
         params.push(("timeout", String::from("30000")));
         timeout = 30;
     } else {
-        let filter = format!("{{
-            \"room\": {{
-                \"state\": {{
-                    \"types\": [\"m.room.*\"],
-                    \"not_types\": [\"m.room.member\"]
+        let filter = format!(r#"{{
+            "room": {{
+                "state": {{
+                    "types": ["m.room.*"],
+                    "not_types": ["m.room.member"]
                 }},
-                \"timeline\": {{
-                    \"types\": [\"m.room.message\", \"m.sticker\"],
-                    \"limit\": {}
+                "timeline": {{
+                    "types": ["m.room.message", "m.sticker"],
+                    "limit": {}
                 }},
-                \"ephemeral\": {{ \"types\": [] }}
+                "ephemeral": {{ "types": [] }}
             }},
-            \"presence\": {{ \"types\": [] }},
-            \"event_format\": \"client\",
-            \"event_fields\": [\"type\", \"content\", \"sender\", \"origin_server_ts\", \"event_id\"]
-        }}", globals::PAGE_LIMIT);
+            "presence": {{ "types": [] }},
+            "event_format": "client",
+            "event_fields": ["type", "content", "sender", "origin_server_ts", "event_id", "unsigned"]
+        }}"#, globals::PAGE_LIMIT);
 
         params.push(("filter", String::from(filter)));
         params.push(("timeout", String::from("0")));
@@ -166,5 +169,5 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
 
 pub fn force_sync(bk: &Backend) -> Result<(), Error> {
     bk.data.lock().unwrap().since = None;
-    sync(bk, None)
+    sync(bk, None, true)
 }

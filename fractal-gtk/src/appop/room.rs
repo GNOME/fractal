@@ -1,13 +1,10 @@
-extern crate gtk;
-extern crate sourceview;
-
 use i18n::{i18n, i18n_k};
 
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
-use appop::MsgPos;
 use app::InternalCommand;
 
 use backend;
@@ -18,7 +15,6 @@ use cache;
 use widgets;
 
 use types::Room;
-use types::Message;
 
 use util::markup_text;
 
@@ -29,14 +25,11 @@ use std::collections::HashMap;
 
 pub struct Force(pub bool);
 
-
 #[derive(Debug, Clone)]
 pub enum RoomPanel {
     Room,
     NoRoom,
-    Loading,
 }
-
 
 impl AppOp {
     pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
@@ -164,11 +157,9 @@ impl AppOp {
         }
 
         self.member_limit = 50;
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
 
-        let msg_entry: sourceview::View = self.ui.builder
-            .get_object("msg_entry")
-            .expect("Couldn't find msg_entry in ui file.");
+        let msg_entry = self.ui.sventry.view.clone();
         if let Some(buffer) = msg_entry.get_buffer() {
             let start = buffer.get_start_iter();
             let end = buffer.get_end_iter();
@@ -192,21 +183,35 @@ impl AppOp {
         self.clear_tmp_msgs();
         self.autoscroll = true;
 
-        self.remove_messages();
+        let list = self.ui.builder
+            .get_object::<gtk::ListBox>("message_list")
+            .expect("Can't find message_list in ui file.");
 
-        self.shown_messages = 0;
-
-        let msgs = room.messages.iter().rev()
-                                .take(globals::INITIAL_MESSAGES)
-                                .collect::<Vec<&Message>>();
-        for (i, msg) in msgs.iter().enumerate() {
-            let command = InternalCommand::AddRoomMessage((*msg).clone(),
-                                                          MsgPos::Top,
-                                                          None,
-                                                          i == msgs.len() - 1,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
+        /* create the intitial list of messages to fill the new room history */
+        let active_room = self.active_room.clone().unwrap_or_default();
+        let mut messages = vec![];
+        for msg in room.messages.iter() {
+            /* Make sure the message is from this room and not redacted */
+            if msg.room == active_room && !msg.redacted {
+                let row = self.create_new_room_message(msg);
+                if let Some(row) = row {
+                    messages.push(row);
+                }
+            }
         }
+
+        /* FIXME: We show all messages always therefore we don't need to track how many messages we show */
+        self.shown_messages = messages.len();
+
+        /* make sure we remove the old room history first, because the lazy loading could try to
+         * load messages */
+        if let Some(history) = self.history.take() {
+            history.destroy();
+        }
+
+        let mut history = widgets::RoomHistory::new(list, room.clone(), self);
+        history.create(messages);
+        self.history = Some(history);
 
         let l = room.messages.len();
         if l > 0 && l < globals::INITIAL_MESSAGES {
@@ -214,7 +219,6 @@ impl AppOp {
         }
 
         self.internal.send(InternalCommand::AppendTmpMessages).unwrap();
-        self.internal.send(InternalCommand::SetPanel(RoomPanel::Room)).unwrap();
 
         if let Some(msg) = room.messages.iter().last() {
             self.mark_as_read(msg, Force(false));
@@ -297,7 +301,7 @@ impl AppOp {
         self.new_room(fakeroom, None);
         self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Loading);
+        self.room_panel(RoomPanel::Room);
     }
 
     pub fn room_panel(&self, t: RoomPanel) {
@@ -309,7 +313,6 @@ impl AppOp {
             .expect("Can't find room_header_bar in ui file.");
 
         let v = match t {
-            RoomPanel::Loading => "loading",
             RoomPanel::Room => "room_view",
             RoomPanel::NoRoom => "noroom",
         };
@@ -328,16 +331,13 @@ impl AppOp {
                     ch.show();
                 }
 
-                let msg_entry: sourceview::View = self.ui.builder
-                    .get_object("msg_entry")
-                    .expect("Couldn't find msg_entry in ui file.");
-                msg_entry.grab_focus();
+                self.ui.sventry.view.grab_focus();
 
                 let active_room_id = self.active_room.clone().unwrap_or_default();
                 let msg = self.unsent_messages
                     .get(&active_room_id).cloned()
                     .unwrap_or((String::new(), 0));
-                if let Some(buffer) = msg_entry.get_buffer() {
+                if let Some(buffer) = self.ui.sventry.view.get_buffer() {
                     buffer.set_text(&msg.0);
 
                     let iter = buffer.get_iter_at_offset(msg.1);
@@ -354,7 +354,13 @@ impl AppOp {
 
     pub fn cache_rooms(&self) {
         // serializing rooms
-        if let Err(_) = cache::store(&self.rooms, self.since.clone(), self.username.clone().unwrap_or_default(), self.uid.clone().unwrap_or_default()) {
+        let rooms = self.rooms.clone();
+        let since = self.since.clone();
+        let username = self.username.clone().unwrap_or_default();
+        let uid = self.uid.clone().unwrap_or_default();
+        let device_id = self.device_id.clone().unwrap_or_default();
+
+        if let Err(_) = cache::store(&rooms, since, username, uid, device_id) {
             println!("Error caching rooms");
         };
     }

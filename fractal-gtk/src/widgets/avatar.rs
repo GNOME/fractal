@@ -1,17 +1,14 @@
-extern crate gtk;
-extern crate gdk;
-extern crate gdk_pixbuf;
-extern crate cairo;
-extern crate letter_avatar;
-
+use letter_avatar;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use self::gtk::prelude::*;
-pub use self::gtk::DrawingArea;
-use self::gdk_pixbuf::Pixbuf;
-use self::gdk_pixbuf::PixbufExt;
-use self::gdk::ContextExt;
+use cairo;
+use gtk;
+use gtk::prelude::*;
+pub use gtk::DrawingArea;
+use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufExt;
+use gdk::ContextExt;
 use fractal_api::util::cache_path;
 
 pub type Avatar = gtk::Box;

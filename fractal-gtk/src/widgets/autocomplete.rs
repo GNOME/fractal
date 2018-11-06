@@ -1,15 +1,14 @@
-extern crate gtk;
-extern crate sourceview;
-extern crate gdk;
-
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use sourceview;
 use glib;
-use self::gtk::prelude::*;
-use self::gtk::TextTag;
+use gdk;
+use gtk;
+use gtk::prelude::*;
+use gtk::TextTag;
 
 use types::Member;
 //use types::Room;

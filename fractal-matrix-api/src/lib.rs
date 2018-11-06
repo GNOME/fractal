@@ -5,6 +5,15 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate urlencoding;
+extern crate reqwest;
+extern crate md5;
+extern crate cairo;
+extern crate regex;
+extern crate tree_magic;
+extern crate chrono;
+extern crate glib;
+
 extern crate url;
 
 #[macro_use]

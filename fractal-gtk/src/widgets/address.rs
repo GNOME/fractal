@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use glib::signal;

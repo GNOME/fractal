@@ -1,10 +1,9 @@
-extern crate gtk;
-
 use std::sync::mpsc::Sender;
 use std::collections::HashMap;
 
 use gio::ApplicationExt;
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use globals;
 use backend::BKCommand;
@@ -37,7 +36,7 @@ mod files;
 mod message;
 mod directory;
 mod notify;
-mod attach;
+pub mod attach;
 mod member;
 mod invite;
 mod about;
@@ -66,6 +65,7 @@ pub struct AppOp {
 
     pub username: Option<String>,
     pub uid: Option<String>,
+    pub device_id: Option<String>,
     pub avatar: Option<String>,
     pub server_url: String,
     pub identity_url: String,
@@ -74,7 +74,9 @@ pub struct AppOp {
     pub active_room: Option<String>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
+    pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
+    pub message_box: gtk::ListBox,
     pub load_more_spn: gtk::Spinner,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
@@ -89,7 +91,7 @@ pub struct AppOp {
 
     pub invitation_roomid: Option<String>,
     pub md_enabled: bool,
-    invite_list: Vec<Member>,
+    pub invite_list: Vec<(Member, gtk::TextChildAnchor)>,
     search_type: SearchType,
 
     pub stickers: Vec<StickerGroup>,
@@ -109,14 +111,17 @@ impl AppOp {
             ui: ui,
             gtk_app: app,
             load_more_spn: gtk::Spinner::new(),
+            message_box: gtk::ListBox::new(),
             backend: tx,
             internal: itx,
             autoscroll: true,
             active_room: None,
             rooms: HashMap::new(),
             room_settings: None,
+            history: None,
             username: None,
             uid: None,
+            device_id: None,
             avatar: None,
             server_url: String::from(globals::DEFAULT_HOMESERVER),
             identity_url: String::from(globals::DEFAULT_IDENTITYSERVER),
@@ -157,6 +162,7 @@ impl AppOp {
             self.since = data.since.filter(|s| !s.is_empty());
             self.username = Some(data.username);
             self.uid = Some(data.uid);
+            self.device_id = Some(data.device_id);
         }
 
         if let Ok(pass) = self.get_pass() {

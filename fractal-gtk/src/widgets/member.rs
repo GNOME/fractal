@@ -1,7 +1,6 @@
-extern crate pango;
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use pango;
+use gtk;
+use gtk::prelude::*;
 
 use types::Member;
 
@@ -91,5 +90,33 @@ impl<'a> MemberBox<'a> {
         event_box.add(&w);
         event_box.show_all();
         event_box
+    }
+
+    pub fn pill(&self) -> gtk::Box {
+        let backend = self.op.backend.clone();
+        let pill = gtk::Box::new(gtk::Orientation::Horizontal, 3);
+
+        let username = gtk::Label::new("");
+
+        username.set_text(&self.member.get_alias());
+        username.set_margin_end(3);
+        if let Some(style) = username.get_style_context() {
+            style.add_class("msg-highlighted");
+        }
+
+        let avatar =
+            widgets::Avatar::avatar_new(Some(globals::PILL_ICON_SIZE));
+        let data = avatar.circle(self.member.uid.clone(),
+                                 Some(self.member.get_alias()),
+                                 globals::PILL_ICON_SIZE);
+        let member_id = self.member.uid.clone();
+        download_to_cache(backend.clone(), member_id.clone(), data.clone());
+
+        avatar.set_margin_start(3);
+
+        pill.pack_start(&avatar, true, true, 0);
+        pill.pack_start(&username, true, true, 0);
+        pill.show_all();
+        pill
     }
 }

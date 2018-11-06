@@ -1,8 +1,7 @@
-extern crate gtk;
-
 use i18n::i18n;
 
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use appop::AppOp;
 use globals;
@@ -40,6 +39,7 @@ impl AppOp {
             "Saurav Sachidanand",
             "Julian Sparber",
             "Eisha Chen-yen-su",
+            "Christopher Davis"
         ]);
 
         dialog.add_credit_section(i18n("Name by").as_str(), &["Regina Bíró"]);

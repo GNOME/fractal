@@ -1,9 +1,8 @@
-extern crate gtk;
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 use i18n::i18n;
 use i18n::ni18n_f;
 

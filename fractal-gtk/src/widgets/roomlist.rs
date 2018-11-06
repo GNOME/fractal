@@ -1,17 +1,14 @@
-extern crate chrono;
-extern crate url;
-extern crate gtk;
-extern crate pango;
-extern crate gdk;
-
 use i18n::i18n;
 
+use pango;
 use glib;
-use self::gdk::DragContextExtManual;
+use gdk;
+use gdk::DragContextExtManual;
 
-use self::url::Url;
+use url::Url;
 use std::collections::HashMap;
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use globals;
 use widgets::roomrow::RoomRow;
@@ -19,7 +16,7 @@ use types::Room;
 use types::Message;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use self::chrono::prelude::*;
+use chrono::prelude::*;
 
 
 fn get_url(url: Option<String>) -> Url {

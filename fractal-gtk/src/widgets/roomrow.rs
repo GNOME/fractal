@@ -1,9 +1,8 @@
-extern crate pango;
-extern crate gdk;
-extern crate gtk;
-extern crate cairo;
-
-use self::gtk::prelude::*;
+use cairo;
+use pango;
+use gdk;
+use gtk;
+use gtk::prelude::*;
 
 use types::Room;
 

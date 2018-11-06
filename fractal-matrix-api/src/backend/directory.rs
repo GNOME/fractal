@@ -1,8 +1,5 @@
-extern crate serde_json;
-extern crate url;
-
-use self::serde_json::Value as JsonValue;
-use self::url::Url;
+use serde_json::Value as JsonValue;
+use url::Url;
 
 use globals;
 

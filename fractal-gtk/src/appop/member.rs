@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 use std::collections::HashMap;
 
@@ -77,7 +76,7 @@ impl AppOp {
         match self.search_type {
             SearchType::Invite => {
                 let entry = self.ui.builder
-                    .get_object::<gtk::Entry>("invite_entry")
+                    .get_object::<gtk::TextView>("invite_entry")
                     .expect("Can't find invite_entry in ui file.");
                 let listbox = self.ui.builder
                     .get_object::<gtk::ListBox>("user_search_box")
@@ -85,11 +84,17 @@ impl AppOp {
                 let scroll = self.ui.builder
                     .get_object::<gtk::Widget>("user_search_scroll")
                     .expect("Can't find user_search_scroll in ui file.");
-                self.search_finished(users, listbox, scroll, entry.get_text());
+
+                if let Some(buffer) = entry.get_buffer() {
+                    let start = buffer.get_start_iter();
+                    let end = buffer.get_end_iter();
+
+                    self.search_finished(users, listbox, scroll, buffer.get_text(&start, &end, false));
+                }
             },
             SearchType::DirectChat => {
                 let entry = self.ui.builder
-                    .get_object::<gtk::Entry>("to_chat_entry")
+                    .get_object::<gtk::TextView>("to_chat_entry")
                     .expect("Can't find to_chat_entry in ui file.");
                 let listbox = self.ui.builder
                     .get_object::<gtk::ListBox>("direct_chat_search_box")
@@ -97,7 +102,13 @@ impl AppOp {
                 let scroll = self.ui.builder
                     .get_object::<gtk::Widget>("direct_chat_search_scroll")
                     .expect("Can't find direct_chat_search_scroll in ui file.");
-                self.search_finished(users, listbox, scroll, entry.get_text());
+
+                if let Some(buffer) = entry.get_buffer() {
+                    let start = buffer.get_start_iter();
+                    let end = buffer.get_end_iter();
+
+                    self.search_finished(users, listbox, scroll, buffer.get_text(&start, &end, false));
+                }
             }
         }
     }

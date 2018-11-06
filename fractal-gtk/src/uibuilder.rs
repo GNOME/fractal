@@ -1,10 +1,10 @@
-extern crate gtk;
-use uibuilder::gtk::BuilderExt;
-
+use gtk::{self, prelude::*};
+use widgets::SVEntry;
 
 #[derive(Clone)]
 pub struct UI {
     pub builder: gtk::Builder,
+    pub sventry: SVEntry,
 }
 
 impl UI {
@@ -18,8 +18,8 @@ impl UI {
 
         // needed from main_window
         // These are popup menus showed from main_window interface
-        builder.add_from_resource("/org/gnome/Fractal/ui/user_menu.ui")
-               .expect("Can't load ui file: user_menu.ui");
+        builder.add_from_resource("/org/gnome/Fractal/ui/main_menu.ui")
+               .expect("Can't load ui file: main_menu.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/add_room_menu.ui")
                .expect("Can't load ui file: add_room_menu.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/room_menu.ui")
@@ -34,6 +34,11 @@ impl UI {
                .expect("Can't load ui file: stickers_popover.ui");
         builder.add_from_resource("/org/gnome/Fractal/ui/main_window.ui")
                .expect("Can't load ui file: main_window.ui");
+
+        // Order which sventry is created matters
+        let sventry = SVEntry::default();
+        let parent: gtk::Box = builder.get_object("room_parent").unwrap();
+        parent.add(&sventry.column);
 
         // Depends on main_window
         // These are all dialogs transient for main_window
@@ -56,6 +61,6 @@ impl UI {
         builder.add_from_resource("/org/gnome/Fractal/ui/msg_src_window.ui")
                .expect("Can't load ui file: msg_src_window.ui");
 
-        UI { builder }
+        UI { builder, sventry }
     }
 }

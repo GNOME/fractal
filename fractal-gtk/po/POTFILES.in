@@ -1,7 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 fractal-gtk/res/gtk/help-overlay.ui
-fractal-gtk/res/gtk/menus.ui
 fractal-gtk/res/org.gnome.Fractal.appdata.xml.in.in
 fractal-gtk/res/org.gnome.Fractal.desktop.in.in
 fractal-gtk/res/org.gnome.Fractal.gschema.xml
@@ -30,7 +29,7 @@ fractal-gtk/res/ui/room_settings.ui
 fractal-gtk/res/ui/server_chooser_menu.ui
 fractal-gtk/res/ui/sticker_group.ui
 fractal-gtk/res/ui/stickers_popover.ui
-fractal-gtk/res/ui/user_menu.ui
+fractal-gtk/res/ui/main_menu.ui
 
 # rust files
 fractal-gtk/src/app/actions.rs
@@ -75,7 +74,7 @@ fractal-gtk/src/appop/state.rs
 fractal-gtk/src/appop/stickers.rs
 fractal-gtk/src/appop/sync.rs
 fractal-gtk/src/appop/user.rs
-fractal-gtk/src/cache.rs
+fractal-gtk/src/cache/mod.rs
 fractal-gtk/src/globals.rs
 fractal-gtk/src/main.rs
 fractal-gtk/src/passwd.rs
@@ -84,6 +83,7 @@ fractal-gtk/src/uibuilder.rs
 fractal-gtk/src/util.rs
 fractal-gtk/src/uitypes.rs
 fractal-gtk/src/widgets/address.rs
+fractal-gtk/src/widgets/room_history.rs
 fractal-gtk/src/widgets/autocomplete.rs
 fractal-gtk/src/widgets/avatar.rs
 fractal-gtk/src/widgets/divider.rs

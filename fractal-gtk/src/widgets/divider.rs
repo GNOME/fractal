@@ -1,6 +1,5 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
 
 pub fn new(text: &str) -> gtk::ListBoxRow {
     let divider_row = gtk::ListBoxRow::new();

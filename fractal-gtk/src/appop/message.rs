@@ -1,21 +1,15 @@
-extern crate comrak;
-extern crate sourceview;
-extern crate tree_magic;
-
-use i18n::i18n;
-
+use tree_magic;
+use std::fs;
 use std::path::Path;
 use std::collections::HashMap;
-
 use gtk;
 use gtk::prelude::*;
 use chrono::prelude::*;
-use self::comrak::{markdown_to_html, ComrakOptions};
+use comrak::{markdown_to_html, ComrakOptions};
 
 use app::InternalCommand;
 use appop::AppOp;
 use app::App;
-use appop::RoomPanel;
 use appop::room::Force;
 
 use glib;
@@ -26,7 +20,8 @@ use uitypes::RowType;
 use backend::BKCommand;
 
 use types::Message;
-
+use serde_json::Value as JsonValue;
+use gdk_pixbuf::Pixbuf;
 
 #[derive(Debug, Clone)]
 pub enum MsgPos {
@@ -46,17 +41,7 @@ pub enum LastViewed {
     No,
 }
 
-
 impl AppOp {
-    pub fn remove_messages(&mut self) {
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
-        for ch in messages.get_children().iter().skip(1) {
-            messages.remove(ch);
-        }
-    }
-
     /// This function is used to mark as read the last message of a room when the focus comes in,
     /// so we need to force the mark_as_read because the window isn't active yet
     pub fn mark_active_room_messages(&mut self) {
@@ -74,26 +59,6 @@ impl AppOp {
         // a mutable reference to self so we can't do it inside
         if let Some(m) = msg {
             self.mark_as_read(&m, Force(true));
-        }
-    }
-
-    fn should_group(&self, msg: &Message, prev: &Message) -> bool {
-        let same_sender = msg.sender == prev.sender;
-
-        match same_sender {
-            true => {
-                let diff = msg.date.signed_duration_since(prev.date);
-                let minutes = diff.num_minutes();
-                minutes < globals::MINUTES_TO_SPLIT_MSGS && !self.has_small_mtype(prev)
-            },
-            false => false,
-        }
-    }
-
-    fn has_small_mtype(&self, msg: &Message) -> bool {
-        match msg.mtype.as_ref() {
-            "m.emote" => true,
-            _ => false,
         }
     }
 
@@ -150,96 +115,25 @@ impl AppOp {
     pub fn add_room_message(&mut self,
                             msg: Message,
                             msgpos: MsgPos,
-                            prev: Option<Message>,
-                            force_full: bool,
                             first_new: bool) {
-        if let Some(ui_msg) = self.create_new_room_message(&msg) {
-            let msg_entry: sourceview::View = self.ui.builder
-                .get_object("msg_entry")
-                .expect("Couldn't find msg_entry in ui file.");
-            let messages = self.ui.builder
-                .get_object::<gtk::ListBox>("message_list")
-                .expect("Can't find message_list in ui file.");
-
-            let mut calc_prev = prev;
-            if !force_full && calc_prev.is_none() {
-                if let Some(r) = self.rooms.get(&msg.room) {
-                    calc_prev = match r.messages.iter().position(|ref m| m.id == msg.id) {
-                        Some(pos) if pos > 0 => r.messages.get(pos - 1).cloned(),
-                        _ => None
-                    };
-                }
-            }
-
-            if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
-                if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-                    let m;
-                    {
-                        let backend = self.backend.clone();
-                        let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
-                        let entry = msg_entry.clone();
-                        mb.username_event_box.set_focus_on_click(false);
-                        mb.username_event_box.connect_button_press_event(move |eb, btn| {
-                            if btn.get_button() != 3 {
-                                if let Some(label) = eb.get_children().iter().next() {
-                                    if let Ok(l) = label.clone().downcast::<gtk::Label>() {
-                                        if let Some(t) = l.get_text() {
-                                            if let Some(buffer) = entry.get_buffer() {
-                                                buffer.insert_at_cursor(&t[..]);
-                                            }
-                                        }
-                                    }
-                                }
-
+        if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
+            if let Some(ui_msg) = self.create_new_room_message(&msg) {
+                if let Some(ref mut history) = self.history {
+                    match msgpos {
+                        MsgPos::Bottom => {
+                            if first_new {
+                                history.add_divider();
                             }
-                            glib::signal::Inhibit(false)
-                        });
-                        m = match calc_prev {
-                            Some(ref p) if self.should_group(&msg, p) => mb.create(false),
-                            _ => mb.create(true),
-                        };
-                        if let Some(ref image) = mb.image {
-                            let msg = msg.clone();
-                            let room = r.clone();
-                            image.connect_button_press_event(move |_, btn| {
-                                if btn.get_button() != 3 {
-                                    let msg = msg.clone();
-                                    let room = room.clone();
-                                    APPOP!(create_media_viewer, (msg, room));
-
-                                    Inhibit(true)
-                                } else {
-                                    Inhibit(false)
-                                }
-                            });
+                            history.add_new_message(ui_msg);
+                        },
+                        MsgPos::Top => {
+                            history.add_old_message(ui_msg);
                         }
                     }
 
-                    m.set_focus_on_click(false);
-
-                    match msgpos {
-                        MsgPos::Bottom => {
-                            messages.insert(&m, -1);
-
-                            if first_new {
-                                let divider = widgets::divider::new(i18n("New Messages").as_str());
-                                messages.insert(&divider, -1);
-                            }
-                        },
-                        MsgPos::Top => {
-                            messages.insert(&m, 1);
-
-                            if first_new {
-                                let divider = widgets::divider::new(i18n("New Messages").as_str());
-                                messages.insert(&divider, 1);
-                            }
-                        },
-                    };
-
-                    self.shown_messages += 1;
                 }
             }
+            self.shown_messages += 1;
         }
     }
 
@@ -295,9 +189,7 @@ impl AppOp {
     }
 
     pub fn append_tmp_msgs(&mut self) {
-        let messages = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
+        let messages = self.message_box.clone();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let mut widgets = vec![];
@@ -437,6 +329,7 @@ impl AppOp {
             receipt: HashMap::new(),
             redacted: false,
             in_reply_to: None,
+            extra_content: None,
         };
 
         if msg.starts_with("/me ") {
@@ -491,6 +384,11 @@ impl AppOp {
         };
         let body = String::from(file.split("/").last().unwrap_or(&file));
 
+        let info = match mtype {
+            "m.image" => get_image_media_info(&file, mime.as_ref()),
+            _ => None,
+        };
+
         let mut m = Message {
             sender: self.uid.clone().unwrap_or_default(),
             mtype: mtype.to_string(),
@@ -506,6 +404,7 @@ impl AppOp {
             receipt: HashMap::new(),
             redacted: false,
             in_reply_to: None,
+            extra_content: info,
         };
 
         m.id = Some(m.get_txn_id());
@@ -563,25 +462,30 @@ impl AppOp {
         self.load_more_spn.start();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            if self.shown_messages < r.messages.len() {
-                let msgs = r.messages.iter().rev()
-                                     .skip(self.shown_messages)
-                                     .take(globals::INITIAL_MESSAGES)
-                                     .collect::<Vec<&Message>>();
-                for (i, msg) in msgs.iter().enumerate() {
+            let msgs = r.messages.iter().filter(|x| !x.redacted).cloned().collect::<Vec<Message>>();
+            if self.shown_messages < msgs.len() {
+                let msgs = msgs.iter().rev()
+                               .skip(self.shown_messages)
+                               .take(globals::INITIAL_MESSAGES)
+                               .collect::<Vec<&Message>>();
+                for msg in msgs.iter() {
                     let command = InternalCommand::AddRoomMessage((*msg).clone(),
                                                                   MsgPos::Top,
-                                                                  None,
-                                                                  i == msgs.len() - 1,
                                                                   self.is_first_new(&msg));
                     self.internal.send(command).unwrap();
                 }
                 self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
             } else if let Some(prev_batch) = r.prev_batch.clone() {
                 self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), prev_batch)).unwrap();
+            } else if let Some(msg) = r.messages.iter().next() {
+                // no prev_batch so we use the last message to calculate that in the backend
+                self.backend.send(BKCommand::GetRoomMessagesFromMsg(r.id.clone(), msg.clone())).unwrap();
+            } else if let Some(from) = self.since.clone() {
+                // no messages and no prev_batch so we use the last since
+                self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), from)).unwrap();
             } else {
-                self.loading_more = false;
                 self.load_more_spn.stop();
+                self.loading_more = false;
             }
         }
     }
@@ -613,7 +517,8 @@ impl AppOp {
                 self.notify(msg);
             }
 
-            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Bottom, None, false,
+            let command = InternalCommand::AddRoomMessage(msg.clone(),
+                                                          MsgPos::Bottom,
                                                           self.is_first_new(&msg));
             self.internal.send(command).unwrap();
 
@@ -652,18 +557,15 @@ impl AppOp {
         for i in 0..size+1 {
             let msg = &msgs[size - i];
 
-            let prev = match i {
-                n if size - n > 0 => msgs.get(size - n - 1).cloned(),
-                _ => None
-            };
-
-            let command = InternalCommand::AddRoomMessage(msg.clone(), MsgPos::Top, prev, false,
+            let command = InternalCommand::AddRoomMessage(msg.clone(),
+                                                          MsgPos::Top,
                                                           self.is_first_new(&msg));
             self.internal.send(command).unwrap();
 
         }
         self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
     }
+
     /* parese a backend Message into a Message for the UI */
     pub fn create_new_room_message(&self, msg: &Message) -> Option<MessageContent> {
         let mut highlights = vec![];
@@ -733,5 +635,37 @@ fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights
         format: msg.format,
         highlights: highlights,
         redactable,
+        widget: None,
         }
+}
+
+/// This function open the image and fill the info data as a Json value
+/// If something fails this will returns None
+///
+/// The output json will look like:
+///
+/// {
+///  "info": {
+///   "h": 296,
+///   "w": 296,
+///   "size": 8796,
+///   "orientation": 0,
+///   "mimetype": "image/png"
+///  }
+/// }
+fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+    let (_, w, h) = Pixbuf::get_file_info(file)?;
+    let size = fs::metadata(file).ok()?.len();
+
+    let info = json!({
+        "info": {
+            "w": w,
+            "h": h,
+            "size": size,
+            "mimetype": mimetype,
+            "orientation": 0,
+        }
+    });
+
+    Some(info)
 }

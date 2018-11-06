@@ -1,6 +1,6 @@
-extern crate gtk;
-
-use self::gtk::prelude::*;
+use gtk;
+use gtk::prelude::*;
+use libhandy::Column;
 
 use appop::AppOp;
 
@@ -122,10 +122,10 @@ impl AppOp {
         let directory_stack = self.ui.builder
             .get_object::<gtk::Stack>("directory_stack")
             .expect("Can't find directory_stack in ui file.");
-        let directory_room_list = self.ui.builder
-            .get_object::<gtk::ListBox>("directory_room_list")
-            .expect("Can't find directory_room_list in ui file.");
-        directory_stack.set_visible_child(&directory_room_list);
+        let directory_column = self.ui.builder
+            .get_object::<Column>("directory_column")
+            .expect("Can't find directory_column in ui file.");
+        directory_stack.set_visible_child(&directory_column);
 
         for r in self.directory.iter() {
             let rb = widgets::RoomBox::new(&r, &self);
@@ -148,9 +148,9 @@ impl AppOp {
         let directory_stack = self.ui.builder
             .get_object::<gtk::Stack>("directory_stack")
             .expect("Can't find directory_stack in ui file.");
-        let directory_room_list = self.ui.builder
-            .get_object::<gtk::ListBox>("directory_room_list")
-            .expect("Can't find directory_room_list in ui file.");
-        directory_stack.set_visible_child(&directory_room_list);
+        let directory_column = self.ui.builder
+            .get_object::<Column>("directory_column")
+            .expect("Can't find directory_column in ui file.");
+        directory_stack.set_visible_child(&directory_column);
     }
 }

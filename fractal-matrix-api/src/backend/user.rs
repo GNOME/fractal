@@ -1,10 +1,7 @@
-extern crate serde_json;
-extern crate url;
-
 use std::fs::File;
 use std::io::prelude::*;
 
-use self::url::Url;
+use url::Url;
 use globals;
 use std::thread;
 use std::sync::{Arc, Mutex};
@@ -15,6 +12,7 @@ use util::{build_url, media_url};
 use util::put_media;
 use util::get_user_avatar;
 use util::get_user_avatar_img;
+use util::encode_uid;
 use backend::types::BKResponse;
 use backend::types::Backend;
 use util::semaphore;
@@ -22,12 +20,13 @@ use util::semaphore;
 use types::Member;
 use types::UserInfo;
 
-use self::serde_json::Value as JsonValue;
+use serde_json;
+use serde_json::Value as JsonValue;
 
 
 pub fn get_username(bk: &Backend) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", id.clone()), vec![])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
     let tx = bk.tx.clone();
     get!(&url,
         |r: JsonValue| {
@@ -42,7 +41,7 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
 
 pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", id.clone()), vec![])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
 
     let attrs = json!({
         "displayname": name,
@@ -351,7 +350,7 @@ pub fn get_username_async(bk: &Backend,
                            tx: Sender<String>)
     -> Result<(), Error> {
 
-    let url = bk.url(&format!("profile/{}/displayname", uid.clone()), vec![])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
     get!(&url,
         |r: JsonValue| {
             let name = String::from(r["displayname"].as_str().unwrap_or(&uid));
@@ -393,7 +392,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", params)?;
-    let url = bk.url(&format!("profile/{}/avatar_url", id), vec![])?;
+    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
 
     let mut file = File::open(&avatar)?;
     let mut contents: Vec<u8> = vec![];
