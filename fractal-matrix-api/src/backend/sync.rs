@@ -5,6 +5,7 @@ use util::json_q;
 use util::get_rooms_from_json;
 use util::get_rooms_timeline_from_json;
 use util::get_rooms_notifies_from_json;
+use util::parse_typing_notifications;
 use util::parse_sync_events;
 use util::parse_m_direct;
 use backend::types::BKResponse;
@@ -40,7 +41,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
                     \"types\": [\"m.room.message\", \"m.sticker\"],
                     \"limit\": {}
                 }},
-                \"ephemeral\": {{ \"types\": [\"m.typing\"] }}
+                \"ephemeral\": {{ \"types\": [] }}
             }},
             \"presence\": {{ \"types\": [] }},
             \"event_format\": \"client\",
@@ -115,6 +116,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>) -> Result<(), Error> {
                             }
                         }
                     };
+
+                    match parse_typing_notifications(&r) {
+                        Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
+                        Ok(rooms) => tx.send(BKResponse::TypingNotifications(rooms)).unwrap(),
+                    }
+
                 } else {
                    data.lock().unwrap().m_direct = parse_m_direct(&r);
 

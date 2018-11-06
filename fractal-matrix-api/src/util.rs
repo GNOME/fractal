@@ -910,7 +910,7 @@ pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
     })
 }
 
-pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<&String, HashMap<String, bool>>, Error> {
+pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<String, Vec<String>>, Error> {
     let rooms = &r["rooms"];
     let join = rooms["join"].as_object().ok_or(Error::BackendError)?;
     let mut room_notifications = HashMap::new();
@@ -929,13 +929,12 @@ pub fn parse_typing_notifications(r: &JsonValue) -> Result<HashMap<&String, Hash
             }
             let typing_users = typing_users.unwrap();
 
-            let mut typing = HashMap::new();
+            let mut typing = Vec::new();
             for user in typing_users {
-                typing.insert(user.to_string(), true);
+                typing.push(user.to_string());
             }
-            room_notifications.insert(k, typing);
+            room_notifications.insert(k.to_owned(), typing);
         }
     }
     Ok(room_notifications)
-
 }
