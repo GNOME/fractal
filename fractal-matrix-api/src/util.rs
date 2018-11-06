@@ -3,17 +3,13 @@ use regex::Regex;
 
 use serde_json::Value as JsonValue;
 
-<<<<<<< HEAD
 use self::serde_json::Value as JsonValue;
 use self::serde_json::from_value;
 
-use self::url::Url;
-=======
 use tree_magic;
 use glib;
 use url::Url;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
->>>>>>> master
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
