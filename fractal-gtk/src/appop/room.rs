@@ -1,4 +1,4 @@
-use i18n::{i18n, i18n_k};
+use i18n::{i18n, i18n_k, ni18n_f};
 
 use gtk;
 use gtk::prelude::*;
@@ -599,37 +599,36 @@ impl AppOp {
                 .get_object::<gtk::Label>("typing_label")
                 .expect("Can't find typing_label in ui file.");
 
-            let mut typing_string: String = "".to_string();
+            let mut typing_string: String;
             let cur_room = rooms.get(&active_room).unwrap();
             if cur_room.len() == 0 {
                 typing_label.hide();
 
-            } else if cur_room.len() > 3 {
+            } else if cur_room.len() > 2 {
                 typing_label.show();
-                typing_label.set_text("Several users are typing");
+                typing_label.set_text(&i18n("Several users are typing"));
             } else {
+                // So first, we create an array of typing usernames. After this, we create another
+                // array, which is full of references to the first one. Sorry, this is the best way
+                // I could figure out to do it.
+                let mut typing_users = ["".to_string(), "".to_string()];
+                let mut typing_strs = ["", ""];
+                let mut i = 0;
+
+                while i<cur_room.len() {
+                    typing_users[i] =  self.rooms.get(&active_room).unwrap().members.get(&cur_room[i]).unwrap().get_alias().to_owned();
+                    i = i+1;
+                }
+
+                i = 0;
+                while i<typing_users.len() {
+                    typing_strs[i] = typing_users[i].as_str();
+                    i = i + 1;
+                }
+
+                let typing_string = ni18n_f("{} is typing", "{} and {} are typing", cur_room.len() as u32, &typing_strs[..]);
+
                 typing_label.show();
-                let mut index = 0;
-
-                for uid in cur_room {
-                    if index > 0 && index != cur_room.len()-1 {
-                        typing_string.push_str(", ");
-                    } else if index > 0 {
-                        typing_string.push_str(" and ")
-                    }
-                    let user = &self.rooms.get(&active_room).unwrap().members.get(uid).unwrap().get_alias();
-
-                    typing_string.push_str(user.as_str());
-                    index = index + 1;
-                }
-
-                if cur_room.len() > 1 {
-                    typing_string.push_str(" are");
-                } else {
-                    typing_string.push_str(" is");
-                }
-
-                typing_string.push_str(" typing");
                 typing_label.set_text(&typing_string);
 
             }
