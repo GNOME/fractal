@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <!-- history has to be added into history_container from main_window.ui-->
+  <object class="GtkOverlay" id="history">
+    <property name="visible">True</property>
+    <child>
+      <object class="GtkScrolledWindow" id="messages_scroll">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hscrollbar_policy">never</property>
+        <property name="vscrollbar_policy">always</property>
+        <property name="window_placement">bottom-left</property>
+        <property name="min_content_width">300</property>
+        <property name="min_content_height">300</property>
+        <style>
+          <class name="messages-scroll" />
+        </style>
+        <child>
+          <object class="GtkViewport">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="valign">end</property>
+            <property name="vscroll_policy">natural</property>
+            <property name="shadow_type">none</property>
+            <child>
+              <object class="GtkBox" id="message_column">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="expand">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child type="overlay">
+      <object class="GtkOverlay">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="valign">end</property>
+        <property name="halign">end</property>
+        <property name="margin_end">24</property>
+        <property name="margin_bottom">24</property>
+        <child>
+          <object class="GtkRevealer" id="scroll_btn_revealer">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="transition_type">crossfade</property>
+            <child>
+              <object class="GtkButton" id="scroll_btn">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">go-bottom-symbolic</property>
+                  </object>
+                </child>
+                <child internal-child="accessible">
+                  <object class="AtkObject" id="scroll_btn-atkobject">
+                    <property name="AtkObject::accessible-name" translatable="yes">Scroll to bottom</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="osd"/>
+                  <class name="scroll_button"/>
+                </style>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="pass_through">False</property>
+            <property name="index">-1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
