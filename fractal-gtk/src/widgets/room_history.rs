@@ -22,17 +22,20 @@ use widgets;
 struct List {
     list: VecDeque<Element>,
     listbox: gtk::ListBox,
+    view: widgets::ScrollWidget,
 }
 
 impl List {
-    pub fn new(listbox: gtk::ListBox) -> List {
+    pub fn new(view: widgets::ScrollWidget, listbox: gtk::ListBox) -> List {
         List {
             list: VecDeque::new(),
             listbox,
+            view,
         }
     }
 
     pub fn add_top(&mut self, element: Element) -> Option<()> {
+        self.view.set_balance_top();
         /* insert position is 1 because at position 0 is the spinner */
         self.listbox.insert(&element.clone().widget?, 1);
         self.list.push_back(element.clone());
@@ -73,22 +76,33 @@ pub struct RoomHistory {
     backend: Sender<BKCommand>,
     room: Room,
     listbox: gtk::ListBox,
+    loading_spinner: gtk::Spinner,
     divider: Option<gtk::ListBoxRow>,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
 }
 
 impl RoomHistory {
-    pub fn new(listbox: gtk::ListBox, room: Room, op: &AppOp) -> RoomHistory {
-        /* remove all old messages from the listbox */
-        for ch in listbox.get_children().iter().skip(1) {
-            listbox.remove(ch);
+    pub fn new(room: Room, op: &AppOp) -> RoomHistory {
+        let history_container = op.ui.builder
+            .get_object::<gtk::Box>("history_container")
+            .expect("Can't find history_container in ui file.");
+        let mut scroll = widgets::ScrollWidget::new();
+        scroll.create();
+        /* remove previous room history widget */
+        for ch in history_container.get_children().iter() {
+            history_container.remove(ch);
         }
+        /* add room history widget */
+        history_container.add(&scroll.get_container());
+        let listbox = scroll.get_listbox();
+        let loading_spinner = scroll.get_loading_spinner();
 
         RoomHistory {
-            rows: Rc::new(RefCell::new(List::new(listbox.clone()))),
+            rows: Rc::new(RefCell::new(List::new(scroll, listbox.clone()))),
             ui: op.ui.clone(),
             listbox: listbox,
+            loading_spinner,
             backend: op.backend.clone(),
             room: room,
             divider: None,
@@ -101,6 +115,7 @@ impl RoomHistory {
         messages.reverse();
         self.queue.borrow_mut().append(&mut VecDeque::from(messages));
         self.run_queue();
+
         None
     }
 
@@ -152,6 +167,20 @@ impl RoomHistory {
             source::source_remove(id);
         }
     }
+
+    /* This is a temporary function to make the listbox accesibile from outside the history, it is
+     * currently needed for temp messages (which should also be moved to the room history) */
+    pub fn get_listbox(&self) -> &gtk::ListBox {
+        &self.listbox
+    }
+
+    /* This is a temporary function to make the loadin spinner accesibile from outside the history,
+     * it is currently needed for loading more messages
+     * (which should also be moved to the room history) */
+    pub fn get_loading_spinner(&self) -> &gtk::Spinner {
+        &self.loading_spinner
+    }
+
 
     /* This adds new incomming messages at then end of the list */
     pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {
