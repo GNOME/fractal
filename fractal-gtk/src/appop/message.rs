@@ -137,12 +137,9 @@ impl AppOp {
         }
     }
 
-    pub fn add_tmp_room_message(&mut self, msg: Message) {
+    pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
+        let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
-            let messages = self.ui.builder
-                .get_object::<gtk::ListBox>("message_list")
-                .expect("Can't find message_list in ui file.");
-
             if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
                 let m;
                 {
@@ -177,6 +174,7 @@ impl AppOp {
                 });
             };
         }
+        None
     }
 
     pub fn clear_tmp_msgs(&mut self) {
@@ -453,13 +451,14 @@ impl AppOp {
         });
     }
 
-    pub fn load_more_messages(&mut self) {
+    pub fn load_more_messages(&mut self) -> Option<()> {
         if self.loading_more {
-            return;
+            return None;
         }
 
         self.loading_more = true;
-        self.load_more_spn.start();
+        let loading_spinner = self.history.as_ref()?.get_loading_spinner();
+        loading_spinner.start();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let msgs = r.messages.iter().filter(|x| !x.redacted).cloned().collect::<Vec<Message>>();
@@ -484,15 +483,17 @@ impl AppOp {
                 // no messages and no prev_batch so we use the last since
                 self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), from)).unwrap();
             } else {
-                self.load_more_spn.stop();
+                loading_spinner.stop();
                 self.loading_more = false;
             }
         }
+        None
     }
 
-    pub fn load_more_normal(&mut self) {
-        self.load_more_spn.stop();
+    pub fn load_more_normal(&mut self) -> Option<()> {
+        self.history.as_ref()?.get_loading_spinner().stop();
         self.loading_more = false;
+        None
     }
 
     pub fn show_room_messages(&mut self, newmsgs: Vec<Message>) -> Option<()> {

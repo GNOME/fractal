@@ -181,10 +181,6 @@ impl AppOp {
         self.clear_tmp_msgs();
         self.autoscroll = true;
 
-        let list = self.ui.builder
-            .get_object::<gtk::ListBox>("message_list")
-            .expect("Can't find message_list in ui file.");
-
         /* create the intitial list of messages to fill the new room history */
         let active_room = self.active_room.clone().unwrap_or_default();
         let mut messages = vec![];
@@ -207,7 +203,7 @@ impl AppOp {
             history.destroy();
         }
 
-        let mut history = widgets::RoomHistory::new(list, room.clone(), self);
+        let mut history = widgets::RoomHistory::new(room.clone(), self);
         history.create(messages);
         self.history = Some(history);
 
