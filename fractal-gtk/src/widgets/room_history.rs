@@ -37,15 +37,15 @@ impl List {
     pub fn add_top(&mut self, element: Element) -> Option<()> {
         self.view.set_balance_top();
         /* insert position is 1 because at position 0 is the spinner */
-        self.listbox.insert(&element.clone().widget?, 1);
-        self.list.push_back(element.clone());
+        self.listbox.insert(element.message.as_ref()?.widget.as_ref()?.get_listbox_row()?, 1);
+        self.list.push_back(element);
         /* TODO: update the previous message:
          * we need to update the previous row because it could be that we have to remove the header */
         None
     }
 
     pub fn add_bottom(&mut self, element: Element) -> Option<()> {
-        self.listbox.insert(&element.clone().widget?, -1);
+        self.listbox.insert(element.message.as_ref()?.widget.as_ref()?.get_listbox_row()?, -1);
         self.list.push_front(element);
         None
     }
@@ -53,19 +53,19 @@ impl List {
 
 #[derive(Clone)]
 struct Element {
+    /* TODO: we have to add other types here, like new message divider, or time divider */
     message: Option<MessageContent>,
-    /* TODO: we should add here the new message divider, or time divider */
-    widget: Option<gtk::ListBoxRow>,
-    row: Option<widgets::MessageBox>,
 }
 
 impl Element {
-    pub fn new(message: Option<MessageContent>, widget: Option<gtk::ListBoxRow>, row: Option<widgets::MessageBox>) -> Element {
+    pub fn new() -> Element {
         Element {
-            message,
-            widget,
-            row,
+            message: None,
         }
+    }
+    pub fn set_message(mut self, message: MessageContent) -> Element {
+        self.message = Some(message);
+        self
     }
 }
 
@@ -137,7 +137,7 @@ impl RoomHistory {
         let source_id = self.source_id.clone();
         *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
             let mut data = queue.borrow_mut();
-            if let Some(item) = data.pop_front() {
+            if let Some(mut item) = data.pop_front() {
                 let last = data.front();
                 let has_header = {
                     if let Some(last) = last {
@@ -147,10 +147,9 @@ impl RoomHistory {
                     }
                 };
 
-                if let Some((element, row)) = create_row(item.clone(), &room, has_header, backend.clone(), ui.clone())
-                {
-                    rows.borrow_mut().add_top(Element::new(Some(item), Some(row), Some(element)));
-                }
+                let b = create_row(item.clone(), &room, has_header, backend.clone(), ui.clone());
+                item.widget = b;
+                rows.borrow_mut().add_top(Element::new().set_message(item));
             } else {
                 /* Remove the source id, since the closure is destoryed */
                 source_id.borrow_mut().take();
@@ -183,7 +182,7 @@ impl RoomHistory {
 
 
     /* This adds new incomming messages at then end of the list */
-    pub fn add_new_message(&mut self, item: MessageContent) -> Option<()> {
+    pub fn add_new_message(&mut self, mut item: MessageContent) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
         let has_header = {
             let last = rows.list.front();
@@ -198,12 +197,13 @@ impl RoomHistory {
             }
         };
 
-        let (element, row) = create_row(item.clone(),
+        let b = create_row(item.clone(),
             &self.room.clone(),
             has_header,
             self.backend.clone(),
-            self.ui.clone())?;
-        rows.add_bottom(Element::new(Some(item), Some(row), Some(element)));
+            self.ui.clone());
+        item.widget = b;
+        rows.add_bottom(Element::new().set_message(item));
         None
     }
 
@@ -229,31 +229,28 @@ fn create_row(
     has_header: bool,
     backend: Sender<BKCommand>,
     ui: UI,
-) -> Option<(widgets::MessageBox, gtk::ListBoxRow)> {
-    let widget = {
-        /* we need to create a message with the username, so that we don't have to pass
-         * all information to the widget creating each row */
-        let mut mb = widgets::MessageBox::new(backend, ui);
-        let w = mb.create(&row, has_header && row.mtype != RowType::Emote);
+    ) -> Option<widgets::MessageBox> {
+    /* we need to create a message with the username, so that we don't have to pass
+     * all information to the widget creating each row */
+    let mut mb = widgets::MessageBox::new(backend, ui);
+    mb.create(&row, has_header && row.mtype != RowType::Emote);
 
-        if let Some(ref image) = mb.image {
-            let msg = row.msg.clone();
-            let room = room.clone();
-            image.connect_button_press_event(move |_, btn| {
-                if btn.get_button() != 3 {
-                    let msg = msg.clone();
-                    let room = room.clone();
-                    APPOP!(create_media_viewer, (msg, room));
+    if let Some(ref image) = mb.image {
+        let msg = row.msg.clone();
+        let room = room.clone();
+        image.connect_button_press_event(move |_, btn| {
+            if btn.get_button() != 3 {
+                let msg = msg.clone();
+                let room = room.clone();
+                APPOP!(create_media_viewer, (msg, room));
 
-                    Inhibit(true)
-                } else {
-                    Inhibit(false)
-                }
-            });
-        }
-        Some((mb, w))
-    };
-    widget
+                Inhibit(true)
+            } else {
+                Inhibit(false)
+            }
+        });
+    }
+    Some(mb)
 }
 
 /* returns if two messages should have only a single header or not */

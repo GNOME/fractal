@@ -63,7 +63,7 @@ impl MessageBox {
     }
 
     /* create the message row with or without a header */
-    pub fn create(&mut self, msg: &Message, has_header: bool) -> gtk::ListBoxRow {
+    pub fn create(&mut self, msg: &Message, has_header: bool) {
         /* This was moved from the new() to there */
         let backend = self.backend.clone();
         let ui = self.ui.clone();
@@ -93,8 +93,11 @@ impl MessageBox {
         self.widget.add(&w);
         row.add(&self.widget);
         row.show_all();
-        self.row = Some(row.clone());
-        row
+        self.row = Some(row);
+    }
+
+    pub fn get_listbox_row(&self) -> Option<&gtk::ListBoxRow> {
+        self.row.as_ref()
     }
 
     /* Updates the header of a message row */
@@ -126,12 +129,14 @@ impl MessageBox {
         None
     }
 
-    pub fn tmpwidget(&mut self, msg: &Message) -> gtk::ListBoxRow {
-        let w = self.create(msg, true);
-        if let Some(style) = w.get_style_context() {
+    pub fn tmpwidget(mut self, msg: &Message) -> Option<MessageBox> {
+        self.create(msg, true);
+        {
+            let w = self.get_listbox_row()?;
+            let style = w.get_style_context()?;
             style.add_class("msg-tmp");
         }
-        w
+        Some(self)
     }
 
     fn widget(&mut self, msg: &Message) -> gtk::Box {
