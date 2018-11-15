@@ -16,7 +16,7 @@ use types::StickerGroup;
 
 #[derive(Debug)]
 pub enum InternalCommand {
-    AddRoomMessage(Message, MsgPos, bool),
+    AddRoomMessage(Message, MsgPos),
     SetView(AppState),
     NotifyClicked(Message),
     SelectRoom(Room),
@@ -41,8 +41,8 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
         loop {
             let recv = rx.recv();
             match recv {
-                Ok(InternalCommand::AddRoomMessage(msg, pos, first_new)) => {
-                    APPOP!(add_room_message, (msg, pos, first_new));
+                Ok(InternalCommand::AddRoomMessage(msg, pos)) => {
+                    APPOP!(add_room_message, (msg, pos));
                 }
                 Ok(InternalCommand::ToInvite(member)) => {
                     APPOP!(add_to_invite, (member));
