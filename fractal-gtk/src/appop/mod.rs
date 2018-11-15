@@ -10,7 +10,6 @@ use backend::BKCommand;
 use backend;
 
 use types::Member;
-use types::Message;
 use types::Room;
 use types::RoomList;
 use types::StickerGroup;
@@ -46,7 +45,6 @@ mod stickers;
 pub use self::state::AppState;
 use self::message::TmpMsg;
 pub use self::message::MsgPos;
-pub use self::message::LastViewed;
 pub use self::room::RoomPanel;
 use self::member::SearchType;
 
@@ -59,8 +57,6 @@ pub struct AppOp {
     pub syncing: bool,
     pub msg_queue: Vec<TmpMsg>,
     pub sending_message: bool,
-    pub last_viewed_messages: HashMap<String, String>,
-    pub first_new_messages: HashMap<String, Option<Message>>,
 
     pub username: Option<String>,
     pub uid: Option<String>,
@@ -125,8 +121,6 @@ impl AppOp {
             syncing: false,
             msg_queue: vec![],
             sending_message: false,
-            last_viewed_messages: HashMap::new(),
-            first_new_messages: HashMap::new(),
             state: AppState::Login,
             roomlist: widgets::RoomList::new(None),
             since: None,
