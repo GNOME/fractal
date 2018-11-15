@@ -44,6 +44,9 @@ impl List {
             Element::Message(ref message) => {
                 self.listbox.insert(message.widget.as_ref()?.get_listbox_row()?, 1);
             },
+            Element::NewDivider(ref divider) => {
+                self.listbox.insert(divider, 1);
+            },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, 1);
             }
@@ -59,6 +62,9 @@ impl List {
             Element::Message(ref message) => {
                 self.listbox.insert(message.widget.as_ref()?.get_listbox_row()?, -1);
             },
+            Element::NewDivider(ref divider) => {
+                self.listbox.insert(divider, 1);
+            },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, -1);
             }
@@ -73,6 +79,7 @@ impl List {
 #[derive(Clone)]
 enum Element {
     Message(MessageContent),
+    NewDivider(gtk::ListBoxRow),
     DayDivider(gtk::ListBoxRow),
 }
 
@@ -84,9 +91,9 @@ pub struct RoomHistory {
     room: Room,
     listbox: gtk::ListBox,
     loading_spinner: gtk::Spinner,
-    divider: Option<gtk::ListBoxRow>,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
+    /* This is the id of the last viewed message */
 }
 
 impl RoomHistory {
@@ -112,7 +119,6 @@ impl RoomHistory {
             loading_spinner,
             backend: op.backend.clone(),
             room: room,
-            divider: None,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
         }
@@ -158,6 +164,10 @@ impl RoomHistory {
                     }
                 };
 
+                if item.last_viewed && !rows.borrow().list.is_empty() {
+                    let divider = Element::NewDivider(create_new_message_divider());
+                    rows.borrow_mut().add_top(divider);
+                }
                 let b = create_row(item.clone(), &room, has_header, backend.clone(), ui.clone());
                 item.widget = b;
                 rows.borrow_mut().add_top(Element::Message(item));
@@ -215,6 +225,11 @@ impl RoomHistory {
             }
         };
 
+
+        if item.last_viewed {
+            let divider = Element::NewDivider(create_new_message_divider());
+            rows.add_bottom(divider);
+        }
         if let Some(day_divider) = day_divider {
             rows.add_bottom(day_divider);
         }
@@ -234,13 +249,6 @@ impl RoomHistory {
         self.queue.borrow_mut().push_back(item);
         self.run_queue();
 
-        None
-    }
-
-    pub fn add_divider(&mut self) -> Option<()> {
-        let divider = widgets::divider::new(i18n("New Messages").as_str());
-        self.listbox.insert(&divider, -1);
-        self.divider = Some(divider);
         None
     }
 }
@@ -307,4 +315,8 @@ fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
 
     row.show_all();
     row
+}
+
+fn create_new_message_divider() -> gtk::ListBoxRow {
+    widgets::divider::new(i18n("New Messages").as_str())
 }

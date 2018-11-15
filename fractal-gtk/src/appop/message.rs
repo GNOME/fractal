@@ -120,9 +120,6 @@ impl AppOp {
                 if let Some(ref mut history) = self.history {
                     match msgpos {
                         MsgPos::Bottom => {
-                            if first_new {
-                                history.add_divider();
-                            }
                             history.add_new_message(ui_msg);
                         },
                         MsgPos::Top => {
@@ -595,12 +592,13 @@ impl AppOp {
         };
         let redactable = power_level != 0 || uid == msg.sender;
 
-        Some(create_ui_message(msg.clone(), name, t, highlights, redactable))
+        let is_last_viewed = msg.receipt.contains_key(&uid);
+        Some(create_ui_message(msg.clone(), name, t, highlights, redactable, is_last_viewed))
     }
 }
 
 /* FIXME: don't convert msg to ui messages here, we should later get a ui message from storage */
-fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>, redactable: bool) -> MessageContent {
+fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>, redactable: bool, last_viewed: bool) -> MessageContent {
         MessageContent {
         msg: msg.clone(),
         id: msg.id.unwrap_or(String::from("")),
@@ -613,6 +611,7 @@ fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights
         url: msg.url,
         formatted_body: msg.formatted_body,
         format: msg.format,
+        last_viewed: last_viewed,
         highlights: highlights,
         redactable,
         widget: None,

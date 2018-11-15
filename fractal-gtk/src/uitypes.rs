@@ -21,6 +21,7 @@ pub struct MessageContent {
     pub msg: Message,
     pub highlights: Vec<String>,
     pub redactable: bool,
+    pub last_viewed: bool,
     pub widget: Option<widgets::MessageBox>
 }
 
