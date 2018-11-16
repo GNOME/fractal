@@ -161,15 +161,26 @@ impl AppOp {
         None
     }
 
-    pub fn mark_as_read(&mut self, msg: &Message, Force(force): Force) {
+    pub fn mark_as_read(&mut self, msg: &Message, Force(force): Force) -> Option<()> {
         let window: gtk::Window = self.ui.builder
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
         if window.is_active() || force {
-            println!("Update last viewed message");
+            /* Move the last viewed mark to the last message */
+            let active_room_id = self.active_room.as_ref()?;
+            let room = self.rooms.get_mut(active_room_id)?;
+            let uid = self.uid.clone()?;
+            room.messages.iter_mut().for_each(|msg|
+                                     if msg.receipt.contains_key(&uid) {
+                                         msg.receipt.remove(&uid);
+                                     });
+            let last_message = room.messages.last_mut()?;
+            last_message.receipt.insert(self.uid.clone()?, 0);
+
             self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
-                                                    msg.id.clone().unwrap_or_default())).unwrap();
+            msg.id.clone().unwrap_or_default())).unwrap();
         }
+        None
     }
 
     pub fn msg_sent(&mut self, _txid: String, evid: String) {
