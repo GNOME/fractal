@@ -46,6 +46,19 @@ impl List {
             },
             Element::NewDivider(ref divider) => {
                 self.listbox.insert(divider, 1);
+                /* Add destroy timeout
+                 * The new message divider should disapear after a couple of secounds */
+                let divider = divider.downgrade();
+                gtk::timeout_add(5000, move || {
+                    /* when the user closes the room the divider get destroyed and this tiemout
+                     * does nothing, but that's fine */
+                    || -> Option<()> {
+                        let divider = divider.upgrade()?;
+                        divider.destroy();
+                        None
+                    }();
+                    glib::Continue(false)
+                });
             },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, 1);
@@ -64,6 +77,19 @@ impl List {
             },
             Element::NewDivider(ref divider) => {
                 self.listbox.insert(divider, 1);
+                /* Add destroy timeout
+                 * The new message divider should disapear after a couple of secounds */
+                let divider = divider.downgrade();
+                gtk::timeout_add(5000, move || {
+                    /* when the user closes the room the divider get destroyed and this tiemout
+                     * does nothing, but that's fine */
+                    || -> Option<()> {
+                        let divider = divider.upgrade()?;
+                        divider.destroy();
+                        None
+                    }();
+                    glib::Continue(false)
+                });
             },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, -1);
