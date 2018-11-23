@@ -120,7 +120,7 @@ impl AppOp {
     }
 
     pub fn append_tmp_msgs(&mut self) -> Option<()> {
-        let messages = self.message_box.clone();
+        let messages = self.history.as_ref()?.get_listbox();
 
         if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
             let mut widgets = vec![];
@@ -263,9 +263,6 @@ impl AppOp {
             m.mtype = String::from("m.emote");
         }
 
-        /* reenable autoscroll to jump to new message in history */
-        self.autoscroll = true;
-
         // Riot does not properly show emotes with Markdown;
         // Emotes with markdown have a newline after the username
         if m.mtype != "m.emote" && self.md_enabled {
@@ -293,9 +290,6 @@ impl AppOp {
     }
 
     pub fn attach_message(&mut self, file: String) -> Message {
-        /* reenable autoscroll to jump to new message in history */
-        self.autoscroll = true;
-
         let now = Local::now();
         let room = self.active_room.clone();
         let f = file.clone();

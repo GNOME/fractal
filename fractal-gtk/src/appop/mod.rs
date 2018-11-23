@@ -65,20 +65,17 @@ pub struct AppOp {
     pub server_url: String,
     pub identity_url: String,
 
-    pub autoscroll: bool,
     pub active_room: Option<String>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
-    pub message_box: gtk::ListBox,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
     pub inhibit_escape: bool,
 
     pub state: AppState,
     pub since: Option<String>,
-    pub member_limit: usize,
 
     pub logged_in: bool,
     pub loading_more: bool,
@@ -104,10 +101,8 @@ impl AppOp {
         AppOp {
             ui: ui,
             gtk_app: app,
-            message_box: gtk::ListBox::new(),
             backend: tx,
             internal: itx,
-            autoscroll: true,
             active_room: None,
             rooms: HashMap::new(),
             room_settings: None,
@@ -124,7 +119,6 @@ impl AppOp {
             state: AppState::Login,
             roomlist: widgets::RoomList::new(None),
             since: None,
-            member_limit: 50,
             unsent_messages: HashMap::new(),
 
             inhibit_escape: false,

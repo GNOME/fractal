@@ -143,7 +143,6 @@ impl AppOp {
     }
 
     pub fn set_active_room(&mut self, room: &Room) {
-        self.member_limit = 50;
         self.room_panel(RoomPanel::Room);
 
         let msg_entry = self.ui.sventry.view.clone();
@@ -168,7 +167,6 @@ impl AppOp {
 
         self.active_room = Some(room.id.clone());
         self.clear_tmp_msgs();
-        self.autoscroll = true;
 
         /* create the intitial list of messages to fill the new room history */
         let active_room = self.active_room.clone().unwrap_or_default();
