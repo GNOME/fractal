@@ -35,8 +35,7 @@ impl AvatarData {
 
     pub fn redraw_pixbuf(&mut self) {
         let path = cache_path(&self.uid).unwrap_or(String::from(""));
-        let new_avatar = Pixbuf::new_from_file_at_scale(&path, self.size, -1, true);
-        self.cache = new_avatar.ok();
+        self.cache = load_pixbuf(&path, self.size);
         self.widget.queue_draw();
     }
 }
@@ -84,7 +83,7 @@ impl AvatarExt for gtk::Box {
         self.clean();
         let da = self.create_da(Some(size));
         let path = cache_path(&uid).unwrap_or(String::from(""));
-        let user_avatar = Pixbuf::new_from_file_at_scale(&path, size, -1, true);
+        let user_avatar = load_pixbuf(&path, size);
         let uname = username.clone();
         /* remove IRC postfix from the username */
         let username = if let Some(u) = username {
@@ -100,7 +99,7 @@ impl AvatarExt for gtk::Box {
             uid: uid.clone(),
             username: uname,
             size: size,
-            cache: user_avatar.ok(),
+            cache: user_avatar,
             fallback: fallback,
             widget: da.clone(),
         };
@@ -138,6 +137,21 @@ impl AvatarExt for gtk::Box {
         });
 
         avatar_cache
+    }
+}
+
+fn load_pixbuf(path: &str, size: i32) -> Option<Pixbuf> {
+    if let Some(pixbuf) = Pixbuf::new_from_file(&path).ok() {
+        // FIXME: We end up loading the file twice but we need to load the file first to find out its dimentions to be
+        // able to decide wether to scale by width or height and gdk doesn't provide simple API to scale a loaded
+        // pixbuf while preserving aspect ratio.
+        if pixbuf.get_width() > pixbuf.get_height() {
+            Pixbuf::new_from_file_at_scale(&path, -1, size, true).ok()
+        } else {
+            Pixbuf::new_from_file_at_scale(&path, size, -1, true).ok()
+        }
+    } else {
+        None
     }
 }
 
