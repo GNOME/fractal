@@ -81,7 +81,9 @@ impl AppOp {
                         let _ = backend.send(BKCommand::SubmitPhoneToken(id_server.clone(), secret.clone(), sid.clone(), token));
                     }
                 },
-                _ => {}
+                _ => {
+                    backend.send(BKCommand::GetThreePID).unwrap();
+                }
             }
             w.destroy();
         });
