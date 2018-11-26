@@ -45,20 +45,7 @@ impl List {
                 self.listbox.insert(message.widget.as_ref()?.get_listbox_row()?, 1);
             },
             Element::NewDivider(ref divider) => {
-                self.listbox.insert(divider, 1);
-                /* Add destroy timeout
-                 * The new message divider should disapear after a couple of secounds */
-                let divider = divider.downgrade();
-                gtk::timeout_add(5000, move || {
-                    /* when the user closes the room the divider get destroyed and this tiemout
-                     * does nothing, but that's fine */
-                    || -> Option<()> {
-                        let divider = divider.upgrade()?;
-                        divider.destroy();
-                        None
-                    }();
-                    glib::Continue(false)
-                });
+                self.listbox.insert(divider.get_widget(), 1);
             },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, 1);
@@ -76,20 +63,7 @@ impl List {
                 self.listbox.insert(message.widget.as_ref()?.get_listbox_row()?, -1);
             },
             Element::NewDivider(ref divider) => {
-                self.listbox.insert(divider, -1);
-                /* Add destroy timeout
-                 * The new message divider should disapear after a couple of secounds */
-                let divider = divider.downgrade();
-                gtk::timeout_add(5000, move || {
-                    /* when the user closes the room the divider get destroyed and this tiemout
-                     * does nothing, but that's fine */
-                    || -> Option<()> {
-                        let divider = divider.upgrade()?;
-                        divider.destroy();
-                        None
-                    }();
-                    glib::Continue(false)
-                });
+                self.listbox.insert(divider.get_widget(), -1);
             },
             Element::DayDivider(ref divider) => {
                 self.listbox.insert(divider, -1);
@@ -105,7 +79,7 @@ impl List {
 #[derive(Clone)]
 enum Element {
     Message(MessageContent),
-    NewDivider(gtk::ListBoxRow),
+    NewDivider(widgets::NewMessageDivider),
     DayDivider(gtk::ListBoxRow),
 }
 
@@ -361,6 +335,6 @@ fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
     row
 }
 
-fn create_new_message_divider() -> gtk::ListBoxRow {
-    widgets::divider::new(i18n("New Messages").as_str())
+fn create_new_message_divider() -> widgets::NewMessageDivider {
+    widgets::NewMessageDivider::new(i18n("New Messages").as_str())
 }
