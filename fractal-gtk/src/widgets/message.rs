@@ -219,6 +219,14 @@ impl MessageBox {
         w.set_valign(gtk::Align::Start);
         w.set_halign(gtk::Align::Start);
         w.set_selectable(true);
+
+        if let Some(l) = w.get_label() {
+            if msg_only_emoji(&l) {
+                if let Some(style) = w.get_style_context() {
+                    style.add_class("huge-emoji");
+                }
+            }
+        }
     }
 
     fn build_room_msg_body(&self, msg: &Message) -> gtk::Box {
@@ -293,7 +301,8 @@ impl MessageBox {
 
     fn create_msg(&self, body: &str, k: MsgPartType) -> gtk::Label {
         let msg_part = gtk::Label::new("");
-        msg_part.set_markup(&markup_text(&body));
+        msg_part.set_use_markup(true);
+        msg_part.set_markup(&markup_text(body));
         self.set_label_styles(&msg_part);
 
         if k == MsgPartType::Quote {
@@ -652,6 +661,19 @@ fn highlight_username(
     }
 
     None
+}
+
+fn msg_only_emoji(msg: &str) -> bool {
+    let chars: Vec<char> = msg.chars().collect();
+    if chars.len() != 1 {
+        return false;
+    }
+
+    match chars[0] {
+        // Will need to add more patterns but core emojis are a good start
+        '\u{1F385}'...'\u{1F64F}' => return true,
+        _ => return false,
+    }
 }
 
 #[derive(PartialEq)]

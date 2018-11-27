@@ -301,3 +301,7 @@ stack.titlebar:not(headerbar) > box > separator {
 .small-font {
     font-size: small;
 }
+
+.huge-emoji {
+  font-size: xx-large;
+}
