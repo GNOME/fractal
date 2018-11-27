@@ -400,6 +400,10 @@ impl AppOp {
     /* parese a backend Message into a Message for the UI */
     pub fn create_new_room_message(&self, msg: &Message) -> Option<MessageContent> {
         let mut highlights = vec![];
+        lazy_static! {
+            static ref emoji_regex: regex::Regex = regex::Regex::new(r"^[\p{Emoji} ]+$").unwrap();
+        }
+
         let t = match msg.mtype.as_ref() {
             "m.emote" => RowType::Emote,
             "m.image" => RowType::Image,
@@ -426,6 +430,8 @@ impl AppOp {
                     highlights.push(String::from("message_menu"));
 
                     RowType::Mention
+                } else if emoji_regex.is_match(&msg.body) {
+                    RowType::Emoji
                 } else {
                     RowType::Message
                 }

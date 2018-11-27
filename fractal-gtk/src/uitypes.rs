@@ -38,4 +38,5 @@ pub enum RowType {
     Audio,
     Video,
     File,
+    Emoji,
 }
