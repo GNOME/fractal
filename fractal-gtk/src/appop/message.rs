@@ -489,6 +489,8 @@ impl AppOp {
                     highlights.push(String::from("message_menu"));
 
                     RowType::Mention
+                } else if msg_only_emoji(&msg.body) {
+                    RowType::Emoji
                 } else {
                     RowType::Message
                 }
@@ -578,4 +580,17 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     });
 
     Some(info)
+}
+
+fn msg_only_emoji(msg: &str) -> bool {
+    let chars: Vec<char> = msg.chars().collect();
+    if chars.len() != 1 {
+        return false;
+    }
+
+    match chars[0] {
+        // Will need to add more patterns but core emojis are a good start
+        '\u{1F385}'...'\u{1F64F}' => return true,
+        _ => return false,
+    }
 }
