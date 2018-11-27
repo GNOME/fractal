@@ -293,7 +293,12 @@ impl MessageBox {
 
     fn create_msg(&self, body: &str, k: MsgPartType) -> gtk::Label {
         let msg_part = gtk::Label::new("");
-        msg_part.set_markup(&markup_text(&body));
+        let markup = if msg_only_emoji(&body) {
+            format!("<big>{}</big>", &body)
+        } else {
+            String::from(body)
+        };
+        msg_part.set_markup(&markup_text(&markup));
         self.set_label_styles(&msg_part);
 
         if k == MsgPartType::Quote {
@@ -652,6 +657,19 @@ fn highlight_username(
     }
 
     None
+}
+
+fn msg_only_emoji(msg: &str) -> bool {
+    let chars: Vec<char> = msg.chars().collect();
+    if chars.len() != 1 {
+        return false;
+    }
+
+    match chars[0] {
+        // Will need to add more patterns but core emojis are a good start
+        '\u{1F385}'...'\u{1F64F}' => return true,
+        _ => return false,
+    }
 }
 
 #[derive(PartialEq)]
