@@ -206,6 +206,7 @@ impl MessageBox {
             match msg.mtype {
                 RowType::Mention => style.add_class("msg-mention"),
                 RowType::Emote => style.add_class("msg-emote"),
+                RowType::Emoji => style.add_class("msg-emoji"),
                 _ => {}
             }
         }
@@ -293,7 +294,7 @@ impl MessageBox {
 
     fn create_msg(&self, body: &str, k: MsgPartType) -> gtk::Label {
         let msg_part = gtk::Label::new("");
-        msg_part.set_markup(&markup_text(&body));
+        msg_part.set_markup(&markup_text(body));
         self.set_label_styles(&msg_part);
 
         if k == MsgPartType::Quote {
