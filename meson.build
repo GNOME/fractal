@@ -98,4 +98,15 @@ run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
                                ])
 
+# Setup pre-commit hook for ensuring coding style is always consistent
+rustup = find_program('rustup', required : false)
+if not rustup.found()
+    run_command('curl', 'https://sh.rustup.rs', '-sSf', '|', 'sh', '-s', '--', '-y')
+    rustup = find_program('rustup')
+endif
+message('Installing nightly rustfmt..')
+run_command(rustup, 'component', 'add', 'rustfmt-preview', '--toolchain', 'nightly')
+message('Setting up git pre-commit hook..')
+run_command('cp', '-f', 'hooks/pre-commit.hook', '.git/hooks/pre-commit')
+
 meson.add_install_script('scripts/meson_post_install.py')

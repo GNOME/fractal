@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo "--Checking style--"
+cargo +nightly fmt --all -- --check
+if test $? != 0; then
+    echo "--Checking style fail--"
+    echo "Please fix the above issues, either manually or by running: cargo +nightly fmt --all"
+
+    exit -1
+else
+    echo "--Checking style pass--"
+fi
