@@ -98,4 +98,8 @@ run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
                                ])
 
+# Setup pre-commit hook for ensuring coding style is always consistent
+message('Setting up git pre-commit hook..')
+run_command('cp', '-f', 'hooks/pre-commit.hook', '.git/hooks/pre-commit')
+
 meson.add_install_script('scripts/meson_post_install.py')
