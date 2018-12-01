@@ -134,20 +134,26 @@ impl ScrollWidget {
         let upper = Rc::downgrade(&self.upper);
         let balance = Rc::downgrade(&self.balance);
         let autoscroll = Rc::downgrade(&self.autoscroll);
+        let view = self.widgets.view.downgrade();
         adj.connect_property_upper_notify(move |adj| {
             debug_assert!(
                 || -> Option<()> {
+                    let view = view.upgrade()?;
                     let upper = upper.upgrade()?;
                     let balance = balance.upgrade()?;
                     let autoscroll = autoscroll.upgrade()?;
                     let new_upper = adj.get_upper();
                     let diff = new_upper - upper.get();
-                    upper.set(new_upper);
-                    /* Stay at the end of the room history when autoscroll is on */
-                    if autoscroll.get() {
-                        adj.set_value(adj.get_upper() - adj.get_page_size());
-                    } else if balance.take().map_or(false, |x| x == Position::Top) {
-                        adj.set_value(adj.get_value() + diff);
+                    /* Don't do anything if upper didn't change */
+                    if diff != 0.0 {
+                        upper.set(new_upper);
+                        /* Stay at the end of the room history when autoscroll is on */
+                        if autoscroll.get() {
+                            adj.set_value(adj.get_upper() - adj.get_page_size());
+                        } else if balance.take().map_or(false, |x| x == Position::Top) {
+                            adj.set_value(adj.get_value() + diff);
+                            view.set_kinetic_scrolling(true);
+                        }
                     }
                     Some(())
                 }()
@@ -160,6 +166,7 @@ impl ScrollWidget {
         let revealer = self.widgets.btn_revealer.downgrade();
         let spinner = self.widgets.spinner.downgrade();
         adj.connect_value_changed(move |adj| {
+            println!("{}, Value changed", adj.get_value());
             debug_assert!(
                 || -> Option<()> {
                     let autoscroll = autoscroll.upgrade()?;
@@ -210,6 +217,8 @@ impl ScrollWidget {
     }
 
     pub fn set_balance_top(&self) {
+        /* FIXME: Workaround: https://gitlab.gnome.org/GNOME/gtk/merge_requests/395 */
+        self.widgets.view.set_kinetic_scrolling(false);
         self.balance.set(Some(Position::Top));
     }
     pub fn get_listbox(&self) -> gtk::ListBox {
