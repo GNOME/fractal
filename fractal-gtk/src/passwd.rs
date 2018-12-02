@@ -1,45 +1,16 @@
 use secret_service;
 
-use gio::SettingsExt;
-use gio::{Settings, SettingsSchemaSource};
-
-use serde_json;
-use std;
 
 #[derive(Debug)]
 pub enum Error {
     SecretServiceError,
-    PlainTextError,
 }
 
 derror!(secret_service::SsError, Error::SecretServiceError);
-derror!(std::io::Error, Error::PlainTextError);
-derror!(serde_json::Error, Error::PlainTextError);
-
-enum PWDConf {
-    SecretService,
-    PlainText,
-}
-
-fn pwd_conf() -> PWDConf {
-    SettingsSchemaSource::get_default()
-        .and_then(|s| s.lookup("org.gnome.Fractal", true))
-        .map(|_| {
-            let settings: Settings = Settings::new("org.gnome.Fractal");
-            match settings.get_enum("password-storage") {
-                1 => PWDConf::PlainText,
-                _ => PWDConf::SecretService,
-            }
-        })
-        .unwrap_or(PWDConf::SecretService)
-}
 
 pub trait PasswordStorage {
     fn delete_pass(&self, key: &str) -> Result<(), Error> {
-        match pwd_conf() {
-            PWDConf::PlainText => plain_text::delete_pass(key),
-            _ => ss_storage::delete_pass(key),
-        }
+        ss_storage::delete_pass(key)
     }
 
     fn store_pass(
@@ -49,31 +20,19 @@ pub trait PasswordStorage {
         server: String,
         identity: String,
     ) -> Result<(), Error> {
-        match pwd_conf() {
-            PWDConf::PlainText => plain_text::store_pass(username, password, server, identity),
-            _ => ss_storage::store_pass(username, password, server, identity),
-        }
+        ss_storage::store_pass(username, password, server, identity)
     }
 
     fn get_pass(&self) -> Result<(String, String, String, String), Error> {
-        match pwd_conf() {
-            PWDConf::PlainText => plain_text::get_pass(),
-            _ => ss_storage::get_pass(),
-        }
+        ss_storage::get_pass()
     }
 
     fn store_token(&self, uid: String, token: String) -> Result<(), Error> {
-        match pwd_conf() {
-            PWDConf::PlainText => plain_text::store_token(uid, token),
-            _ => ss_storage::store_token(uid, token),
-        }
+        ss_storage::store_token(uid, token)
     }
 
     fn get_token(&self) -> Result<(String, String), Error> {
-        match pwd_conf() {
-            PWDConf::PlainText => plain_text::get_token(),
-            _ => ss_storage::get_token(),
-        }
+        ss_storage::get_token()
     }
 }
 
@@ -276,111 +235,3 @@ mod ss_storage {
     }
 }
 
-mod plain_text {
-    use super::serde_json;
-    use super::Error;
-    use glib::get_user_config_dir;
-    use std::fs::create_dir_all;
-    use std::fs::File;
-    use std::io::prelude::*;
-    use std::path::PathBuf;
-
-    #[derive(Serialize, Deserialize, Default)]
-    pub struct UserData {
-        pub username: String,
-        pub server: String,
-        pub identity: String,
-        pub password: Option<String>,
-        pub token: Option<String>,
-    }
-
-    fn get_file(name: &str) -> Result<String, Error> {
-        let mut path = match get_user_config_dir() {
-            Some(path) => path,
-            None => PathBuf::from("~"),
-        };
-
-        path.push("fractal");
-
-        if !path.exists() {
-            create_dir_all(&path)?;
-        }
-
-        path.push(name);
-        Ok(path.into_os_string().into_string().unwrap_or_default())
-    }
-
-    fn load() -> Result<UserData, Error> {
-        let fname = get_file(".fractal-userdata.json")?;
-        let mut file = File::open(fname)?;
-        let mut serialized = String::new();
-        file.read_to_string(&mut serialized)?;
-        let deserialized: UserData = serde_json::from_str(&serialized)?;
-
-        Ok(deserialized)
-    }
-
-    fn store(data: &UserData) -> Result<(), Error> {
-        let fname = get_file(".fractal-userdata.json")?;
-        let serialized = serde_json::to_string(data)?;
-        File::create(fname)?.write_all(&serialized.into_bytes())?;
-
-        Ok(())
-    }
-
-    pub fn delete_pass(key: &str) -> Result<(), Error> {
-        let mut data = load().unwrap_or_default();
-        match key {
-            "fractal" => {
-                data.password = None;
-            }
-            "fractal-token" => {
-                data.token = None;
-            }
-            _ => {
-                data.password = None;
-            }
-        };
-        store(&data)?;
-
-        Ok(())
-    }
-
-    pub fn store_token(uid: String, token: String) -> Result<(), Error> {
-        let mut data = load().unwrap_or_default();
-        data.username = uid;
-        data.token = Some(token);
-        store(&data)?;
-        Ok(())
-    }
-
-    pub fn get_token() -> Result<(String, String), Error> {
-        let data = load().unwrap_or_default();
-        Ok((data.token.unwrap_or_default(), data.username))
-    }
-
-    pub fn store_pass(
-        username: String,
-        password: String,
-        server: String,
-        identity: String,
-    ) -> Result<(), Error> {
-        let mut data = load().unwrap_or_default();
-        data.username = username;
-        data.password = Some(password);
-        data.server = server;
-        data.identity = identity;
-        store(&data)?;
-        Ok(())
-    }
-
-    pub fn get_pass() -> Result<(String, String, String, String), Error> {
-        let data = load().unwrap_or_default();
-        Ok((
-            data.username,
-            data.password.unwrap_or_default(),
-            data.server,
-            data.identity,
-        ))
-    }
-}
