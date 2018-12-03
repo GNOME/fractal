@@ -10,8 +10,6 @@ use gdk_pixbuf;
 use glib;
 use gtk;
 use gtk::prelude::*;
-use sourceview;
-use sourceview::prelude::*;
 
 use app::App;
 use backend::BKCommand;
@@ -19,6 +17,7 @@ use i18n::i18n;
 
 use uibuilder::UI;
 use uitypes::{MessageContent, RowType};
+use widgets::SourceDialog;
 
 #[derive(Clone)]
 struct SelectedText {
@@ -59,7 +58,6 @@ impl MessageMenu {
             msg,
         };
         menu.connect_message_menu();
-        menu.connect_msg_src_window();
         menu
     }
 
@@ -240,28 +238,21 @@ impl MessageMenu {
     }
 
     pub fn display_msg_src_window(&self) {
-        let source_buffer: sourceview::Buffer = self
+        let error = i18n("This message has no source.");
+        let parent : gtk::Window = self
             .ui
             .builder
-            .get_object("source_buffer")
-            .expect("Can't source_buffer in ui file.");
+            .get_object("main_window")
+            .expect("Can't find main_window in ui file.");
+        let source = self.msg
+            .msg
+            .source
+            .as_ref()
+            .unwrap_or(&error);
 
-        let msg_src_window: gtk::Window = self
-            .ui
-            .builder
-            .get_object("msg_src_window")
-            .expect("Can't find msg_src_window in ui file.");
-
-        source_buffer.set_text(
-            self.msg
-                .msg
-                .source
-                .clone()
-                .unwrap_or("This message has no source.".to_string())
-                .as_str(),
-        );
-
-        msg_src_window.show();
+        let viewer = SourceDialog::new();
+        viewer.set_parent_window(&parent);
+        viewer.show(source.as_str());
     }
 
     pub fn connect_message_menu(&self) {
@@ -340,66 +331,6 @@ impl MessageMenu {
         view_source_button.connect_clicked(clone!(this => move |_| {
             this.borrow().display_msg_src_window();
         }));
-    }
-
-    pub fn connect_msg_src_window(&self) {
-        let msg_src_window: gtk::Window = self
-            .ui
-            .builder
-            .get_object("msg_src_window")
-            .expect("Can't find msg_src_window in ui file.");
-
-        let copy_src_button: gtk::Button = self
-            .ui
-            .builder
-            .get_object("copy_src_button")
-            .expect("Can't find copy_src_button in ui file.");
-
-        let close_src_button: gtk::Button = self
-            .ui
-            .builder
-            .get_object("close_src_button")
-            .expect("Can't find close_src_button in ui file.");
-
-        let source_buffer: sourceview::Buffer = self
-            .ui
-            .builder
-            .get_object("source_buffer")
-            .expect("Can't find source_buffer in ui file.");
-
-        copy_src_button.connect_clicked(clone!(source_buffer => move |_| {
-            let atom = gdk::Atom::intern("CLIPBOARD");
-            let clipboard = gtk::Clipboard::get(&atom);
-
-            let start_iter = source_buffer.get_start_iter();
-            let end_iter = source_buffer.get_end_iter();
-
-            if let Some(src) = source_buffer.get_text(&start_iter, &end_iter, false) {
-                clipboard.set_text(&src);
-            }
-        }));
-
-        msg_src_window.connect_delete_event(|w, _| Inhibit(w.hide_on_delete()));
-
-        let msg_src_window = msg_src_window.clone();
-        close_src_button.connect_clicked(move |_| {
-            msg_src_window.hide();
-        });
-
-        let json_lang =
-            sourceview::LanguageManager::get_default().map_or(None, |lm| lm.get_language("json"));
-
-        source_buffer.set_highlight_matching_brackets(false);
-        if let Some(json_lang) = json_lang.clone() {
-            source_buffer.set_language(&json_lang);
-            source_buffer.set_highlight_syntax(true);
-
-            if let Some(scheme) = sourceview::StyleSchemeManager::get_default()
-                .map_or(None, |scm| scm.get_scheme("kate"))
-            {
-                source_buffer.set_style_scheme(&scheme);
-            }
-        }
     }
 }
 

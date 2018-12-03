@@ -99,3 +99,4 @@ fractal-gtk/src/widgets/room_settings.rs
 fractal-gtk/src/widgets/roomlist.rs
 fractal-gtk/src/widgets/roomrow.rs
 fractal-gtk/src/widgets/scroll_widget.rs
+fractal-gtk/src/widgets/source_viewer.rs
