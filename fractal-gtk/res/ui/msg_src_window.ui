@@ -14,7 +14,6 @@
     <property name="destroy_with_parent">True</property>
     <property name="deletable">False</property>
     <property name="gravity">center</property>
-    <property name="transient_for">main_window</property>
     <child type="titlebar">
       <object class="GtkHeaderBar">
         <property name="visible">True</property>

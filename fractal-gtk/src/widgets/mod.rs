@@ -15,6 +15,7 @@ pub mod room_settings;
 mod roomlist;
 mod roomrow;
 mod scroll_widget;
+mod source_viewer;
 mod sourceview_entry;
 
 pub use self::address::Address;
@@ -37,4 +38,5 @@ pub use self::room_settings::RoomSettings;
 pub use self::roomlist::RoomList;
 pub use self::roomrow::RoomRow;
 pub use self::scroll_widget::ScrollWidget;
+pub use self::source_viewer::SourceViewer;
 pub use self::sourceview_entry::SVEntry;

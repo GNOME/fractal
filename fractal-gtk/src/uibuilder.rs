@@ -75,9 +75,6 @@ impl UI {
         builder
             .add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
             .expect("Can't load ui file: account_settings.ui");
-        builder
-            .add_from_resource("/org/gnome/Fractal/ui/msg_src_window.ui")
-            .expect("Can't load ui file: msg_src_window.ui");
 
         UI { builder, sventry }
     }
