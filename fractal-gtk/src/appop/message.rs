@@ -48,7 +48,7 @@ impl AppOp {
         }
     }
 
-    pub fn add_room_message(&mut self, msg: Message) {
+    pub fn add_room_message(&mut self, msg: &Message) {
         if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
             if let Some(ui_msg) = self.create_new_room_message(&msg) {
                 if let Some(ref mut history) = self.history {
@@ -441,9 +441,7 @@ impl AppOp {
                 self.notify(msg);
             }
 
-            let command = InternalCommand::AddRoomMessage(msg.clone());
-            self.internal.send(command).unwrap();
-
+            self.add_room_message(&msg);
             self.roomlist.moveup(msg.room.clone());
             self.roomlist.set_bold(msg.room.clone(), true);
         }
