@@ -26,6 +26,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     let copy_text = SimpleAction::new("copy_text", glib::VariantTy::new("s").ok());
     let delete = SimpleAction::new("delete", glib::VariantTy::new("s").ok());
     let show_source = SimpleAction::new("show_source", glib::VariantTy::new("s").ok());
+    let open_media_viewer = SimpleAction::new("open_media_viewer", glib::VariantTy::new("s").ok());
 
     actions.add_action(&reply);
     actions.add_action(&open_with);
@@ -34,6 +35,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     actions.add_action(&copy_text);
     actions.add_action(&delete);
     actions.add_action(&show_source);
+    actions.add_action(&open_media_viewer);
 
     let parent: gtk::Window = ui
         .builder
@@ -68,8 +70,8 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                     + "\n";
 
                 buffer.insert(&mut start, &quote);
+                msg_entry.grab_focus();
             }
-            msg_entry.grab_focus();
         }
     });
 
@@ -154,6 +156,10 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
         }
     });
 
+    open_media_viewer.connect_activate(move |_, data| {
+        open_viewer(data);
+    });
+
     actions
 }
 
@@ -167,4 +173,12 @@ fn get_message_by_id(id: &str) -> Option<Message> {
     let op = op.lock().unwrap();
     let room_id = op.active_room.as_ref()?;
     op.get_message_by_id(room_id, id)
+}
+
+fn open_viewer(data: &Option<glib::Variant>) -> Option<()> {
+    let msg = get_message(data)?;
+    let op = App::get_op()?;
+    let mut op = op.lock().unwrap();
+    op.create_media_viewer(msg);
+    None
 }
