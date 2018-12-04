@@ -7,7 +7,6 @@ use appop::AppState;
 use widgets;
 
 use types::Message;
-use types::Room;
 
 use app::InternalCommand;
 
@@ -15,7 +14,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 impl AppOp {
-    pub fn create_media_viewer(&mut self, msg: Message, room: Room) -> Option<()> {
+    /* FIXME: take msg by reference and maybe create an action for this */
+    pub fn create_media_viewer(&mut self, msg: Message) -> Option<()> {
         let stack = self
             .ui
             .builder
@@ -34,8 +34,10 @@ impl AppOp {
             .expect("Can't find main_window in ui file.");
 
         {
+            let room_id = self.active_room.as_ref()?;
+            let room = self.rooms.get(room_id)?;
             let mut panel =
-                widgets::MediaViewer::new(self.backend.clone(), main_window.clone(), &room, &msg);
+                widgets::MediaViewer::new(self.backend.clone(), main_window.clone(), room, &msg);
             panel.display_media_viewer(msg);
             let (body, header) = panel.create()?;
 

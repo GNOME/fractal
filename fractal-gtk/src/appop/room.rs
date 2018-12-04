@@ -200,7 +200,7 @@ impl AppOp {
         }
 
         let actions = actions::RoomHistory::new(self.backend.clone(), self.ui.clone());
-        let mut history = widgets::RoomHistory::new(actions, room.clone(), self);
+        let mut history = widgets::RoomHistory::new(actions, self);
         history.create(messages);
         self.history = Some(history);
 

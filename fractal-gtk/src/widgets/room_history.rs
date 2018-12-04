@@ -9,13 +9,10 @@ use std::sync::mpsc::Sender;
 use appop::AppOp;
 use backend::BKCommand;
 use i18n::i18n;
-use types::Room;
 use uitypes::MessageContent;
 use uitypes::RowType;
-use App;
 
 use gio::SimpleActionGroup;
-use glib;
 use glib::source;
 use globals;
 use gtk;
@@ -89,7 +86,6 @@ pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
     backend: Sender<BKCommand>,
-    room: Room,
     listbox: gtk::ListBox,
     loading_spinner: gtk::Spinner,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
@@ -98,7 +94,7 @@ pub struct RoomHistory {
 }
 
 impl RoomHistory {
-    pub fn new(actions: SimpleActionGroup, room: Room, op: &AppOp) -> RoomHistory {
+    pub fn new(actions: SimpleActionGroup, op: &AppOp) -> RoomHistory {
         let history_container = op
             .ui
             .builder
@@ -120,7 +116,6 @@ impl RoomHistory {
             listbox: listbox,
             loading_spinner,
             backend: op.backend.clone(),
-            room: room,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
             actions,
@@ -148,7 +143,6 @@ impl RoomHistory {
         let backend = self.backend.clone();
         let queue = self.queue.clone();
         let rows = self.rows.clone();
-        let room = self.room.clone();
         let actions = self.actions.downgrade();
 
         /* TO-DO: we could set the listbox height the 52 * length of messages, to descrease jumps of the
@@ -182,7 +176,7 @@ impl RoomHistory {
                         rows.borrow_mut().add_top(divider);
                     }
                     let b = if let Some(actions) = actions.upgrade() {
-                        create_row(item.clone(), &room, has_header, backend.clone(), actions)
+                        create_row(item.clone(), has_header, backend.clone(), actions)
                     } else {
                         None
                     };
@@ -252,7 +246,6 @@ impl RoomHistory {
 
         let b = create_row(
             item.clone(),
-            &self.room.clone(),
             has_header,
             self.backend.clone(),
             self.actions.clone(),
@@ -285,7 +278,6 @@ impl RoomHistory {
 /* This function creates the content for a Row based on the conntent of msg */
 fn create_row(
     row: MessageContent,
-    room: &Room,
     has_header: bool,
     backend: Sender<BKCommand>,
     actions: gio::SimpleActionGroup,
@@ -299,21 +291,6 @@ fn create_row(
         Some(actions),
     );
 
-    if let Some(ref image) = mb.image {
-        let msg = row.msg.clone();
-        let room = room.clone();
-        image.connect_button_press_event(move |_, btn| {
-            if btn.get_button() != 3 {
-                let msg = msg.clone();
-                let room = room.clone();
-                APPOP!(create_media_viewer, (msg, room));
-
-                Inhibit(true)
-            } else {
-                Inhibit(false)
-            }
-        });
-    }
     Some(mb)
 }
 
