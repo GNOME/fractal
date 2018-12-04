@@ -6,6 +6,8 @@ use chrono::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
+use gio;
+use gio::prelude::*;
 use pango;
 
 use backend::BKCommand;
@@ -35,7 +37,7 @@ pub struct MessageBox {
     pub username_event_box: gtk::EventBox,
     eventbox: gtk::EventBox,
     row: Option<gtk::ListBoxRow>,
-    pub image: Option<gtk::DrawingArea>,
+    image: Option<gtk::DrawingArea>,
     header: bool,
     actions: Option<gio::SimpleActionGroup>,
 }
@@ -318,6 +320,8 @@ impl MessageBox {
         bx.pack_start(&image.widget, true, true, 0);
         bx.show_all();
         self.image = Some(image.widget);
+        self.connect_image(msg);
+
         bx
     }
 
@@ -546,6 +550,25 @@ impl MessageBox {
                 let actions = upgrade_weak!(actions, gtk::Inhibit(false));
                 let eventbox = upgrade_weak!(eventbox_weak, gtk::Inhibit(false));
                 MessageMenu::new(id.as_str(), &mtype, &redactable, actions, &eventbox, w);
+                Inhibit(true)
+            } else {
+                Inhibit(false)
+            }
+        });
+        None
+    }
+
+    fn connect_image(&self, msg: &Message) -> Option<()> {
+        let actions = self.actions.as_ref()?;
+        let open_media_viewer = actions.lookup_action("open_media_viewer")?.downgrade();
+        let id = msg.id.clone();
+
+        self.image.as_ref()?.connect_button_press_event(move |_, e| {
+            if e.get_button() != 3 {
+                let action = upgrade_weak!(open_media_viewer, Inhibit(false));
+                let data = glib::Variant::from(id.as_str());
+                action.activate(&data);
+
                 Inhibit(true)
             } else {
                 Inhibit(false)
