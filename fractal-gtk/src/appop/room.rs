@@ -13,6 +13,7 @@ use backend::BKCommand;
 use cache;
 use globals;
 use widgets;
+use actions;
 
 use types::Room;
 
@@ -198,7 +199,8 @@ impl AppOp {
             history.destroy();
         }
 
-        let mut history = widgets::RoomHistory::new(room.clone(), self);
+        let actions = actions::RoomHistory::new(self.backend.clone(), self.ui.clone());
+        let mut history = widgets::RoomHistory::new(actions, room.clone(), self);
         history.create(messages);
         self.history = Some(history);
 

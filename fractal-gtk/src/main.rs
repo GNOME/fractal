@@ -66,6 +66,7 @@ mod uitypes;
 #[macro_use]
 mod app;
 mod widgets;
+mod actions;
 
 mod appop;
 
