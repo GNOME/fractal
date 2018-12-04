@@ -21,7 +21,6 @@ use cache::download_to_cache_username;
 use cache::download_to_cache_username_emote;
 
 use globals;
-use uibuilder::UI;
 use uitypes::MessageContent as Message;
 use uitypes::RowType;
 use widgets;
@@ -32,18 +31,17 @@ use widgets::AvatarExt;
 #[derive(Clone, Debug)]
 pub struct MessageBox {
     backend: Sender<BKCommand>,
-    /* FIXME: Remove UI */
-    ui: UI,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     eventbox: gtk::EventBox,
     row: Option<gtk::ListBoxRow>,
     pub image: Option<gtk::DrawingArea>,
     header: bool,
+    actions: Option<gio::SimpleActionGroup>,
 }
 
 impl MessageBox {
-    pub fn new(backend: Sender<BKCommand>, ui: UI) -> MessageBox {
+    pub fn new(backend: Sender<BKCommand>) -> MessageBox {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
@@ -52,18 +50,24 @@ impl MessageBox {
 
         MessageBox {
             backend: backend,
-            ui: ui,
             username: username,
             username_event_box: eb,
             eventbox,
             row: None,
             image: None,
             header: true,
+            actions: None,
         }
     }
 
     /* create the message row with or without a header */
-    pub fn create(&mut self, msg: &Message, has_header: bool) {
+    pub fn create(
+        &mut self,
+        msg: &Message,
+        has_header: bool,
+        actions: Option<gio::SimpleActionGroup>,
+    ) {
+        self.actions = actions;
         let row = gtk::ListBoxRow::new();
         self.set_msg_styles(msg, &row);
         row.set_selectable(false);
@@ -83,7 +87,7 @@ impl MessageBox {
         row.add(&self.eventbox);
         row.show_all();
         self.row = Some(row);
-        self.connect_right_click_menu(msg);
+        self.connect_right_click_menu(msg, None);
     }
 
     pub fn get_listbox_row(&self) -> Option<&gtk::ListBoxRow> {
@@ -91,7 +95,7 @@ impl MessageBox {
     }
 
     pub fn tmpwidget(mut self, msg: &Message) -> Option<MessageBox> {
-        self.create(msg, true);
+        self.create(msg, true, None);
         {
             let w = self.get_listbox_row()?;
             let style = w.get_style_context()?;
@@ -255,7 +259,7 @@ impl MessageBox {
         }
 
         for part in msg_parts {
-            self.connect_right_click_menu_label(msg, &part);
+            self.connect_right_click_menu(msg, Some(&part));
             bx.add(&part);
         }
         bx
@@ -518,7 +522,7 @@ impl MessageBox {
             None,
         );
 
-        self.connect_right_click_menu_label(msg, &msg_label);
+        self.connect_right_click_menu(msg, Some(&msg_label));
         msg_label.set_markup(&format!("<b>{}</b> {}", sname, markup));
         self.set_label_styles(&msg_label);
 
@@ -526,41 +530,28 @@ impl MessageBox {
         bx
     }
 
-    fn connect_right_click_menu_label(&self, msg: &Message, w: &gtk::Label) {
-        let eb = self.eventbox.clone();
-        let backend = self.backend.clone();
-        let ui = self.ui.clone();
-        let msg = msg.clone();
-
-        gtk::WidgetExt::connect_button_press_event(w, move |w, btn| {
-            if btn.get_button() == 3 {
-                let menu = MessageMenu::new_message_menu(
-                    ui.clone(),
-                    backend.clone(),
-                    msg.clone(),
-                    Some(w),
-                );
-                menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
+    fn connect_right_click_menu(&self, msg: &Message, label: Option<&gtk::Label>) -> Option<()> {
+        let actions = self.actions.as_ref()?.downgrade();
+        let id = msg.id.clone();
+        let mtype = msg.mtype.clone();
+        let redactable = msg.redactable.clone();
+        let eventbox_weak = self.eventbox.downgrade();
+        let widget = if let Some(l) = label {
+            l.upcast_ref::<gtk::Widget>()
+        } else {
+            self.eventbox.upcast_ref::<gtk::Widget>()
+        };
+        widget.connect_button_press_event(move |w, e| {
+            if e.get_button() == 3 {
+                let actions = upgrade_weak!(actions, gtk::Inhibit(false));
+                let eventbox = upgrade_weak!(eventbox_weak, gtk::Inhibit(false));
+                MessageMenu::new(id.as_str(), &mtype, &redactable, actions, &eventbox, w);
                 Inhibit(true)
             } else {
                 Inhibit(false)
             }
         });
-    }
-
-    fn connect_right_click_menu(&self, msg: &Message) {
-        let backend = self.backend.clone();
-        let ui = self.ui.clone();
-        self.eventbox
-            .connect_button_press_event(clone!(msg => move |eb, btn| {
-                if btn.get_button() == 3 {
-                    let menu = MessageMenu::new_message_menu(ui.clone(), backend.clone(),
-                    msg.clone(), None);
-                    menu.show_menu_popover(eb.clone().upcast::<gtk::Widget>());
-                }
-
-                Inhibit(false)
-            }));
+        None
     }
 }
 

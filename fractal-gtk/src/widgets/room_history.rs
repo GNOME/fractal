@@ -10,11 +10,11 @@ use appop::AppOp;
 use backend::BKCommand;
 use i18n::i18n;
 use types::Room;
-use uibuilder::UI;
 use uitypes::MessageContent;
 use uitypes::RowType;
 use App;
 
+use gio::SimpleActionGroup;
 use glib;
 use glib::source;
 use globals;
@@ -88,18 +88,17 @@ enum Element {
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
-    ui: UI,
     backend: Sender<BKCommand>,
     room: Room,
     listbox: gtk::ListBox,
     loading_spinner: gtk::Spinner,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
-    /* This is the id of the last viewed message */
+    actions: gio::SimpleActionGroup,
 }
 
 impl RoomHistory {
-    pub fn new(room: Room, op: &AppOp) -> RoomHistory {
+    pub fn new(actions: SimpleActionGroup, room: Room, op: &AppOp) -> RoomHistory {
         let history_container = op
             .ui
             .builder
@@ -118,13 +117,13 @@ impl RoomHistory {
 
         RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox.clone()))),
-            ui: op.ui.clone(),
             listbox: listbox,
             loading_spinner,
             backend: op.backend.clone(),
             room: room,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
+            actions,
         }
     }
 
@@ -147,10 +146,10 @@ impl RoomHistory {
 
     fn run_queue(&mut self) -> Option<()> {
         let backend = self.backend.clone();
-        let ui = self.ui.clone();
         let queue = self.queue.clone();
         let rows = self.rows.clone();
         let room = self.room.clone();
+        let actions = self.actions.downgrade();
 
         /* TO-DO: we could set the listbox height the 52 * length of messages, to descrease jumps of the
          * scrollbar. 52 is the normal height of a message with one line
@@ -182,8 +181,11 @@ impl RoomHistory {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
                     }
-                    let b =
-                        create_row(item.clone(), &room, has_header, backend.clone(), ui.clone());
+                    let b = if let Some(actions) = actions.upgrade() {
+                        create_row(item.clone(), &room, has_header, backend.clone(), actions)
+                    } else {
+                        None
+                    };
                     item.widget = b;
                     rows.borrow_mut().add_top(Element::Message(item));
                     if let Some(day_divider) = day_divider {
@@ -253,7 +255,7 @@ impl RoomHistory {
             &self.room.clone(),
             has_header,
             self.backend.clone(),
-            self.ui.clone(),
+            self.actions.clone(),
         );
         item.widget = b;
         rows.add_bottom(Element::Message(item));
@@ -279,18 +281,23 @@ impl RoomHistory {
         None
     }
 }
+
 /* This function creates the content for a Row based on the conntent of msg */
 fn create_row(
     row: MessageContent,
     room: &Room,
     has_header: bool,
     backend: Sender<BKCommand>,
-    ui: UI,
+    actions: gio::SimpleActionGroup,
 ) -> Option<widgets::MessageBox> {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
-    let mut mb = widgets::MessageBox::new(backend, ui);
-    mb.create(&row, has_header && row.mtype != RowType::Emote);
+    let mut mb = widgets::MessageBox::new(backend);
+    mb.create(
+        &row,
+        has_header && row.mtype != RowType::Emote,
+        Some(actions),
+    );
 
     if let Some(ref image) = mb.image {
         let msg = row.msg.clone();

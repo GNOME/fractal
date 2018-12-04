@@ -28,6 +28,14 @@ pub struct TmpMsg {
 }
 
 impl AppOp {
+    pub fn get_message_by_id(&self, room_id: &str, id: &str) -> Option<Message> {
+        let room = self.rooms.get(room_id)?;
+        room.messages
+            .iter()
+            .find(|m| m.id == Some(id.to_string()))
+            .cloned()
+    }
+
     /// This function is used to mark as read the last message of a room when the focus comes in,
     /// so we need to force the mark_as_read because the window isn't active yet
     pub fn mark_active_room_messages(&mut self) {
@@ -66,8 +74,7 @@ impl AppOp {
                 .get(&self.active_room.clone().unwrap_or_default())
             {
                 let backend = self.backend.clone();
-                let ui = self.ui.clone();
-                let mb = widgets::MessageBox::new(backend, ui).tmpwidget(&ui_msg)?;
+                let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
                 let m = mb.get_listbox_row()?;
                 if let Some(ref image) = mb.image {
                     let msg = msg.clone();
@@ -120,8 +127,7 @@ impl AppOp {
             for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
                 if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                     let backend = self.backend.clone();
-                    let ui = self.ui.clone();
-                    let mb = widgets::MessageBox::new(backend, ui).tmpwidget(&ui_msg)?;
+                    let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
                     let m = mb.get_listbox_row()?;
                     if let Some(ref image) = mb.image {
                         info!("i have a image");
