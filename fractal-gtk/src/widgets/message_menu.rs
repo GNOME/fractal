@@ -20,7 +20,7 @@ struct Widgets {
 }
 
 impl Widgets {
-    pub fn new(id: &str, mtype: &RowType, redactable: &bool) -> Widgets {
+    pub fn new(id: &str, mtype: &RowType, redactable: &bool, enable_reply: &bool) -> Widgets {
         let builder = gtk::Builder::new();
         builder
             .add_from_resource("/org/gnome/Fractal/ui/message_menu.ui")
@@ -68,6 +68,7 @@ impl Widgets {
 
         /* Set visibility of buttons */
         copy_selected_button.hide();
+        reply_button.set_visible(*enable_reply);
         delete_message_button.set_visible(*redactable);
         menu_separator.set_visible(*redactable);
         open_with_button.set_visible(mtype == &RowType::Image);
@@ -113,24 +114,39 @@ pub struct MessageMenu {
 }
 
 impl MessageMenu {
-    pub fn new(
-        id: &str,
-        mtype: &RowType,
-        redactable: &bool,
-        widget: &gtk::EventBox,
-        label: &gtk::Widget,
-    ) -> MessageMenu {
+    pub fn new(id: &str, mtype: &RowType, redactable: &bool, enable_reply: &bool) -> MessageMenu {
         let menu = MessageMenu {
-            widgets: Widgets::new(id, mtype, redactable),
+            widgets: Widgets::new(id, mtype, redactable, enable_reply),
         };
-        /* Copy selected text works a little different then the other actions, because it need the
-         * label */
-        menu.connect_copy_selected_text(label);
-        menu.show(widget);
         menu
     }
 
-    fn show(&self, w: &gtk::EventBox) {
+    /* This binds the popover to a MenuButton */
+    pub fn bind(&self, w: &gtk::MenuButton) {
+        w.set_popup(&self.widgets.popover);
+    }
+
+    /* Copy selected text works a little different then the other actions, because it need the
+     * label.
+     * FIMXE: This should also be a action, but for some reason we need to set again the selection
+     * on the label after the click event */
+    pub fn enable_copy_selected_text(&self, w: &gtk::Widget) -> Option<()> {
+        let label = w.downcast_ref::<gtk::Label>();
+        let s = get_selected_text(label)?;
+        self.widgets.copy_selected_button.show();
+        self.widgets.copy_selected_button.connect_clicked(move |_| {
+            let widget = upgrade_weak!(&s.widget);
+            let atom = gdk::Atom::intern("CLIPBOARD");
+            let clipboard = gtk::Clipboard::get(&atom);
+            clipboard.set_text(&s.text);
+            /* FIXME: for some reason we have to set the selection again */
+            widget.select_region(s.start, s.end);
+        });
+        None
+    }
+
+    /* This shows the popover relative to the EventBox*/
+    pub fn show(&self, w: &gtk::EventBox) {
         gdk::Display::get_default()
             .and_then(|disp| disp.get_default_seat())
             .and_then(|seat| seat.get_pointer())
@@ -153,23 +169,6 @@ impl MessageMenu {
 
                 Some(true)
             });
-    }
-
-    /* This should also be a action, but for some reason we need to set again the selection on the
-     * label after the click event */
-    fn connect_copy_selected_text(&self, w: &gtk::Widget) -> Option<()> {
-        let label = w.downcast_ref::<gtk::Label>();
-        let s = get_selected_text(label)?;
-        self.widgets.copy_selected_button.show();
-        self.widgets.copy_selected_button.connect_clicked(move |_| {
-            let widget = upgrade_weak!(&s.widget);
-            let atom = gdk::Atom::intern("CLIPBOARD");
-            let clipboard = gtk::Clipboard::get(&atom);
-            clipboard.set_text(&s.text);
-            /* FIXME: for some reason we have to set the selection again */
-            widget.select_region(s.start, s.end);
-        });
-        None
     }
 }
 
