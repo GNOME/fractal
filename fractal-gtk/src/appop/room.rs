@@ -201,7 +201,7 @@ impl AppOp {
             history.destroy();
         }
 
-        let actions = actions::RoomHistory::new(self.backend.clone(), self.ui.clone());
+        let actions = actions::RoomHistory::new(self.backend.clone(), &self.ui);
         let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         history.create(messages);
         self.history = Some(history);
