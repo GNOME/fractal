@@ -3,28 +3,27 @@ use gdk;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use dirs;
 use gdk::*;
 use glib;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
-use gtk::ResponseType;
 use i18n::i18n;
 
 use types::Message;
 use types::Room;
 
-use std::fs;
-
+use actions;
 use backend::BKCommand;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
+use uitypes::RowType;
 use widgets::image;
 use widgets::ErrorDialog;
+use widgets::MessageMenu;
 
 const FLOATING_POINT_ERROR: f64 = 0.01;
 const ZOOM_LEVELS: [f64; 7] = [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
@@ -37,8 +36,9 @@ pub struct MediaViewer {
     backend: Sender<BKCommand>,
 }
 
+/* FIXME make this struct private */
 #[derive(Debug)]
-struct Data {
+pub struct Data {
     builder: gtk::Builder,
     main_window: gtk::Window,
     backend: Sender<BKCommand>,
@@ -77,14 +77,11 @@ impl Data {
         }
     }
 
-    pub fn save_media(&self) -> Option<()> {
-        let image = self.image.clone()?;
-        save_file_as(
-            &self.main_window,
-            image.local_path.lock().unwrap().clone().unwrap_or_default(),
-            self.media_list[self.current_media_index].body.clone(),
-        );
-        None
+    pub fn get_message(&self, id: &str) -> Option<Message> {
+        self.media_list
+            .iter()
+            .find(|m| m.id == Some(id.to_string()))
+            .cloned()
     }
 
     pub fn enter_full_screen(&mut self) {
@@ -265,8 +262,12 @@ impl Data {
         } else {
             {
                 self.current_media_index -= 1;
-                let name = &self.media_list[self.current_media_index].body;
-                set_header_title(&self.builder, name);
+                let msg = &self.media_list[self.current_media_index];
+                set_header(
+                    &self.builder,
+                    &msg.body,
+                    &msg.id.as_ref().unwrap_or(&String::from("")),
+                );
             }
 
             self.redraw_image_in_viewport();
@@ -280,8 +281,12 @@ impl Data {
         }
         {
             self.current_media_index += 1;
-            let name = &self.media_list[self.current_media_index].body;
-            set_header_title(&self.builder, name);
+            let msg = &self.media_list[self.current_media_index];
+            set_header(
+                &self.builder,
+                &msg.body,
+                &msg.id.as_ref().unwrap_or(&String::from("")),
+            );
         }
 
         self.redraw_image_in_viewport();
@@ -334,9 +339,6 @@ impl MediaViewer {
         current_media_msg: &Message,
     ) -> MediaViewer {
         let builder = gtk::Builder::new();
-        builder
-            .add_from_resource("/org/gnome/Fractal/ui/media_viewer_menu.ui")
-            .expect("Can't load ui file: media_viewer_menu.ui");
         builder
             .add_from_resource("/org/gnome/Fractal/ui/media_viewer.ui")
             .expect("Can't load ui file: media_viewer.ui");
@@ -401,7 +403,11 @@ impl MediaViewer {
             .expect("Cant find next_media_revealer in ui file.");
         next_media_revealer.set_reveal_child(false);
 
-        set_header_title(&self.builder, &media_msg.body);
+        set_header(
+            &self.builder,
+            &media_msg.body,
+            &media_msg.id.unwrap_or_default(),
+        );
 
         let media_viewport = self
             .builder
@@ -429,6 +435,15 @@ impl MediaViewer {
 
         self.data.borrow_mut().image = Some(image);
         self.data.borrow_mut().set_nav_btn_visibility();
+
+        /* FIXME: this is a hack because we don't expose the media list anywhere */
+        let win = self.data.borrow().main_window.clone();
+        let actions = actions::MediaViewer::new(self.backend.clone(), &win, &self.data);
+        let button = self
+            .builder
+            .get_object::<gtk::MenuButton>("media_viewer_menu_button")
+            .expect("Cant find media_viewer_menu_button in ui file.");
+        button.insert_action_group("room_history", Some(&actions));
     }
 
     pub fn get_back_button(&self) -> Option<gtk::Button> {
@@ -490,15 +505,6 @@ impl MediaViewer {
                     own.borrow_mut().leave_full_screen()
                 }
             }
-        });
-
-        let save_as_button = self
-            .builder
-            .get_object::<gtk::ModelButton>("save_as_button")
-            .expect("Cant find save_as_button in ui file.");
-        let data = self.data.clone();
-        save_as_button.connect_clicked(move |_| {
-            data.borrow().save_media();
         });
     }
 
@@ -715,11 +721,22 @@ fn set_zoom_btn_sensitivity(builder: &gtk::Builder, zlvl: f64) -> Option<()> {
     None
 }
 
-fn set_header_title(ui: &gtk::Builder, title: &str) {
+fn set_header(ui: &gtk::Builder, title: &str, id: &str) {
     let media_viewer_headerbar = ui
         .get_object::<gtk::HeaderBar>("media_viewer_headerbar")
         .expect("Cant find media_viewer_headerbar in ui file.");
     media_viewer_headerbar.set_title(title);
+
+    /* Update the menu */
+    let button = ui
+        .get_object::<gtk::MenuButton>("media_viewer_menu_button")
+        .expect("Cant find media_viewer_menu_button in ui file.");
+
+    let mtype = RowType::Image;
+    let redactable = false;
+    let enable_reply = false;
+    let menu = MessageMenu::new(id, &mtype, &redactable, &enable_reply);
+    menu.bind(&button);
 }
 
 fn loading_state(ui: &gtk::Builder, val: bool) -> bool {
@@ -802,32 +819,4 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
             gtk::Continue(false)
         }
     });
-}
-
-/* FIXME: The following two functions should be moved to a different file,
- * so that they can be used again in different locations */
-fn save_file_as(main_window: &gtk::Window, src: String, name: String) {
-    let file_chooser = gtk::FileChooserNative::new(
-        Some(i18n("Save media as").as_str()),
-        Some(main_window),
-        gtk::FileChooserAction::Save,
-        Some(i18n("_Save").as_str()),
-        Some(i18n("_Cancel").as_str()),
-    );
-
-    file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
-    file_chooser.set_current_name(&name);
-
-    let main_window = main_window.clone();
-    file_chooser.connect_response(move |fcd, res| {
-        let main_window = main_window.clone();
-        if ResponseType::from(res) == ResponseType::Accept {
-            if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
-                let err = i18n("Could not save the file");
-                ErrorDialog::new(&main_window, &err);
-            }
-        }
-    });
-
-    file_chooser.run();
 }
