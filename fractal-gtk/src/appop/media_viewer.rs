@@ -31,6 +31,7 @@ impl AppOp {
         {
             let room_id = self.active_room.as_ref()?;
             let room = self.rooms.get(room_id)?;
+
             let mut panel =
                 widgets::MediaViewer::new(self.backend.clone(), main_window.clone(), room, &msg);
             panel.display_media_viewer(msg);

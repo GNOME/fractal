@@ -23,6 +23,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="sensitive">True</property>
+                <property name="action_name">media_viewer.save_as</property>
                 <property name="text" translatable="yes">Save as</property>
               </object>
               <packing>

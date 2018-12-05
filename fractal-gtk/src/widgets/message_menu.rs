@@ -123,7 +123,7 @@ impl MessageMenu {
 
     /* This binds the popover to a MenuButton */
     pub fn bind(&self, w: &gtk::MenuButton) {
-        w.set_popup(&self.widgets.popover);
+        w.set_popover(&self.widgets.popover);
     }
 
     /* Copy selected text works a little different then the other actions, because it need the
