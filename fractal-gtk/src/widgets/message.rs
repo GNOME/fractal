@@ -500,7 +500,11 @@ impl MessageBox {
         widget.connect_button_press_event(move |w, e| {
             if e.get_button() == 3 {
                 let eventbox = upgrade_weak!(eventbox_weak, gtk::Inhibit(false));
-                MessageMenu::new(id.as_str(), &mtype, &redactable, &eventbox, w);
+                let reply = true;
+                let menu = MessageMenu::new(id.as_str(), &mtype, &redactable, &reply);
+                menu.enable_copy_selected_text(w);
+                menu.show(&eventbox);
+
                 Inhibit(true)
             } else {
                 Inhibit(false)
