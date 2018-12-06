@@ -12,6 +12,7 @@ use i18n::i18n;
 use uitypes::MessageContent;
 use uitypes::RowType;
 
+use gio::ActionMapExt;
 use gio::SimpleActionGroup;
 use glib::source;
 use globals;
@@ -86,8 +87,6 @@ pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
     backend: Sender<BKCommand>,
-    listbox: gtk::ListBox,
-    loading_spinner: gtk::Spinner,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
     actions: gio::SimpleActionGroup,
@@ -100,8 +99,11 @@ impl RoomHistory {
             .builder
             .get_object::<gtk::Box>("history_container")
             .expect("Can't find history_container in ui file.");
-        let mut scroll = widgets::ScrollWidget::new();
-        scroll.create();
+        /* we can do unwrap here because if we don't have an active room then something
+         * went teribile wrong */
+        let room_id = op.active_room.clone().unwrap();
+        let action = actions.lookup_action("load_more_messages");
+        let scroll = widgets::ScrollWidget::new(action, room_id);
         /* remove previous room history widget */
         for ch in history_container.get_children().iter() {
             history_container.remove(ch);
@@ -109,12 +111,9 @@ impl RoomHistory {
         /* add room history widget */
         history_container.add(&scroll.get_container());
         let listbox = scroll.get_listbox();
-        let loading_spinner = scroll.get_loading_spinner();
 
         RoomHistory {
-            rows: Rc::new(RefCell::new(List::new(scroll, listbox.clone()))),
-            listbox: listbox,
-            loading_spinner,
+            rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
@@ -204,15 +203,9 @@ impl RoomHistory {
 
     /* This is a temporary function to make the listbox accesibile from outside the history, it is
      * currently needed for temp messages (which should also be moved to the room history) */
-    pub fn get_listbox(&self) -> &gtk::ListBox {
-        &self.listbox
-    }
-
-    /* This is a temporary function to make the loadin spinner accesibile from outside the history,
-     * it is currently needed for loading more messages
-     * (which should also be moved to the room history) */
-    pub fn get_loading_spinner(&self) -> &gtk::Spinner {
-        &self.loading_spinner
+    pub fn get_listbox(&self) -> gtk::ListBox {
+        let listbox = self.rows.borrow().listbox.clone();
+        listbox
     }
 
     /* This adds new incomming messages at then end of the list */
@@ -265,6 +258,7 @@ impl RoomHistory {
     }
 
     pub fn add_old_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
+        self.rows.borrow().view.reset_request_sent();
         /* TODO: Try if extend would be faster then append */
         self.queue
             .borrow_mut()
