@@ -12,7 +12,6 @@ use backend::BKCommand;
 
 use actions;
 use cache;
-use globals;
 use widgets;
 
 use types::Room;
@@ -203,11 +202,6 @@ impl AppOp {
         let mut history = widgets::RoomHistory::new(actions, self);
         history.create(messages);
         self.history = Some(history);
-
-        let l = room.messages.len();
-        if l > 0 && l < globals::INITIAL_MESSAGES {
-            self.internal.send(InternalCommand::LoadMore).unwrap();
-        }
 
         self.internal
             .send(InternalCommand::AppendTmpMessages)

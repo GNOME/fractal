@@ -2,12 +2,13 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use gdk::FrameClockExt;
+use gio::Action;
+use gio::ActionExt;
 use gtk;
 use gtk::prelude::*;
 
 use libhandy;
 use libhandy::ColumnExt;
-use App;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +23,8 @@ pub struct ScrollWidget {
     value: Rc<Cell<f64>>,
     balance: Rc<Cell<Option<Position>>>,
     autoscroll: Rc<Cell<bool>>,
+    /* whether a request for more messages has been send or not */
+    request_sent: Rc<Cell<bool>>,
     widgets: Widgets,
 }
 
@@ -95,7 +98,7 @@ impl Widgets {
 }
 
 impl ScrollWidget {
-    pub fn new() -> ScrollWidget {
+    pub fn new(action: Option<Action>, room_id: String) -> ScrollWidget {
         let builder = gtk::Builder::new();
 
         builder
@@ -114,22 +117,20 @@ impl ScrollWidget {
             .and_then(|adj| Some(adj.get_value()))
             .unwrap_or(0.0);
 
-        ScrollWidget {
+        let mut scroll = ScrollWidget {
             widgets,
             value: Rc::new(Cell::new(value)),
             upper: Rc::new(Cell::new(upper)),
             autoscroll: Rc::new(Cell::new(false)),
+            request_sent: Rc::new(Cell::new(false)),
             balance: Rc::new(Cell::new(None)),
-        }
-    }
-
-    pub fn create(&mut self) -> Option<()> {
-        self.connect();
-        None
+        };
+        scroll.connect(action, room_id);
+        scroll
     }
 
     /* Keep the same position if new messages are added */
-    pub fn connect(&mut self) -> Option<()> {
+    pub fn connect(&mut self, action: Option<Action>, room_id: String) -> Option<()> {
         let adj = self.widgets.view.get_vadjustment()?;
         let upper = Rc::downgrade(&self.upper);
         let balance = Rc::downgrade(&self.balance);
@@ -163,20 +164,15 @@ impl ScrollWidget {
         });
 
         let autoscroll = Rc::downgrade(&self.autoscroll);
+        let request_sent = Rc::downgrade(&self.request_sent);
         let revealer = self.widgets.btn_revealer.downgrade();
         let spinner = self.widgets.spinner.downgrade();
+        let action_weak = action.map(|a| a.downgrade());
         adj.connect_value_changed(move |adj| {
             debug_assert!(
                 || -> Option<()> {
                     let autoscroll = autoscroll.upgrade()?;
                     let r = revealer.upgrade()?;
-                    let spinner = spinner.upgrade()?;
-                    /* the page size twice to detect if the user gets close the edge */
-                    if adj.get_value() < adj.get_page_size() * 2.0 {
-                        /* Load more messages once the user is nearly at the end of the history */
-                        spinner.start();
-                        load_more_messages();
-                    }
 
                     let bottom = adj.get_upper() - adj.get_page_size();
                     if adj.get_value() == bottom {
@@ -191,6 +187,29 @@ impl ScrollWidget {
                 .is_some(),
                 "Value changed callback couldn't acquire a strong pointer"
             );
+
+            let action_weak = action_weak.clone();
+            debug_assert!(
+                || -> Option<()> {
+                    let request_sent = request_sent.upgrade()?;
+                    if !request_sent.get() {
+                        let action = action_weak?.upgrade()?;
+                        let spinner = spinner.upgrade()?;
+                        /* the page size twice to detect if the user gets close the edge */
+                        if adj.get_value() < adj.get_page_size() * 2.0 {
+                            /* Load more messages once the user is nearly at the end of the history */
+                            spinner.start();
+                            let data = glib::Variant::from(&room_id);
+                            action.activate(&data);
+                            request_sent.set(true);
+                        }
+                    }
+
+                    Some(())
+                }()
+                .is_some(),
+                "Can't request more messages"
+                    );
         });
 
         let autoscroll = Rc::downgrade(&self.autoscroll);
@@ -226,14 +245,10 @@ impl ScrollWidget {
     pub fn get_container(&self) -> gtk::Widget {
         self.widgets.container.clone()
     }
-    pub fn get_loading_spinner(&self) -> gtk::Spinner {
-        self.widgets.spinner.clone()
+    pub fn reset_request_sent(&self) {
+        self.request_sent.set(false);
+        self.widgets.spinner.stop();
     }
-}
-
-fn load_more_messages() {
-    /* Todo: remove APPOP! and make the call directly */
-    APPOP!(load_more_messages);
 }
 
 /* Functions to animate the scroll */

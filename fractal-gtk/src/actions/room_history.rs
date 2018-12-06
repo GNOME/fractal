@@ -22,6 +22,7 @@ use widgets::SourceDialog;
 /* This creates all actions the room history can perform */
 pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
+    /* Action for each message */
     let reply = SimpleAction::new("reply", glib::VariantTy::new("s").ok());
     let open_with = SimpleAction::new("open_with", glib::VariantTy::new("s").ok());
     let save_as = SimpleAction::new("save_as", glib::VariantTy::new("s").ok());
@@ -30,6 +31,11 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     let delete = SimpleAction::new("delete", glib::VariantTy::new("s").ok());
     let show_source = SimpleAction::new("show_source", glib::VariantTy::new("s").ok());
     let open_media_viewer = SimpleAction::new("open_media_viewer", glib::VariantTy::new("s").ok());
+    /* Actions for the room history */
+
+    /* TODO: use statefull action to keep  track if the user already reqeusted new messages */
+    let load_more_messages =
+        SimpleAction::new("request_older_messages", glib::VariantTy::new("s").ok());
 
     actions.add_action(&reply);
     actions.add_action(&open_with);
@@ -39,6 +45,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     actions.add_action(&delete);
     actions.add_action(&show_source);
     actions.add_action(&open_media_viewer);
+    actions.add_action(&load_more_messages);
 
     let parent: gtk::Window = ui
         .builder
@@ -166,6 +173,11 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
         open_viewer(data);
     });
 
+    load_more_messages.connect_activate(move |_, data| {
+        let id = get_room_id(data);
+        request_more_messages(&backend, id);
+    });
+
     actions
 }
 
@@ -179,6 +191,10 @@ fn get_message_by_id(id: &str) -> Option<Message> {
     let op = op.lock().unwrap();
     let room_id = op.active_room.as_ref()?;
     op.get_message_by_id(room_id, id)
+}
+
+fn get_room_id(data: &Option<glib::Variant>) -> Option<String> {
+    data.as_ref()?.get_str().map(|s| s.to_string())
 }
 
 fn open_viewer(data: &Option<glib::Variant>) -> Option<()> {
@@ -213,4 +229,25 @@ fn open_save_as_dialog(parent: &gtk::Window, src: String, name: &str) {
     });
 
     file_chooser.run();
+}
+
+fn request_more_messages(backend: &Sender<BKCommand>, id: Option<String>) -> Option<()> {
+    let op = App::get_op()?;
+    let op = op.lock().unwrap();
+    let id = id?;
+    let r = op.rooms.get(&id)?;
+    if let Some(prev_batch) = r.prev_batch.clone() {
+        backend
+            .send(BKCommand::GetRoomMessages(id, prev_batch))
+            .unwrap();
+    } else if let Some(msg) = r.messages.iter().next() {
+        // no prev_batch so we use the last message to calculate that in the backend
+        backend
+            .send(BKCommand::GetRoomMessagesFromMsg(id, msg.clone()))
+            .unwrap();
+    } else if let Some(from) = op.since.clone() {
+        // no messages and no prev_batch so we use the last since
+        backend.send(BKCommand::GetRoomMessages(id, from)).unwrap();
+    }
+    None
 }
