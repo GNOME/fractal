@@ -77,7 +77,6 @@ pub struct AppOp {
     pub since: Option<String>,
 
     pub logged_in: bool,
-    pub loading_more: bool,
 
     pub invitation_roomid: Option<String>,
     pub md_enabled: bool,
@@ -124,7 +123,6 @@ impl AppOp {
             inhibit_escape: false,
 
             logged_in: false,
-            loading_more: false,
 
             md_enabled: false,
             invitation_roomid: None,
