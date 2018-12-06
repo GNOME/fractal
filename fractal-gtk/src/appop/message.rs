@@ -343,47 +343,6 @@ impl AppOp {
         });
     }
 
-    pub fn load_more_messages(&mut self) -> Option<()> {
-        if self.loading_more {
-            return None;
-        }
-
-        self.loading_more = true;
-        let loading_spinner = self.history.as_ref()?.get_loading_spinner();
-        loading_spinner.start();
-
-        if let Some(r) = self
-            .rooms
-            .get(&self.active_room.clone().unwrap_or_default())
-        {
-            if let Some(prev_batch) = r.prev_batch.clone() {
-                self.backend
-                    .send(BKCommand::GetRoomMessages(r.id.clone(), prev_batch))
-                    .unwrap();
-            } else if let Some(msg) = r.messages.iter().next() {
-                // no prev_batch so we use the last message to calculate that in the backend
-                self.backend
-                    .send(BKCommand::GetRoomMessagesFromMsg(r.id.clone(), msg.clone()))
-                    .unwrap();
-            } else if let Some(from) = self.since.clone() {
-                // no messages and no prev_batch so we use the last since
-                self.backend
-                    .send(BKCommand::GetRoomMessages(r.id.clone(), from))
-                    .unwrap();
-            } else {
-                loading_spinner.stop();
-                self.loading_more = false;
-            }
-        }
-        None
-    }
-
-    pub fn load_more_normal(&mut self) -> Option<()> {
-        self.history.as_ref()?.get_loading_spinner().stop();
-        self.loading_more = false;
-        None
-    }
-
     /* TODO: find a better name for this function */
     pub fn show_room_messages(&mut self, newmsgs: Vec<Message>) -> Option<()> {
         let mut msgs = vec![];
@@ -433,11 +392,6 @@ impl AppOp {
             r.prev_batch = prev_batch;
         }
 
-        if msgs.is_empty() {
-            self.load_more_normal();
-            return;
-        }
-
         let active_room = self.active_room.clone().unwrap_or_default();
         let mut list = vec![];
         for item in msgs.iter().rev() {
@@ -456,8 +410,6 @@ impl AppOp {
         if let Some(ref mut history) = self.history {
             history.add_old_messages_in_batch(list);
         }
-
-        self.load_more_normal();
     }
 
     /* parese a backend Message into a Message for the UI */
