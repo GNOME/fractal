@@ -80,7 +80,7 @@ impl AppOp {
         }
     }
 
-    pub fn escape(&mut self, _w: &gtk::ApplicationWindow) -> bool {
+    pub fn escape(&mut self) -> bool {
         if self.inhibit_escape {
             return true;
         }

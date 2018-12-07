@@ -69,10 +69,30 @@ mod widgets;
 
 mod appop;
 
-use app::App;
+use std::env::args;
+use std::error::Error;
 
-fn main() {
+use app::App;
+use gio::ApplicationExt;
+use gio::ApplicationExtManual;
+
+fn main() -> Result<(), Box<dyn Error>> {
     static_resources::init().expect("GResource initialization failed.");
-    gst::init().expect("Error initializing gstreamer");
-    App::new();
+
+    // Initialize GStreamer. This checks, among other things, what plugins are available
+    gst::init()?;
+
+    // Create a Application with default flags
+    let appid = globals::APP_ID.unwrap_or("org.gnome.FractalDevel");
+    let application = gtk::Application::new(appid, gio::ApplicationFlags::empty())?;
+
+    application.set_property_resource_base_path(Some("/org/gnome/Fractal"));
+
+    application.connect_startup(|application| {
+        App::on_startup(application);
+    });
+
+    application.run(&args().collect::<Vec<_>>());
+
+    Ok(())
 }

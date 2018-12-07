@@ -12,7 +12,6 @@ use i18n::i18n;
 use appop::AppOp;
 use backend::BKCommand;
 
-use types::Message;
 use widgets::ErrorDialog;
 
 impl AppOp {
@@ -40,10 +39,9 @@ impl AppOp {
         inapp.set_reveal_child(false);
     }
 
-    pub fn notify(&self, msg: &Message) -> Option<()> {
-        let id = msg.id.clone()?;
-        let room_id = msg.room.clone();
-        let r = self.rooms.get(&msg.room)?;
+    pub fn notify(&self, app: gtk::Application, room_id: &str, id: &str) -> Option<()> {
+        let msg = self.get_message_by_id(room_id, id)?;
+        let r = self.rooms.get(room_id)?;
         let mut body = msg.body.clone();
         body.truncate(80);
 
@@ -62,7 +60,9 @@ impl AppOp {
             .backend
             .send(BKCommand::GetUserInfoAsync(msg.sender.clone(), Some(tx)));
 
-        let app_weak = self.gtk_app.downgrade();
+        let room_id = room_id.to_string();
+        let id = id.to_string();
+        let app_weak = app.downgrade();
         gtk::timeout_add(50, move || match rx.try_recv() {
             Err(TryRecvError::Empty) => gtk::Continue(true),
             Err(TryRecvError::Disconnected) => gtk::Continue(false),
@@ -74,6 +74,7 @@ impl AppOp {
                 gtk::Continue(false)
             }
         });
+
         None
     }
 
