@@ -6,7 +6,6 @@ use gtk::prelude::*;
 use appop::member::SearchType;
 use appop::AppOp;
 
-use app::InternalCommand;
 use backend::BKCommand;
 
 use globals;
@@ -112,13 +111,11 @@ impl AppOp {
         dialog.resize(300, 200);
     }
 
-    pub fn detect_removed_invite(&self) {
-        for (member, anchor) in self.invite_list.clone() {
+    pub fn detect_removed_invite(&mut self) {
+        let invite_list = self.invite_list.clone();
+        for (member, anchor) in invite_list {
             if anchor.get_deleted() {
-                let tx = self.internal.clone();
-                let uid = member.uid.clone();
-
-                tx.send(InternalCommand::RmInvite(uid)).unwrap();
+                self.rm_from_invite(member.uid);
             }
         }
     }
@@ -211,7 +208,8 @@ impl AppOp {
     }
 
     pub fn accept_inv(&mut self, accept: bool) {
-        if let Some(ref rid) = self.invitation_roomid {
+        let rid = self.invitation_roomid.clone();
+        if let Some(rid) = rid {
             if accept {
                 self.backend
                     .send(BKCommand::AcceptInv(rid.clone()))
@@ -221,9 +219,7 @@ impl AppOp {
                     .send(BKCommand::RejectInv(rid.clone()))
                     .unwrap();
             }
-            self.internal
-                .send(InternalCommand::RemoveInv(rid.clone()))
-                .unwrap();
+            self.remove_inv(rid);
         }
         self.invitation_roomid = None;
     }

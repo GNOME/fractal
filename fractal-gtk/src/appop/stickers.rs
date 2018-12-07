@@ -21,7 +21,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use app::InternalCommand;
 use appop::AppOp;
 
 use backend::BKCommand;
@@ -30,6 +29,8 @@ use types::Sticker;
 use types::StickerGroup;
 use widgets;
 
+#[allow(dead_code)]
+#[allow(unused_variables)]
 impl AppOp {
     pub fn stickers_loaded(&mut self, stickers: Vec<StickerGroup>) {
         self.stickers = stickers;
@@ -89,10 +90,8 @@ impl AppOp {
                     .get_object::<gtk::Button>("btn")
                     .expect("Can't find btn in ui file.");
                 let group = sticker.clone();
-                let internal = self.internal.clone();
                 btn.connect_clicked(move |_| {
-                    let command = InternalCommand::PurchaseSticker(group.clone());
-                    internal.send(command).unwrap();
+                    /* TODO: Use action to call purchase_sticker(group.clone()) */
                 });
             }
 
@@ -181,7 +180,6 @@ impl AppOp {
             eb.add(&image.widget);
             bx.add(&eb);
 
-            let internal = self.internal.clone();
             let im = img.clone();
             let popover: gtk::Popover = self
                 .ui
@@ -190,8 +188,7 @@ impl AppOp {
                 .expect("Couldn't find stickers_popover in ui file.");
             eb.connect_button_press_event(move |_, _| {
                 popover.hide();
-                let command = InternalCommand::SendSticker(im.clone());
-                internal.send(command).unwrap();
+                /* TODO: Use action to call send_sticker(im.clone()) */
                 glib::signal::Inhibit(false)
             });
         }

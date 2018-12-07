@@ -19,8 +19,6 @@ use uibuilder;
 
 mod connect;
 
-pub use self::appop_loop::InternalCommand;
-
 static mut OP: Option<Arc<Mutex<AppOp>>> = None;
 #[macro_export]
 macro_rules! APPOP {
@@ -38,10 +36,8 @@ macro_rules! APPOP {
     }}
 }
 
-mod appop_loop;
 mod backend_loop;
 
-use self::appop_loop::appop_loop;
 pub use self::backend_loop::backend_loop;
 
 /// State for the main thread.
@@ -69,7 +65,6 @@ impl App {
 
         gtk_app.connect_startup(move |gtk_app| {
             let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-            let (itx, irx): (Sender<InternalCommand>, Receiver<InternalCommand>) = channel();
 
             let bk = Backend::new(tx);
             let apptx = bk.run();
@@ -111,19 +106,13 @@ impl App {
             stack.add_named(&child, "account-settings");
             stack_header.add_named(&child_header, "account-settings");
 
-            let op = Arc::new(Mutex::new(AppOp::new(
-                gtk_app.clone(),
-                ui.clone(),
-                apptx,
-                itx,
-            )));
+            let op = Arc::new(Mutex::new(AppOp::new(gtk_app.clone(), ui.clone(), apptx)));
 
             unsafe {
                 OP = Some(op.clone());
             }
 
             backend_loop(rx);
-            appop_loop(irx);
 
             let app = App {
                 ui: ui,
