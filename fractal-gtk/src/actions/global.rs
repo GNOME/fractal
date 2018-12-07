@@ -8,8 +8,7 @@ use gtk::prelude::*;
 
 /* This creates globale actions which are connected to the application */
 /* TODO: Remove op */
-pub fn new(op: Arc<Mutex<AppOp>>) {
-    let app = op.lock().unwrap().gtk_app.clone();
+pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let settings = SimpleAction::new("settings", None);
     let account = SimpleAction::new("account_settings", None);
     let dir = SimpleAction::new("directory", None);
@@ -23,10 +22,11 @@ pub fn new(op: Arc<Mutex<AppOp>>) {
     let search = SimpleAction::new("search", None);
     let leave = SimpleAction::new("leave_room", None);
 
-    let quit = SimpleAction::new("quit", None);
     let shortcuts = SimpleAction::new("shortcuts", None);
     let about = SimpleAction::new("about", None);
+    let quit = gio::SimpleAction::new("quit", None);
 
+    let close_room = SimpleAction::new("close-room", None);
     let open_room = SimpleAction::new("open-room", glib::VariantTy::new("s").ok());
 
     app.add_action(&settings);
@@ -46,8 +46,15 @@ pub fn new(op: Arc<Mutex<AppOp>>) {
     app.add_action(&shortcuts);
     app.add_action(&about);
     app.add_action(&open_room);
+    app.add_action(&close_room);
 
-    quit.connect_activate(clone!(op => move |_, _| op.lock().unwrap().quit() ));
+    // When activated, shuts down the application
+    let app_weak = app.downgrade();
+    quit.connect_activate(move |_action, _parameter| {
+        let app = upgrade_weak!(app_weak);
+        app.quit();
+    });
+
     about.connect_activate(clone!(op => move |_, _| op.lock().unwrap().about_dialog() ));
 
     settings.connect_activate(move |_, _| {
@@ -80,8 +87,17 @@ pub fn new(op: Arc<Mutex<AppOp>>) {
         }
     }));
 
+    close_room.connect_activate(clone!(op => move |_, _| {
+        op.lock().unwrap().escape();
+    }));
+
     /* Add Keybindings to actions */
     app.set_accels_for_action("app.quit", &["<Ctrl>Q"]);
+    app.set_accels_for_action("app.close-room", &["Escape"]);
+    app.set_accels_for_action("app.notification", &["<Ctrl>N"]);
+
+    // TODO: Mark active room as read when window gets focus
+    //op.lock().unwrap().mark_active_room_messages();
 }
 
 fn get_room_id(data: &Option<glib::Variant>) -> Option<&str> {
