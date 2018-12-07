@@ -20,8 +20,6 @@ use cache;
 use uibuilder;
 use widgets;
 
-use app::InternalCommand;
-
 mod about;
 mod account;
 pub mod attach;
@@ -50,7 +48,6 @@ pub struct AppOp {
     pub ui: uibuilder::UI,
     pub gtk_app: gtk::Application,
     pub backend: Sender<backend::BKCommand>,
-    pub internal: Sender<InternalCommand>,
 
     pub syncing: bool,
     pub msg_queue: Vec<TmpMsg>,
@@ -90,17 +87,11 @@ pub struct AppOp {
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
-    pub fn new(
-        app: gtk::Application,
-        ui: uibuilder::UI,
-        tx: Sender<BKCommand>,
-        itx: Sender<InternalCommand>,
-    ) -> AppOp {
+    pub fn new(app: gtk::Application, ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
         AppOp {
             ui: ui,
             gtk_app: app,
             backend: tx,
-            internal: itx,
             active_room: None,
             rooms: HashMap::new(),
             room_settings: None,

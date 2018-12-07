@@ -3,11 +3,11 @@ use gtk::prelude::*;
 
 use std::collections::HashMap;
 
-use app::InternalCommand;
 use appop::AppOp;
 use backend::BKCommand;
 use glib;
 use widgets;
+use App;
 
 use types::Event;
 use types::Member;
@@ -171,9 +171,10 @@ impl AppOp {
                 w = mb.widget(true);
             }
 
-            let tx = self.internal.clone();
             w.connect_button_press_event(clone!(u => move |_, _| {
-                tx.send(InternalCommand::ToInvite(u.clone())).unwrap();
+                /* FIXME: Create Action */
+                let u = u.clone();
+                APPOP!(add_to_invite, (u));
                 glib::signal::Inhibit(true)
             }));
 

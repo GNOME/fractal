@@ -3,7 +3,6 @@ use i18n::{i18n, i18n_k};
 use gtk;
 use gtk::prelude::*;
 
-use app::InternalCommand;
 use appop::AppOp;
 use appop::AppState;
 
@@ -187,13 +186,11 @@ impl AppOp {
                 }
             }
 
-            self.internal
-                .send(InternalCommand::AppendTmpMessages)
-                .unwrap();
-
             self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
             self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
         }
+
+        self.append_tmp_msgs();
 
         /* make sure we remove the old room history first, because the lazy loading could try to
          * load messages */

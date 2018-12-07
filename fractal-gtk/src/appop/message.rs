@@ -7,9 +7,9 @@ use std::fs;
 use std::path::Path;
 use tree_magic;
 
-use app::InternalCommand;
 use appop::room::Force;
 use appop::AppOp;
+use App;
 
 use backend::BKCommand;
 use uitypes::MessageContent;
@@ -145,9 +145,9 @@ impl AppOp {
     }
 
     pub fn retry_send(&mut self) {
-        let tx = self.internal.clone();
         gtk::timeout_add(5000, move || {
-            tx.send(InternalCommand::ForceDequeueMessage).unwrap();
+            /* This will be removed once tmp messages are refactored */
+            APPOP!(force_dequeue_message);
             gtk::Continue(false)
         });
     }
@@ -313,14 +313,14 @@ impl AppOp {
             None,
         );
 
-        let internal = self.internal.clone();
         // Running in a *thread* to free self lock
+        // FIXME don't use idle_add
         gtk::idle_add(move || {
             let result = file_chooser.run();
             if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
                 if let Some(fname) = file_chooser.get_filename() {
                     let f = String::from(fname.to_str().unwrap_or(""));
-                    internal.send(InternalCommand::AttachMessage(f)).unwrap();
+                    APPOP!(attach_message, (f));
                 }
             }
             gtk::Continue(false)

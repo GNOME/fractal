@@ -3,12 +3,11 @@ use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
+use App;
 
 use widgets;
 
 use types::Message;
-
-use app::InternalCommand;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -55,7 +54,6 @@ impl AppOp {
             let back = panel.get_back_button()?;
             let panel: Rc<RefCell<widgets::MediaViewer>> = Rc::new(RefCell::new(panel));
             /* Headerbar */
-            let internal = self.internal.clone();
             back.connect_clicked(move |_| {
                 /* remove handler from main_window */
                 panel.borrow_mut().remove_handler();
@@ -67,9 +65,9 @@ impl AppOp {
                     stack_header.remove(&widget);
                 }
 
-                internal
-                    .send(InternalCommand::SetView(AppState::Chat))
-                    .unwrap()
+                /* FIXME: Use action */
+                let state = AppState::Chat;
+                APPOP!(set_state, (state));
             });
         }
 

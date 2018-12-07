@@ -3,8 +3,7 @@ use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
-
-use app::InternalCommand;
+use App;
 
 use widgets;
 
@@ -43,11 +42,10 @@ impl AppOp {
             stack_header.add_named(&header, "room-settings");
 
             /* Headerbar */
-            let internal = self.internal.clone();
             panel.get_back_button()?.connect_clicked(move |_| {
-                internal
-                    .send(InternalCommand::SetView(AppState::Chat))
-                    .unwrap()
+                /* FIXME: use action */
+                let state = AppState::Chat;
+                APPOP!(set_state, (state));
             });
 
             self.room_settings = Some(panel);

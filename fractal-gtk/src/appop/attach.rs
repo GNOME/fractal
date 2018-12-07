@@ -13,8 +13,8 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 
-use app::InternalCommand;
 use appop::AppOp;
+use App;
 
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
@@ -70,10 +70,10 @@ impl AppOp {
                 closebtn.connect_clicked(clone!(dialog => move |_| {
                     dialog.destroy();
                 }));
-                let internal = self.internal.clone();
+                /* FIXME: make this a action */
                 okbtn.connect_clicked(clone!(pixb, dialog => move |_| {
                     if let Ok(file) = store_pixbuf(&pixb) {
-                        internal.send(InternalCommand::AttachMessage(file)).unwrap();
+                        APPOP!(attach_message, (file))
                     }
                     dialog.destroy();
                 }));
