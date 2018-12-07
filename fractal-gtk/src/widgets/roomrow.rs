@@ -163,7 +163,8 @@ impl RoomRow {
         row.add(&self.widget);
         let data = glib::Variant::from(&self.room.id);
         row.set_action_target_value(&data);
-        row.set_action_name("app.open_room");
+        row.set_action_name("app.open-room");
+
         row
     }
 

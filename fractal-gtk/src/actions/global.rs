@@ -27,7 +27,7 @@ pub fn new(op: Arc<Mutex<AppOp>>) {
     let shortcuts = SimpleAction::new("shortcuts", None);
     let about = SimpleAction::new("about", None);
 
-    let open_room = SimpleAction::new("open_room", glib::VariantTy::new("s").ok());
+    let open_room = SimpleAction::new("open-room", glib::VariantTy::new("s").ok());
 
     app.add_action(&settings);
     app.add_action(&account);
@@ -70,9 +70,13 @@ pub fn new(op: Arc<Mutex<AppOp>>) {
     newr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().new_room_dialog() ));
     joinr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().join_to_room_dialog() ));
 
+    /* TODO: We could pass a message to this to highlight it in the room history, might be
+     * handy when opening the room from a notification */
     open_room.connect_activate(clone!(op => move |_, data| {
         if let Some(id) = get_room_id(data) {
-                op.lock().unwrap().set_active_room_by_id(id.to_string());
+            op.lock().unwrap().set_active_room_by_id(id.to_string());
+            /* This does nothing if fractal is already in focus */
+            op.lock().unwrap().activate();
         }
     }));
 

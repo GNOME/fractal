@@ -38,7 +38,6 @@ extern crate cairo;
 extern crate chrono;
 extern crate comrak;
 extern crate letter_avatar;
-extern crate notify_rust;
 extern crate pango;
 extern crate secret_service;
 extern crate tree_magic;

@@ -1,14 +1,14 @@
+use gio::ApplicationExt;
+use gio::Notification;
+use gio::NotificationExt;
 use gtk;
 use gtk::prelude::*;
-use notify_rust::Notification;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread;
 
 use i18n::i18n;
 
-use app::InternalCommand;
 use appop::AppOp;
 use backend::BKCommand;
 
@@ -40,60 +40,41 @@ impl AppOp {
         inapp.set_reveal_child(false);
     }
 
-    pub fn notify(&self, msg: &Message) {
+    pub fn notify(&self, msg: &Message) -> Option<()> {
+        let id = msg.id.clone()?;
+        let room_id = msg.room.clone();
+        let r = self.rooms.get(&msg.room)?;
         let mut body = msg.body.clone();
         body.truncate(80);
 
-        let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-        self.backend
-            .send(BKCommand::GetUserInfoAsync(msg.sender.clone(), Some(tx)))
-            .unwrap();
-        let bk = self.internal.clone();
-        let m = msg.clone();
-
-        let notify_msg = match self.rooms.get(&m.room) {
-            None => m.room.clone(),
-            Some(ref r) => {
-                if r.direct {
-                    i18n("{name} (direct message)")
-                } else {
-                    format!("{{name}} ({})", r.name.clone().unwrap_or_default())
-                }
+        let title = if r.direct {
+            i18n(" (direct message)")
+        } else {
+            if let Some(name) = r.name.clone() {
+                format!(" ({})", name)
+            } else {
+                String::from("")
             }
         };
 
+        let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
+        let _ = self
+            .backend
+            .send(BKCommand::GetUserInfoAsync(msg.sender.clone(), Some(tx)));
+
+        let app_weak = self.gtk_app.downgrade();
         gtk::timeout_add(50, move || match rx.try_recv() {
             Err(TryRecvError::Empty) => gtk::Continue(true),
             Err(TryRecvError::Disconnected) => gtk::Continue(false),
-            Ok((name, avatar)) => {
-                let bk = bk.clone();
-                let m = m.clone();
-                let body = body.clone();
-                let summary = notify_msg.replace("{name}", &name);
-                let avatar = avatar.clone();
-                thread::spawn(move || {
-                    let mut notification = Notification::new();
-                    notification.summary(&summary);
-                    notification.body(&body);
-                    notification.icon(&avatar);
-                    notification.action("default", "default");
-
-                    if let Ok(n) = notification.show() {
-                        #[cfg(all(unix, not(target_os = "macos")))]
-                        n.wait_for_action({
-                            |action| match action {
-                                "default" => {
-                                    bk.send(InternalCommand::NotifyClicked(m)).unwrap();
-                                }
-                                _ => (),
-                            }
-                        });
-                    }
-                });
-
+            Ok((name, avatar_path)) => {
+                let title = format!("{}{}", name, title);
+                let app = upgrade_weak!(app_weak, gtk::Continue(false));
+                let n = create_notification(&room_id, &title, &body, &avatar_path);
+                app.send_notification(Some(id.as_str()), &n);
                 gtk::Continue(false)
             }
         });
+        None
     }
 
     pub fn show_error(&self, msg: String) {
@@ -104,16 +85,15 @@ impl AppOp {
             .expect("Couldn't find main_window in ui file.");
         ErrorDialog::new(&parent, &msg);
     }
+}
 
-    pub fn notification_cliked(&mut self, msg: Message) {
-        self.activate();
-        let mut room = None;
-        if let Some(r) = self.rooms.get(&msg.room) {
-            room = Some(r.clone());
-        }
-
-        if let Some(r) = room {
-            self.set_active_room_by_id(r.id.clone());
-        }
-    }
+fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> Notification {
+    let notification = Notification::new(title);
+    notification.set_body(body);
+    notification.set_priority(gio::NotificationPriority::High);
+    let avatar = gio::FileIcon::new(&gio::File::new_for_path(avatar));
+    notification.set_icon(&avatar);
+    let data = glib::Variant::from(room_id);
+    notification.set_default_action_and_target_value("app.open-room", Some(&data));
+    notification
 }

@@ -7,14 +7,12 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 
 use types::Member;
-use types::Message;
 use types::Sticker;
 use types::StickerGroup;
 
 #[derive(Debug)]
 pub enum InternalCommand {
     SetView(AppState),
-    NotifyClicked(Message),
     LoadMore,
     RemoveInv(String),
     AppendTmpMessages,
@@ -41,9 +39,6 @@ pub fn appop_loop(rx: Receiver<InternalCommand>) {
             }
             Ok(InternalCommand::SetView(view)) => {
                 APPOP!(set_state, (view));
-            }
-            Ok(InternalCommand::NotifyClicked(msg)) => {
-                APPOP!(notification_cliked, (msg));
             }
             Ok(InternalCommand::LoadMore) => {
                 APPOP!(load_more_messages);
