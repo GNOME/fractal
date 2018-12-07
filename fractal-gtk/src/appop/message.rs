@@ -348,7 +348,16 @@ impl AppOp {
                     || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
 
             if should_notify {
-                self.notify(msg);
+                if let Some(ref id) = msg.id {
+                    let window: gtk::Window = self
+                        .ui
+                        .builder
+                        .get_object("main_window")
+                        .expect("Can't find main_window in ui file.");
+                    if let Some(app) = window.get_application() {
+                        self.notify(app, &msg.room, id);
+                    }
+                }
             }
 
             if &msg.room == self.active_room.as_ref()? && !msg.redacted {

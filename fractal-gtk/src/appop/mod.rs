@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
-use gio::ApplicationExt;
 use gtk;
 use gtk::prelude::*;
 
@@ -46,7 +45,6 @@ pub use self::state::AppState;
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
-    pub gtk_app: gtk::Application,
     pub backend: Sender<backend::BKCommand>,
 
     pub syncing: bool,
@@ -87,10 +85,9 @@ pub struct AppOp {
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
-    pub fn new(app: gtk::Application, ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
+    pub fn new(ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
         AppOp {
             ui: ui,
-            gtk_app: app,
             backend: tx,
             active_room: None,
             rooms: HashMap::new(),
@@ -162,6 +159,5 @@ impl AppOp {
     pub fn quit(&self) {
         self.cache_rooms();
         self.disconnect();
-        self.gtk_app.quit();
     }
 }
