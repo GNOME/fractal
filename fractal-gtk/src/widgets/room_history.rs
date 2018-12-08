@@ -89,7 +89,6 @@ pub struct RoomHistory {
     backend: Sender<BKCommand>,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
-    actions: gio::SimpleActionGroup,
 }
 
 impl RoomHistory {
@@ -117,7 +116,6 @@ impl RoomHistory {
             backend: op.backend.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
-            actions,
         }
     }
 
@@ -142,7 +140,6 @@ impl RoomHistory {
         let backend = self.backend.clone();
         let queue = self.queue.clone();
         let rows = self.rows.clone();
-        let actions = self.actions.downgrade();
 
         /* TO-DO: we could set the listbox height the 52 * length of messages, to descrease jumps of the
          * scrollbar. 52 is the normal height of a message with one line
@@ -174,12 +171,7 @@ impl RoomHistory {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
                     }
-                    let b = if let Some(actions) = actions.upgrade() {
-                        create_row(item.clone(), has_header, backend.clone(), actions)
-                    } else {
-                        None
-                    };
-                    item.widget = b;
+                    item.widget = create_row(item.clone(), has_header, backend.clone());
                     rows.borrow_mut().add_top(Element::Message(item));
                     if let Some(day_divider) = day_divider {
                         rows.borrow_mut().add_top(day_divider);
@@ -237,12 +229,7 @@ impl RoomHistory {
             rows.add_bottom(day_divider);
         }
 
-        let b = create_row(
-            item.clone(),
-            has_header,
-            self.backend.clone(),
-            self.actions.clone(),
-        );
+        let b = create_row(item.clone(), has_header, self.backend.clone());
         item.widget = b;
         rows.add_bottom(Element::Message(item));
         None
@@ -274,16 +261,11 @@ fn create_row(
     row: MessageContent,
     has_header: bool,
     backend: Sender<BKCommand>,
-    actions: gio::SimpleActionGroup,
 ) -> Option<widgets::MessageBox> {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
     let mut mb = widgets::MessageBox::new(backend);
-    mb.create(
-        &row,
-        has_header && row.mtype != RowType::Emote,
-        Some(actions),
-    );
+    mb.create(&row, has_header && row.mtype != RowType::Emote);
 
     Some(mb)
 }
