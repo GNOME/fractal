@@ -50,8 +50,6 @@ impl Image {
     /// ```
     pub fn new(backend: &Sender<BKCommand>, path: &str) -> Image {
         let da = DrawingArea::new();
-        // gdk::EventMask::BUTTON_PRESS_MASK = 256
-        da.add_events(256);
         // gdk::EventMask::ENTER_NOTIFY_MASK = 4096
         da.add_events(4096);
         // gdk::EventMask::LEAVE_NOTIFY_MASK = 8192
