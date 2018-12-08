@@ -30,7 +30,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     let copy_text = SimpleAction::new("copy_text", glib::VariantTy::new("s").ok());
     let delete = SimpleAction::new("delete", glib::VariantTy::new("s").ok());
     let show_source = SimpleAction::new("show_source", glib::VariantTy::new("s").ok());
-    let open_media_viewer = SimpleAction::new("open_media_viewer", glib::VariantTy::new("s").ok());
+    let open_media_viewer = SimpleAction::new("open-media-viewer", glib::VariantTy::new("s").ok());
     /* Actions for the room history */
 
     /* TODO: use statefull action to keep  track if the user already reqeusted new messages */

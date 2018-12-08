@@ -3,8 +3,6 @@ use i18n::i18n;
 use itertools::Itertools;
 
 use chrono::prelude::*;
-use gio;
-use gio::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
@@ -36,10 +34,9 @@ pub struct MessageBox {
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     eventbox: gtk::EventBox,
-    row: Option<gtk::ListBoxRow>,
+    row: gtk::ListBoxRow,
     image: Option<gtk::DrawingArea>,
     header: bool,
-    actions: Option<gio::SimpleActionGroup>,
 }
 
 impl MessageBox {
@@ -47,6 +44,7 @@ impl MessageBox {
         let username = gtk::Label::new("");
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
+        let row = gtk::ListBoxRow::new();
 
         username.set_ellipsize(pango::EllipsizeMode::End);
 
@@ -55,49 +53,41 @@ impl MessageBox {
             username: username,
             username_event_box: eb,
             eventbox,
-            row: None,
+            row,
             image: None,
             header: true,
-            actions: None,
         }
     }
 
     /* create the message row with or without a header */
-    pub fn create(
-        &mut self,
-        msg: &Message,
-        has_header: bool,
-        actions: Option<gio::SimpleActionGroup>,
-    ) {
-        self.actions = actions;
-        let row = gtk::ListBoxRow::new();
-        self.set_msg_styles(msg, &row);
-        row.set_selectable(false);
+    pub fn create(&mut self, msg: &Message, has_header: bool) {
+        self.set_msg_styles(msg, &self.row);
+        self.row.set_selectable(false);
         let w = if has_header && msg.mtype != RowType::Emote {
-            row.set_margin_top(12);
+            self.row.set_margin_top(12);
             self.header = true;
             self.widget(msg)
         } else {
             if let RowType::Emote = msg.mtype {
-                row.set_margin_top(12);
+                self.row.set_margin_top(12);
             }
             self.header = false;
             self.small_widget(msg)
         };
 
         self.eventbox.add(&w);
-        row.add(&self.eventbox);
-        row.show_all();
-        self.row = Some(row);
+        self.row.add(&self.eventbox);
+        self.row.show_all();
         self.connect_right_click_menu(msg, None);
     }
 
+    // FIXME: return directly row
     pub fn get_listbox_row(&self) -> Option<&gtk::ListBoxRow> {
-        self.row.as_ref()
+        Some(&self.row)
     }
 
     pub fn tmpwidget(mut self, msg: &Message) -> Option<MessageBox> {
-        self.create(msg, true, None);
+        self.create(msg, true);
         {
             let w = self.get_listbox_row()?;
             let style = w.get_style_context()?;
@@ -519,23 +509,9 @@ impl MessageBox {
     }
 
     fn connect_image(&self, msg: &Message) -> Option<()> {
-        let actions = self.actions.as_ref()?;
-        let open_media_viewer = actions.lookup_action("open_media_viewer")?.downgrade();
-        let id = msg.id.clone();
-
-        self.image
-            .as_ref()?
-            .connect_button_press_event(move |_, e| {
-                if e.get_button() != 3 {
-                    let action = upgrade_weak!(open_media_viewer, Inhibit(false));
-                    let data = glib::Variant::from(id.as_str());
-                    action.activate(&data);
-
-                    Inhibit(true)
-                } else {
-                    Inhibit(false)
-                }
-            });
+        let data = glib::Variant::from(msg.id.as_str());
+        self.row.set_action_name("room_history.open-media-viewer");
+        self.row.set_action_target_value(&data);
         None
     }
 }
