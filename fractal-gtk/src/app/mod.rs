@@ -13,6 +13,8 @@ use std::sync::{Arc, Mutex, Weak as SyncWeak};
 use appop::AppOp;
 use backend::BKResponse;
 use backend::Backend;
+use i18n::i18n;
+use widgets::ErrorDialog;
 
 use actions;
 use globals;
@@ -163,10 +165,8 @@ impl App {
         let app = match App::new(gtk_app) {
             Ok(app) => app,
             Err(err) => {
-                let msg = format!("Error creating application: {}", err);
-                println!("{}", msg);
-                // TODO: Show error dialog
-                // https://github.com/sdroege/rustfest-rome18-gtk-gst-workshop/blob/master/src/utils.rs#L52
+                let msg = format!("{} {}", i18n("Error creating application:"), err);
+                ErrorDialog::new(true, &msg);
                 return;
             }
         };
