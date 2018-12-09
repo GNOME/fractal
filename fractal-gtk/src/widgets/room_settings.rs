@@ -77,14 +77,6 @@ impl RoomSettings {
         None
     }
 
-    pub fn get_back_button(&self) -> Option<gtk::Button> {
-        let back = self
-            .builder
-            .get_object::<gtk::Button>("room_settings_back_button")
-            .expect("Can't find room_settings_back_button in ui file.");
-        Some(back)
-    }
-
     pub fn connect(&self) {
         let name_btn = self
             .builder

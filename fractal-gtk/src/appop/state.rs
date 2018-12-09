@@ -1,19 +1,9 @@
 use gtk;
 use gtk::prelude::*;
 
+use actions::AppState;
 use appop::room::RoomPanel;
 use appop::AppOp;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum AppState {
-    Login,
-    Chat,
-    Directory,
-    Loading,
-    AccountSettings,
-    RoomSettings,
-    MediaViewer,
-}
 
 impl AppOp {
     pub fn set_state(&mut self, state: AppState) {
@@ -24,7 +14,11 @@ impl AppOp {
                 self.clean_login();
                 "login"
             }
-            AppState::Chat => "chat",
+            AppState::NoRoom => {
+                self.set_state_no_room();
+                "chat"
+            }
+            AppState::Room => "chat",
             AppState::Directory => "directory",
             AppState::Loading => "loading",
             AppState::AccountSettings => "account-settings",
@@ -73,26 +67,12 @@ impl AppOp {
         if let AppState::Directory = self.state {
             self.search_rooms(false);
         }
-
-        /* FIXME: Find better solution to remove reference to widget */
-        if self.state != AppState::RoomSettings && self.room_settings.is_some() {
-            self.close_room_settings();
-        }
     }
 
-    pub fn escape(&mut self) -> bool {
-        if self.inhibit_escape {
-            return true;
-        }
-
-        match self.state {
-            AppState::Chat => {
-                self.room_panel(RoomPanel::NoRoom);
-                self.active_room = None;
-                self.clear_tmp_msgs();
-                true
-            }
-            _ => false,
-        }
+    // WORKAROUND this is needed because NoRoom isn't a real app state
+    fn set_state_no_room(&mut self) {
+        self.room_panel(RoomPanel::NoRoom);
+        self.active_room = None;
+        self.clear_tmp_msgs();
     }
 }

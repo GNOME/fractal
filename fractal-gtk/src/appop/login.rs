@@ -4,7 +4,6 @@ use globals;
 use gtk;
 use gtk::prelude::*;
 
-use appop::state::AppState;
 use appop::AppOp;
 
 use backend::BKCommand;
@@ -19,6 +18,7 @@ use app::backend_loop;
 
 use passwd::PasswordStorage;
 
+use actions::AppState;
 use widgets::ErrorDialog;
 
 impl AppOp {
@@ -29,7 +29,7 @@ impl AppOp {
             error!("Can't store the token using libsecret");
         }
 
-        self.set_state(AppState::Chat);
+        self.set_state(AppState::NoRoom);
         self.set_uid(Some(uid.clone()));
         if self.device_id == None {
             self.set_device(device);

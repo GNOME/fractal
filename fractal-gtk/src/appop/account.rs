@@ -188,6 +188,8 @@ impl AppOp {
     }
 
     pub fn show_account_settings_dialog(&mut self) {
+        // Reset view before displaying it
+        self.close_account_settings_dialog();
         let avatar_spinner = self
             .ui
             .builder
@@ -538,7 +540,7 @@ impl AppOp {
         }
     }
 
-    pub fn close_account_settings_dialog(&mut self) {
+    pub fn close_account_settings_dialog(&self) {
         let advanced = self
             .ui
             .builder
@@ -588,9 +590,6 @@ impl AppOp {
         advanced_box.queue_draw();
         delete_box.queue_draw();
         b.queue_draw();
-        info!("Going back");
-
-        self.set_state(AppState::Chat);
     }
 
     pub fn set_new_password(&mut self) {

@@ -15,6 +15,7 @@ use types::StickerGroup;
 
 use passwd::PasswordStorage;
 
+use actions::AppState;
 use cache;
 use uibuilder;
 use widgets;
@@ -41,7 +42,6 @@ mod user;
 use self::member::SearchType;
 use self::message::TmpMsg;
 pub use self::room::RoomPanel;
-pub use self::state::AppState;
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
@@ -64,8 +64,6 @@ pub struct AppOp {
     pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
     pub unsent_messages: HashMap<String, (String, i32)>,
-
-    pub inhibit_escape: bool,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -106,8 +104,6 @@ impl AppOp {
             roomlist: widgets::RoomList::new(None),
             since: None,
             unsent_messages: HashMap::new(),
-
-            inhibit_escape: false,
 
             logged_in: false,
 
