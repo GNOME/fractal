@@ -11,7 +11,6 @@ use globals;
 use types::Member;
 use types::Room;
 use types::RoomList;
-use types::StickerGroup;
 
 use passwd::PasswordStorage;
 
@@ -35,7 +34,6 @@ mod room;
 mod room_settings;
 mod start_chat;
 mod state;
-mod stickers;
 mod sync;
 mod user;
 
@@ -75,8 +73,6 @@ pub struct AppOp {
     pub invite_list: Vec<(Member, gtk::TextChildAnchor)>,
     search_type: SearchType,
 
-    pub stickers: Vec<StickerGroup>,
-
     pub directory: Vec<Room>,
 }
 
@@ -111,7 +107,6 @@ impl AppOp {
             invitation_roomid: None,
             invite_list: vec![],
             search_type: SearchType::Invite,
-            stickers: vec![],
 
             directory: vec![],
         }
