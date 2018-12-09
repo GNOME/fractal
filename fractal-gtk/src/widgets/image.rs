@@ -108,6 +108,7 @@ impl Image {
         self
     }
 
+    #[allow(dead_code)]
     pub fn thumb(mut self, t: bool) -> Image {
         self.thumb = t;
         self

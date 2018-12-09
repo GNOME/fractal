@@ -12,7 +12,6 @@ mod markdown;
 mod new_room;
 mod roomlist_search;
 mod send;
-mod stickers;
 
 use app::App;
 
