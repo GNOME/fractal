@@ -11,8 +11,6 @@ use gtk::TextTag;
 use sourceview;
 
 use types::Member;
-//use types::Room;
-//use types::RoomList;
 
 use appop::AppOp;
 use widgets;
@@ -75,6 +73,15 @@ impl Autocomplete {
             }
         }
 
+        let window_weak = this.borrow().window.downgrade();
+        this.borrow().popover.connect_closed(move |_| {
+            let window = upgrade_weak!(window_weak);
+            // Reenable Escape to change state
+            if let Some(app) = window.get_application() {
+                app.set_accels_for_action("app.back", &["Escape"]);
+            }
+        });
+
         let own = this.clone();
         this.borrow()
             .window
@@ -135,7 +142,6 @@ impl Autocomplete {
         this.borrow().entry.connect_key_release_event(move |_, k| {
             match k.get_keyval() {
                 gdk::enums::key::Escape => {
-                    println!("Esc");
                     if own.borrow().popover_position.is_some() {
                         own.borrow_mut().autocomplete_enter();
                         return Inhibit(true);
@@ -455,6 +461,10 @@ impl Autocomplete {
             }
 
             self.popover.popup();
+            // Don't change app state on Escape while the popover is open
+            if let Some(app) = self.window.get_application() {
+                app.set_accels_for_action("app.back", &[]);
+            }
         } else {
             self.autocomplete_enter();
         }

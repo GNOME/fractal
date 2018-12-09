@@ -208,7 +208,6 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     /* Add Keybindings to actions */
     app.set_accels_for_action("app.quit", &["<Ctrl>Q"]);
     app.set_accels_for_action("app.back", &["Escape"]);
-    // TODO: don't change state on Escape if the autocomplete popover is open
 
     // TODO: Mark active room as read when window gets focus
     //op.lock().unwrap().mark_active_room_messages();
