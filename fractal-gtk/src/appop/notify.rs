@@ -79,12 +79,7 @@ impl AppOp {
     }
 
     pub fn show_error(&self, msg: String) {
-        let parent: gtk::Window = self
-            .ui
-            .builder
-            .get_object("main_window")
-            .expect("Couldn't find main_window in ui file.");
-        ErrorDialog::new(&parent, &msg);
+        ErrorDialog::new(false, &msg);
     }
 }
 

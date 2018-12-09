@@ -107,8 +107,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                     Err(TryRecvError::Empty) => gtk::Continue(true),
                     Err(TryRecvError::Disconnected) => {
                         let msg = i18n("Could not download the file");
-                        let parent = upgrade_weak!(parent_weak, gtk::Continue(true));
-                        ErrorDialog::new(&parent, &msg);
+                        ErrorDialog::new(false, &msg);
 
                         gtk::Continue(true)
                     },
@@ -124,7 +123,6 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     });
 
     let b = backend.clone();
-    let parent_weak = parent.downgrade();
     copy_image.connect_activate(move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
@@ -133,13 +131,11 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
 
             let _ = b.send(BKCommand::GetMediaAsync(url.clone(), tx));
 
-            let parent_weak = parent_weak.clone();
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => gtk::Continue(true),
                 Err(TryRecvError::Disconnected) => {
                     let msg = i18n("Could not download the file");
-                    let parent = upgrade_weak!(parent_weak, gtk::Continue(true));
-                    ErrorDialog::new(&parent, &msg);
+                    ErrorDialog::new(false, &msg);
 
                     gtk::Continue(true)
                 }
@@ -202,13 +198,11 @@ fn open_save_as_dialog(parent: &gtk::Window, src: String, name: &str) {
     file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(name);
 
-    let parent_weak = parent.downgrade();
     file_chooser.connect_response(move |fcd, res| {
         if ResponseType::from(res) == ResponseType::Accept {
             if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
                 let msg = i18n("Could not save the file");
-                let parent = upgrade_weak!(parent_weak);
-                ErrorDialog::new(&parent, &msg);
+                ErrorDialog::new(false, &msg);
             }
         }
     });

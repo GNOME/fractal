@@ -753,7 +753,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
         Err(TryRecvError::Disconnected) => {
             data.borrow_mut().loading_error = true;
             let err = i18n("Error while loading previous media");
-            ErrorDialog::new(&data.borrow().main_window, &err);
+            ErrorDialog::new(false, &err);
 
             gtk::Continue(false)
         }
@@ -802,13 +802,11 @@ fn save_file_as(main_window: &gtk::Window, src: String, name: String) {
     file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(&name);
 
-    let main_window = main_window.clone();
     file_chooser.connect_response(move |fcd, res| {
-        let main_window = main_window.clone();
         if ResponseType::from(res) == ResponseType::Accept {
             if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
                 let err = i18n("Could not save the file");
-                ErrorDialog::new(&main_window, &err);
+                ErrorDialog::new(false, &err);
             }
         }
     });
