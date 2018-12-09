@@ -1,16 +1,33 @@
+use gio::ApplicationExt;
 use gtk;
 use gtk::prelude::*;
 
-pub fn new(parent: &gtk::Window, msg: &str) {
+// Shows an error dialog, and if it's fatal it will quit the application once
+// the dialog is closed
+pub fn new(fatal: bool, text: &str) {
+    let app = gio::Application::get_default()
+        .expect("No default application")
+        .downcast::<gtk::Application>()
+        .expect("Default application has wrong type");
+
     let dialog = gtk::MessageDialog::new(
-        Some(parent),
+        app.get_active_window().as_ref(),
         gtk::DialogFlags::MODAL,
-        gtk::MessageType::Warning,
+        gtk::MessageType::Error,
         gtk::ButtonsType::Ok,
-        &msg,
+        text,
     );
-    dialog.connect_response(move |d, _| {
-        d.destroy();
+
+    let app_weak = app.downgrade();
+    dialog.connect_response(move |dialog, _| {
+        dialog.destroy();
+
+        if fatal {
+            let app = upgrade_weak!(app_weak);
+            app.quit();
+        }
     });
-    dialog.show();
+
+    dialog.set_resizable(false);
+    dialog.show_all();
 }

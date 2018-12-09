@@ -219,13 +219,8 @@ impl AppOp {
         };
 
         if password != passconf {
-            let parent: gtk::Window = self
-                .ui
-                .builder
-                .get_object("main_window")
-                .expect("Can't find main_window in ui file.");
             let msg = i18n("Passwords didn’t match, try again");
-            ErrorDialog::new(&parent, &msg);
+            ErrorDialog::new(false, &msg);
             return;
         }
 
