@@ -3,14 +3,10 @@ use gtk::prelude::*;
 
 use appop::AppOp;
 use appop::AppState;
-use App;
 
 use widgets;
 
 use types::Message;
-
-use std::cell::RefCell;
-use std::rc::Rc;
 
 impl AppOp {
     /* FIXME: take msg by reference and maybe create an action for this */
@@ -50,25 +46,6 @@ impl AppOp {
 
             stack.add_named(&body, "media-viewer");
             stack_header.add_named(&header, "media-viewer");
-
-            let back = panel.get_back_button()?;
-            let panel: Rc<RefCell<widgets::MediaViewer>> = Rc::new(RefCell::new(panel));
-            /* Headerbar */
-            back.connect_clicked(move |_| {
-                /* remove handler from main_window */
-                panel.borrow_mut().remove_handler();
-                /* remove view from stack */
-                if let Some(widget) = stack.get_child_by_name("media_viewer") {
-                    stack.remove(&widget);
-                }
-                if let Some(widget) = stack_header.get_child_by_name("media_viewer") {
-                    stack_header.remove(&widget);
-                }
-
-                /* FIXME: Use action */
-                let state = AppState::Chat;
-                APPOP!(set_state, (state));
-            });
         }
 
         self.set_state(AppState::MediaViewer);

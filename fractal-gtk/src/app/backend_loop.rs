@@ -1,7 +1,7 @@
 use app::App;
 use i18n::i18n;
 
-use appop::AppState;
+use actions::AppState;
 use appop::RoomPanel;
 
 use glib;

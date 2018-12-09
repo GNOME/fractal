@@ -105,7 +105,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
             <property name="margin_top">12</property>
-            <property name="action_name">app.account_settings</property>
+            <property name="action_name">app.open-account-settings</property>
             <property name="text" translatable="yes">Account Settings</property>
           </object>
           <packing>

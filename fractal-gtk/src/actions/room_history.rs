@@ -30,8 +30,6 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     let copy_text = SimpleAction::new("copy_text", glib::VariantTy::new("s").ok());
     let delete = SimpleAction::new("delete", glib::VariantTy::new("s").ok());
     let show_source = SimpleAction::new("show_source", glib::VariantTy::new("s").ok());
-    let open_media_viewer = SimpleAction::new("open-media-viewer", glib::VariantTy::new("s").ok());
-    /* Actions for the room history */
 
     /* TODO: use statefull action to keep  track if the user already reqeusted new messages */
     let load_more_messages =
@@ -44,7 +42,6 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     actions.add_action(&copy_text);
     actions.add_action(&delete);
     actions.add_action(&show_source);
-    actions.add_action(&open_media_viewer);
     actions.add_action(&load_more_messages);
 
     let parent: gtk::Window = ui
@@ -169,10 +166,6 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
         }
     });
 
-    open_media_viewer.connect_activate(move |_, data| {
-        open_viewer(data);
-    });
-
     load_more_messages.connect_activate(move |_, data| {
         let id = get_room_id(data);
         request_more_messages(&backend, id);
@@ -195,14 +188,6 @@ fn get_message_by_id(id: &str) -> Option<Message> {
 
 fn get_room_id(data: &Option<glib::Variant>) -> Option<String> {
     data.as_ref()?.get_str().map(|s| s.to_string())
-}
-
-fn open_viewer(data: &Option<glib::Variant>) -> Option<()> {
-    let msg = get_message(data)?;
-    let op = App::get_op()?;
-    let mut op = op.lock().unwrap();
-    op.create_media_viewer(msg);
-    None
 }
 
 fn open_save_as_dialog(parent: &gtk::Window, src: String, name: &str) {

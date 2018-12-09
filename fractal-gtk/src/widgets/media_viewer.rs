@@ -431,22 +431,6 @@ impl MediaViewer {
         self.data.borrow_mut().set_nav_btn_visibility();
     }
 
-    pub fn get_back_button(&self) -> Option<gtk::Button> {
-        let back = self
-            .builder
-            .get_object::<gtk::Button>("media_viewer_back_button")
-            .expect("Can't find media_viewer_back_button in ui file.");
-        Some(back)
-    }
-
-    /* we need to remove handler from main_window */
-    pub fn remove_handler(&mut self) {
-        let id = self.data.borrow_mut().signal_id.take();
-        if let Some(id) = id {
-            signal::signal_handler_disconnect(&self.data.borrow().main_window, id);
-        }
-    }
-
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
         let zoom_entry = self
