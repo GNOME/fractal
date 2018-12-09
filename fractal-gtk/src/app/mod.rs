@@ -8,7 +8,7 @@ use std::ops;
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak as SyncWeak};
 
 use appop::AppOp;
 use backend::BKResponse;
@@ -20,7 +20,7 @@ use uibuilder;
 
 mod connect;
 
-static mut OP: Option<Arc<Mutex<AppOp>>> = None;
+static mut OP: Option<SyncWeak<Mutex<AppOp>>> = None;
 #[macro_export]
 macro_rules! APPOP {
     ($fn: ident, ($($x:ident),*) ) => {{
@@ -134,7 +134,7 @@ impl App {
         let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), apptx)));
 
         unsafe {
-            OP = Some(op.clone());
+            OP = Some(Arc::downgrade(&op));
         }
 
         backend_loop(rx);
@@ -211,11 +211,6 @@ impl App {
     // Legazy function to get AppOp
     // This shouldn't be used in new code
     pub fn get_op() -> Option<Arc<Mutex<AppOp>>> {
-        unsafe {
-            match OP {
-                Some(ref m) => Some(m.clone()),
-                None => None,
-            }
-        }
+        unsafe { OP.as_ref().and_then(|x| x.upgrade()) }
     }
 }
