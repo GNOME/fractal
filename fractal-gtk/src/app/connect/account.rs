@@ -10,11 +10,6 @@ impl App {
     pub fn connect_account_settings(&self) {
         let op = &self.op;
         let builder = &self.ui.builder;
-        let back = self
-            .ui
-            .builder
-            .get_object::<gtk::Button>("account_settings_back_button")
-            .expect("Can't find account_settings_back_button in ui file.");
         let cancel_password = self
             .ui
             .builder
@@ -95,11 +90,6 @@ impl App {
             .builder
             .get_object::<gtk::Button>("account_settings_delete_btn")
             .expect("Can't find account_settings_delete_btn in ui file.");
-
-        /* Headerbar */
-        back.connect_clicked(clone!(op => move |_| {
-            op.lock().unwrap().close_account_settings_dialog();
-        }));
 
         /* Body */
         avatar_btn.connect_clicked(clone!(op, builder => move |_| {

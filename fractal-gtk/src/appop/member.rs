@@ -3,6 +3,7 @@ use gtk::prelude::*;
 
 use std::collections::HashMap;
 
+use actions::AppState;
 use appop::AppOp;
 use backend::BKCommand;
 use glib;
@@ -42,7 +43,7 @@ impl AppOp {
         self.recalculate_room_name(roomid.clone());
 
         /* FIXME: update the current room settings insteat of creating a new one */
-        if self.room_settings.is_some() {
+        if self.room_settings.is_some() && self.state == AppState::RoomSettings {
             self.create_room_settings();
         }
     }

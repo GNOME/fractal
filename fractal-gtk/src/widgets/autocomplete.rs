@@ -135,6 +135,7 @@ impl Autocomplete {
         this.borrow().entry.connect_key_release_event(move |_, k| {
             match k.get_keyval() {
                 gdk::enums::key::Escape => {
+                    println!("Esc");
                     if own.borrow().popover_position.is_some() {
                         own.borrow_mut().autocomplete_enter();
                         return Inhibit(true);
@@ -351,7 +352,6 @@ impl Autocomplete {
         self.popover_search = None;
         let visible = self.popover.is_visible();
         self.popover.popdown();
-        self.op.lock().unwrap().inhibit_escape = false;
 
         visible
     }
@@ -455,7 +455,6 @@ impl Autocomplete {
             }
 
             self.popover.popup();
-            self.op.lock().unwrap().inhibit_escape = true;
         } else {
             self.autocomplete_enter();
         }

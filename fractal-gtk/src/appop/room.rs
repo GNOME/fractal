@@ -4,12 +4,12 @@ use gtk;
 use gtk::prelude::*;
 
 use appop::AppOp;
-use appop::AppState;
 
 use backend;
 use backend::BKCommand;
 
 use actions;
+use actions::AppState;
 use cache;
 use widgets;
 
@@ -118,7 +118,7 @@ impl AppOp {
         if let Some(d) = godef {
             self.set_active_room_by_id(d.id.clone());
         } else {
-            self.set_state(AppState::Chat);
+            self.set_state(AppState::NoRoom);
             self.room_panel(RoomPanel::NoRoom);
             self.active_room = None;
             self.clear_tmp_msgs();
@@ -128,7 +128,7 @@ impl AppOp {
     }
 
     pub fn reload_rooms(&mut self) {
-        self.set_state(AppState::Chat);
+        self.set_state(AppState::NoRoom);
     }
 
     pub fn set_active_room_by_id(&mut self, id: String) {

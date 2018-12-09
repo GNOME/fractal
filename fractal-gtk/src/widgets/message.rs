@@ -510,7 +510,7 @@ impl MessageBox {
 
     fn connect_image(&self, msg: &Message) -> Option<()> {
         let data = glib::Variant::from(msg.id.as_str());
-        self.row.set_action_name("room_history.open-media-viewer");
+        self.row.set_action_name("app.open-media-viewer");
         self.row.set_action_target_value(&data);
         None
     }
