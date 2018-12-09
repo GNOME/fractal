@@ -8,7 +8,6 @@ impl AppOp {
     pub fn initial_sync(&self, show: bool) {
         if show {
             self.inapp_notify(&i18n("Syncing, this could take a while"));
-            self.stickers_load();
         } else {
             self.hide_inapp_notify();
         }
