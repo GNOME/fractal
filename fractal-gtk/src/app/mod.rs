@@ -3,7 +3,6 @@ use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
 use std::cell::RefCell;
-use std::error::Error;
 use std::ops;
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
@@ -13,8 +12,6 @@ use std::sync::{Arc, Mutex, Weak as SyncWeak};
 use appop::AppOp;
 use backend::BKResponse;
 use backend::Backend;
-use i18n::i18n;
-use widgets::ErrorDialog;
 
 use actions;
 use globals;
@@ -76,7 +73,7 @@ impl AppWeak {
 }
 
 impl App {
-    pub fn new(gtk_app: &gtk::Application) -> Result<App, Box<dyn Error>> {
+    pub fn new(gtk_app: &gtk::Application) -> App {
         let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
 
         let bk = Backend::new(tx);
@@ -151,7 +148,7 @@ impl App {
 
         app.connect_gtk();
 
-        Ok(app)
+        app
     }
 
     // Downgrade to a weak reference
@@ -160,15 +157,8 @@ impl App {
     }
 
     pub fn on_startup(gtk_app: &gtk::Application) {
-        // Create application and error out if that fails for whatever reason
-        let app = match App::new(gtk_app) {
-            Ok(app) => app,
-            Err(err) => {
-                let msg = format!("{} {}", i18n("Error creating application:"), err);
-                ErrorDialog::new(true, &msg);
-                return;
-            }
-        };
+        // Create application
+        let app = App::new(gtk_app);
 
         let app_weak = app.downgrade();
         gtk_app.connect_activate(move |_| {
