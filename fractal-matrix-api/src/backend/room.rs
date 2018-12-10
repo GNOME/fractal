@@ -143,7 +143,7 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
             let array = r["chunk"].as_array();
             let evs = array.unwrap().iter().rev();
             let list = Message::from_json_events_iter(roomid.clone(), evs);
-            let prev_batch = r["end"].as_str().map(|s| String::from(s));
+            let prev_batch = r["end"].as_str().map(String::from);
             tx.send(BKResponse::RoomMessagesTo(list, roomid, prev_batch))
                 .unwrap();
         },
