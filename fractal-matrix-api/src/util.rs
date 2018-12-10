@@ -216,7 +216,7 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
             .as_i64()
             .unwrap_or(0) as i32;
 
-        r.prev_batch = timeline["prev_batch"].as_str().map(|s| String::from(s));
+        r.prev_batch = timeline["prev_batch"].as_str().map(String::from);
 
         if let Some(ev) = dataevs.as_array() {
             for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
