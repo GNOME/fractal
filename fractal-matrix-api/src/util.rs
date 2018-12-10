@@ -218,7 +218,7 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
 
         r.prev_batch = timeline["prev_batch"].as_str().map(|s| String::from(s));
 
-        for ev in dataevs.as_array() {
+        if let Some(ev) = dataevs.as_array() {
             for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
                 if let Some(_) = tag["content"]["tags"]["m.favourite"].as_object() {
                     r.fav = true;
