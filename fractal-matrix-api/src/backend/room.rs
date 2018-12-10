@@ -575,7 +575,9 @@ pub fn direct_chat(bk: &Backend, user: Member, internal_id: String) -> Result<()
 
             let directs = &mut data.lock().unwrap().m_direct;
             if directs.contains_key(&m.uid) {
-                directs.get_mut(&m.uid).map(|v| v.push(id.clone()));
+                if let Some(v) = directs.get_mut(&m.uid) {
+                    v.push(id.clone())
+                };
             } else {
                 directs.insert(m.uid.clone(), vec![id.clone()]);
             }
