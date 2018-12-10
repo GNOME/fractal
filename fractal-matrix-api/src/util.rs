@@ -220,7 +220,7 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
 
         if let Some(ev) = dataevs.as_array() {
             for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
-                if let Some(_) = tag["content"]["tags"]["m.favourite"].as_object() {
+                if tag["content"]["tags"]["m.favourite"].as_object().is_some() {
                     r.fav = true;
                 }
             }

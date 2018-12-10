@@ -194,7 +194,7 @@ fn parse_context(
             let mut ms: Vec<Message> = vec![];
             let array = r["events_before"].as_array();
             for msg in array.unwrap().iter().rev() {
-                if let None = id {
+                if id.is_none() {
                     id = Some(msg["event_id"].as_str().unwrap_or("").to_string());
                 }
 
