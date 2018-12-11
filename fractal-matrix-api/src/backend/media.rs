@@ -19,7 +19,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match thumb(&baseu, &media) {
+        match thumb(&baseu, &media, None) {
             Ok(fname) => {
                 tx.send(fname).unwrap();
             }

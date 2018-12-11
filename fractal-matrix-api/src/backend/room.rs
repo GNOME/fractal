@@ -13,8 +13,8 @@ use std::thread;
 use util;
 use util::cache_path;
 use util::json_q;
-use util::media;
 use util::put_media;
+use util::thumb;
 use util::{client_url, media_url};
 
 use backend::types::BKCommand;
@@ -66,21 +66,18 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
     get!(
         &url,
         |r: JsonValue| {
-            let avatar;
-
-            match r["url"].as_str() {
+            let avatar = match r["url"].as_str() {
                 Some(u) => {
                     if let Ok(dest) = cache_path(&roomid) {
-                        avatar = media(&baseu, u, Some(&dest)).unwrap_or_default();
+                        thumb(&baseu, u, Some(&dest)).unwrap_or_default()
                     } else {
-                        avatar = String::from("");
+                        String::from("")
                     }
                 }
                 None => {
-                    avatar = util::get_room_avatar(&baseu, &tk, &userid, &roomid)
-                        .unwrap_or(String::from(""));
+                    util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or(String::from(""))
                 }
-            }
+            };
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
         |err: Error| match err {
