@@ -555,7 +555,7 @@ pub fn dw_media(
     if thumb {
         params.push(("width", format!("{}", w)));
         params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("scale")));
+        params.push(("method", String::from("crop")));
         path = format!("thumbnail/{}/{}", server, media);
     } else {
         path = format!("download/{}/{}", server, media);
@@ -576,8 +576,15 @@ pub fn media(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error>
     dw_media(base, url, false, dest, 0, 0)
 }
 
-pub fn thumb(base: &Url, url: &str) -> Result<String, Error> {
-    dw_media(base, url, true, None, 64, 64)
+pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
+    dw_media(
+        base,
+        url,
+        true,
+        dest,
+        globals::THUMBNAIL_SIZE,
+        globals::THUMBNAIL_SIZE,
+    )
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
@@ -669,7 +676,7 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
             match js["avatar_url"].as_str() {
                 Some(url) => {
                     let dest = cache_path(userid)?;
-                    let img = dw_media(baseu, &url, true, Some(&dest), 64, 64)?;
+                    let img = thumb(baseu, &url, Some(&dest))?;
                     Ok((name.clone(), img))
                 }
                 None => Ok((name.clone(), String::from(""))),
@@ -903,8 +910,7 @@ pub fn get_user_avatar_img(baseu: &Url, userid: String, avatar: String) -> Resul
     }
 
     let dest = cache_path(&userid)?;
-    let img = dw_media(baseu, &avatar, true, Some(&dest), 64, 64)?;
-    Ok(img)
+    thumb(baseu, &avatar, Some(&dest))
 }
 
 pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
