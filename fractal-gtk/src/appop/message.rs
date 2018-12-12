@@ -410,7 +410,14 @@ impl AppOp {
     pub fn create_new_room_message(&self, msg: &Message) -> Option<MessageContent> {
         let mut highlights = vec![];
         lazy_static! {
-            static ref emoji_regex: regex::Regex = regex::Regex::new(r"^[\p{Emoji} ]+$").unwrap();
+            static ref emoji_regex: regex::Regex = regex::Regex::new(r"(?x)
+                ^
+                [\p{White_Space}\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Emoji_Component}]*
+                [\p{Emoji}]+
+                [\p{White_Space}\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Emoji_Component}]*
+                $
+                # That string is made of at least one emoji, possibly more, possibly with modifiers, possibly with spaces, but nothing else
+                ").unwrap();
         }
 
         let t = match msg.mtype.as_ref() {
