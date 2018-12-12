@@ -8,16 +8,16 @@ if ! which rustup &> /dev/null; then
     fi
 fi
 
-if ! rustup component list --toolchain nightly|grep rustfmt-preview &> /dev/null; then
-    echo "Installing nightly rustfmt.."
-    rustup component add rustfmt-preview --toolchain nightly
+if ! rustup component list|grep rustfmt &> /dev/null; then
+    echo "Installing rustfmt.."
+    rustup component add rustfmt
 fi
 
 echo "--Checking style--"
-cargo +nightly fmt --all -- --check
+cargo fmt --all -- --check
 if test $? != 0; then
     echo "--Checking style fail--"
-    echo "Please fix the above issues, either manually or by running: cargo +nightly fmt --all"
+    echo "Please fix the above issues, either manually or by running: cargo fmt --all"
 
     exit -1
 else
