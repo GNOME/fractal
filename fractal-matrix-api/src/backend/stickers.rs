@@ -33,7 +33,7 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
         ("widget_id", widget_id),
         ("filter_unpurchased", "true".to_string()),
     ];
-    let url = vurl(bk.data.clone(), "widgets/assets", data)?;
+    let url = vurl(&bk.data, "widgets/assets", &data)?;
 
     let tx = bk.tx.clone();
     get!(
@@ -61,7 +61,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
     let tx = bk.internal_tx.clone();
 
     thread::spawn(move || {
-        let url = vurl(d.clone(), "widgets/request", vec![]).unwrap();
+        let url = vurl(&d, "widgets/request", &vec![]).unwrap();
         match json_q("post", &url, &data, globals::TIMEOUT) {
             Ok(r) => {
                 let mut id = "".to_string();
@@ -91,14 +91,14 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
     Ok(())
 }
 
-pub fn send(bk: &Backend, roomid: String, sticker: &Sticker) -> Result<(), Error> {
+pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> {
     let now = Local::now();
     let msg = format!("{}{}{}", roomid, sticker.name, now.to_string());
     let digest = md5::compute(msg.as_bytes());
     // TODO: we need to generate the msg.id in the frontend
     let id = format!("{:x}", digest);
 
-    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", roomid, id), vec![])?;
+    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", roomid, id), &vec![])?;
 
     let attrs = json!({
         "body": sticker.body.clone(),
@@ -142,7 +142,7 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
         ("widget_id", widget_id.clone()),
         ("widget_type", "m.stickerpicker".to_string()),
     ];
-    let url = vurl(bk.data.clone(), "widgets/purchase_asset", data)?;
+    let url = vurl(&bk.data, "widgets/purchase_asset", &data)?;
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
     get!(
@@ -156,35 +156,31 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     Ok(())
 }
 
-fn get_base_url(data: Arc<Mutex<BackendData>>) -> Result<Url, Error> {
+fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Result<Url, Error> {
     let s = data.lock().unwrap().server_url.clone();
     let url = Url::parse(&s)?;
     Ok(url)
 }
 
 fn url(
-    data: Arc<Mutex<BackendData>>,
+    data: &Arc<Mutex<BackendData>>,
     path: &str,
-    params: Vec<(&str, String)>,
+    params: &Vec<(&str, String)>,
 ) -> Result<Url, Error> {
-    let base = get_base_url(data.clone())?;
+    let base = get_base_url(data)?;
     let tk = data.lock().unwrap().access_token.clone();
 
     let mut params2 = params.to_vec();
     params2.push(("access_token", tk.clone()));
 
-    client_url(&base, path, params2)
+    client_url(&base, path, &params2)
 }
 
-fn get_scalar_token(data: Arc<Mutex<BackendData>>) -> Result<String, Error> {
+fn get_scalar_token(data: &Arc<Mutex<BackendData>>) -> Result<String, Error> {
     let s = data.lock().unwrap().scalar_url.clone();
     let uid = data.lock().unwrap().user_id.clone();
 
-    let url = url(
-        data.clone(),
-        &format!("user/{}/openid/request_token", uid),
-        vec![],
-    )?;
+    let url = url(data, &format!("user/{}/openid/request_token", uid), &vec![])?;
     let js = json_q("post", &url, &json!({}), globals::TIMEOUT)?;
 
     let vurl = Url::parse(&format!("{}/api/register", s))?;
@@ -200,20 +196,20 @@ fn get_scalar_token(data: Arc<Mutex<BackendData>>) -> Result<String, Error> {
 }
 
 fn vurl(
-    data: Arc<Mutex<BackendData>>,
+    data: &Arc<Mutex<BackendData>>,
     path: &str,
-    params: Vec<(&str, String)>,
+    params: &[(&str, String)],
 ) -> Result<Url, Error> {
     let s = data.lock().unwrap().scalar_url.clone();
     let base = Url::parse(&s)?;
     let token = data.lock().unwrap().scalar_token.clone();
     let tk = match token {
-        None => get_scalar_token(data)?,
+        None => get_scalar_token(&data)?,
         Some(t) => t.clone(),
     };
 
     let mut params2 = params.to_vec();
     params2.push(("scalar_token", tk));
 
-    scalar_url(&base, path, params2)
+    scalar_url(&base, path, &params2)
 }

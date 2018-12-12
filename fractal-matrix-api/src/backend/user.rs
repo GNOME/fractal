@@ -25,7 +25,7 @@ use serde_json::Value as JsonValue;
 
 pub fn get_username(bk: &Backend) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -41,7 +41,7 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
 
 pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &vec![])?;
 
     let attrs = json!({
         "displayname": name,
@@ -64,7 +64,7 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
 }
 
 pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), vec![])?;
+    let url = bk.url(&format!("account/3pid"), &vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -107,11 +107,11 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
 
 pub fn get_email_token(
     bk: &Backend,
-    identity: String,
-    email: String,
+    identity: &str,
+    email: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid/email/requestToken"), vec![])?;
+    let url = bk.url("account/3pid/email/requestToken", &vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -146,11 +146,11 @@ pub fn get_email_token(
 
 pub fn get_phone_token(
     bk: &Backend,
-    identity: String,
-    phone: String,
+    identity: &str,
+    phone: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
+    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), &vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -186,11 +186,11 @@ pub fn get_phone_token(
 
 pub fn add_threepid(
     bk: &Backend,
-    identity: String,
-    client_secret: String,
+    identity: &str,
+    client_secret: &str,
     sid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), vec![])?;
+    let url = bk.url(&format!("account/3pid"), &vec![])?;
     let attrs = json!({
         "three_pid_creds": {
             "id_server": identity[8..],
@@ -217,7 +217,7 @@ pub fn add_threepid(
 
 pub fn submit_phone_token(
     bk: &Backend,
-    url: String,
+    url: &str,
     client_secret: String,
     sid: String,
     token: String,
@@ -228,7 +228,7 @@ pub fn submit_phone_token(
         ("token", token),
     ];
     let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
-    let url = build_url(&Url::parse(&url)?, path, params)?;
+    let url = build_url(&Url::parse(&url)?, path, &params)?;
 
     let tx = bk.tx.clone();
     post!(
@@ -250,7 +250,7 @@ pub fn submit_phone_token(
     Ok(())
 }
 
-pub fn delete_three_pid(bk: &Backend, medium: String, address: String) -> Result<(), Error> {
+pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
     let mut url = baseu.join("/_matrix/client/unstable/account/3pid/delete")?;
@@ -279,11 +279,11 @@ pub fn delete_three_pid(bk: &Backend, medium: String, address: String) -> Result
 
 pub fn change_password(
     bk: &Backend,
-    username: String,
-    old_password: String,
-    new_password: String,
+    username: &str,
+    old_password: &str,
+    new_password: &str,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/password"), vec![])?;
+    let url = bk.url(&format!("account/password"), &vec![])?;
 
     let attrs = json!({
         "new_password": new_password,
@@ -312,11 +312,11 @@ pub fn change_password(
 
 pub fn account_destruction(
     bk: &Backend,
-    username: String,
-    password: String,
+    username: &str,
+    password: &str,
     flag: bool,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/deactivate"), vec![])?;
+    let url = bk.url(&format!("account/deactivate"), &vec![])?;
 
     let attrs = json!({
         "erase": flag,
@@ -409,7 +409,10 @@ pub fn get_user_info_async(
 }
 
 pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Result<(), Error> {
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
+    let url = bk.url(
+        &format!("profile/{}/displayname", encode_uid(&uid)),
+        &vec![],
+    )?;
     get!(
         &url,
         |r: JsonValue| {
@@ -441,8 +444,8 @@ pub fn get_avatar_async(
 
     semaphore(bk.limit_threads.clone(), move || match get_user_avatar_img(
         &baseu,
-        uid,
-        avatar.unwrap_or_default(),
+        &uid,
+        &avatar.unwrap_or_default(),
     ) {
         Ok(fname) => {
             tx.send(fname.clone()).unwrap();
@@ -460,8 +463,8 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
-    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
+    let mediaurl = media_url(&baseu, "upload", &params)?;
+    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), &vec![])?;
 
     let mut file = File::open(&avatar)?;
     let mut contents: Vec<u8> = vec![];
@@ -491,8 +494,8 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn search(bk: &Backend, term: String) -> Result<(), Error> {
-    let url = bk.url(&format!("user_directory/search"), vec![])?;
+pub fn search(bk: &Backend, term: &str) -> Result<(), Error> {
+    let url = bk.url(&format!("user_directory/search"), &vec![])?;
 
     let attrs = json!({
         "search_term": term,
