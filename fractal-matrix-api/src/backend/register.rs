@@ -43,11 +43,10 @@ fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
     let emailre = Regex::new(
         r"^([0-9a-zA-Z]([-\.\w]*[0-9a-zA-Z])+@([0-9a-zA-Z][-\w]*[0-9a-zA-Z]\.)+[a-zA-Z]{2,9})$",
     )?;
-    let attrs;
 
     // Email
-    if emailre.is_match(&user) {
-        attrs = json!({
+    let attrs = if emailre.is_match(&user) {
+        json!({
             "type": "m.login.password",
             "password": password,
             "initial_device_display_name": "Fractal",
@@ -58,15 +57,15 @@ fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
                 "medium": "email",
                 "address": user,
             }
-        });
+        })
     } else {
-        attrs = json!({
+        json!({
             "type": "m.login.password",
             "initial_device_display_name": "Fractal",
             "user": user,
             "password": password
-        });
-    }
+        })
+    };
 
     Ok(attrs)
 }
