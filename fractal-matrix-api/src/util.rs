@@ -513,16 +513,15 @@ pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> 
     let media = String::from(&caps["media"]);
 
     let mut params: Vec<(&str, String)> = vec![];
-    let path: String;
 
-    if thumb {
+    let path = if thumb {
         params.push(("width", format!("{}", w)));
         params.push(("height", format!("{}", h)));
         params.push(("method", String::from("scale")));
-        path = format!("thumbnail/{}/{}", server, media);
+        format!("thumbnail/{}/{}", server, media)
     } else {
-        path = format!("download/{}/{}", server, media);
-    }
+        format!("download/{}/{}", server, media)
+    };
 
     media_url(base, &path, &params)
 }
@@ -541,16 +540,15 @@ pub fn dw_media(
     let media = String::from(&caps["media"]);
 
     let mut params: Vec<(&str, String)> = vec![];
-    let path: String;
 
-    if thumb {
+    let path = if thumb {
         params.push(("width", format!("{}", w)));
         params.push(("height", format!("{}", h)));
         params.push(("method", String::from("crop")));
-        path = format!("thumbnail/{}/{}", server, media);
+        format!("thumbnail/{}/{}", server, media)
     } else {
-        path = format!("download/{}/{}", server, media);
-    }
+        format!("download/{}/{}", server, media)
+    };
 
     let url = media_url(base, &path, &params)?;
 
