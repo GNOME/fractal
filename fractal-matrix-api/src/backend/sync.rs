@@ -50,7 +50,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             "event_fields": ["type", "content", "sender", "origin_server_ts", "event_id", "unsigned"]
         }}"#, globals::PAGE_LIMIT);
 
-        params.push(("filter", String::from(filter)));
+        params.push(("filter", filter));
         params.push(("timeout", String::from("0")));
         timeout = 0;
     }
