@@ -106,8 +106,12 @@ impl App {
         window.set_title("Fractal");
         window.show_all();
 
-        // TODO: set style for development e.g. appid.ends_with("Devel")
-        // window.get_style_context().map(|c| c.add_class("devel"));
+        if gtk_app
+            .get_application_id()
+            .map_or(false, |s| s.ends_with("Devel"))
+        {
+            window.get_style_context().map(|c| c.add_class("devel"));
+        }
 
         let stack = ui
             .builder
