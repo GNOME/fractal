@@ -56,7 +56,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     }
 
     let baseu = bk.get_base_url()?;
-    let url = bk.url("sync", params)?;
+    let url = bk.url("sync", &params)?;
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
@@ -75,7 +75,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     };
 
                     // Message events
-                    match get_rooms_timeline_from_json(&baseu, &r, tk.clone(), since.clone()) {
+                    match get_rooms_timeline_from_json(&baseu, &r, &tk, &since) {
                         Ok(msgs) => tx.send(BKResponse::RoomMessages(msgs)).unwrap(),
                         Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
                     };
