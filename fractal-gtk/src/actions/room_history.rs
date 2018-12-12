@@ -10,13 +10,13 @@ use gio::SimpleActionExt;
 use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
-use gtk::ResponseType;
 use i18n::i18n;
 use types::Message;
 use uibuilder::UI;
 use App;
 
 use widgets::ErrorDialog;
+use widgets::FileDialog::save;
 use widgets::SourceDialog;
 
 /* This creates all actions the room history can perform */
@@ -112,9 +112,13 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                         gtk::Continue(true)
                     },
                     Ok(fname) => {
-                        let parent = upgrade_weak!(parent_weak, gtk::Continue(true));
-                        open_save_as_dialog(&parent, fname, &name);
-
+                        let window = upgrade_weak!(parent_weak, gtk::Continue(true));
+                        if let Some(path) = save(&window, &name) {
+                            // TODO use glib to copy file
+                            if let Err(_) = fs::copy(fname.clone(), path) {
+                                ErrorDialog::new(false, &i18n("Couldn't save file"));
+                            }
+                        }
                         gtk::Continue(false)
                     }
                 }),
@@ -184,30 +188,6 @@ fn get_message_by_id(id: &str) -> Option<Message> {
 
 fn get_room_id(data: &Option<glib::Variant>) -> Option<String> {
     data.as_ref()?.get_str().map(|s| s.to_string())
-}
-
-fn open_save_as_dialog(parent: &gtk::Window, src: String, name: &str) {
-    let file_chooser = gtk::FileChooserNative::new(
-        Some(i18n("Save media as").as_str()),
-        Some(parent),
-        gtk::FileChooserAction::Save,
-        Some(i18n("_Save").as_str()),
-        Some(i18n("_Cancel").as_str()),
-    );
-
-    file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
-    file_chooser.set_current_name(name);
-
-    file_chooser.connect_response(move |fcd, res| {
-        if ResponseType::from(res) == ResponseType::Accept {
-            if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
-                let msg = i18n("Could not save the file");
-                ErrorDialog::new(false, &msg);
-            }
-        }
-    });
-
-    file_chooser.run();
 }
 
 fn request_more_messages(backend: &Sender<BKCommand>, id: Option<String>) -> Option<()> {
