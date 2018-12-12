@@ -77,16 +77,16 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
                     }
                 }
                 None => {
-                    avatar = util::get_room_avatar(&baseu, &tk, &userid, &roomid)
-                        .unwrap_or(String::from(""));
+                    avatar =
+                        util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default();
                 }
             }
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
         |err: Error| match err {
             Error::MatrixError(ref js) if js["errcode"].as_str().unwrap_or("") == "M_NOT_FOUND" => {
-                let avatar = util::get_room_avatar(&baseu, &tk, &userid, &roomid)
-                    .unwrap_or(String::from(""));
+                let avatar =
+                    util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default();
                 tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
             }
             _ => {
@@ -158,7 +158,7 @@ pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) ->
     // normal get_room_messages
     let baseu = bk.get_base_url()?;
     let tk = String::from(bk.data.lock().unwrap().access_token.clone());
-    let id = msg.id.unwrap_or("".to_string());
+    let id = msg.id.unwrap_or_default();
     let tx = bk.internal_tx.clone();
 
     thread::spawn(move || {
