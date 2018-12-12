@@ -2,6 +2,7 @@
 members = [
     "fractal-matrix-api",
     "fractal-gtk",
+    "fractal-backend",
 ]
 
 [patch.crates-io]
