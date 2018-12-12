@@ -117,7 +117,7 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
     let fname;
     {
-        let name = url.split("/").last().unwrap_or_default();
+        let name = url.split('/').last().unwrap_or_default();
         fname = cache_dir_path("files", name)?.clone();
     }
 
