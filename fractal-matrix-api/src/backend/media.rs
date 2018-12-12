@@ -51,21 +51,22 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 
 pub fn get_media_list_async(
     bk: &Backend,
-    roomid: String,
+    roomid: &str,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
+    let room = String::from(roomid);
 
     semaphore(bk.limit_threads.clone(), move || match get_room_media_list(
         &baseu,
-        tk,
-        roomid.clone(),
+        &tk,
+        &room,
         globals::PAGE_LIMIT,
         first_media_id,
-        prev_batch,
+        &prev_batch,
     ) {
         Ok(media_list) => {
             tx.send(media_list).unwrap();
