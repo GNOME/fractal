@@ -32,8 +32,8 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(id: String, name: Option<String>) -> Room {
-        Room {
+    pub fn new(id: String, name: Option<String>) -> Self {
+        Self {
             id: id,
             name: name,
             avatar: None,
@@ -99,7 +99,7 @@ impl Room {
 }
 
 impl PartialEq for Room {
-    fn eq(&self, other: &Room) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }

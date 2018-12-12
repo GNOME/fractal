@@ -21,7 +21,7 @@ pub enum Error {
 }
 
 impl From<reqwest::Error> for Error {
-    fn from(err: reqwest::Error) -> Error {
+    fn from(err: reqwest::Error) -> Self {
         Error::ReqwestError(err)
     }
 }

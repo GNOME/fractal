@@ -30,7 +30,7 @@ pub use self::types::BackendData;
 pub use self::types::RoomType;
 
 impl Backend {
-    pub fn new(tx: Sender<BKResponse>) -> Backend {
+    pub fn new(tx: Sender<BKResponse>) -> Self {
         let data = BackendData {
             user_id: String::from("Guest"),
             access_token: String::from(""),
@@ -43,7 +43,7 @@ impl Backend {
             join_to_room: String::from(""),
             m_direct: HashMap::new(),
         };
-        Backend {
+        Self {
             tx: tx,
             internal_tx: None,
             data: Arc::new(Mutex::new(data)),
