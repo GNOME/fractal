@@ -209,7 +209,7 @@ fn parse_context(
                 ms.push(m);
             }
 
-            if ms.len() == 0 && id.is_some() {
+            if ms.is_empty() && id.is_some() {
                 // there's no messages so we'll try with a bigger context
                 if let Err(err) =
                     parse_context(tx.clone(), tk, baseu, roomid, &id.unwrap(), limit * 2)
