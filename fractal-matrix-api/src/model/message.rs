@@ -31,8 +31,8 @@ pub struct Message {
 }
 
 impl Default for Message {
-    fn default() -> Message {
-        Message {
+    fn default() -> Self {
+        Self {
             sender: String::new(),
             mtype: String::from("m.text"),
             body: String::from("default"),
@@ -53,7 +53,7 @@ impl Default for Message {
 }
 
 impl PartialEq for Message {
-    fn eq(&self, other: &Message) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         match (self.id.clone(), other.id.clone()) {
             (Some(self_id), Some(other_id)) => self_id == other_id,
             _ => self.sender == other.sender && self.body == other.body,
@@ -62,7 +62,7 @@ impl PartialEq for Message {
 }
 
 impl PartialOrd for Message {
-    fn partial_cmp(&self, other: &Message) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self == other {
             Some(Ordering::Equal)
         } else {
@@ -95,7 +95,7 @@ impl Message {
     pub fn supported_event(ev: &&JsonValue) -> bool {
         let type_ = ev["type"].as_str().unwrap_or_default();
 
-        for t in Message::types().iter() {
+        for t in Self::types().iter() {
             if t == &type_ {
                 return true;
             }
@@ -110,7 +110,7 @@ impl Message {
     ///
     /// * `roomid` - The message room id
     /// * `msg` - The message event as Json
-    pub fn parse_room_message(roomid: &str, msg: &JsonValue) -> Message {
+    pub fn parse_room_message(roomid: &str, msg: &JsonValue) -> Self {
         let sender = msg["sender"].as_str().unwrap_or("");
 
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or(0) / 1000;
@@ -121,7 +121,7 @@ impl Message {
 
         let redacted = msg["unsigned"].get("redacted_because") != None;
 
-        let mut message = Message {
+        let mut message = Self {
             sender: sender.to_string(),
             date: server_timestamp,
             room: String::from(roomid),
@@ -141,15 +141,15 @@ impl Message {
 
         let c = &msg["content"];
         match type_ {
-            "m.room.message" => Message::parse_m_room_message(&mut message, c),
-            "m.sticker" => Message::parse_m_sticker(&mut message, c),
+            "m.room.message" => Self::parse_m_room_message(&mut message, c),
+            "m.sticker" => Self::parse_m_sticker(&mut message, c),
             _ => {}
         };
 
         message
     }
 
-    fn parse_m_room_message(msg: &mut Message, c: &JsonValue) {
+    fn parse_m_room_message(msg: &mut Self, c: &JsonValue) {
         let mtype = c["msgtype"].as_str().unwrap_or("");
         let body = c["body"].as_str().unwrap_or("");
         let formatted_body = c["formatted_body"].as_str().map(String::from);
@@ -182,7 +182,7 @@ impl Message {
         msg.format = format;
     }
 
-    fn parse_m_sticker(msg: &mut Message, c: &JsonValue) {
+    fn parse_m_sticker(msg: &mut Self, c: &JsonValue) {
         let body = c["body"].as_str().unwrap_or("");
 
         let url = String::from(c["url"].as_str().unwrap_or(""));
@@ -200,15 +200,15 @@ impl Message {
     ///
     /// * `roomid` - The messages room id
     /// * `events` - An iterator to the json events
-    pub fn from_json_events_iter<'a, I>(roomid: &str, events: I) -> Vec<Message>
+    pub fn from_json_events_iter<'a, I>(roomid: &str, events: I) -> Vec<Self>
     where
         I: Iterator<Item = &'a JsonValue>,
     {
         let mut ms = vec![];
 
-        let evs = events.filter(Message::supported_event);
+        let evs = events.filter(Self::supported_event);
         for msg in evs {
-            let m = Message::parse_room_message(roomid.clone(), msg);
+            let m = Self::parse_room_message(roomid.clone(), msg);
             ms.push(m);
         }
 
