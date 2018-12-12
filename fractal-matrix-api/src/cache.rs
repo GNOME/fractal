@@ -1,20 +1,21 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-pub struct CacheMap<T: Clone> {
+#[derive(Clone)]
+pub struct CacheMap<T> {
     map: HashMap<String, (Instant, T)>,
     timeout: u64,
 }
 
-impl<T: Clone> CacheMap<T> {
-    pub fn new() -> CacheMap<T> {
-        CacheMap {
+impl<T> CacheMap<T> {
+    pub fn new() -> Self {
+        Self {
             map: HashMap::new(),
             timeout: 10,
         }
     }
 
-    pub fn timeout(mut self, timeout: u64) -> CacheMap<T> {
+    pub fn timeout(mut self, timeout: u64) -> Self {
         self.timeout = timeout;
         self
     }
@@ -34,20 +35,5 @@ impl<T: Clone> CacheMap<T> {
     pub fn insert(&mut self, k: String, v: T) {
         let now = Instant::now();
         self.map.insert(k, (now, v));
-    }
-}
-
-impl<T: Clone> Clone for CacheMap<T> {
-    fn clone(&self) -> CacheMap<T> {
-        let mut map: CacheMap<T> = CacheMap {
-            map: HashMap::new(),
-            timeout: self.timeout,
-        };
-
-        for (k, v) in self.map.iter() {
-            map.map.insert(k.clone(), (v.0.clone(), v.1.clone()));
-        }
-
-        map
     }
 }

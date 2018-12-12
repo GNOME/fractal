@@ -22,7 +22,7 @@ pub struct StickerGroup {
 }
 
 impl StickerGroup {
-    pub fn from_json(js: &JsonValue) -> StickerGroup {
+    pub fn from_json(js: &JsonValue) -> Self {
         let mut stickers = vec![];
         let d = &js["data"];
 
@@ -50,7 +50,7 @@ impl StickerGroup {
             });
         }
 
-        StickerGroup {
+        Self {
             name,
             asset,
             description,
