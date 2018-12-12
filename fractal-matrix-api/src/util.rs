@@ -471,7 +471,7 @@ pub fn get_room_media_list(
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     let array = r["chunk"].as_array();
     let prev_batch = r["end"].to_string().trim_matches('"').to_string();
-    if array.is_none() || array.unwrap().len() == 0 {
+    if array.is_none() || array.unwrap().is_empty() {
         return Ok((vec![], prev_batch));
     }
 
@@ -807,7 +807,7 @@ pub fn fill_room_gap(
     nend = String::from(r["end"].as_str().unwrap_or(""));
 
     let array = r["chunk"].as_array();
-    if array.is_none() || array.unwrap().len() == 0 {
+    if array.is_none() || array.unwrap().is_empty() {
         return Ok(ms);
     }
 
@@ -829,7 +829,7 @@ pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
 
     {
         // If len was 0 `?` would be appended without being needed.
-        if params.len() >= 1 {
+        if !params.is_empty() {
             let mut query = url.query_pairs_mut();
             query.clear();
             for (k, v) in params {
