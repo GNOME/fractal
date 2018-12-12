@@ -177,7 +177,7 @@ pub enum BKResponse {
     StickersError(Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum RoomType {
     Public,
     Private,
