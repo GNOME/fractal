@@ -235,7 +235,7 @@ impl RoomListGroup {
         });
     }
 
-    pub fn widget(&self) -> gtk::EventBox {
+    pub fn widget(&self) -> &gtk::EventBox {
         let b = self.wbox.clone();
         if let Some(style) = b.get_style_context() {
             style.add_class("room-list");
@@ -267,7 +267,7 @@ impl RoomListGroup {
 
         self.show();
 
-        self.widget.clone()
+        &self.widget
     }
 
     pub fn show(&self) {
@@ -553,19 +553,19 @@ impl RoomList {
         run_in_group!(self, &room, moveup, room);
     }
 
-    pub fn widget(&self) -> gtk::Box {
-        self.connect_select();
-
+    // Roomlist widget
+    pub fn widget(&self) -> &gtk::Box {
         for ch in self.widget.get_children() {
             self.widget.remove(&ch);
         }
-        self.widget.add(&self.inv.get().widget());
-        self.widget.add(&self.fav.get().widget());
-        self.widget.add(&self.rooms.get().widget());
+        self.widget.add(self.inv.get().widget());
+        self.widget.add(self.fav.get().widget());
+        self.widget.add(self.rooms.get().widget());
+        self.connect_select();
 
         self.show_and_hide();
 
-        self.widget.clone()
+        &self.widget
     }
 
     pub fn show_and_hide(&self) {
@@ -582,18 +582,22 @@ impl RoomList {
     }
 
     pub fn connect_select(&self) {
-        let inv = self.inv.clone();
-        let rooms = self.rooms.clone();
-        self.fav.get().list.connect_row_activated(move |_, _| {
-            inv.get().set_selected(None);
-            rooms.get().set_selected(None);
+        let inv = self.inv.get().list.downgrade();
+        let rooms = self.rooms.get().list.downgrade();
+        self.fav.get().list.connect_row_selected(move |_, row| {
+            if row.is_some() {
+                upgrade_weak!(inv).unselect_all();
+                upgrade_weak!(rooms).unselect_all();
+            }
         });
 
-        let inv = self.inv.clone();
-        let fav = self.fav.clone();
-        self.rooms.get().list.connect_row_activated(move |_, _| {
-            inv.get().set_selected(None);
-            fav.get().set_selected(None);
+        let inv = self.inv.get().list.downgrade();
+        let fav = self.fav.get().list.downgrade();
+        self.rooms.get().list.connect_row_selected(move |_, row| {
+            if row.is_some() {
+                upgrade_weak!(inv).unselect_all();
+                upgrade_weak!(fav).unselect_all();
+            }
         });
     }
 

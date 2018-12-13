@@ -99,7 +99,7 @@ impl AppOp {
 
         self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
         self.roomlist.add_rooms(rooms.iter().cloned().collect());
-        container.add(&self.roomlist.widget());
+        container.add(self.roomlist.widget());
         self.roomlist.set_selected(selected_room);
 
         let bk = self.backend.clone();
