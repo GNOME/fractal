@@ -4,7 +4,10 @@ use failure::Error;
 use rusqlite::Row;
 use rusqlite::NO_PARAMS;
 
+pub mod message;
 pub mod room;
+
+pub use self::message::Message;
 pub use self::room::Room;
 
 pub trait Model: Sized {
