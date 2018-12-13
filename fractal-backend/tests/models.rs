@@ -1,6 +1,7 @@
 extern crate fractal_backend;
 
 use fractal_backend::init;
+use fractal_backend::model::Message;
 use fractal_backend::model::Model;
 use fractal_backend::model::Room;
 use std::fs::remove_file;
@@ -36,4 +37,26 @@ fn room_model() {
     for (i, r) in rooms.iter().enumerate() {
         assert_eq!(r.id, format!("ROOM {}", i));
     }
+}
+
+#[test]
+fn message_model() {
+    let _ = remove_file("/tmp/db.sqlite3");
+    let _ = init("/tmp/db.sqlite3").unwrap();
+
+    let mut msg = Message::default();
+    msg.id = Some("MSGID".to_string());
+    let created = Message::create_table();
+    assert!(created.is_ok());
+    let stored = msg.store();
+    assert!(stored.is_ok());
+
+    let newm = Message::get("MSGID").unwrap();
+    assert_eq!(msg, newm);
+
+    let deleted = msg.delete();
+    assert!(deleted.is_ok());
+
+    let really_deleted = Message::get("MSGID");
+    assert!(really_deleted.is_err());
 }
