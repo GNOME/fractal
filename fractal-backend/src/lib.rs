@@ -1,6 +1,8 @@
+extern crate chrono;
 extern crate failure;
 extern crate fractal_matrix_api as api;
 extern crate rusqlite;
+extern crate serde_json;
 
 #[macro_use]
 extern crate lazy_static;
