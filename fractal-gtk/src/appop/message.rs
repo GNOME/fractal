@@ -360,9 +360,11 @@ impl AppOp {
                 }
             }
 
-            if &msg.room == self.active_room.as_ref()? && !msg.redacted {
-                self.add_room_message(&msg);
-                msg_in_active = true;
+            if self.active_room.is_some() {
+                if &msg.room == self.active_room.as_ref()? && !msg.redacted {
+                    self.add_room_message(&msg);
+                    msg_in_active = true;
+                }
             }
             self.roomlist.moveup(msg.room.clone());
             self.roomlist.set_bold(msg.room.clone(), true);
