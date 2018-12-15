@@ -1,6 +1,7 @@
 #![deny(unused_extern_crates)]
 extern crate gdk;
 extern crate gio;
+#[macro_use]
 extern crate glib;
 extern crate gtk;
 extern crate sourceview;
@@ -41,7 +42,6 @@ extern crate letter_avatar;
 extern crate pango;
 extern crate secret_service;
 extern crate tree_magic;
-extern crate url;
 
 extern crate fragile;
 
@@ -65,6 +65,7 @@ mod uitypes;
 #[macro_use]
 mod app;
 mod actions;
+mod row_data;
 mod widgets;
 
 mod appop;
