@@ -2,6 +2,9 @@ use fractal_api::backend;
 use fractal_api::error;
 use fractal_api::types;
 
+#[macro_use]
+extern crate glib;
+
 mod globals;
 mod i18n;
 #[macro_use]
@@ -14,6 +17,7 @@ mod uitypes;
 #[macro_use]
 mod app;
 mod actions;
+mod store;
 mod widgets;
 
 mod appop;

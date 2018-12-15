@@ -60,7 +60,6 @@ pub struct AppOp {
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
-    pub roomlist: widgets::RoomList,
     pub unsent_messages: HashMap<String, (String, i32)>,
 
     pub state: AppState,
@@ -97,7 +96,6 @@ impl AppOp {
             msg_queue: vec![],
             sending_message: false,
             state: AppState::Login,
-            roomlist: widgets::RoomList::new(None),
             since: None,
             unsent_messages: HashMap::new(),
 
