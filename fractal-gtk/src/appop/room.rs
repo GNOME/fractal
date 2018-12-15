@@ -32,7 +32,6 @@ impl AppOp {
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
         self.unsent_messages.remove(&id);
-        self.roomlist.remove_room(id);
     }
 
     // If the flag is true the list of rooms will be cleared before adding the new rooms
@@ -40,7 +39,6 @@ impl AppOp {
         if flag {
             self.rooms.clear();
         }
-        let mut roomlist = vec![];
         while let Some(room) = rooms.pop() {
             if room.left {
                 // removing left rooms
@@ -62,42 +60,11 @@ impl AppOp {
                 self.backend
                     .send(BKCommand::GetRoomAvatar(room.id.clone()))
                     .unwrap();
-                if flag {
-                    roomlist.push(room.clone());
-                } else {
-                    self.roomlist.add_room(room.clone());
-                    self.roomlist.moveup(room.id.clone());
-                }
+
                 self.rooms.insert(room.id.clone(), room);
+                //TODO: add rooms to sidebar
             }
         }
-
-        if flag {
-            let container: gtk::Box = self
-                .ui
-                .builder
-                .get_object("room_container")
-                .expect("Couldn't find room_container in ui file.");
-
-            for ch in container.get_children().iter() {
-                container.remove(ch);
-            }
-
-            self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
-            self.roomlist.add_rooms(roomlist);
-            container.add(self.roomlist.widget());
-
-            let bk = self.backend.clone();
-            self.roomlist.connect_fav(move |room, tofav| {
-                bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
-                    .unwrap();
-            });
-            // Select active room in the sidebar
-            if let Some(ref active_room) = self.active_room {
-                self.roomlist.select(active_room);
-            }
-        }
-
         self.cache_rooms();
     }
 
@@ -142,7 +109,7 @@ impl AppOp {
         /* Transform id into the active_room */
         let active_room = id;
         // Select new active room in the sidebar
-        self.roomlist.select(&active_room);
+        //self.roomlist.select(&active_room);
 
         // getting room details
         self.backend
@@ -191,8 +158,6 @@ impl AppOp {
         self.active_room = None;
         self.clear_tmp_msgs();
         self.room_panel(RoomPanel::NoRoom);
-
-        self.roomlist.remove_room(r);
     }
 
     pub fn leave_active_room(&self) {
@@ -272,7 +237,7 @@ impl AppOp {
                     ch.hide();
 
                     // Select new active room in the sidebar
-                    self.roomlist.unselect();
+                    // self.roomlist.unselect();
                 }
             }
             "room_view" => {
@@ -337,9 +302,7 @@ impl AppOp {
 
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<String>) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
-            r.avatar = avatar.clone();
-            self.roomlist
-                .set_room_avatar(roomid.clone(), r.avatar.clone());
+            r.avatar = avatar;
         }
     }
 
@@ -363,9 +326,7 @@ impl AppOp {
         };
     }
 
-    pub fn filter_rooms(&self, term: Option<String>) {
-        self.roomlist.filter_rooms(term);
-    }
+    pub fn filter_rooms(&self, _term: Option<String>) {}
 
     pub fn new_room_dialog(&self) {
         let dialog = self
@@ -419,9 +380,6 @@ impl AppOp {
         if !self.rooms.contains_key(&r.id) {
             self.rooms.insert(r.id.clone(), r.clone());
         }
-
-        self.roomlist.add_room(r.clone());
-        self.roomlist.moveup(r.id.clone());
 
         self.set_active_room_by_id(r.id);
     }
@@ -494,8 +452,6 @@ impl AppOp {
                 .expect("Can't find room_name in ui file.")
                 .set_text(&name.clone().unwrap_or_default());
         }
-
-        self.roomlist.rename_room(roomid.clone(), name);
     }
 
     pub fn room_topic_change(&mut self, roomid: String, topic: Option<String>) {
