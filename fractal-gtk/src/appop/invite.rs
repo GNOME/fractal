@@ -204,7 +204,6 @@ impl AppOp {
 
     pub fn remove_inv(&mut self, roomid: String) {
         self.rooms.remove(&roomid);
-        self.roomlist.remove_room(roomid);
     }
 
     pub fn accept_inv(&mut self, accept: bool) {
