@@ -16,6 +16,7 @@ use crate::backend::Backend;
 use crate::actions;
 use crate::globals;
 use crate::uibuilder;
+use crate::widgets;
 
 mod connect;
 
@@ -48,6 +49,9 @@ pub struct AppInner {
     main_window: gtk::ApplicationWindow,
     /* Add widget directly here in place of uibuilder::UI*/
     ui: uibuilder::UI,
+    // Todo create a Module for each view and move this widgets into the correct Module
+    // A Module is basically a view like RoomHistory or MediaViewer
+    sidebar: widgets::Sidebar,
 
     // TODO: Remove op needed in connect, but since it is global we could remove it form here
     op: Arc<Mutex<AppOp>>,
@@ -143,9 +147,16 @@ impl App {
         backend_loop(rx);
 
         actions::Global::new(gtk_app, &op);
+        // TODO this should life in a view, once they exsit
+        let sidebar_container = ui
+            .builder
+            .get_object::<gtk::Box>("room_container")
+            .expect("Can't find room_container in ui file.");
+        let sidebar = widgets::Sidebar::new(&sidebar_container);
 
         let app = App(Rc::new(AppInner {
             main_window: window,
+            sidebar,
             ui,
             op,
         }));
