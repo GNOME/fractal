@@ -64,12 +64,9 @@ impl AppOp {
                 } else {
                     self.remove_room(rooms[i].id.clone());
                 }
-
                 rooms.remove(i);
             } else {
                 self.rooms.insert(rooms[i].id.clone(), rooms[i].clone());
-                self.roomlist.add_room(rooms[i].clone());
-                self.roomlist.moveup(rooms[i].id.clone());
                 i += 1;
             }
         }
@@ -78,7 +75,6 @@ impl AppOp {
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
         self.unsent_messages.remove(&id);
-        self.roomlist.remove_room(id);
     }
 
     pub fn set_rooms(&mut self, rooms: Vec<Room>, def: Option<Room>) {
@@ -89,9 +85,6 @@ impl AppOp {
             .expect("Couldn't find room_container in ui file.");
 
         self.rooms.clear();
-        for ch in container.get_children().iter() {
-            container.remove(ch);
-        }
 
         for r in rooms.iter() {
             if let None = r.name {
@@ -105,15 +98,14 @@ impl AppOp {
             self.rooms.insert(r.id.clone(), r.clone());
         }
 
-        self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
-        self.roomlist.add_rooms(rooms.iter().cloned().collect());
-        container.add(self.roomlist.widget());
-
+        //container.add(roomlist.get_widget());
+        /*
         let bk = self.backend.clone();
         self.roomlist.connect_fav(move |room, tofav| {
             bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
                 .unwrap();
         });
+        */
 
         let mut godef = def;
         if let Some(aroom) = self.active_room.clone() {
@@ -175,7 +167,7 @@ impl AppOp {
         /* Transform id into the active_room */
         let active_room = id;
         // Select new active room in the sidebar
-        self.roomlist.select(&active_room);
+        //self.roomlist.select(&active_room);
 
         // getting room details
         self.backend
@@ -224,8 +216,6 @@ impl AppOp {
         self.active_room = None;
         self.clear_tmp_msgs();
         self.room_panel(RoomPanel::NoRoom);
-
-        self.roomlist.remove_room(r);
     }
 
     pub fn leave_active_room(&self) {
@@ -305,7 +295,7 @@ impl AppOp {
                     ch.hide();
 
                     // Select new active room in the sidebar
-                    self.roomlist.unselect();
+                    // self.roomlist.unselect();
                 }
             }
             "room_view" => {
@@ -370,9 +360,7 @@ impl AppOp {
 
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<String>) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
-            r.avatar = avatar.clone();
-            self.roomlist
-                .set_room_avatar(roomid.clone(), r.avatar.clone());
+            r.avatar = avatar;
         }
     }
 
@@ -396,9 +384,7 @@ impl AppOp {
         };
     }
 
-    pub fn filter_rooms(&self, term: Option<String>) {
-        self.roomlist.filter_rooms(term);
-    }
+    pub fn filter_rooms(&self, _term: Option<String>) {}
 
     pub fn new_room_dialog(&self) {
         let dialog = self
@@ -452,9 +438,6 @@ impl AppOp {
         if !self.rooms.contains_key(&r.id) {
             self.rooms.insert(r.id.clone(), r.clone());
         }
-
-        self.roomlist.add_room(r.clone());
-        self.roomlist.moveup(r.id.clone());
 
         self.set_active_room_by_id(r.id);
     }
@@ -527,8 +510,6 @@ impl AppOp {
                 .expect("Can't find room_name in ui file.")
                 .set_text(&name.clone().unwrap_or_default());
         }
-
-        self.roomlist.rename_room(roomid.clone(), name);
     }
 
     pub fn room_topic_change(&mut self, roomid: String, topic: Option<String>) {
