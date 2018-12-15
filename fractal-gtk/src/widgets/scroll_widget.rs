@@ -137,28 +137,28 @@ impl ScrollWidget {
         let autoscroll = Rc::downgrade(&self.autoscroll);
         let view = self.widgets.view.downgrade();
         adj.connect_property_upper_notify(move |adj| {
-            debug_assert!(
-                || -> Option<()> {
-                    let view = view.upgrade()?;
-                    let upper = upper.upgrade()?;
-                    let balance = balance.upgrade()?;
-                    let autoscroll = autoscroll.upgrade()?;
-                    let new_upper = adj.get_upper();
-                    let diff = new_upper - upper.get();
-                    /* Don't do anything if upper didn't change */
-                    if diff != 0.0 {
-                        upper.set(new_upper);
-                        /* Stay at the end of the room history when autoscroll is on */
-                        if autoscroll.get() {
-                            adj.set_value(adj.get_upper() - adj.get_page_size());
-                        } else if balance.take().map_or(false, |x| x == Position::Top) {
-                            adj.set_value(adj.get_value() + diff);
-                            view.set_kinetic_scrolling(true);
-                        }
+            let check = || -> Option<()> {
+                let view = view.upgrade()?;
+                let upper = upper.upgrade()?;
+                let balance = balance.upgrade()?;
+                let autoscroll = autoscroll.upgrade()?;
+                let new_upper = adj.get_upper();
+                let diff = new_upper - upper.get();
+                /* Don't do anything if upper didn't change */
+                if diff != 0.0 {
+                    upper.set(new_upper);
+                    /* Stay at the end of the room history when autoscroll is on */
+                    if autoscroll.get() {
+                        adj.set_value(adj.get_upper() - adj.get_page_size());
+                    } else if balance.take().map_or(false, |x| x == Position::Top) {
+                        adj.set_value(adj.get_value() + diff);
+                        view.set_kinetic_scrolling(true);
                     }
-                    Some(())
-                }()
-                .is_some(),
+                }
+                Some(())
+            }();
+            debug_assert!(
+                check.is_some(),
                 "Upper notify callback couldn't acquire a strong pointer"
             );
         });
@@ -169,64 +169,61 @@ impl ScrollWidget {
         let spinner = self.widgets.spinner.downgrade();
         let action_weak = action.map(|a| a.downgrade());
         adj.connect_value_changed(move |adj| {
-            debug_assert!(
-                || -> Option<()> {
-                    let autoscroll = autoscroll.upgrade()?;
-                    let r = revealer.upgrade()?;
+            let check = || -> Option<()> {
+                let autoscroll = autoscroll.upgrade()?;
+                let r = revealer.upgrade()?;
 
-                    let bottom = adj.get_upper() - adj.get_page_size();
-                    if adj.get_value() == bottom {
-                        r.set_reveal_child(false);
-                        autoscroll.set(true);
-                    } else {
-                        r.set_reveal_child(true);
-                        autoscroll.set(false);
-                    }
-                    Some(())
-                }()
-                .is_some(),
+                let bottom = adj.get_upper() - adj.get_page_size();
+                if adj.get_value() == bottom {
+                    r.set_reveal_child(false);
+                    autoscroll.set(true);
+                } else {
+                    r.set_reveal_child(true);
+                    autoscroll.set(false);
+                }
+                Some(())
+            }();
+            debug_assert!(
+                check.is_some(),
                 "Value changed callback couldn't acquire a strong pointer"
             );
 
             let action_weak = action_weak.clone();
-            debug_assert!(
-                || -> Option<()> {
-                    let request_sent = request_sent.upgrade()?;
-                    if !request_sent.get() {
-                        let action = action_weak?.upgrade()?;
-                        let spinner = spinner.upgrade()?;
-                        /* the page size twice to detect if the user gets close the edge */
-                        if adj.get_value() < adj.get_page_size() * 2.0 {
-                            /* Load more messages once the user is nearly at the end of the history */
-                            spinner.start();
-                            let data = glib::Variant::from(&room_id);
-                            action.activate(&data);
-                            request_sent.set(true);
-                        }
+            let check = || -> Option<()> {
+                let request_sent = request_sent.upgrade()?;
+                if !request_sent.get() {
+                    let action = action_weak?.upgrade()?;
+                    let spinner = spinner.upgrade()?;
+                    /* the page size twice to detect if the user gets close the edge */
+                    if adj.get_value() < adj.get_page_size() * 2.0 {
+                        /* Load more messages once the user is nearly at the end of the history */
+                        spinner.start();
+                        let data = glib::Variant::from(&room_id);
+                        action.activate(&data);
+                        request_sent.set(true);
                     }
+                }
 
-                    Some(())
-                }()
-                .is_some(),
-                "Can't request more messages"
-                    );
+                Some(())
+            }();
+            debug_assert!(check.is_some(), "Can't request more messages");
         });
 
         let autoscroll = Rc::downgrade(&self.autoscroll);
         let revealer = self.widgets.btn_revealer.downgrade();
         let scroll = self.widgets.view.downgrade();
         self.widgets.button.connect_clicked(move |_| {
+            let check = || -> Option<()> {
+                let autoscroll = autoscroll.upgrade()?;
+                let r = revealer.upgrade()?;
+                let s = scroll.upgrade()?;
+                r.set_reveal_child(false);
+                autoscroll.set(true);
+                scroll_down(&s, true);
+                Some(())
+            }();
             debug_assert!(
-                || -> Option<()> {
-                    let autoscroll = autoscroll.upgrade()?;
-                    let r = revealer.upgrade()?;
-                    let s = scroll.upgrade()?;
-                    r.set_reveal_child(false);
-                    autoscroll.set(true);
-                    scroll_down(&s, true);
-                    Some(())
-                }()
-                .is_some(),
+                check.is_some(),
                 "Scroll down button onclick callback couldn't acquire a strong pointer"
             );
         });
