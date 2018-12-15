@@ -1,6 +1,7 @@
 #![deny(unused_extern_crates)]
 extern crate gdk;
 extern crate gio;
+#[macro_use]
 extern crate glib;
 extern crate gtk;
 extern crate sourceview;
@@ -65,6 +66,7 @@ mod uitypes;
 #[macro_use]
 mod app;
 mod actions;
+mod row_data;
 mod widgets;
 
 mod appop;

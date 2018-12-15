@@ -6,3 +6,6 @@ members = [
 
 [patch.crates-io]
 secret-service = { git = "https://github.com/jhaye/secret-service-rs", rev = "3c265527e43376fe8e00ddfa645a70813c35f449" }
+glib = { git = "https://github.com/sdroege/glib-rs", branch = "variant-values" } 
+glib-sys = { git = "https://github.com/gtk-rs/sys" }
+gobject-sys = { git = "https://github.com/gtk-rs/sys" }
