@@ -2,12 +2,15 @@ use cairo;
 use gdk;
 use gtk;
 use gtk::prelude::*;
+use gtk::ListBoxRow;
+use log::info;
 use pango;
 
-use crate::types::Room;
-
 use crate::widgets;
+use crate::widgets::sidebar::{DndChannelData, DndChannelWeak, RoomCategory};
 use crate::widgets::AvatarExt;
+
+use crate::store::SidebarRow;
 
 const ICON_SIZE: i32 = 24;
 
@@ -16,186 +19,249 @@ const ICON_SIZE: i32 = 24;
 // +-----+--------------------------+------+
 // | IMG | Fractal                  |  32  |
 // +-----+--------------------------+------+
-pub struct RoomRow {
-    pub room: Room,
-    pub icon: widgets::Avatar,
-    pub direct: gtk::Image,
-    pub text: gtk::Label,
-    pub notifications: gtk::Label,
-    pub widget: gtk::EventBox,
-}
+pub struct RoomRow {}
 
 impl RoomRow {
-    pub fn new(room: Room) -> RoomRow {
+    pub fn new(
+        item: &SidebarRow,
+        cat: RoomCategory,
+        channel: DndChannelWeak,
+        store: glib::WeakRef<gio::ListStore>,
+        targets: Option<&Vec<gtk::TargetEntry>>,
+    ) -> ListBoxRow {
+        let row = gtk::ListBoxRow::new();
         let widget = gtk::EventBox::new();
-        let name = room.name.clone().unwrap_or("...".to_string());
-
-        let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
+        row.set_margin_start(2);
+        row.set_margin_end(2);
+        row.set_margin_top(2);
+        row.set_margin_bottom(2);
+        let container = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        let avatar = widgets::Avatar::avatar_new(Some(ICON_SIZE));
         let direct = gtk::Image::new_from_icon_name("avatar-default-symbolic", 1);
         if let Some(style) = direct.get_style_context() {
             style.add_class("direct-chat");
         }
 
-        let text = gtk::Label::new(name.clone().as_str());
-        text.set_valign(gtk::Align::Start);
-        text.set_halign(gtk::Align::Start);
-        text.set_ellipsize(pango::EllipsizeMode::End);
+        let name = gtk::Label::new(None);
+        name.set_valign(gtk::Align::Center);
+        name.set_halign(gtk::Align::Start);
+        name.set_ellipsize(pango::EllipsizeMode::End);
 
-        let n = room.notifications;
-        let h = room.highlight;
-        let ntext = if room.membership.is_invited() {
-            String::from("•")
-        } else {
-            format!("{}", n)
-        };
-        let notifications = gtk::Label::new(&ntext[..]);
-        if let Some(style) = notifications.get_style_context() {
-            style.add_class("notify-badge");
+        let number = gtk::Label::new(None);
+        number.set_valign(gtk::Align::Center);
 
-            if h > 0 || room.membership.is_invited() {
-                style.add_class("notify-highlight");
-            } else {
-                style.remove_class("notify-highlight");
-            }
-        }
-
-        if n > 0 || room.membership.is_invited() {
-            notifications.show();
-        } else {
-            notifications.hide();
-        }
-
-        icon.circle(room.id.clone(), Some(name), ICON_SIZE);
-
-        let rr = RoomRow {
-            room,
-            icon,
-            text,
-            notifications,
-            widget,
-            direct,
-        };
-
-        rr.connect_dnd();
-
-        rr
-    }
-
-    pub fn set_notifications(&mut self, n: i32, h: i32) {
-        self.room.notifications = n;
-        self.room.highlight = h;
-        self.notifications.set_text(&format!("{}", n));
-        if n > 0 || self.room.membership.is_invited() {
-            self.notifications.show();
-        } else {
-            self.notifications.hide();
-        }
-
-        if let Some(style) = self.notifications.get_style_context() {
-            if h > 0 || self.room.membership.is_invited() {
-                style.add_class("notify-highlight");
-            } else {
-                style.remove_class("notify-highlight");
-            }
-        }
-    }
-
-    pub fn set_bold(&self, bold: bool) {
-        if let Some(style) = self.text.get_style_context() {
-            if bold {
-                style.add_class("notify-bold");
-            } else {
-                style.remove_class("notify-bold");
-            }
-        }
-    }
-
-    pub fn render_notifies(&self) {
-        let n = self.room.notifications;
-        if n > 0 || self.room.membership.is_invited() {
-            self.notifications.show();
-        } else {
-            self.notifications.hide();
-        }
-    }
-
-    pub fn set_name(&mut self, name: String) {
-        self.room.name = Some(name.clone());
-        self.text.set_text(&name);
-    }
-
-    pub fn set_avatar(&mut self, avatar: Option<String>) {
-        self.room.avatar = avatar.clone();
-
-        let name = self.room.name.clone().unwrap_or("...".to_string());
-
-        self.icon
-            .circle(self.room.id.clone(), Some(name), ICON_SIZE);
-    }
-
-    pub fn widget(&self) -> gtk::ListBoxRow {
-        let b = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-
-        for ch in self.widget.get_children() {
-            self.widget.remove(&ch);
-        }
-        self.widget.add(&b);
-
-        if let Some(style) = b.get_style_context() {
+        if let Some(style) = container.get_style_context() {
             style.add_class("room-row");
         }
 
-        b.pack_start(&self.icon, false, false, 5);
-        if self.room.direct {
-            b.pack_start(&self.direct, false, false, 0);
-        }
-        self.text.set_valign(gtk::Align::Center);
-        self.notifications.set_valign(gtk::Align::Center);
-        b.pack_start(&self.text, true, true, 0);
-        b.pack_start(&self.notifications, false, false, 5);
-        self.widget.show_all();
+        container.pack_start(&avatar, false, false, 5);
+        container.pack_start(&direct, false, false, 0);
+        container.pack_start(&name, true, true, 0);
+        container.pack_end(&number, false, false, 5);
 
-        if self.room.notifications == 0 {
-            self.notifications.hide();
-        }
+        widget.add(&container);
+        row.add(&widget);
+        row.show_all();
+        item.bind_property("name", &name, "label")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .transform_to(|_, value| {
+                let res = if value.get::<String>().is_none() {
+                    "...".to_value()
+                } else {
+                    value.clone()
+                };
+                Some(res)
+            })
+            .build();
 
-        let row = gtk::ListBoxRow::new();
-        row.add(&self.widget);
-        let data = glib::Variant::from(&self.room.id);
-        row.set_action_target_value(&data);
+        number.set_valign(gtk::Align::Center);
+        // Bind notification counter
+        item.bind_property("notifications", &number, "label")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .transform_to(|binding, value| {
+                if let Some(target) = binding.get_target() {
+                    if let Ok(widget) = target.downcast::<gtk::Widget>() {
+                        if value.get::<String>().is_some() {
+                            widget.show();
+                            if let Some(style) = widget.get_style_context() {
+                                style.add_class("notify-badge");
+                            }
+                        } else {
+                            widget.hide();
+                            if let Some(style) = widget.get_style_context() {
+                                style.remove_class("notify-badge");
+                            }
+                        }
+                    }
+                }
+                Some(value.clone())
+            })
+            .build();
+
+        let number_weak: glib::object::SendWeakRef<gtk::Label> = number.downgrade().into();
+        item.connect_notify("highlight", move |item, _| {
+            let number = upgrade_weak!(number_weak);
+            if let Ok(id) = item.get_property("highlight") {
+                if let Some(style) = number.get_style_context() {
+                    if id.get::<bool>().map_or(false, |v| v) {
+                        style.add_class("notify-highlight");
+                    } else {
+                        style.remove_class("notify-highlight");
+                    }
+                }
+            }
+        });
+
+        item.notify("highlight");
+
+        item.bind_property("direct", &direct, "visible")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+
+        item.bind_property("hidden", &row, "visible")
+            .flags(
+                glib::BindingFlags::DEFAULT
+                    | glib::BindingFlags::INVERT_BOOLEAN
+                    | glib::BindingFlags::SYNC_CREATE,
+            )
+            .build();
+
+        // The row is set to visible when added to the listbox:
+        // this makes sure that the item property hidden is respected
+        let item_weak = item.downgrade();
+        row.connect_property_visible_notify(move |w| {
+            let item = upgrade_weak!(item_weak);
+            if let Some(value) = item
+                .get_property("hidden")
+                .ok()
+                .and_then(|x| x.get::<bool>())
+            {
+                w.set_visible(!value);
+            }
+        });
+
+        item.bind_property("room_id", &row, "action-target")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .transform_to(|_, value| {
+                // Transform string into a variant
+                let variant = value.get::<String>().map(|s| glib::Variant::from(s));
+                variant.map(|v| (&v).to_value())
+            })
+            .build();
+
         row.set_action_name("app.open-room");
 
+        // We can't use bind_property for the avatar because it's not a real widget, atleast for
+        // now
+        let avatar_weak: glib::object::SendWeakRef<gtk::Box> = avatar.downgrade().into();
+        item.connect_notify("avatar", move |item, _| {
+            //TODO: use use the avatar from item
+            info!("The avatar changed {:?}", item.get_property("avatar"));
+            let avatar = upgrade_weak!(avatar_weak);
+            if let Ok(id) = item.get_property("room_id") {
+                if let Some(id) = id.get::<String>() {
+                    if let Ok(name) = item.get_property("name") {
+                        avatar.circle(id, name.get::<String>(), ICON_SIZE);
+                    }
+                }
+            }
+        });
+
+        item.notify("avatar");
+
+        let name_weak: glib::object::SendWeakRef<gtk::Label> = name.downgrade().into();
+        item.connect_notify("bold", move |item, _| {
+            let name = upgrade_weak!(name_weak);
+            if let Ok(bold) = item.get_property("bold") {
+                if let Some(style) = name.get_style_context() {
+                    if let Some(bold) = bold.get() {
+                        if bold {
+                            style.add_class("notify-bold");
+                        } else {
+                            style.remove_class("notify-bold");
+                        }
+                    }
+                }
+            }
+        });
+
+        item.notify("bold");
+
+        if let Some(targets) = targets {
+            connect_dnd(item, &widget, cat, channel, store, &targets);
+        }
         row
     }
+}
 
-    pub fn connect_dnd(&self) {
-        if self.room.membership.is_invited() {
-            return;
-        }
+fn connect_dnd(
+    item: &SidebarRow,
+    row: &gtk::EventBox,
+    cat: RoomCategory,
+    channel: DndChannelWeak,
+    store: glib::WeakRef<gio::ListStore>,
+    targets: &Vec<gtk::TargetEntry>,
+) {
+    row.drag_source_set(
+        gdk::ModifierType::BUTTON1_MASK,
+        targets,
+        gdk::DragAction::MOVE,
+    );
+    row.drag_source_add_text_targets();
 
-        let mask = gdk::ModifierType::BUTTON1_MASK;
-        let actions = gdk::DragAction::MOVE;
-        self.widget.drag_source_set(mask, &[], actions);
-        self.widget.drag_source_add_text_targets();
-
-        self.widget.connect_drag_begin(move |w, ctx| {
+    row.connect_drag_begin(move |w, ctx| {
+        if let Some(w) = w.get_parent() {
             let ww = w.get_allocated_width();
             let wh = w.get_allocated_height();
             let image = cairo::ImageSurface::create(cairo::Format::ARgb32, ww, wh).unwrap();
             let g = cairo::Context::new(&image);
+            //TODO use theme color for background or add a temporarily style class
             g.set_source_rgba(1.0, 1.0, 1.0, 0.8);
             g.rectangle(0.0, 0.0, ww as f64, wh as f64);
             g.fill();
 
             w.draw(&g);
 
+            //TODO fix positioning
+            //https://stackoverflow.com/questions/24844489/how-to-use-gdk-device-get-position
             ctx.drag_set_icon_surface(&image);
-        });
+            w.hide();
+        }
+    });
 
-        let id = self.room.id.clone();
-        self.widget
-            .connect_drag_data_get(move |_w, _, data, _x, _y| {
-                data.set_text(&id);
-            });
-    }
+    row.connect_drag_end(move |w, _context| {
+        // Show the row again if it wasn't removed
+        if let Some(w) = w.get_parent() {
+            w.show();
+        }
+    });
+
+    let item_weak = item.downgrade();
+    row.connect_drag_data_get(move |w, _context, data, _info, _time| {
+        let item = upgrade_weak!(item_weak);
+        if let Ok(id) = item.get_property("room_id") {
+            if let Some(id) = id.get::<String>() {
+                if let Some(index) = w
+                    .get_parent()
+                    .and_then(|w| w.downcast::<gtk::ListBoxRow>().ok())
+                    .and_then(|w| Some(w.get_index()))
+                {
+                    let atom = gdk::Atom::intern("CHANGE_POSITION");
+                    if data.get_target() == atom {
+                        // WORKAORUND: set() needs a mutable reference to data
+                        let data: &mut gtk::SelectionData = unsafe {
+                            let ptr: *const gtk::SelectionData = data;
+                            (ptr as *mut gtk::SelectionData).as_mut().unwrap()
+                        };
+                        let channel = upgrade_weak!(channel);
+                        channel.set(Some(DndChannelData::new(cat, store.clone(), index as u32)));
+                        // We need to set data so drag_data_received is fired
+                        data.set(&atom, 0, &[]);
+                    } else {
+                        data.set_text(&id);
+                    }
+                }
+            }
+        }
+    });
 }

@@ -308,9 +308,6 @@ impl AppOp {
                 self.add_room_message(&msg);
                 msg_in_active = true;
             }
-
-            self.roomlist.moveup(msg.room.clone());
-            self.roomlist.set_bold(msg.room.clone(), true);
         }
 
         if msg_in_active {
