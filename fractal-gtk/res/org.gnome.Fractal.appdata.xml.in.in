@@ -18,7 +18,30 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="3.99.0" date="2018-12-14"/>
+    <release version="4.0.0" type="stable" date="2018-12-18" urgency="high">
+      <description>
+        <p>This new major release is the result of 3 months of hard work by 25 contributors pushing over 340 commits.</p>
+        <p>New features:</p>
+        <ul>
+          <li>Enhanced history view with adaptive layout, day divider</li>
+          <li>Larger display of emoji-only messages</li>
+          <li>Some performance improvements</li>
+	  <li>Opening a room jumps to first unread message</li>
+        </ul>
+        <p>Bugfixes:</p>
+        <ul>
+          <li>More reliable notifications</li>
+          <li>Fixed display bug for avatars</li>
+        </ul>
+        <p>Under the hood:</p>
+        <ul>
+          <li>Large code refactor</li>
+          <li>Logging infrastructure</li>
+          <li>Continuous integration</li>
+          <li>More informative build output</li>
+        </ul>
+      </description>
+    </release>
   </releases>
   <update_contact>danigm@wadobo.com</update_contact>
 
