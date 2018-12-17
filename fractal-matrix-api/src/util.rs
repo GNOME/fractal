@@ -1,34 +1,26 @@
+use glib;
 use regex::Regex;
 use reqwest;
+use reqwest::header::CONTENT_TYPE;
+use JsonValue;
 
-use serde_json::Value as JsonValue;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Read, // FIXME: reqwest::Response isn't re-exporting this, but it should
+    path::Path,
+    sync::{Arc, Condvar, Mutex},
+    thread,
+    {fs, fs::create_dir_all},
+};
 
-use glib;
-use std::collections::HashMap;
-use std::io::Read;
-use std::path::Path;
-use std::path::PathBuf;
 use tree_magic;
-use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
-use url::Url;
-
-use std::fs::create_dir_all;
-use std::fs::File;
-use std::io::prelude::*;
-
-use std::collections::HashSet;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
-
-use std::time::Duration as StdDuration;
+use url::{
+    percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET},
+    Url,
+};
 
 use error::Error;
-use types::Event;
-use types::Member;
-use types::Message;
-use types::Room;
-
-use reqwest::header::CONTENT_TYPE;
+use types::{Event, Member, Message, Room};
 
 use globals;
 
@@ -94,56 +86,44 @@ macro_rules! derror {
 #[macro_export]
 macro_rules! bkerror {
     ($result: ident, $tx: ident, $type: expr) => {
-        if let Err(e) = $result {
-            $tx.send($type(e)).unwrap();
-        }
+        $result.or_else(|e| $tx.send($type(e))).unwrap();
     };
 }
 
 #[macro_export]
 macro_rules! get {
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        query!("get", $url, $attrs, $okcb, $errcb, $timeout)
-    };
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!("get", $url, $attrs, $okcb, $errcb)
-    };
-    ($url: expr, $okcb: expr, $errcb: expr) => {
-        query!("get", $url, $okcb, $errcb)
+    ($($args: expr),+) => {
+        query!("get", $($args),+)
     };
 }
 
 #[macro_export]
 macro_rules! post {
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        query!("post", $url, $attrs, $okcb, $errcb, $timeout)
+    ($($args: expr),+) => {
+        query!("post", $($args),+)
     };
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!("post", $url, $attrs, $okcb, $errcb)
-    };
-    ($url: expr, $okcb: expr, $errcb: expr) => {
-        query!("post", $url, $okcb, $errcb)
+}
+
+#[macro_export]
+macro_rules! put {
+    ($($args: expr),+) => {
+        query!("put", $($args),+)
     };
 }
 
 #[macro_export]
 macro_rules! query {
     ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        thread::spawn(move || {
-            let js = json_q($method, $url, $attrs, $timeout);
-
-            match js {
-                Ok(r) => $okcb(r),
-                Err(err) => $errcb(err),
-            }
+        thread::spawn(move || match json_q($method, $url, $attrs, $timeout) {
+            Ok(r) => $okcb(r),
+            Err(err) => $errcb(err),
         });
     };
     ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
         query!($method, $url, $attrs, $okcb, $errcb, globals::TIMEOUT);
     };
     ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        let attrs = json!(null);
-        query!($method, $url, &attrs, $okcb, $errcb)
+        query!($method, $url, &json!(null), $okcb, $errcb)
     };
 }
 
@@ -152,32 +132,29 @@ pub fn evc(events: &JsonValue, t: &str, field: &str) -> String {
         .as_array()
         .and_then(|arr| arr.iter().find(|x| x["type"] == t))
         .and_then(|js| js["content"][field].as_str())
-        .map(Into::into)
         .unwrap_or_default()
+        .to_string()
 }
 
 pub fn parse_m_direct(r: &JsonValue) -> HashMap<String, Vec<String>> {
-    let mut direct = HashMap::new();
-
-    &r["account_data"]["events"]
+    r["account_data"]["events"]
         .as_array()
         .unwrap_or(&vec![])
         .iter()
         .find(|x| x["type"] == "m.direct")
         .and_then(|js| js["content"].as_object())
-        .map(|js| {
-            for (k, v) in js.iter() {
-                let value = v
-                    .as_array()
-                    .unwrap_or(&vec![])
-                    .iter()
-                    .map(|rid| rid.as_str().unwrap_or_default().to_string())
-                    .collect::<Vec<String>>();
-                direct.insert(k.clone(), value);
-            }
-        });
-
-    direct
+        .iter()
+        .flat_map(|m| m.iter())
+        .map(|(k, v)| {
+            let value = v
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .map(|rid| rid.as_str().unwrap_or_default().to_string())
+                .collect();
+            (k.to_string(), value)
+        })
+        .collect()
 }
 
 pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<Vec<Room>, Error> {
@@ -188,16 +165,14 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
     let invite = rooms["invite"].as_object().ok_or(Error::BackendError)?;
 
     // getting the list of direct rooms
-    let mut direct: HashSet<String> = HashSet::new();
-    for v in parse_m_direct(r).values() {
-        for rid in v {
-            direct.insert(rid.clone());
-        }
-    }
+    let direct = parse_m_direct(r)
+        .values()
+        .flat_map(|v| v.iter())
+        .cloned()
+        .collect::<HashSet<String>>();
 
-    let mut rooms: Vec<Room> = vec![];
-    for k in join.keys() {
-        let room = join.get(k).ok_or(Error::BackendError)?;
+    let joined = join.iter().map(|(k, room)| {
+        let k = k.to_string();
         let stevents = &room["state"]["events"];
         let timeline = &room["timeline"];
         let ephemeral = &room["ephemeral"];
@@ -208,126 +183,106 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
         r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
         r.topic = Some(evc(stevents, "m.room.topic", "topic"));
-        r.direct = direct.contains(k);
+        r.direct = direct.contains(&k);
         r.notifications = room["unread_notifications"]["notification_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
         r.highlight = room["unread_notifications"]["highlight_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
+        r.prev_batch = timeline["prev_batch"].as_str().map(Into::into);
+        r.fav = dataevs
+            .as_array()
+            .iter()
+            .flat_map(|evs| evs.iter())
+            .filter(|x| x["type"] == "m.tag")
+            .any(|tag| tag["content"]["tags"]["m.favourite"].as_object().is_some());
+        r.messages = timeline["events"]
+            .as_array()
+            .map(|evs| Message::from_json_events_iter(&k, evs.iter()))
+            .unwrap_or(r.messages);
 
-        r.prev_batch = timeline["prev_batch"].as_str().map(String::from);
-
-        if let Some(ev) = dataevs.as_array() {
-            for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
-                if tag["content"]["tags"]["m.favourite"].as_object().is_some() {
-                    r.fav = true;
-                }
-            }
-        }
-
-        if let Some(evs) = timeline["events"].as_array() {
-            let ms = Message::from_json_events_iter(&k, evs.iter());
-            r.messages.extend(ms);
-        }
-
-        if let Some(evs) = ephemeral["events"].as_array() {
-            r.add_receipt_from_json(
-                evs.into_iter()
-                    .filter(|ev| ev["type"] == "m.receipt")
-                    .collect::<Vec<&JsonValue>>(),
-            );
-        }
+        ephemeral["events"].as_array().map(|evs| {
+            r.add_receipt_from_json(evs.iter().filter(|ev| ev["type"] == "m.receipt").collect());
+        });
         // Adding fully read to the receipts events
-        if let Some(evs) = dataevs.as_array() {
-            if let Some(fread) = evs.into_iter().find(|x| x["type"] == "m.fully_read") {
-                if let Some(ev) = fread["content"]["event_id"].as_str() {
-                    r.add_receipt_from_fully_read(userid, ev);
-                }
-            }
-        }
+        dataevs
+            .as_array()
+            .and_then(|evs| evs.iter().find(|x| x["type"] == "m.fully_read"))
+            .and_then(|fread| fread["content"]["event_id"].as_str())
+            .map(|ev| r.add_receipt_from_fully_read(userid, ev));
 
-        let mevents = stevents
+        r.members = stevents
             .as_array()
             .unwrap()
             .iter()
-            .filter(|x| x["type"] == "m.room.member");
-
-        for ev in mevents {
-            let member = parse_room_member(ev);
-            if let Some(m) = member {
-                r.members.insert(m.uid.clone(), m.clone());
-            }
-        }
+            .filter(|x| x["type"] == "m.room.member")
+            .filter_map(|ev| parse_room_member(ev).map(|m| (m.uid.clone(), m)))
+            .collect();
 
         // power levels info
         r.power_levels = get_admins(stevents);
 
-        rooms.push(r);
-    }
+        Ok(r)
+    });
 
     // left rooms
-    for k in leave.keys() {
-        let mut r = Room::new(k.clone(), None);
+    let left = leave.keys().map(|k| {
+        let mut r = Room::new(k.to_string(), None);
         r.left = true;
-        rooms.push(r);
-    }
+        Ok(r)
+    });
 
     // invitations
-    for k in invite.keys() {
+    let invites = invite.keys().map(|k| {
         let room = invite.get(k).ok_or(Error::BackendError)?;
         let stevents = &room["invite_state"]["events"];
         let name = calculate_room_name(stevents, userid)?;
-        let mut r = Room::new(k.clone(), name);
-        r.inv = true;
+        let mut r = Room::new(k.to_string(), name);
 
+        r.inv = true;
         r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
         r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
         r.topic = Some(evc(stevents, "m.room.topic", "topic"));
         r.direct = direct.contains(k);
+        r.inv_sender = stevents
+            .as_array()
+            .and_then(|arr| {
+                arr.iter()
+                    .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
+            })
+            .and_then(|ev| get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok())
+            .map(|(alias, avatar)| Member {
+                alias: Some(alias),
+                avatar: Some(avatar),
+                uid: userid.to_string(),
+            })
+            .or(r.inv_sender);
 
-        if let Some(arr) = stevents.as_array() {
-            if let Some(ev) = arr
-                .iter()
-                .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
-            {
-                if let Ok((alias, avatar)) =
-                    get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default())
-                {
-                    r.inv_sender = Some(Member {
-                        alias: Some(alias),
-                        avatar: Some(avatar),
-                        uid: String::from(userid),
-                    });
-                }
-            }
-        }
+        Ok(r)
+    });
 
-        rooms.push(r);
-    }
-
-    Ok(rooms)
+    std::iter::empty()
+        .chain(joined)
+        .chain(left)
+        .chain(invites)
+        .collect()
 }
 
 pub fn get_admins(stevents: &JsonValue) -> HashMap<String, i32> {
-    let mut admins = HashMap::new();
-
-    let plevents = stevents
+    stevents
         .as_array()
         .unwrap()
         .iter()
-        .filter(|x| x["type"] == "m.room.power_levels");
-
-    for ev in plevents {
-        if let Some(users) = ev["content"]["users"].as_object() {
-            for u in users.keys() {
-                let level = users[u].as_i64().unwrap_or_default();
-                admins.insert(u.to_string(), level as i32);
-            }
-        }
-    }
-
-    admins
+        .filter(|x| x["type"] == "m.room.power_levels")
+        .filter_map(|ev| ev["content"]["users"].as_object())
+        .flat_map(|users| {
+            users.keys().map(move |u| {
+                let level = users[u].as_i64().unwrap_or_default() as i32;
+                (u.to_string(), level)
+            })
+        })
+        .collect()
 }
 
 pub fn get_rooms_timeline_from_json(
@@ -339,31 +294,32 @@ pub fn get_rooms_timeline_from_json(
     let rooms = &r["rooms"];
     let join = rooms["join"].as_object().ok_or(Error::BackendError)?;
 
-    let mut msgs: Vec<Message> = vec![];
-    for k in join.keys() {
-        let room = join.get(k).ok_or(Error::BackendError)?;
+    let msgs = join
+        .keys()
+        .map(|k| {
+            let room = &join[k]["timeline"];
 
-        if let (Some(true), Some(pb)) = (
-            room["timeline"]["limited"].as_bool(),
-            room["timeline"]["prev_batch"].as_str(),
-        ) {
-            let pbs = pb.to_string();
-            let fill_the_gap =
-                fill_room_gap(baseu, String::from(tk), k.clone(), &prev_batch, &pbs)?;
-            for m in fill_the_gap {
-                msgs.push(m);
+            let fill_the_gap = if let (Some(true), Some(pb)) =
+                (room["limited"].as_bool(), room["prev_batch"].as_str())
+            {
+                fill_room_gap(baseu, tk.to_string(), k, &prev_batch, pb)?
+            } else {
+                vec![]
+            };
+
+            let timeline = room["events"].as_array();
+            if timeline.is_none() {
+                return Ok(fill_the_gap.into_iter().chain(vec![]));
             }
-        }
 
-        let timeline = room["timeline"]["events"].as_array();
-        if timeline.is_none() {
-            continue;
-        }
-
-        let events = timeline.unwrap().iter();
-        let ms = Message::from_json_events_iter(&k, events);
-        msgs.extend(ms);
-    }
+            let events = timeline.unwrap().iter();
+            let ms = Message::from_json_events_iter(&k, events);
+            Ok(fill_the_gap.into_iter().chain(ms))
+        })
+        .collect::<Result<Vec<_>, Error>>()?
+        .into_iter()
+        .flatten()
+        .collect();
 
     Ok(msgs)
 }
@@ -372,50 +328,45 @@ pub fn get_rooms_notifies_from_json(r: &JsonValue) -> Result<Vec<(String, i32, i
     let rooms = &r["rooms"];
     let join = rooms["join"].as_object().ok_or(Error::BackendError)?;
 
-    let mut out: Vec<(String, i32, i32)> = vec![];
-    for k in join.keys() {
-        let room = join.get(k).ok_or(Error::BackendError)?;
-        let n = room["unread_notifications"]["notification_count"]
-            .as_i64()
-            .unwrap_or(0) as i32;
-        let h = room["unread_notifications"]["highlight_count"]
-            .as_i64()
-            .unwrap_or(0) as i32;
-
-        out.push((k.clone(), n, h));
-    }
+    let out = join
+        .iter()
+        .map(|(k, room)| {
+            let n = room["unread_notifications"]["notification_count"]
+                .as_i64()
+                .unwrap_or_default() as i32;
+            let h = room["unread_notifications"]["highlight_count"]
+                .as_i64()
+                .unwrap_or_default() as i32;
+            (k.to_string(), n, h)
+        })
+        .collect();
 
     Ok(out)
 }
 
 pub fn parse_sync_events(r: &JsonValue) -> Result<Vec<Event>, Error> {
     let rooms = &r["rooms"];
-    let join = rooms["join"].as_object().ok_or(Error::BackendError)?;
 
-    let mut evs: Vec<Event> = vec![];
-    for k in join.keys() {
-        let room = join.get(k).ok_or(Error::BackendError)?;
-        let timeline = room["timeline"]["events"].as_array();
-        if timeline.is_none() {
-            return Ok(evs);
-        }
-
-        let events = timeline
-            .unwrap()
-            .iter()
-            .filter(|x| x["type"] != "m.room.message");
-
-        for ev in events {
-            //info!("ev: {:#?}", ev);
-            evs.push(Event {
-                room: k.clone(),
-                sender: String::from(ev["sender"].as_str().unwrap_or("")),
-                content: ev["content"].clone(),
-                stype: String::from(ev["type"].as_str().unwrap_or("")),
-                id: String::from(ev["id"].as_str().unwrap_or("")),
-            });
-        }
-    }
+    let evs = rooms["join"]
+        .as_object()
+        .ok_or(Error::BackendError)?
+        .iter()
+        .map(|(k, room)| (k, room["timeline"]["events"].as_array()))
+        .take_while(|(_, timeline)| timeline.is_some())
+        .flat_map(|(k, timeline)| {
+            timeline
+                .unwrap()
+                .iter()
+                .filter(|x| x["type"] != "m.room.message")
+                .map(move |ev| Event {
+                    room: k.to_string(),
+                    sender: ev["sender"].as_str().unwrap_or_default().to_string(),
+                    content: ev["content"].clone(),
+                    stype: ev["type"].as_str().unwrap_or_default().to_string(),
+                    id: ev["id"].as_str().unwrap_or_default().to_string(),
+                })
+        })
+        .collect();
 
     Ok(evs)
 }
@@ -423,13 +374,13 @@ pub fn parse_sync_events(r: &JsonValue) -> Result<Vec<Event>, Error> {
 pub fn get_prev_batch_from(
     baseu: &Url,
     tk: &str,
-    roomid: &str,
+    room_id: &str,
     evid: &str,
 ) -> Result<String, Error> {
-    let params = vec![("access_token", String::from(tk)), ("limit", 0.to_string())];
+    let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
 
-    let path = format!("rooms/{}/context/{}", roomid, evid);
-    let url = client_url(baseu, &path, &params)?;
+    let path = format!("rooms/{}/context/{}", room_id, evid);
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
@@ -440,32 +391,35 @@ pub fn get_prev_batch_from(
 pub fn get_room_media_list(
     baseu: &Url,
     tk: &str,
-    roomid: &str,
+    room_id: &str,
     limit: i32,
     first_media_id: Option<String>,
-    prev_batch: &Option<String>,
+    prev_batch: Option<String>,
 ) -> Result<(Vec<Message>, String), Error> {
-    let mut params = vec![
-        ("dir", String::from("b")),
-        ("limit", format!("{}", limit)),
-        ("access_token", String::from(tk)),
+    let prev_batch = if prev_batch.is_some() {
+        prev_batch
+    } else if let Some(id) = first_media_id {
+        Some(get_prev_batch_from(baseu, tk, room_id, &id)?)
+    } else {
+        None
+    };
+
+    let params = [
+        ("dir", "b".to_string()),
+        ("limit", limit.to_string()),
+        ("access_token", tk.to_string()),
         (
             "filter",
             "{\"filter_json\": { \"contains_url\": true, \"not_types\": [\"m.sticker\"] } }"
                 .to_string(),
         ),
-    ];
+    ]
+    .iter()
+    .cloned()
+    .chain(prev_batch.map(|pb| ("from", pb)))
+    .collect::<Vec<_>>();
 
-    match prev_batch {
-        Some(ref pb) => params.push(("from", pb.clone())),
-        None => {
-            if let Some(id) = first_media_id {
-                params.push(("from", get_prev_batch_from(baseu, tk, &roomid, &id)?))
-            }
-        }
-    };
-
-    let path = format!("rooms/{}/messages", roomid);
+    let path = format!("rooms/{}/messages", room_id);
     let url = client_url(baseu, &path, &params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
@@ -476,52 +430,62 @@ pub fn get_room_media_list(
     }
 
     let evs = array.unwrap().iter().rev();
-    let media_list = Message::from_json_events_iter(roomid, evs);
+    let media_list = Message::from_json_events_iter(room_id, evs);
 
     Ok((media_list, prev_batch))
 }
 
 pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
-    let client = reqwest::Client::new();
-    let conn = client.get(url);
-    let mut res = conn.send()?;
-
-    let mut buffer = Vec::new();
-    res.read_to_end(&mut buffer)?;
-
-    Ok(buffer)
+    reqwest::Client::new()
+        .get(url)
+        .send()?
+        .bytes()
+        .filter_map(|b| {
+            b.and_then(|b| Ok(Ok(b)))
+                .or_else(|err| {
+                    if err.kind() == std::io::ErrorKind::Interrupted {
+                        Err(err)
+                    } else {
+                        Ok(Err(Error::from(err)))
+                    }
+                })
+                .ok()
+        })
+        .collect()
 }
 
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let client = reqwest::Client::new();
     let mime = tree_magic::from_u8(&file);
 
-    let conn = client.post(url).body(file).header(CONTENT_TYPE, mime);
-
-    let mut res = conn.send()?;
-
-    match res.json() {
-        Ok(js) => Ok(js),
-        Err(_) => Err(Error::BackendError),
-    }
+    reqwest::Client::new()
+        .post(url)
+        .body(file)
+        .header(CONTENT_TYPE, mime)
+        .send()?
+        .json()
+        .map_err(|_| Error::BackendError)
 }
 
 pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
-    let re = Regex::new(r"mxc://(?P<server>[^/]+)/(?P<media>.+)")?;
-    let caps = re.captures(url).ok_or(Error::BackendError)?;
-    let server = String::from(&caps["server"]);
-    let media = String::from(&caps["media"]);
+    let matrix_re = Regex::new(globals::MATRIX_RE).unwrap();
+    let caps = matrix_re.captures(url).ok_or(Error::BackendError)?;
+    let server = caps["server"].to_string();
+    let media = caps["media"].to_string();
 
-    let mut params: Vec<(&str, String)> = vec![];
+    let params;
+    let path;
 
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("scale")));
-        format!("thumbnail/{}/{}", server, media)
+    if thumb {
+        params = vec![
+            ("width", w.to_string()),
+            ("height", h.to_string()),
+            ("method", "scale".to_string()),
+        ];
+        path = format!("thumbnail/{}/{}", server, media);
     } else {
-        format!("download/{}/{}", server, media)
-    };
+        params = vec![];
+        path = format!("download/{}/{}", server, media);
+    }
 
     media_url(base, &path, &params)
 }
@@ -534,29 +498,33 @@ pub fn dw_media(
     w: i32,
     h: i32,
 ) -> Result<String, Error> {
-    let re = Regex::new(r"mxc://(?P<server>[^/]+)/(?P<media>.+)")?;
-    let caps = re.captures(url).ok_or(Error::BackendError)?;
-    let server = String::from(&caps["server"]);
-    let media = String::from(&caps["media"]);
+    let matrix_re = Regex::new(globals::MATRIX_RE).unwrap();
+    let caps = matrix_re.captures(url).ok_or(Error::BackendError)?;
+    let server = &caps["server"];
+    let media = &caps["media"];
 
-    let mut params: Vec<(&str, String)> = vec![];
+    let params;
+    let path;
 
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("crop")));
-        format!("thumbnail/{}/{}", server, media)
+    if thumb {
+        params = vec![
+            ("width", w.to_string()),
+            ("height", h.to_string()),
+            ("method", "crop".to_string()),
+        ];
+        path = format!("thumbnail/{}/{}", server, media);
     } else {
-        format!("download/{}/{}", server, media)
-    };
+        params = vec![];
+        path = format!("download/{}/{}", server, media);
+    }
 
     let url = media_url(base, &path, &params)?;
 
     let fname = match dest {
-        None if thumb => cache_dir_path("thumbs", &media)?,
-        None => cache_dir_path("medias", &media)?,
-        Some(d) => String::from(d),
-    };
+        None if thumb => cache_dir_path("thumbs", media),
+        None => cache_dir_path("medias", media),
+        Some(d) => Ok(d.to_string()),
+    }?;
 
     download_file(url.as_str(), fname, dest)
 }
@@ -577,23 +545,18 @@ pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error>
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
-    let pathname = fname.clone();
-    let p = Path::new(&pathname);
-    if p.is_file() {
-        if dest.is_none() {
-            return Ok(fname);
-        }
-
-        let moddate = p.metadata()?.modified()?;
-        // one minute cached
-        if moddate.elapsed()?.as_secs() < 60 {
-            return Ok(fname);
-        }
+    if dest.is_none() {
+        return Ok(fname);
     }
 
-    let mut file = File::create(&fname)?;
-    let buffer = get_media(url)?;
-    file.write_all(&buffer)?;
+    let moddate = Path::new(&fname).metadata()?.modified()?;
+    // one minute cached
+    if moddate.elapsed()?.as_secs() < 60 {
+        return Ok(fname);
+    }
+
+    let contents = get_media(url)?;
+    fs::write(&fname, contents)?;
 
     Ok(fname)
 }
@@ -604,49 +567,43 @@ pub fn json_q(
     attrs: &JsonValue,
     timeout: u64,
 ) -> Result<JsonValue, Error> {
-    let clientb = reqwest::ClientBuilder::new();
-    let client = match timeout {
-        0 => clientb.timeout(None).build()?,
-        n => clientb.timeout(StdDuration::from_secs(n)).build()?,
+    let client = reqwest::ClientBuilder::new()
+        .timeout(match timeout {
+            0 => None,
+            n => Some(std::time::Duration::from_secs(n)),
+        })
+        .build()?;
+
+    let conn_method = match method {
+        "post" => reqwest::Client::post,
+        "put" => reqwest::Client::put,
+        "delete" => reqwest::Client::delete,
+        _ => reqwest::Client::get,
     };
 
-    let mut conn = match method {
-        "post" => client.post(url.as_str()),
-        "put" => client.put(url.as_str()),
-        "delete" => client.delete(url.as_str()),
-        _ => client.get(url.as_str()),
+    let conn = if attrs.is_null() {
+        conn_method(&client, url.as_str())
+    } else {
+        conn_method(&client, url.as_str()).json(attrs)
     };
-
-    if !attrs.is_null() {
-        conn = conn.json(attrs);
-    }
 
     let mut res = conn.send()?;
+    let json = res.json::<JsonValue>();
 
-    //let mut content = String::new();
-    //res.read_to_string(&mut content);
-    //cb(content);
-
-    if !res.status().is_success() {
-        return match res.json() {
-            Ok(js) => Err(Error::MatrixError(js)),
-            Err(err) => Err(Error::ReqwestError(err)),
-        };
-    }
-
-    let json: Result<JsonValue, reqwest::Error> = res.json();
-    match json {
-        Ok(js) => {
-            let js2 = js.clone();
-            if let Some(error) = js.as_object() {
-                if error.contains_key("errcode") {
-                    error!("{:#?}", js2);
-                    return Err(Error::MatrixError(js2));
-                }
-            }
-            Ok(js)
-        }
-        Err(_) => Err(Error::BackendError),
+    if res.status().is_success() {
+        json.or(Err(Error::BackendError)).and_then(|js| {
+            js.clone()
+                .as_object() // Option
+                .filter(|error| error.contains_key("errcode"))
+                .map(|_| {
+                    error!("{:#?}", js.clone());
+                    Err(Error::MatrixError(js.clone()))
+                })
+                .unwrap_or(Ok(js))
+        })
+    } else {
+        json.or_else(|err| Err(Error::ReqwestError(err)))
+            .and_then(|js| Err(Error::MatrixError(js)))
     }
 }
 
@@ -654,42 +611,38 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
     let url = client_url(baseu, &format!("profile/{}", encode_uid(userid)), &[])?;
     let attrs = json!(null);
 
-    match json_q("get", &url, &attrs, globals::TIMEOUT) {
-        Ok(js) => {
-            let name = match js["displayname"].as_str() {
-                Some(n) if n.is_empty() => userid.to_string(),
-                Some(n) => n.to_string(),
-                None => userid.to_string(),
-            };
+    if let Ok(js) = json_q("get", &url, &attrs, globals::TIMEOUT) {
+        let name = match js["displayname"].as_str() {
+            Some(n) if n.is_empty() => userid.to_string(),
+            Some(n) => n.to_string(),
+            None => userid.to_string(),
+        };
 
-            match js["avatar_url"].as_str() {
-                Some(url) => {
-                    let dest = cache_path(userid)?;
-                    let img = thumb(baseu, &url, Some(&dest))?;
-                    Ok((name.clone(), img))
-                }
-                None => Ok((name.clone(), String::from(""))),
-            }
+        if let Some(url) = js["avatar_url"].as_str() {
+            let dest = cache_path(userid)?;
+            let img = thumb(baseu, &url, Some(&dest))?;
+            Ok((name, img))
+        } else {
+            Ok((name, String::new()))
         }
-        Err(_) => Ok((String::from(userid), String::from(""))),
+    } else {
+        Ok((userid.to_string(), String::new()))
     }
 }
 
-pub fn get_room_st(base: &Url, tk: &str, roomid: &str) -> Result<JsonValue, Error> {
+pub fn get_room_st(base: &Url, tk: &str, room_id: &str) -> Result<JsonValue, Error> {
     let url = client_url(
         base,
-        &format!("rooms/{}/state", roomid),
-        &vec![("access_token", String::from(tk))],
+        &format!("rooms/{}/state", room_id),
+        &[("access_token", tk.to_string())],
     )?;
 
     let attrs = json!(null);
-    let st = json_q("get", &url, &attrs, globals::TIMEOUT)?;
-    Ok(st)
+    json_q("get", &url, &attrs, globals::TIMEOUT)
 }
 
-pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Result<String, Error> {
-    let st = get_room_st(base, tk, roomid)?;
-    let events = st.as_array().ok_or(Error::BackendError)?;
+pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, room_id: &str) -> Result<String, Error> {
+    let st = get_room_st(base, tk, room_id)?;
 
     // we look for members that aren't me
     let filter = |x: &&JsonValue| {
@@ -697,43 +650,35 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
             && x["content"]["membership"] == "join"
             && x["sender"] != userid)
     };
-    let members = events.iter().filter(&filter);
-    let mut members2 = events.iter().filter(&filter);
 
-    let m1 = match members2.next() {
-        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or(""),
-        None => "",
-    };
+    let member = st
+        .as_array()
+        .ok_or(Error::BackendError)?
+        .iter()
+        .find(filter);
 
-    let mut fname = match members.count() {
-        1 => {
-            if let Ok(dest) = cache_path(&roomid) {
-                media(&base, m1, Some(&dest)).unwrap_or_default()
-            } else {
-                String::new()
-            }
-        }
-        _ => String::new(),
-    };
-
-    if fname.is_empty() {
-        fname = String::from("");
-    }
+    let fname = cache_path(room_id)
+        .ok()
+        .filter(|_| member.is_some())
+        .and_then(|dest| {
+            let m1 = member.and_then(|m| m["content"]["avatar_url"].as_str())?;
+            media(&base, m1, Some(&dest)).ok()
+        })
+        .unwrap_or_default();
 
     Ok(fname)
 }
 
 pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<String>, Error> {
-    // looking for "m.room.name" event
     let events = roomst.as_array().ok_or(Error::BackendError)?;
+    // looking for "m.room.name" event
     if let Some(name) = events.iter().find(|x| x["type"] == "m.room.name") {
         if let Some(name) = name["content"]["name"].as_str() {
-            if !name.to_string().is_empty() {
+            if !name.is_empty() {
                 return Ok(Some(name.to_string()));
             }
         }
     }
-
     // looking for "m.room.canonical_alias" event
     if let Some(name) = events
         .iter()
@@ -750,33 +695,33 @@ pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<St
             && ((x["content"]["membership"] == "join" && x["sender"] != userid)
                 || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
     };
-    let c = events.iter().filter(&filter);
-    let members = events.iter().filter(&filter);
-    let mut members2 = events.iter().filter(&filter);
 
-    if c.count() == 0 {
+    let members = events.iter().filter(filter);
+
+    if members.clone().count() == 0 {
         // we don't have information to calculate the name
         return Ok(None);
     }
 
-    let m1 = match members2.next() {
-        Some(m) => {
-            let sender = m["sender"].as_str().unwrap_or("NONAMED");
-            m["content"]["displayname"].as_str().unwrap_or(sender)
-        }
-        None => "",
-    };
-    let m2 = match members2.next() {
-        Some(m) => {
-            let sender = m["sender"].as_str().unwrap_or("NONAMED");
-            m["content"]["displayname"].as_str().unwrap_or(sender)
-        }
-        None => "",
-    };
+    macro_rules! get_next_m {
+        () => {
+            members
+                .clone()
+                .next()
+                .and_then(|m| {
+                    let sender = m["sender"].as_str().or(Some("NONAMED"));
+                    m["content"]["displayname"].as_str().or(sender)
+                })
+                .unwrap_or_default()
+        };
+    }
+
+    let m1 = get_next_m!();
+    let m2 = get_next_m!();
 
     let name = match members.count() {
-        0 => String::from("EMPTY ROOM"),
-        1 => String::from(m1),
+        0 => "EMPTY ROOM".to_string(),
+        1 => m1.to_string(),
         2 => format!("{} and {}", m1, m2),
         _ => format!("{} and Others", m1),
     };
@@ -789,61 +734,46 @@ pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<St
 pub fn fill_room_gap(
     baseu: &Url,
     tk: String,
-    roomid: String,
+    room_id: &str,
     from: &str,
     to: &str,
 ) -> Result<Vec<Message>, Error> {
-    let mut ms: Vec<Message> = vec![];
-    let nend;
-
-    let mut params = vec![
-        ("dir", String::from("f")),
-        ("limit", format!("{}", globals::PAGE_LIMIT)),
+    let params = &[
+        ("dir", "f".to_string()),
+        ("limit", globals::PAGE_LIMIT.to_string()),
         ("access_token", tk.clone()),
+        ("from", from.to_string()),
+        ("to", to.to_string()),
     ];
 
-    params.push(("from", String::from(from)));
-    params.push(("to", String::from(to)));
-
-    let path = format!("rooms/{}/messages", roomid);
-    let url = client_url(baseu, &path, &params)?;
+    let path = format!("rooms/{}/messages", room_id);
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
-    nend = String::from(r["end"].as_str().unwrap_or(""));
-
-    let array = r["chunk"].as_array();
-    if array.is_none() || array.unwrap().is_empty() {
-        return Ok(ms);
+    let nend = r["end"].as_str().unwrap_or_default();
+    let array = r["chunk"].as_array().filter(|array| !array.is_empty());
+    if array.is_none() {
+        return Ok(Vec::new());
     }
 
-    let evs = array.unwrap().iter();
-    let mevents = Message::from_json_events_iter(&roomid, evs);
-    ms.extend(mevents);
-
-    // loading more until no more messages
-    let more = fill_room_gap(baseu, tk, roomid, &nend, to)?;
-    for m in more.iter() {
-        ms.insert(0, m.clone());
-    }
+    let ms = fill_room_gap(baseu, tk, room_id, nend, to)?
+        .iter()
+        .rev()
+        .chain(Message::from_json_events_iter(room_id, array.unwrap().iter()).iter())
+        .cloned()
+        .collect();
 
     Ok(ms)
 }
 
 pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    let mut url = base.join(path)?;
+    let url = base.join(path)?;
 
-    {
-        // If len was 0 `?` would be appended without being needed.
-        if !params.is_empty() {
-            let mut query = url.query_pairs_mut();
-            query.clear();
-            for (k, v) in params {
-                query.append_pair(k, &v);
-            }
-        }
+    if !params.is_empty() {
+        Ok(Url::parse_with_params(url.as_str(), params)?)
+    } else {
+        Ok(url)
     }
-
-    Ok(url)
 }
 
 pub fn client_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
@@ -859,28 +789,11 @@ pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
 }
 
 pub fn cache_path(name: &str) -> Result<String, Error> {
-    let mut path = match glib::get_user_cache_dir() {
-        Some(path) => path,
-        None => PathBuf::from("/tmp"),
-    };
-
-    path.push("fractal");
-
-    if !path.exists() {
-        create_dir_all(&path)?;
-    }
-
-    path.push(name);
-
-    Ok(path.into_os_string().into_string()?)
+    cache_dir_path("", name)
 }
 
 pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
-    let mut path = match glib::get_user_cache_dir() {
-        Some(path) => path,
-        None => PathBuf::from("/tmp"),
-    };
-
+    let mut path = glib::get_user_cache_dir().unwrap_or(std::env::temp_dir());
     path.push("fractal");
     path.push(dir);
 
@@ -895,7 +808,7 @@ pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
 
 pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
     if avatar.is_empty() {
-        return Ok(String::from(""));
+        return Ok(String::new());
     }
 
     let dest = cache_path(&userid)?;
@@ -903,31 +816,16 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
 }
 
 pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
-    let sender = msg["sender"].as_str().unwrap_or("");
-
     let c = &msg["content"];
-
-    let membership = c["membership"].as_str();
-    if membership.is_none() || membership.unwrap() != "join" {
-        return None;
-    }
-
-    let displayname = match c["displayname"].as_str() {
-        None => None,
-        Some(s) => Some(String::from(s)),
-    };
-    let avatar_url = match c["avatar_url"].as_str() {
-        None => None,
-        Some(s) => Some(String::from(s)),
-    };
+    c["membership"].as_str().filter(|m| m == &"join")?;
 
     Some(Member {
-        uid: String::from(sender),
-        alias: displayname,
-        avatar: avatar_url,
+        uid: msg["sender"].as_str().unwrap_or_default().to_string(),
+        alias: c["displayname"].as_str().map(Into::into),
+        avatar: c["avatar_url"].as_str().map(Into::into),
     })
 }
 
 pub fn encode_uid(userid: &str) -> String {
-    utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect::<String>()
+    utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect()
 }

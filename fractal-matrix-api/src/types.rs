@@ -1,10 +1,9 @@
-pub use model::event::Event;
-pub use model::member::Member;
-pub use model::member::MemberList;
-pub use model::message::Message;
-pub use model::protocol::Protocol;
-pub use model::room::Room;
-pub use model::room::RoomList;
-pub use model::stickers::Sticker;
-pub use model::stickers::StickerGroup;
-pub use model::userinfo::UserInfo;
+pub use model::{
+    event::Event,
+    member::{Member, MemberList},
+    message::Message,
+    protocol::Protocol,
+    room::{Room, RoomList},
+    stickers::{Sticker, StickerGroup},
+    userinfo::UserInfo,
+};
