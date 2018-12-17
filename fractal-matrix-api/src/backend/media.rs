@@ -19,14 +19,8 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match thumb(&baseu, &media, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = thumb(&baseu, &media, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())
@@ -36,14 +30,8 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match util::media(&baseu, &media, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = util::media(&baseu, &media, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())
@@ -51,7 +39,7 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 
 pub fn get_media_list_async(
     bk: &Backend,
-    roomid: String,
+    room_id: String,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
@@ -59,20 +47,17 @@ pub fn get_media_list_async(
     let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
 
-    semaphore(bk.limit_threads.clone(), move || match get_room_media_list(
-        &baseu,
-        tk,
-        roomid.clone(),
-        globals::PAGE_LIMIT,
-        first_media_id,
-        prev_batch,
-    ) {
-        Ok(media_list) => {
-            tx.send(media_list).unwrap();
-        }
-        Err(_) => {
-            tx.send((Vec::new(), String::new())).unwrap();
-        }
+    semaphore(bk.limit_threads.clone(), move || {
+        let media_list = get_room_media_list(
+            &baseu,
+            tk,
+            room_id.clone(),
+            globals::PAGE_LIMIT,
+            first_media_id,
+            prev_batch,
+        )
+        .unwrap_or_default();
+        tx.send(media_list).unwrap();
     });
 
     Ok(())
@@ -100,35 +85,23 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match resolve_media_url(&baseu, &media, false, 0, 0) {
-            Ok(uri) => {
-                tx.send(uri.to_string()).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let uri = resolve_media_url(&baseu, &media, false, 0, 0)
+            .map(|uri| uri.to_string())
+            .unwrap_or_default();
+        tx.send(uri).unwrap();
     });
 
     Ok(())
 }
 
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
-    let fname;
-    {
-        let name = url.split("/").last().unwrap_or_default();
-        fname = cache_dir_path("files", name)?.clone();
-    }
+    let name = url.split("/").last().unwrap_or_default();
+    let fname = cache_dir_path("files", name)?;
 
+    let url = url.clone();
     thread::spawn(move || {
-        match download_file(&url, fname, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = download_file(url.as_str(), fname, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())

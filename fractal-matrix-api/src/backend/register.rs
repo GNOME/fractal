@@ -12,11 +12,8 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 
 pub fn guest(bk: &Backend, server: String) -> Result<(), Error> {
-    let s = server.clone();
-    let url = Url::parse(&s)
-        .unwrap()
-        .join("/_matrix/client/r0/register?kind=guest")?;
-    bk.data.lock().unwrap().server_url = s;
+    let url = Url::parse(&server)?.join("/_matrix/client/r0/register?kind=guest")?;
+    bk.data.lock().unwrap().server_url = server;
 
     let data = bk.data.clone();
     let tx = bk.tx.clone();
@@ -25,9 +22,9 @@ pub fn guest(bk: &Backend, server: String) -> Result<(), Error> {
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = r["user_id"].as_str().unwrap_or_default().to_string();
+            let tk = r["access_token"].as_str().unwrap_or_default().to_string();
+            let dev = r["device_id"].as_str().unwrap_or_default().to_string();
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
@@ -41,40 +38,34 @@ pub fn guest(bk: &Backend, server: String) -> Result<(), Error> {
 }
 
 fn build_login_attrs(user: String, password: String) -> Result<JsonValue, Error> {
-    let emailre = Regex::new(
-        r"^([0-9a-zA-Z]([-\.\w]*[0-9a-zA-Z])+@([0-9a-zA-Z][-\w]*[0-9a-zA-Z]\.)+[a-zA-Z]{2,9})$",
-    )?;
-    let attrs;
-
-    // Email
-    if emailre.is_match(&user) {
-        attrs = json!({
+    let email_re = Regex::new(globals::EMAIL_RE).unwrap();
+    let attrs = if email_re.is_match(&user) {
+        json!({
             "type": "m.login.password",
             "password": password,
             "initial_device_display_name": "Fractal",
             "medium": "email",
-            "address": user.clone(),
+            "address": user,
             "identifier": {
                 "type": "m.id.thirdparty",
                 "medium": "email",
-                "address": user.clone()
+                "address": user
             }
-        });
+        })
     } else {
-        attrs = json!({
+        json!({
             "type": "m.login.password",
             "initial_device_display_name": "Fractal",
             "user": user,
             "password": password
-        });
-    }
+        })
+    };
 
     Ok(attrs)
 }
 
 pub fn login(bk: &Backend, user: String, password: String, server: String) -> Result<(), Error> {
-    let s = server.clone();
-    bk.data.lock().unwrap().server_url = s;
+    bk.data.lock().unwrap().server_url = server;
     let url = bk.url("login", vec![])?;
 
     let attrs = build_login_attrs(user, password)?;
@@ -85,9 +76,9 @@ pub fn login(bk: &Backend, user: String, password: String, server: String) -> Re
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = r["user_id"].as_str().unwrap_or_default().to_string();
+            let tk = r["access_token"].as_str().unwrap_or_default().to_string();
+            let dev = r["device_id"].as_str().unwrap_or_default().to_string();
 
             if uid.is_empty() || tk.is_empty() {
                 tx.send(BKResponse::LoginError(Error::BackendError))
@@ -106,8 +97,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: String) -> Re
 }
 
 pub fn set_token(bk: &Backend, token: String, uid: String, server: String) -> Result<(), Error> {
-    let s = server.clone();
-    bk.data.lock().unwrap().server_url = s;
+    bk.data.lock().unwrap().server_url = server;
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
@@ -139,8 +129,7 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
 pub fn register(bk: &Backend, user: String, password: String, server: String) -> Result<(), Error> {
     let s = server.clone();
     bk.data.lock().unwrap().server_url = s;
-    let url = bk.url("register", vec![("kind", String::from("user"))])?;
-
+    let url = bk.url("register", vec![("kind", "user".to_string())])?;
     let attrs = json!({
         "auth": {"type": "m.login.password"},
         "username": user,
@@ -154,10 +143,9 @@ pub fn register(bk: &Backend, user: String, password: String, server: String) ->
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
-
+            let uid = r["user_id"].as_str().unwrap_or_default().to_string();
+            let tk = r["access_token"].as_str().unwrap_or_default().to_string();
+            let dev = r["device_id"].as_str().unwrap_or_default().to_string();
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
