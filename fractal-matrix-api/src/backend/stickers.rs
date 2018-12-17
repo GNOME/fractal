@@ -8,9 +8,8 @@ use url::Url;
 use util::json_q;
 use util::{client_url, scalar_url};
 
-use globals;
-//use std::thread;
 use error::Error;
+use globals;
 
 use backend::types::BKCommand;
 use backend::types::BKResponse;
@@ -27,10 +26,9 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
         return Ok(());
     }
 
-    let widget_id = widget.unwrap();
     let data = vec![
         ("widget_type", "m.stickerpicker".to_string()),
-        ("widget_id", widget_id),
+        ("widget_id", widget.unwrap()),
         ("filter_unpurchased", "true".to_string()),
     ];
     let url = vurl(bk.data.clone(), "widgets/assets", data)?;
@@ -39,11 +37,12 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
     get!(
         &url,
         |r: JsonValue| {
-            let mut stickers = vec![];
-            for sticker_group in r["assets"].as_array().unwrap_or(&vec![]).iter() {
-                let group = StickerGroup::from_json(sticker_group);
-                stickers.push(group);
-            }
+            let stickers = r["assets"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .map(|sticker_group| StickerGroup::from_json(sticker_group))
+                .collect();
             tx.send(BKResponse::Stickers(stickers)).unwrap();
         },
         |err| tx.send(BKResponse::StickersError(err)).unwrap()
@@ -53,52 +52,46 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
 }
 
 pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error> {
-    let data = json!({
-        "data": {},
-        "type": "m.stickerpicker",
-    });
     let d = bk.data.clone();
     let tx = bk.internal_tx.clone();
 
     thread::spawn(move || {
+        let data = json!({
+            "data": {},
+            "type": "m.stickerpicker",
+        });
         let url = vurl(d.clone(), "widgets/request", vec![]).unwrap();
-        match json_q("post", &url, &data, globals::TIMEOUT) {
-            Ok(r) => {
-                let mut id = "".to_string();
-                if let Some(i) = r["id"].as_str() {
-                    id = i.to_string();
-                }
-                if let Some(i) = r["data"]["id"].as_str() {
-                    id = i.to_string();
-                }
 
-                let widget_id = if id.is_empty() { None } else { Some(id) };
-                d.lock().unwrap().sticker_widget = widget_id;
-            }
-            Err(Error::MatrixError(js)) => {
-                let widget_id = js["data"]["id"].as_str().map(|id| id.to_string());
-                d.lock().unwrap().sticker_widget = widget_id;
-            }
-            Err(_err) => {
-                d.lock().unwrap().sticker_widget = None;
-            }
-        };
-        if let Some(t) = tx {
-            t.send(then).unwrap();
-        }
+        d.lock().unwrap().sticker_widget = json_q("post", &url, &data, globals::TIMEOUT)
+            .or_else(|err| {
+                if let Error::MatrixError(js) = err {
+                    Ok(js)
+                } else {
+                    Err(err)
+                }
+            })
+            .ok()
+            .and_then(|r| {
+                r["data"]["id"]
+                    .as_str()
+                    .or(r["id"].as_str())
+                    .filter(|id| !id.is_empty())
+                    .map(Into::into)
+            });
+
+        tx.map(|t| t.send(then).unwrap());
     });
 
-    Ok(())
+    Ok(()) // FIXME: always returns this: change return type to ()
 }
 
-pub fn send(bk: &Backend, roomid: String, sticker: &Sticker) -> Result<(), Error> {
-    let now = Local::now();
-    let msg = format!("{}{}{}", roomid, sticker.name, now.to_string());
+pub fn send(bk: &Backend, room_id: String, sticker: &Sticker) -> Result<(), Error> {
+    let msg = format!("{}{}{}", room_id, sticker.name, Local::now().to_string());
     let digest = md5::compute(msg.as_bytes());
     // TODO: we need to generate the msg.id in the frontend
     let id = format!("{:x}", digest);
 
-    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", roomid, id), vec![])?;
+    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", room_id, id), vec![])?;
 
     let attrs = json!({
         "body": sticker.body.clone(),
@@ -111,18 +104,16 @@ pub fn send(bk: &Backend, roomid: String, sticker: &Sticker) -> Result<(), Error
     });
 
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         &url,
         &attrs,
         move |js: JsonValue| {
-            let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string())).unwrap();
+            let evid = js["event_id"].as_str().unwrap_or_default().to_string();
+            tx.send(BKResponse::SentMsg(id, evid)).unwrap();
         },
-        |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
-                .unwrap();
-        }
+        |_| tx
+            .send(BKResponse::SendMsgError(Error::SendMsgError(id)))
+            .unwrap()
     );
 
     Ok(())
@@ -147,9 +138,9 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     let itx = bk.internal_tx.clone();
     get!(
         &url,
-        |_| if let Some(t) = itx {
-            t.send(BKCommand::ListStickers).unwrap();
-        },
+        |_| itx
+            .map(|t| t.send(BKCommand::ListStickers).unwrap())
+            .unwrap_or_default(),
         |err| tx.send(BKResponse::StickersError(err)).unwrap()
     );
 
@@ -165,15 +156,14 @@ fn get_base_url(data: Arc<Mutex<BackendData>>) -> Result<Url, Error> {
 fn url(
     data: Arc<Mutex<BackendData>>,
     path: &str,
-    params: Vec<(&str, String)>,
+    mut params: Vec<(&str, String)>,
 ) -> Result<Url, Error> {
     let base = get_base_url(data.clone())?;
     let tk = data.lock().unwrap().access_token.clone();
 
-    let mut params2 = params.to_vec();
-    params2.push(("access_token", tk.clone()));
+    params.push(("access_token", tk));
 
-    client_url(&base, path, params2)
+    client_url(&base, path, params)
 }
 
 fn get_scalar_token(data: Arc<Mutex<BackendData>>) -> Result<String, Error> {
@@ -190,30 +180,29 @@ fn get_scalar_token(data: Arc<Mutex<BackendData>>) -> Result<String, Error> {
     let vurl = Url::parse(&format!("{}/api/register", s))?;
     let js = json_q("post", &vurl, &js, globals::TIMEOUT)?;
 
-    match js["scalar_token"].as_str() {
-        Some(st) => {
-            data.lock().unwrap().scalar_token = Some(st.to_string());
-            Ok(st.to_string())
-        }
-        None => Err(Error::BackendError),
-    }
+    js["scalar_token"]
+        .as_str()
+        .map(|st| {
+            let st = st.to_string();
+            data.lock().unwrap().scalar_token = Some(st.clone());
+            st
+        })
+        .ok_or(Error::BackendError)
 }
 
 fn vurl(
     data: Arc<Mutex<BackendData>>,
     path: &str,
-    params: Vec<(&str, String)>,
+    mut params: Vec<(&str, String)>,
 ) -> Result<Url, Error> {
     let s = data.lock().unwrap().scalar_url.clone();
     let base = Url::parse(&s)?;
     let token = data.lock().unwrap().scalar_token.clone();
-    let tk = match token {
-        None => get_scalar_token(data)?,
-        Some(t) => t.clone(),
-    };
+    let tk = token
+        .ok_or(Error::BackendError)
+        .or(get_scalar_token(data))?;
 
-    let mut params2 = params.to_vec();
-    params2.push(("scalar_token", tk));
+    params.push(("scalar_token", tk));
 
-    scalar_url(&base, path, params2)
+    scalar_url(&base, path, params)
 }

@@ -7,7 +7,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
-extern crate cairo;
 extern crate chrono;
 extern crate glib;
 extern crate md5;

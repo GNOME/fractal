@@ -34,8 +34,8 @@ impl Default for Message {
     fn default() -> Self {
         Self {
             sender: String::new(),
-            mtype: String::from("m.text"),
-            body: String::from("default"),
+            mtype: "m.text".to_string(),
+            body: "default".to_string(),
             date: Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
             room: String::new(),
             thumb: None,
@@ -54,9 +54,10 @@ impl Default for Message {
 
 impl PartialEq for Message {
     fn eq(&self, other: &Self) -> bool {
-        match (self.id.clone(), other.id.clone()) {
-            (Some(self_id), Some(other_id)) => self_id == other_id,
-            _ => self.sender == other.sender && self.body == other.body,
+        if let (Some(self_id), Some(other_id)) = (self.id.clone(), other.id.clone()) {
+            self_id == other_id
+        } else {
+            self.sender == other.sender && self.body == other.body
         }
     }
 }
@@ -95,39 +96,33 @@ impl Message {
     pub fn supported_event(ev: &&JsonValue) -> bool {
         let type_ = ev["type"].as_str().unwrap_or_default();
 
-        for t in Self::types().iter() {
-            if t == &type_ {
-                return true;
-            }
-        }
-
-        false
+        Self::types().iter().any(|t| t == &type_)
     }
 
     /// Parses a matrix.org event and return a Message object
     ///
     /// # Arguments
     ///
-    /// * `roomid` - The message room id
+    /// * `room_id` - The message room id
     /// * `msg` - The message event as Json
-    pub fn parse_room_message(roomid: String, msg: &JsonValue) -> Self {
-        let sender = msg["sender"].as_str().unwrap_or("");
+    pub fn parse_room_message(room_id: String, msg: &JsonValue) -> Self {
+        let sender = msg["sender"].as_str().unwrap_or_default();
 
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or(0) / 1000;
         let server_timestamp: DateTime<Local> = Local.timestamp(timestamp, 0);
 
-        let id = msg["event_id"].as_str().unwrap_or("");
-        let type_ = msg["type"].as_str().unwrap_or("");
+        let id = msg["event_id"].as_str().unwrap_or_default();
+        let type_ = msg["type"].as_str().unwrap_or_default();
 
         let redacted = msg["unsigned"].get("redacted_because") != None;
 
         let mut message = Self {
             sender: sender.to_string(),
             date: server_timestamp,
-            room: roomid.clone(),
+            room: room_id.clone(),
             id: Some(id.to_string()),
             mtype: type_.to_string(),
-            body: "".to_string(),
+            body: String::new(),
             url: None,
             thumb: None,
             formatted_body: None,
@@ -150,15 +145,18 @@ impl Message {
     }
 
     fn parse_m_room_message(msg: &mut Self, c: &JsonValue) {
-        let mtype = c["msgtype"].as_str().unwrap_or("");
-        let body = c["body"].as_str().unwrap_or("");
-        let formatted_body = c["formatted_body"].as_str().map(|s| String::from(s));
-        let format = c["format"].as_str().map(|s| String::from(s));
+        let mtype = c["msgtype"].as_str().unwrap_or_default();
+        let body = c["body"].as_str().unwrap_or_default();
+        let formatted_body = c["formatted_body"].as_str().map(Into::into);
+        let format = c["format"].as_str().map(Into::into);
 
         match mtype {
             "m.image" | "m.file" | "m.video" | "m.audio" => {
-                let url = String::from(c["url"].as_str().unwrap_or(""));
-                let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
+                let url = c["url"].as_str().unwrap_or_default().to_string();
+                let mut t = c["info"]["thumbnail_url"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
                 if t.is_empty() && !url.is_empty() {
                     t = url.clone();
                 }
@@ -171,7 +169,7 @@ impl Message {
                 // https://matrix.org/docs/spec/client_server/r0.4.0.html#rich-replies
                 msg.in_reply_to = c["m.relates_to"]["m.in_reply_to"]["event_id"]
                     .as_str()
-                    .map(String::from)
+                    .map(Into::into)
             }
             _ => {}
         };
@@ -183,36 +181,31 @@ impl Message {
     }
 
     fn parse_m_sticker(msg: &mut Self, c: &JsonValue) {
-        let body = c["body"].as_str().unwrap_or("");
+        let body = c["body"].as_str().unwrap_or_default();
 
-        let url = String::from(c["url"].as_str().unwrap_or(""));
-        let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
-        if t.is_empty() && !url.is_empty() {
-            t = url.clone();
-        }
+        let url = c["url"].as_str().unwrap_or_default();
+        let t = c["info"]["thumbnail_url"]
+            .as_str()
+            .filter(|t| !t.is_empty())
+            .unwrap_or(url.clone());
 
         msg.body = body.to_string();
-        msg.url = Some(url);
-        msg.thumb = Some(t);
+        msg.url = Some(url.to_string());
+        msg.thumb = Some(t.to_string());
     }
 
     /// Create a vec of Message from a json event list
     ///
-    /// * `roomid` - The messages room id
+    /// * `room_id` - The messages room id
     /// * `events` - An iterator to the json events
-    pub fn from_json_events_iter<'a, I>(roomid: String, events: I) -> Vec<Self>
+    pub fn from_json_events_iter<'a, I>(room_id: String, events: I) -> Vec<Self>
     where
         I: Iterator<Item = &'a JsonValue>,
     {
-        let mut ms = vec![];
-
-        let evs = events.filter(Self::supported_event);
-        for msg in evs {
-            let m = Self::parse_room_message(roomid.clone(), msg);
-            ms.push(m);
-        }
-
-        ms
+        events
+            .filter(Self::supported_event)
+            .map(|msg| Self::parse_room_message(room_id.clone(), msg))
+            .collect()
     }
 
     pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {

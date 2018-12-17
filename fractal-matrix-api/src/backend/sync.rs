@@ -3,7 +3,6 @@ use backend::types::Backend;
 use error::Error;
 use globals;
 use std::{thread, time};
-use types::Room;
 use util::get_rooms_from_json;
 use util::get_rooms_notifies_from_json;
 use util::get_rooms_timeline_from_json;
@@ -66,7 +65,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     thread::spawn(move || {
         match json_q("get", &url, &attrs, timeout) {
             Ok(r) => {
-                let next_batch = String::from(r["next_batch"].as_str().unwrap_or(""));
+                let next_batch = r["next_batch"].as_str().unwrap_or_default().to_string();
                 if let Some(since) = since {
                     // New rooms
                     match get_rooms_from_json(&r, &userid, &baseu) {
@@ -80,15 +79,13 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
                     };
                     // Room notifications
-                    match get_rooms_notifies_from_json(&r) {
-                        Ok(notifies) => {
-                            for (r, n, h) in notifies {
-                                tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
-                                    .unwrap();
-                            }
-                        }
-                        Err(_) => {}
-                    };
+                    get_rooms_notifies_from_json(&r)
+                        .map(|notifies| {
+                            notifies.into_iter().for_each(|(r, n, h)| {
+                                tx.send(BKResponse::RoomNotifications(r, n, h)).unwrap()
+                            })
+                        })
+                        .unwrap_or_default();
                     // Other events
                     match parse_sync_events(&r) {
                         Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
@@ -96,15 +93,18 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             for ev in events {
                                 match ev.stype.as_ref() {
                                     "m.room.name" => {
-                                        let name =
-                                            String::from(ev.content["name"].as_str().unwrap_or(""));
+                                        let name = ev.content["name"]
+                                            .as_str()
+                                            .unwrap_or_default()
+                                            .to_string();
                                         tx.send(BKResponse::RoomName(ev.room.clone(), name))
                                             .unwrap();
                                     }
                                     "m.room.topic" => {
-                                        let t = String::from(
-                                            ev.content["topic"].as_str().unwrap_or(""),
-                                        );
+                                        let t = ev.content["topic"]
+                                            .as_str()
+                                            .unwrap_or_default()
+                                            .to_string();
                                         tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
                                     }
                                     "m.room.avatar" => {
@@ -135,13 +135,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         }
                     };
 
-                    let mut def: Option<Room> = None;
                     let jtr = data.lock().unwrap().join_to_room.clone();
-                    if !jtr.is_empty() {
-                        if let Some(r) = rooms.iter().find(|x| x.id == jtr) {
-                            def = Some(r.clone());
-                        }
-                    }
+                    let def = if !jtr.is_empty() {
+                        rooms.iter().find(|x| x.id == jtr).cloned()
+                    } else {
+                        None
+                    };
                     tx.send(BKResponse::Rooms(rooms, def)).unwrap();
                 }
 
@@ -155,7 +154,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
-                let ten_seconds = time::Duration::from_millis(10000);
+                let ten_seconds = time::Duration::from_secs(10);
                 thread::sleep(ten_seconds);
 
                 tx.send(BKResponse::SyncError(err)).unwrap();

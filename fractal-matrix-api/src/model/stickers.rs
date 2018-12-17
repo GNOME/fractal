@@ -23,41 +23,37 @@ pub struct StickerGroup {
 
 impl StickerGroup {
     pub fn from_json(js: &JsonValue) -> Self {
-        let mut stickers = vec![];
+        // FIXME: ...isn't this implemented by Deserialize?
         let d = &js["data"];
 
-        let purchased = js["purchased"].as_bool().unwrap_or_default();
-        let asset = js["asset_type"].as_str().unwrap_or_default().to_string();
-        let name = d["name"].as_str().unwrap_or_default().to_string();
-        let description = d["description"].as_str().unwrap_or_default().to_string();
-        let price = d["price"].as_i64().unwrap_or_default();
-        let thumbnail = d["thumbnail"].as_str().unwrap_or_default().to_string();
-
-        for img in d["images"].as_array().unwrap_or(&vec![]).iter() {
-            let c = &img["content"];
-            let w = c["info"]["h"].as_i64().unwrap_or_default();
-            let h = c["info"]["h"].as_i64().unwrap_or_default();
-            stickers.push(Sticker {
-                name: img["name"].as_str().unwrap_or_default().to_string(),
-                description: img["description"].as_str().unwrap_or_default().to_string(),
-                body: c["body"].as_str().unwrap_or_default().to_string(),
-                url: c["url"].as_str().unwrap_or_default().to_string(),
-                thumbnail: c["info"]["thumbnail_url"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                size: (w as i32, h as i32),
-            });
-        }
-
         Self {
-            name,
-            asset,
-            description,
-            price,
-            purchased,
-            thumbnail,
-            stickers,
+            name: d["name"].as_str().unwrap_or_default().to_string(),
+            asset: js["asset_type"].as_str().unwrap_or_default().to_string(),
+            description: d["description"].as_str().unwrap_or_default().to_string(),
+            price: d["price"].as_i64().unwrap_or_default(),
+            purchased: js["purchased"].as_bool().unwrap_or_default(),
+            thumbnail: d["thumbnail"].as_str().unwrap_or_default().to_string(),
+            stickers: d["images"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .map(|img| {
+                    let c = &img["content"];
+                    let w = c["info"]["h"].as_i64().unwrap_or_default() as i32;
+                    let h = c["info"]["h"].as_i64().unwrap_or_default() as i32;
+                    Sticker {
+                        name: img["name"].as_str().unwrap_or_default().to_string(),
+                        description: img["description"].as_str().unwrap_or_default().to_string(),
+                        body: c["body"].as_str().unwrap_or_default().to_string(),
+                        url: c["url"].as_str().unwrap_or_default().to_string(),
+                        thumbnail: c["info"]["thumbnail_url"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
+                        size: (w, h),
+                    }
+                })
+                .collect(),
         }
     }
 }
