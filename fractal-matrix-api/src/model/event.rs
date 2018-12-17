@@ -1,4 +1,4 @@
-use serde_json::Value as JsonValue;
+use JsonValue;
 
 #[derive(Debug, Clone)]
 pub struct Event {

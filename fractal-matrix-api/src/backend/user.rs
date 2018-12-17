@@ -1,36 +1,32 @@
-use std::fs::File;
-use std::io::prelude::*;
+use JsonValue;
 
-use backend::types::BKResponse;
-use backend::types::Backend;
+use std::{
+    fs,
+    sync::{mpsc::Sender, Arc, Mutex},
+    thread,
+};
+
+use backend::types::{BKResponse, Backend};
 use error::Error;
 use globals;
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
-use std::thread;
 use url::Url;
-use util::encode_uid;
-use util::get_user_avatar;
-use util::get_user_avatar_img;
-use util::json_q;
-use util::put_media;
-use util::semaphore;
-use util::{build_url, media_url};
+use util::{
+    build_url, encode_uid, get_user_avatar, get_user_avatar_img, json_q, media_url, put_media,
+    semaphore,
+};
 
-use types::Member;
-use types::UserInfo;
+use types::{Member, UserInfo};
 
 use serde_json;
-use serde_json::Value as JsonValue;
 
 pub fn get_username(bk: &Backend) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
         |r: JsonValue| {
-            let name = String::from(r["displayname"].as_str().unwrap_or(&id));
+            let name = r["displayname"].as_str().unwrap_or(&id).to_string();
             tx.send(BKResponse::Name(name)).unwrap();
         },
         |err| tx.send(BKResponse::UserNameError(err)).unwrap()
@@ -41,15 +37,14 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
 
 pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
 
     let attrs = json!({
         "displayname": name,
     });
 
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         &url,
         &attrs,
         |_| {
@@ -64,39 +59,22 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
 }
 
 pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), &[])?;
+    let url = bk.url(&format!("account/3pid"), vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
         |r: JsonValue| {
-            let mut result: Vec<UserInfo> = vec![];
-            if let Some(arr) = r["threepids"].as_array() {
-                for pid in arr.iter() {
-                    let address = match pid["address"].as_str() {
-                        None => "".to_string(),
-                        Some(a) => a.to_string(),
-                    };
-                    let add = match pid["added_at"].as_u64() {
-                        None => 0,
-                        Some(a) => a,
-                    };
-                    let medium = match pid["medium"].as_str() {
-                        None => "".to_string(),
-                        Some(a) => a.to_string(),
-                    };
-                    let val = match pid["validated_at"].as_u64() {
-                        None => 0,
-                        Some(a) => a,
-                    };
-
-                    result.push(UserInfo {
-                        address: address,
-                        added_at: add,
-                        validated_at: val,
-                        medium: medium,
-                    });
-                }
-            }
+            let result = r["threepids"]
+                .as_array()
+                .iter()
+                .flat_map(|arr| arr.iter())
+                .map(|pid| UserInfo {
+                    address: pid["address"].as_str().unwrap_or_default().to_string(),
+                    added_at: pid["added_at"].as_u64().unwrap_or_default(),
+                    validated_at: pid["validated_at"].as_u64().unwrap_or_default(),
+                    medium: pid["medium"].as_str().unwrap_or_default().to_string(),
+                })
+                .collect();
             tx.send(BKResponse::GetThreePID(result)).unwrap();
         },
         |err| tx.send(BKResponse::GetThreePIDError(err)).unwrap()
@@ -111,7 +89,7 @@ pub fn get_email_token(
     email: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url("account/3pid/email/requestToken", &[])?;
+    let url = bk.url("account/3pid/email/requestToken", vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -125,19 +103,17 @@ pub fn get_email_token(
         &url,
         &attrs,
         |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or(""));
+            let sid = r["sid"].as_str().unwrap_or_default().to_string();
             tx.send(BKResponse::GetTokenEmail(sid, client_secret))
                 .unwrap();
         },
         |err| match err {
             Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" =>
+                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenEmailUsed).unwrap();
+                tx.send(BKResponse::GetTokenEmailUsed).unwrap()
             }
-            _ => {
-                tx.send(BKResponse::GetTokenEmailError(err)).unwrap();
-            }
+            _ => tx.send(BKResponse::GetTokenEmailError(err)).unwrap(),
         }
     );
 
@@ -150,7 +126,7 @@ pub fn get_phone_token(
     phone: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), &[])?;
+    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -165,19 +141,17 @@ pub fn get_phone_token(
         &url,
         &attrs,
         |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or(""));
+            let sid = r["sid"].as_str().unwrap_or_default().to_string();
             tx.send(BKResponse::GetTokenPhone(sid, client_secret))
                 .unwrap();
         },
         |err| match err {
             Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" =>
+                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenPhoneUsed).unwrap();
+                tx.send(BKResponse::GetTokenPhoneUsed).unwrap()
             }
-            _ => {
-                tx.send(BKResponse::GetTokenPhoneError(err)).unwrap();
-            }
+            _ => tx.send(BKResponse::GetTokenPhoneError(err)).unwrap(),
         }
     );
 
@@ -190,7 +164,7 @@ pub fn add_threepid(
     client_secret: &str,
     sid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), &[])?;
+    let url = bk.url(&format!("account/3pid"), vec![])?;
     let attrs = json!({
         "three_pid_creds": {
             "id_server": identity[8..],
@@ -204,12 +178,8 @@ pub fn add_threepid(
     post!(
         &url,
         &attrs,
-        |_r: JsonValue| {
-            tx.send(BKResponse::AddThreePID(sid)).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::AddThreePIDError(err)).unwrap();
-        }
+        |_: JsonValue| tx.send(BKResponse::AddThreePID(sid)).unwrap(),
+        |err| tx.send(BKResponse::AddThreePIDError(err)).unwrap()
     );
 
     Ok(())
@@ -222,13 +192,13 @@ pub fn submit_phone_token(
     sid: String,
     token: String,
 ) -> Result<(), Error> {
-    let params = vec![
+    let params = &[
         ("sid", sid.clone()),
         ("client_secret", client_secret.clone()),
         ("token", token),
     ];
     let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
-    let url = build_url(&Url::parse(&url)?, path, &params)?;
+    let url = build_url(&Url::parse(&url)?, path, params)?;
 
     let tx = bk.tx.clone();
     post!(
@@ -251,12 +221,12 @@ pub fn submit_phone_token(
 }
 
 pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu.join("/_matrix/client/unstable/account/3pid/delete")?;
-    url.query_pairs_mut()
-        .clear()
-        .append_pair("access_token", &tk);
+    let baseu = bk.get_base_url()?;
+    let url = baseu.join("/_matrix/client/unstable/account/3pid/delete")?;
+    let params = &[("access_token", &tk)];
+    let url = Url::parse_with_params(url.as_str(), params)?;
+
     let attrs = json!({
         "medium": medium,
         "address": address,
@@ -266,12 +236,8 @@ pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) -> Result<(),
     post!(
         &url,
         &attrs,
-        |_r: JsonValue| {
-            tx.send(BKResponse::DeleteThreePID).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::DeleteThreePIDError(err)).unwrap();
-        }
+        |_: JsonValue| tx.send(BKResponse::DeleteThreePID).unwrap(),
+        |err| tx.send(BKResponse::DeleteThreePIDError(err)).unwrap()
     );
 
     Ok(())
@@ -283,7 +249,7 @@ pub fn change_password(
     old_password: &str,
     new_password: &str,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/password"), &[])?;
+    let url = bk.url(&format!("account/password"), vec![])?;
 
     let attrs = json!({
         "new_password": new_password,
@@ -316,7 +282,7 @@ pub fn account_destruction(
     password: &str,
     flag: bool,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/deactivate"), &[])?;
+    let url = bk.url(&format!("account/deactivate"), vec![])?;
 
     let attrs = json!({
         "erase": flag,
@@ -349,12 +315,8 @@ pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     thread::spawn(move || match get_user_avatar(&baseu, &userid) {
-        Ok((_, fname)) => {
-            tx.send(BKResponse::Avatar(fname)).unwrap();
-        }
-        Err(err) => {
-            tx.send(BKResponse::AvatarError(err)).unwrap();
-        }
+        Ok((_, fname)) => tx.send(BKResponse::Avatar(fname)).unwrap(),
+        Err(err) => tx.send(BKResponse::AvatarError(err)).unwrap(),
     });
 
     Ok(())
@@ -367,7 +329,7 @@ pub fn get_user_info_async(
 ) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
 
-    let u = String::from(uid);
+    let u = uid.to_string();
 
     if let Some(info) = bk.user_info_cache.get(&u) {
         if let Some(tx) = tx.clone() {
@@ -386,21 +348,20 @@ pub fn get_user_info_async(
 
     semaphore(bk.limit_threads.clone(), move || {
         let i0 = info.lock();
-        match get_user_avatar(&baseu, &u) {
-            Ok(info) => {
+        get_user_avatar(&baseu, &u)
+            .map(|info| {
                 if let Some(tx) = tx.clone() {
                     tx.send(info.clone()).unwrap();
                     let mut i = i0.unwrap();
                     i.0 = info.0;
                     i.1 = info.1;
                 }
-            }
-            Err(_) => {
-                if let Some(tx) = tx.clone() {
-                    tx.send((String::new(), String::new())).unwrap();
-                }
-            }
-        };
+            })
+            .map_err(|_| {
+                tx.clone()
+                    .map(|tx| tx.send((String::new(), String::new())).unwrap())
+            })
+            .unwrap_or_default();
     });
 
     bk.user_info_cache.insert(cache_key, cache_value);
@@ -409,14 +370,14 @@ pub fn get_user_info_async(
 }
 
 pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Result<(), Error> {
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
     get!(
         &url,
         |r: JsonValue| {
-            let name = String::from(r["displayname"].as_str().unwrap_or(&uid));
+            let name = r["displayname"].as_str().unwrap_or(&uid).to_string();
             tx.send(name).unwrap();
         },
-        |_err| tx.send(uid.to_string()).unwrap()
+        |_| tx.send(uid.to_string()).unwrap()
     );
 
     Ok(())
@@ -437,19 +398,11 @@ pub fn get_avatar_async(
     let m = member.unwrap();
 
     let uid = m.uid.clone();
-    let avatar = m.avatar.clone();
+    let avatar = m.avatar.clone().unwrap_or_default();
 
-    semaphore(bk.limit_threads.clone(), move || match get_user_avatar_img(
-        &baseu,
-        &uid,
-        &avatar.unwrap_or_default(),
-    ) {
-        Ok(fname) => {
-            tx.send(fname.clone()).unwrap();
-        }
-        Err(_) => {
-            tx.send(String::new()).unwrap();
-        }
+    semaphore(bk.limit_threads.clone(), move || {
+        let fname = get_user_avatar_img(&baseu, &uid, &avatar).unwrap_or_default();
+        tx.send(fname).unwrap()
     });
 
     Ok(())
@@ -461,38 +414,28 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", &params)?;
-    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
 
-    let mut file = File::open(&avatar)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
+    let contents = fs::read(&avatar)?;
 
     let tx = bk.tx.clone();
-    thread::spawn(move || {
-        match put_media(mediaurl.as_str(), contents) {
-            Err(err) => {
-                tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
-            }
-            Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or("");
-                let attrs = json!({ "avatar_url": uri });
-                match json_q("put", &url, &attrs, 0) {
-                    Ok(_) => {
-                        tx.send(BKResponse::SetUserAvatar(avatar)).unwrap();
-                    }
-                    Err(err) => {
-                        tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
-                    }
-                };
-            }
-        };
+    thread::spawn(move || match put_media(mediaurl.as_str(), contents) {
+        Ok(js) => {
+            let uri = js["content_uri"].as_str().unwrap_or_default();
+            let attrs = json!({ "avatar_url": uri });
+            json_q("put", &url, &attrs, 0)
+                .map(|_| tx.send(BKResponse::SetUserAvatar(avatar)).unwrap())
+                .map_err(|err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap())
+                .unwrap_or_default()
+        }
+        Err(err) => tx.send(BKResponse::SetUserAvatarError(err)).unwrap(),
     });
 
     Ok(())
 }
 
 pub fn search(bk: &Backend, term: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("user_directory/search"), &[])?;
+    let url = bk.url(&format!("user_directory/search"), vec![])?;
 
     let attrs = json!({
         "search_term": term,
@@ -503,20 +446,19 @@ pub fn search(bk: &Backend, term: &str) -> Result<(), Error> {
         &url,
         &attrs,
         |js: JsonValue| {
-            let mut users: Vec<Member> = vec![];
-            if let Some(arr) = js["results"].as_array() {
-                for member in arr.iter() {
+            let users = js["results"]
+                .as_array()
+                .iter()
+                .flat_map(|arr| arr.iter())
+                .map(|member| {
                     let mut member_s: Member = serde_json::from_value(member.clone()).unwrap();
                     member_s.uid = member["user_id"].as_str().unwrap_or_default().to_string();
-
-                    users.push(member_s);
-                }
-            }
+                    member_s
+                })
+                .collect();
             tx.send(BKResponse::UserSearch(users)).unwrap();
         },
-        |err| {
-            tx.send(BKResponse::CommandError(err)).unwrap();
-        }
+        |err| tx.send(BKResponse::CommandError(err)).unwrap()
     );
 
     Ok(())

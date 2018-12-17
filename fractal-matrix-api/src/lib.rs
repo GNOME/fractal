@@ -7,7 +7,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
-extern crate cairo;
 extern crate chrono;
 extern crate glib;
 extern crate md5;
@@ -27,6 +26,8 @@ pub mod backend;
 pub mod cache;
 mod model;
 pub mod types;
+
+pub(crate) use serde_json::Value as JsonValue;
 
 #[cfg(test)]
 mod tests {

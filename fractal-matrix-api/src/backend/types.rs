@@ -1,17 +1,11 @@
-use std::collections::HashMap;
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Condvar, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{mpsc::Sender, Arc, Condvar, Mutex},
+};
 
 use error::Error;
 
-use types::Event;
-use types::Member;
-use types::Message;
-use types::Protocol;
-use types::Room;
-use types::Sticker;
-use types::StickerGroup;
-use types::UserInfo;
+use types::{Event, Member, Message, Protocol, Room, Sticker, StickerGroup, UserInfo};
 
 use cache::CacheMap;
 use url::Url;

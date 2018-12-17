@@ -1,17 +1,12 @@
-use backend::types::BKResponse;
-use backend::types::Backend;
+use backend::types::{BKResponse, Backend};
 use error::Error;
 use globals;
-use std::sync::mpsc::Sender;
-use std::thread;
+use std::{sync::mpsc::Sender, thread};
 
 use util;
-use util::cache_dir_path;
-use util::download_file;
-use util::get_room_media_list;
-use util::resolve_media_url;
-use util::semaphore;
-use util::thumb;
+use util::{
+    cache_dir_path, download_file, get_room_media_list, resolve_media_url, semaphore, thumb,
+};
 
 use types::Message;
 
@@ -19,14 +14,8 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match thumb(&baseu, &media, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = thumb(&baseu, &media, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())
@@ -36,14 +25,8 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match util::media(&baseu, &media, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = util::media(&baseu, &media, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())
@@ -51,29 +34,26 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 
 pub fn get_media_list_async(
     bk: &Backend,
-    roomid: &str,
+    room_id: &str,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let room = String::from(roomid);
+    let room = room_id.to_string();
 
-    semaphore(bk.limit_threads.clone(), move || match get_room_media_list(
-        &baseu,
-        &tk,
-        &room,
-        globals::PAGE_LIMIT,
-        first_media_id,
-        &prev_batch,
-    ) {
-        Ok(media_list) => {
-            tx.send(media_list).unwrap();
-        }
-        Err(_) => {
-            tx.send((Vec::new(), String::new())).unwrap();
-        }
+    semaphore(bk.limit_threads.clone(), move || {
+        let media_list = get_room_media_list(
+            &baseu,
+            &tk,
+            &room,
+            globals::PAGE_LIMIT,
+            first_media_id,
+            prev_batch,
+        )
+        .unwrap_or_default();
+        tx.send(media_list).unwrap();
     });
 
     Ok(())
@@ -101,35 +81,23 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
     let baseu = bk.get_base_url()?;
 
     semaphore(bk.limit_threads.clone(), move || {
-        match resolve_media_url(&baseu, &media, false, 0, 0) {
-            Ok(uri) => {
-                tx.send(uri.to_string()).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let uri = resolve_media_url(&baseu, &media, false, 0, 0)
+            .map(|uri| uri.to_string())
+            .unwrap_or_default();
+        tx.send(uri).unwrap();
     });
 
     Ok(())
 }
 
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
-    let fname;
-    {
-        let name = url.split('/').last().unwrap_or_default();
-        fname = cache_dir_path("files", name)?.clone();
-    }
+    let name = url.split('/').last().unwrap_or_default();
+    let fname = cache_dir_path("files", name)?;
 
+    let url = url.clone();
     thread::spawn(move || {
-        match download_file(&url, fname, None) {
-            Ok(fname) => {
-                tx.send(fname).unwrap();
-            }
-            Err(_) => {
-                tx.send(String::from("")).unwrap();
-            }
-        };
+        let fname = download_file(url.as_str(), fname, None).unwrap_or_default();
+        tx.send(fname).unwrap();
     });
 
     Ok(())

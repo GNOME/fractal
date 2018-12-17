@@ -1,52 +1,46 @@
-use serde_json::Value as JsonValue;
-use url::Url;
+use JsonValue;
 
 use globals;
 
-use backend::types::BKResponse;
-use backend::types::Backend;
+use backend::types::{BKResponse, Backend};
 use error::Error;
 use std::thread;
+use url::Url;
 
-use util::cache_path;
-use util::json_q;
-use util::media;
+use util::{cache_path, json_q, media};
 
-use types::Protocol;
-use types::Room;
+use types::{Protocol, Room};
 
 pub fn protocols(bk: &Backend) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu.join("/_matrix/client/unstable/thirdparty/protocols")?;
-    url.query_pairs_mut()
-        .clear()
-        .append_pair("access_token", &tk);
+    let baseu = bk.get_base_url()?;
+    let url = baseu.join("/_matrix/client/unstable/thirdparty/protocols")?;
+    let params = &[("access_token", &tk)];
+    let url = Url::parse_with_params(url.as_str(), params)?;
 
     let tx = bk.tx.clone();
     let s = bk.data.lock().unwrap().server_url.clone();
     get!(
         &url,
         move |r: JsonValue| {
-            let mut protocols: Vec<Protocol> = vec![];
-
-            protocols.push(Protocol {
-                id: String::from(""),
-                desc: String::from(s.split('/').last().unwrap_or("")),
-            });
-
-            if let Some(prs) = r.as_object() {
-                for k in prs.keys() {
-                    let ins = prs[k]["instances"].as_array();
-                    for i in ins.unwrap_or(&vec![]) {
-                        let p = Protocol {
-                            id: String::from(i["instance_id"].as_str().unwrap_or_default()),
-                            desc: String::from(i["desc"].as_str().unwrap_or_default()),
-                        };
-                        protocols.push(p);
-                    }
-                }
-            }
+            let protocols = std::iter::once(Protocol::new(s))
+                .chain(
+                    r.as_object()
+                        .iter()
+                        .flat_map(|m| m.values())
+                        .flat_map(|v| {
+                            v["instances"]
+                                .as_array()
+                                .cloned()
+                                .unwrap_or_default()
+                                .into_iter()
+                        })
+                        .map(|i| Protocol {
+                            id: i["instance_id"].as_str().unwrap_or_default().to_string(),
+                            desc: i["desc"].as_str().unwrap_or_default().to_string(),
+                        }),
+                )
+                .collect();
 
             tx.send(BKResponse::DirectoryProtocols(protocols)).unwrap();
         },
@@ -65,18 +59,17 @@ pub fn room_search(
     third_party: Option<String>,
     more: bool,
 ) -> Result<(), Error> {
-    let mut params: Vec<(&str, String)> = Vec::new();
+    let params = homeserver
+        .and_then(|hs| Url::parse(&hs).ok()) // Extract the hostname if `homeserver` is an URL
+        .map(|homeserver_url| {
+            vec![(
+                "server",
+                homeserver_url.host_str().unwrap_or_default().to_string(),
+            )]
+        })
+        .unwrap_or_default();
 
-    if let Some(mut hs) = homeserver {
-        // Extract the hostname if `homeserver` is an URL
-        if let Ok(homeserver_url) = Url::parse(&hs) {
-            hs = homeserver_url.host_str().unwrap_or_default().to_string();
-        }
-
-        params.push(("server", hs));
-    }
-
-    let url = bk.url("publicRooms", &params)?;
+    let url = bk.url("publicRooms", params)?;
     let base = bk.get_base_url()?;
 
     let mut attrs = json!({ "limit": globals::ROOM_DIRECTORY_LIMIT });
@@ -100,29 +93,36 @@ pub fn room_search(
         &url,
         &attrs,
         move |r: JsonValue| {
-            let next_branch = r["next_batch"].as_str().unwrap_or("");
-            data.lock().unwrap().rooms_since = String::from(next_branch);
+            data.lock().unwrap().rooms_since =
+                r["next_batch"].as_str().unwrap_or_default().to_string();
 
-            let mut rooms: Vec<Room> = vec![];
-            for room in r["chunk"].as_array().unwrap() {
-                let alias = String::from(room["canonical_alias"].as_str().unwrap_or(""));
-                let id = String::from(room["room_id"].as_str().unwrap_or(""));
-                let name = String::from(room["name"].as_str().unwrap_or(""));
-                let mut r = Room::new(id.clone(), Some(name));
-                r.alias = Some(alias);
-                r.avatar = Some(String::from(room["avatar_url"].as_str().unwrap_or("")));
-                r.topic = Some(String::from(room["topic"].as_str().unwrap_or("")));
-                r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
-                r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
-                r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
-                /* download the avatar */
-                if let Some(avatar) = r.avatar.clone() {
+            let rooms = r["chunk"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|room| {
+                    let alias = room["canonical_alias"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string();
+                    let avatar = room["avatar_url"].as_str().unwrap_or_default().to_string();
+                    let topic = room["topic"].as_str().unwrap_or_default().to_string();
+                    let id = room["room_id"].as_str().unwrap_or_default().to_string();
+                    let name = room["name"].as_str().unwrap_or_default().to_string();
+                    let mut r = Room::new(id.clone(), Some(name));
+                    r.alias = Some(alias);
+                    r.avatar = Some(avatar.clone());
+                    r.topic = Some(topic);
+                    r.n_members = room["num_joined_members"].as_i64().unwrap_or_default() as i32;
+                    r.world_readable = room["world_readable"].as_bool().unwrap_or_default();
+                    r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or_default();
+                    // download the avatar
                     if let Ok(dest) = cache_path(&id) {
-                        media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
+                        media(&base, &avatar, Some(&dest)).unwrap_or_default();
                     }
-                }
-                rooms.push(r);
-            }
+                    r
+                })
+                .collect();
 
             tx.send(BKResponse::DirectorySearch(rooms)).unwrap();
         },

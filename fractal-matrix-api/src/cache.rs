@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 #[derive(Clone)]
 pub struct CacheMap<T> {
@@ -21,15 +20,13 @@ impl<T> CacheMap<T> {
     }
 
     pub fn get(&self, k: &String) -> Option<&T> {
-        match self.map.get(k) {
-            Some(t) => {
-                if t.0.elapsed().as_secs() >= self.timeout {
-                    return None;
-                }
+        self.map.get(k).and_then(|t| {
+            if t.0.elapsed().as_secs() >= self.timeout {
+                None
+            } else {
                 Some(&t.1)
             }
-            None => None,
-        }
+        })
     }
 
     pub fn insert(&mut self, k: String, v: T) {

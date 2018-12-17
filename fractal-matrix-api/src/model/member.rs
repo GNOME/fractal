@@ -14,10 +14,11 @@ pub struct Member {
 
 impl Member {
     pub fn get_alias(&self) -> String {
-        match self.alias {
-            ref a if a.is_none() || a.clone().unwrap().is_empty() => self.uid.clone(),
-            ref a => a.as_ref().unwrap().clone(),
-        }
+        self.alias
+            .as_ref()
+            .filter(|a| !a.is_empty())
+            .unwrap_or(&self.uid)
+            .clone()
     }
 }
 

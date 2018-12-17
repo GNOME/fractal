@@ -1,15 +1,11 @@
-use backend::types::BKResponse;
-use backend::types::Backend;
+use backend::types::{BKResponse, Backend};
 use error::Error;
 use globals;
 use std::{thread, time};
-use types::Room;
-use util::get_rooms_from_json;
-use util::get_rooms_notifies_from_json;
-use util::get_rooms_timeline_from_json;
-use util::json_q;
-use util::parse_m_direct;
-use util::parse_sync_events;
+use util::{
+    get_rooms_from_json, get_rooms_notifies_from_json, get_rooms_timeline_from_json, json_q,
+    parse_m_direct, parse_sync_events,
+};
 
 pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
@@ -21,7 +17,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let mut params: Vec<(&str, String)> = vec![];
-    params.push(("full_state", String::from("false")));
+    params.push(("full_state", "false".to_string()));
 
     let timeout;
 
@@ -30,7 +26,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     }
 
     if !initial {
-        params.push(("timeout", String::from("30000")));
+        params.push(("timeout", "30000".to_string()));
         timeout = 30;
     } else {
         let filter = format!(r#"{{
@@ -51,12 +47,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         }}"#, globals::PAGE_LIMIT);
 
         params.push(("filter", filter));
-        params.push(("timeout", String::from("0")));
+        params.push(("timeout", "0".to_string()));
         timeout = 0;
     }
 
     let baseu = bk.get_base_url()?;
-    let url = bk.url("sync", &params)?;
+    let url = bk.url("sync", params)?;
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
@@ -66,7 +62,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     thread::spawn(move || {
         match json_q("get", &url, &attrs, timeout) {
             Ok(r) => {
-                let next_batch = String::from(r["next_batch"].as_str().unwrap_or(""));
+                let next_batch = r["next_batch"].as_str().unwrap_or_default().to_string();
                 if let Some(since) = since {
                     // New rooms
                     match get_rooms_from_json(&r, &userid, &baseu) {
@@ -80,15 +76,14 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
                     };
                     // Room notifications
-                    match get_rooms_notifies_from_json(&r) {
-                        Ok(notifies) => {
-                            for (r, n, h) in notifies {
+                    get_rooms_notifies_from_json(&r)
+                        .map(|notifies| {
+                            notifies.iter().for_each(|&(ref r, n, h)| {
                                 tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
-                                    .unwrap();
-                            }
-                        }
-                        Err(_) => {}
-                    };
+                                    .unwrap()
+                            })
+                        })
+                        .unwrap_or_default();
                     // Other events
                     match parse_sync_events(&r) {
                         Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
@@ -96,15 +91,18 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             for ev in events {
                                 match ev.stype.as_ref() {
                                     "m.room.name" => {
-                                        let name =
-                                            String::from(ev.content["name"].as_str().unwrap_or(""));
+                                        let name = ev.content["name"]
+                                            .as_str()
+                                            .unwrap_or_default()
+                                            .to_string();
                                         tx.send(BKResponse::RoomName(ev.room.clone(), name))
                                             .unwrap();
                                     }
                                     "m.room.topic" => {
-                                        let t = String::from(
-                                            ev.content["topic"].as_str().unwrap_or(""),
-                                        );
+                                        let t = ev.content["topic"]
+                                            .as_str()
+                                            .unwrap_or_default()
+                                            .to_string();
                                         tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
                                     }
                                     "m.room.avatar" => {
@@ -135,13 +133,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         }
                     };
 
-                    let mut def: Option<Room> = None;
                     let jtr = data.lock().unwrap().join_to_room.clone();
-                    if !jtr.is_empty() {
-                        if let Some(r) = rooms.iter().find(|x| x.id == jtr) {
-                            def = Some(r.clone());
-                        }
-                    }
+                    let def = if !jtr.is_empty() {
+                        rooms.iter().find(|x| x.id == jtr).cloned()
+                    } else {
+                        None
+                    };
                     tx.send(BKResponse::Rooms(rooms, def)).unwrap();
                 }
 
@@ -155,7 +152,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
-                let ten_seconds = time::Duration::from_millis(10000);
+                let ten_seconds = time::Duration::from_secs(10);
                 thread::sleep(ten_seconds);
 
                 tx.send(BKResponse::SyncError(err)).unwrap();
