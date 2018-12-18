@@ -625,18 +625,6 @@ impl MediaViewer {
         next_media_button.connect_clicked(move |_| {
             own.borrow_mut().next_media();
         });
-        let back = self
-            .builder
-            .get_object::<gtk::Button>("media_viewer_back_button")
-            .expect("Can't find media_viewer_back_button in ui file.");
-        let previous_media_button = self
-            .builder
-            .get_object::<gtk::Button>("previous_media_button")
-            .expect("Cant find previous_media_button in ui file.");
-        let next_media_button = self
-            .builder
-            .get_object::<gtk::Button>("next_media_button")
-            .expect("Cant find next_media_button in ui file.");
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
@@ -657,8 +645,7 @@ impl MediaViewer {
                             }
                         }
 
-                        back.clicked();
-                        Inhibit(true)
+                        Inhibit(false)
                     }
                     gdk::enums::key::Left => {
                         previous_media_button.clicked();
@@ -672,6 +659,16 @@ impl MediaViewer {
                 }
             });
         self.data.borrow_mut().signal_id = Some(id);
+
+        // Remove the keyboard signal management on hide
+        let data = self.data.clone();
+        media_viewer_box.connect_unmap(move |_| {
+            let id = data.borrow_mut().signal_id.take();
+            let main_window = &data.borrow().main_window;
+            if let Some(id) = id {
+                signal::signal_handler_disconnect(main_window, id);
+            }
+        });
     }
 }
 
