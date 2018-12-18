@@ -24,6 +24,7 @@
         <p>New features:</p>
         <ul>
           <li>Enhanced history view with adaptive layout, day divider</li>
+          <li>Reorganised headerbar, app menu merged with user menu</li>
           <li>Larger display of emoji-only messages</li>
           <li>Some performance improvements</li>
 	  <li>Opening a room jumps to first unread message</li>
