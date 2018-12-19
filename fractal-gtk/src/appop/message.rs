@@ -166,7 +166,7 @@ impl AppOp {
         if let Some(next) = self.msg_queue.last() {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
-                "m.image" | "m.file" => {
+                "m.image" | "m.file" | "m.audio" => {
                     self.backend.send(BKCommand::AttachFile(msg)).unwrap();
                 }
                 _ => {
@@ -252,12 +252,24 @@ impl AppOp {
             "image/png" => "m.image",
             "image/jpeg" => "m.image",
             "image/jpg" => "m.image",
+            "audio/mp4" => "m.audio",
+            "audio/webm" => "m.audio",
+            "audio/aac" => "m.audio",
+            "audio/mpeg" => "m.audio",
+            "audio/ogg" => "m.audio",
+            "audio/wave" => "m.audio",
+            "audio/wav" => "m.audio",
+            "audio/x-wav" => "m.audio",
+            "audio/x-pn-wav" => "m.audio",
+            "audio/flac" => "m.audio",
+            "audio/x-flac" => "m.audio",
             _ => "m.file",
         };
         let body = String::from(file.split("/").last().unwrap_or(&file));
 
         let info = match mtype {
             "m.image" => get_image_media_info(&file, mime.as_ref()),
+            "m.audio" => get_audio_media_info(&file, mime.as_ref()),
             _ => None,
         };
 
@@ -534,6 +546,22 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
             "size": size,
             "mimetype": mimetype,
             "orientation": 0,
+        }
+    });
+
+    Some(info)
+}
+
+fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+    let size = fs::metadata(file).ok()?.len();
+    let info = json!({
+        "info": {
+            "size": size,
+            "mimetype": mimetype,
+            // TODO: figure out how to get the audio file duration
+            // this doesn't impact playback in any way rn since the metadata
+            // is not being used
+            "duration": 1,
         }
     });
 
