@@ -252,17 +252,11 @@ impl AppOp {
             "image/png" => "m.image",
             "image/jpeg" => "m.image",
             "image/jpg" => "m.image",
-            "audio/mp4" => "m.audio",
-            "audio/webm" => "m.audio",
             "audio/aac" => "m.audio",
             "audio/mpeg" => "m.audio",
-            "audio/ogg" => "m.audio",
-            "audio/wave" => "m.audio",
-            "audio/wav" => "m.audio",
-            "audio/x-wav" => "m.audio",
-            "audio/x-pn-wav" => "m.audio",
             "audio/flac" => "m.audio",
             "audio/x-flac" => "m.audio",
+            "application/x-riff" => "m.audio",
             _ => "m.file",
         };
         let body = String::from(file.split("/").last().unwrap_or(&file));
