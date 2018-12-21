@@ -16,11 +16,11 @@ use uitypes::MessageContent;
 use uitypes::RowType;
 use widgets;
 
+use gdk_pixbuf::Pixbuf;
 use gst::prelude::*;
 use gst::ClockTime;
 use gstreamer_editing_services::prelude::*;
 use gstreamer_editing_services::UriClipAsset;
-use gdk_pixbuf::Pixbuf;
 use serde_json::Value as JsonValue;
 use types::Message;
 
