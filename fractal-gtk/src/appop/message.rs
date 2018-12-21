@@ -16,6 +16,10 @@ use uitypes::MessageContent;
 use uitypes::RowType;
 use widgets;
 
+use gst::prelude::*;
+use gst::ClockTime;
+use gstreamer_editing_services::prelude::*;
+use gstreamer_editing_services::UriClipAsset;
 use gdk_pixbuf::Pixbuf;
 use serde_json::Value as JsonValue;
 use types::Message;
@@ -548,16 +552,15 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 
 fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let size = fs::metadata(file).ok()?.len();
+    let nfile = format!("file://{}", file);
+    let uri = UriClipAsset::request_sync(&nfile).ok()?.unwrap();
+    let d = uri.get_duration().mseconds().unwrap();
     let info = json!({
         "info": {
             "size": size,
             "mimetype": mimetype,
-            // TODO: figure out how to get the audio file duration
-            // this doesn't impact playback in any way rn since the metadata
-            // is not being used
-            "duration": 1,
+            "duration": d,
         }
     });
-
     Some(info)
 }

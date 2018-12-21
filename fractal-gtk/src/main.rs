@@ -11,6 +11,7 @@ extern crate itertools;
 extern crate rand;
 extern crate regex;
 
+extern crate gstreamer_editing_services;
 extern crate gstreamer as gst;
 extern crate gstreamer_player as gst_player;
 
