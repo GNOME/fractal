@@ -285,9 +285,11 @@ fn should_group_message(msg: &MessageContent, prev: &MessageContent) -> bool {
 fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
     /* We show the year only when the message wasn't send in the current year */
     let stamp = if date.year() == Local::now().year() {
-        date.format(i18n("%e %B").as_str()).to_string()
+        // Translators: This is a date format in the day divider without the year
+        date.format(i18n("%B %e").as_str()).to_string()
     } else {
-        date.format(i18n("%e %B %Y").as_str()).to_string()
+        // Translators: This is a date format in the day divider with the year
+        date.format(i18n("%B %e, %Y").as_str()).to_string()
     };
     let row = gtk::ListBoxRow::new();
     if let Some(style) = row.get_style_context() {
