@@ -29,46 +29,56 @@ pub enum RoomPanel {
 }
 
 impl AppOp {
-    pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
-        let rs: Vec<Room> = rooms.iter().filter(|x| !x.left).cloned().collect();
-
-        // uploading each room avatar
-        for r in rooms.iter() {
-            self.backend
-                .send(BKCommand::GetRoomAvatar(r.id.clone()))
-                .unwrap();
+    pub fn update_rooms(&mut self, mut rooms: Vec<Room>, default: Option<Room>) {
+        //FIXME: replace this with https://doc.rust-lang.org/std/vec/struct.Vec.html#method.drain_filter
+        let mut i = 0;
+        while i != rooms.len() {
+            if rooms[i].left {
+                rooms.remove(i);
+            } else {
+                self.backend
+                    .send(BKCommand::GetRoomAvatar(rooms[i].id.clone()))
+                    .unwrap();
+                i += 1;
+            }
         }
-        self.set_rooms(rs, default);
+
+        self.set_rooms(rooms, default);
     }
 
-    pub fn new_rooms(&mut self, rooms: Vec<Room>) {
-        // ignoring existing rooms
-        let rs: Vec<&Room> = rooms
-            .iter()
-            .filter(|x| !self.rooms.contains_key(&x.id) && !x.left)
-            .collect();
+    pub fn new_rooms(&mut self, mut rooms: Vec<Room>) {
+        //FIXME: replace this with https://doc.rust-lang.org/std/vec/struct.Vec.html#method.drain_filter
+        let mut i = 0;
+        while i != rooms.len() {
+            // ignoring existing rooms and left rooms
+            if self.rooms.contains_key(&rooms[i].id) {
+                rooms.remove(i);
+            } else if rooms[i].left {
+                // removing left rooms
+                if self
+                    .active_room
+                    .as_ref()
+                    .map_or(false, |x| x == &rooms[i].id)
+                {
+                    self.really_leave_active_room();
+                } else {
+                    self.remove_room(rooms[i].id.clone());
+                }
 
-        for r in rs {
-            self.rooms.insert(r.id.clone(), r.clone());
-            self.roomlist.add_room(r.clone());
-            self.roomlist.moveup(r.id.clone());
-        }
-
-        // removing left rooms
-        let rs: Vec<&Room> = rooms.iter().filter(|x| x.left).collect();
-        for r in rs {
-            if r.id == self.active_room.clone().unwrap_or_default() {
-                self.really_leave_active_room();
+                rooms.remove(i);
             } else {
-                self.remove_room(r.id.clone());
+                self.rooms.insert(rooms[i].id.clone(), rooms[i].clone());
+                self.roomlist.add_room(rooms[i].clone());
+                self.roomlist.moveup(rooms[i].id.clone());
+                i += 1;
             }
         }
     }
 
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
-        self.roomlist.remove_room(id.clone());
         self.unsent_messages.remove(&id);
+        self.roomlist.remove_room(id);
     }
 
     pub fn set_rooms(&mut self, rooms: Vec<Room>, def: Option<Room>) {
