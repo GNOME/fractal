@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Local;
+use chrono::Timelike;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -283,11 +284,27 @@ fn should_group_message(msg: &MessageContent, prev: &MessageContent) -> bool {
 
 /* Create the day divider */
 fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
+    let gdate = glib::DateTime::new_local(
+        date.year(),
+        date.month() as i32,
+        date.day() as i32,
+        date.hour() as i32,
+        date.minute() as i32,
+        date.second() as f64,
+    );
     /* We show the year only when the message wasn't send in the current year */
-    let stamp = if date.year() == Local::now().year() {
-        date.format(i18n("%e %B").as_str()).to_string()
+    let format = if date.year() == Local::now().year() {
+        // Translators: This is a date format in the day divider without the year
+        i18n("%B %e")
     } else {
-        date.format(i18n("%e %B %Y").as_str()).to_string()
+        // Translators: This is a date format in the day divider with the year
+        i18n("%B %e, %Y")
+    };
+    let stamp = if let Some(string) = gdate.format(&format) {
+        string
+    } else {
+        // Fallback to a non glib time string
+        date.format(&format).to_string()
     };
     let row = gtk::ListBoxRow::new();
     if let Some(style) = row.get_style_context() {
