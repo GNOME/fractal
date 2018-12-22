@@ -31,7 +31,6 @@ pub enum RoomPanel {
 impl AppOp {
     pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
         let rs: Vec<Room> = rooms.iter().filter(|x| !x.left).cloned().collect();
-        self.set_rooms(&rs, default);
 
         // uploading each room avatar
         for r in rooms.iter() {
@@ -39,6 +38,7 @@ impl AppOp {
                 .send(BKCommand::GetRoomAvatar(r.id.clone()))
                 .unwrap();
         }
+        self.set_rooms(rs, default);
     }
 
     pub fn new_rooms(&mut self, rooms: Vec<Room>) {
@@ -71,7 +71,7 @@ impl AppOp {
         self.unsent_messages.remove(&id);
     }
 
-    pub fn set_rooms(&mut self, rooms: &Vec<Room>, def: Option<Room>) {
+    pub fn set_rooms(&mut self, rooms: Vec<Room>, def: Option<Room>) {
         let container: gtk::Box = self
             .ui
             .builder
