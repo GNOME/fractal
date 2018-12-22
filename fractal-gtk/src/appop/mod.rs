@@ -117,7 +117,7 @@ impl AppOp {
 
         if let Ok(data) = cache::load() {
             let r: Vec<Room> = data.rooms.values().cloned().collect();
-            self.set_rooms(r, None);
+            self.set_rooms(r, true);
             /* Make sure that since is never an empty string */
             self.since = data.since.filter(|s| !s.is_empty());
             self.username = Some(data.username);
