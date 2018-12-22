@@ -29,96 +29,73 @@ pub enum RoomPanel {
 }
 
 impl AppOp {
-    pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
-        let rs: Vec<Room> = rooms.iter().filter(|x| !x.left).cloned().collect();
-
-        // uploading each room avatar
-        for r in rooms.iter() {
-            self.backend
-                .send(BKCommand::GetRoomAvatar(r.id.clone()))
-                .unwrap();
-        }
-        self.set_rooms(rs, default);
-    }
-
-    pub fn new_rooms(&mut self, rooms: Vec<Room>) {
-        // ignoring existing rooms
-        let rs: Vec<&Room> = rooms
-            .iter()
-            .filter(|x| !self.rooms.contains_key(&x.id) && !x.left)
-            .collect();
-
-        for r in rs {
-            self.rooms.insert(r.id.clone(), r.clone());
-            self.roomlist.add_room(r.clone());
-            self.roomlist.moveup(r.id.clone());
-        }
-
-        // removing left rooms
-        let rs: Vec<&Room> = rooms.iter().filter(|x| x.left).collect();
-        for r in rs {
-            if r.id == self.active_room.clone().unwrap_or_default() {
-                self.really_leave_active_room();
-            } else {
-                self.remove_room(r.id.clone());
-            }
-        }
-    }
-
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
-        self.roomlist.remove_room(id.clone());
         self.unsent_messages.remove(&id);
+        self.roomlist.remove_room(id);
     }
 
-    pub fn set_rooms(&mut self, rooms: Vec<Room>, def: Option<Room>) {
-        let container: gtk::Box = self
-            .ui
-            .builder
-            .get_object("room_container")
-            .expect("Couldn't find room_container in ui file.");
-
-        self.rooms.clear();
-        for ch in container.get_children().iter() {
-            container.remove(ch);
+    // If the flag is true the list of rooms will be cleared before adding the new rooms
+    pub fn set_rooms(&mut self, mut rooms: Vec<Room>, flag: bool) {
+        if flag {
+            self.rooms.clear();
         }
-
-        for r in rooms.iter() {
-            if let None = r.name {
-                // This will force the room name calculation for 1:1 rooms and other rooms with no
-                // name
+        let mut roomlist = vec![];
+        while let Some(room) = rooms.pop() {
+            if room.left {
+                // removing left rooms
+                if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
+                    self.really_leave_active_room();
+                } else {
+                    self.remove_room(room.id);
+                }
+            } else if self.rooms.contains_key(&room.id) {
+                // TODO: update the existing rooms
+            } else {
+                if room.name.is_none() {
+                    // This force the room name calculation for 1:1 rooms and for rooms with no name
+                    self.backend
+                        .send(BKCommand::GetRoomMembers(room.id.clone()))
+                        .unwrap();
+                }
+                // Download the room avatar
                 self.backend
-                    .send(BKCommand::GetRoomMembers(r.id.clone()))
+                    .send(BKCommand::GetRoomAvatar(room.id.clone()))
                     .unwrap();
-            }
-
-            self.rooms.insert(r.id.clone(), r.clone());
-        }
-
-        self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
-        self.roomlist.add_rooms(rooms.iter().cloned().collect());
-        container.add(self.roomlist.widget());
-
-        let bk = self.backend.clone();
-        self.roomlist.connect_fav(move |room, tofav| {
-            bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
-                .unwrap();
-        });
-
-        let mut godef = def;
-        if let Some(aroom) = self.active_room.clone() {
-            if let Some(r) = self.rooms.get(&aroom) {
-                godef = Some(r.clone());
+                if flag {
+                    roomlist.push(room.clone());
+                } else {
+                    self.roomlist.add_room(room.clone());
+                    self.roomlist.moveup(room.id.clone());
+                }
+                self.rooms.insert(room.id.clone(), room);
             }
         }
 
-        if let Some(d) = godef {
-            self.set_active_room_by_id(d.id.clone());
-        } else {
-            self.set_state(AppState::NoRoom);
-            self.room_panel(RoomPanel::NoRoom);
-            self.active_room = None;
-            self.clear_tmp_msgs();
+        if flag {
+            let container: gtk::Box = self
+                .ui
+                .builder
+                .get_object("room_container")
+                .expect("Couldn't find room_container in ui file.");
+
+            for ch in container.get_children().iter() {
+                container.remove(ch);
+            }
+
+            self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
+            self.roomlist.add_rooms(roomlist);
+            container.add(self.roomlist.widget());
+
+            let bk = self.backend.clone();
+            self.roomlist.connect_fav(move |room, tofav| {
+                bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
+                    .unwrap();
+            });
+            // Select active room in the sidebar
+            if let Some(ref active_room) = self.active_room {
+                self.roomlist.select(active_room);
+            }
         }
 
         self.cache_rooms();

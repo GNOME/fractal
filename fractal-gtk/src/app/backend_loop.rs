@@ -103,11 +103,17 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let s = Some(since);
                     APPOP!(synced, (s));
                 }
-                Ok(BKResponse::Rooms(rooms, default)) => {
-                    APPOP!(update_rooms, (rooms, default));
+                Ok(BKResponse::Rooms(rooms, _default)) => {
+                    // The flag is used to tell set_rooms if the list of rooms should be cleared
+                    // before adding the new rooms or not
+                    let flag = true;
+                    APPOP!(set_rooms, (rooms, flag));
                 }
                 Ok(BKResponse::NewRooms(rooms)) => {
-                    APPOP!(new_rooms, (rooms));
+                    // The flag is used to tell set_rooms if the list of rooms should be cleared
+                    // before adding the new rooms or not
+                    let flag = false;
+                    APPOP!(set_rooms, (rooms, flag));
                 }
                 Ok(BKResponse::RoomDetail(room, key, value)) => {
                     let v = Some(value);
