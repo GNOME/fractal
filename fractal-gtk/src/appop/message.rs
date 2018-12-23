@@ -551,10 +551,22 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 }
 
 fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
-    let size = fs::metadata(file).ok()?.len();
     let nfile = format!("file://{}", file);
-    let uri = UriClipAsset::request_sync(&nfile).ok()?.unwrap();
-    let d = uri.get_duration().mseconds().unwrap();
+    let uri = UriClipAsset::request_sync(&nfile).ok()?;
+
+    let uri = match uri {
+        Some(i) => i,
+        None => return None,
+    };
+
+    let d = uri.get_duration().mseconds();
+
+    let d = match d {
+        Some(i) => i,
+        None => return None,
+    };
+
+    let size = fs::metadata(file).ok()?.len();
     let info = json!({
         "info": {
             "size": size,
