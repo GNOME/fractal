@@ -305,3 +305,8 @@ stack.titlebar:not(headerbar) > box > separator {
 .msg-emoji {
   font-size: 3em;
 }
+
+/* the border above the search results in the invite user/new direct message dialogs */
+.scrollarea-top-border {
+  border-top: 1px solid @borders;
+}
