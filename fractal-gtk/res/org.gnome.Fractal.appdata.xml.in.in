@@ -18,15 +18,16 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="4.0.0" type="stable" date="2018-12-18" urgency="high">
+    <release version="4.0.0" type="stable" date="2018-12-22" urgency="high">
       <description>
         <p>This new major release is the result of 3 months of hard work by 25 contributors pushing over 340 commits.</p>
         <p>New features:</p>
         <ul>
           <li>Enhanced history view with adaptive layout, day divider</li>
+          <li>Reorganised headerbar, app menu merged with user menu</li>
           <li>Larger display of emoji-only messages</li>
           <li>Some performance improvements</li>
-	  <li>Opening a room jumps to first unread message</li>
+          <li>Opening a room jumps to first unread message</li>
         </ul>
         <p>Bugfixes:</p>
         <ul>

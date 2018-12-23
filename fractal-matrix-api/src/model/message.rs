@@ -110,7 +110,7 @@ impl Message {
     ///
     /// * `roomid` - The message room id
     /// * `msg` - The message event as Json
-    pub fn parse_room_message(roomid: String, msg: &JsonValue) -> Message {
+    pub fn parse_room_message(roomid: &str, msg: &JsonValue) -> Message {
         let sender = msg["sender"].as_str().unwrap_or("");
 
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or(0) / 1000;
@@ -124,7 +124,7 @@ impl Message {
         let mut message = Message {
             sender: sender.to_string(),
             date: server_timestamp,
-            room: roomid.clone(),
+            room: String::from(roomid),
             id: Some(id.to_string()),
             mtype: type_.to_string(),
             body: "".to_string(),
@@ -152,8 +152,8 @@ impl Message {
     fn parse_m_room_message(msg: &mut Message, c: &JsonValue) {
         let mtype = c["msgtype"].as_str().unwrap_or("");
         let body = c["body"].as_str().unwrap_or("");
-        let formatted_body = c["formatted_body"].as_str().map(|s| String::from(s));
-        let format = c["format"].as_str().map(|s| String::from(s));
+        let formatted_body = c["formatted_body"].as_str().map(String::from);
+        let format = c["format"].as_str().map(String::from);
 
         match mtype {
             "m.image" | "m.file" | "m.video" | "m.audio" => {
@@ -200,7 +200,7 @@ impl Message {
     ///
     /// * `roomid` - The messages room id
     /// * `events` - An iterator to the json events
-    pub fn from_json_events_iter<'a, I>(roomid: String, events: I) -> Vec<Message>
+    pub fn from_json_events_iter<'a, I>(roomid: &str, events: I) -> Vec<Message>
     where
         I: Iterator<Item = &'a JsonValue>,
     {

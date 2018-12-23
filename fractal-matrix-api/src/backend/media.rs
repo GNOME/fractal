@@ -51,21 +51,22 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 
 pub fn get_media_list_async(
     bk: &Backend,
-    roomid: String,
+    roomid: &str,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let tk = bk.data.lock().unwrap().access_token.clone();
+    let room = String::from(roomid);
 
     semaphore(bk.limit_threads.clone(), move || match get_room_media_list(
         &baseu,
-        tk,
-        roomid.clone(),
+        &tk,
+        &room,
         globals::PAGE_LIMIT,
         first_media_id,
-        prev_batch,
+        &prev_batch,
     ) {
         Ok(media_list) => {
             tx.send(media_list).unwrap();
@@ -116,7 +117,7 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
     let fname;
     {
-        let name = url.split("/").last().unwrap_or_default();
+        let name = url.split('/').last().unwrap_or_default();
         fname = cache_dir_path("files", name)?.clone();
     }
 

@@ -50,13 +50,13 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             "event_fields": ["type", "content", "sender", "origin_server_ts", "event_id", "unsigned"]
         }}"#, globals::PAGE_LIMIT);
 
-        params.push(("filter", String::from(filter)));
+        params.push(("filter", filter));
         params.push(("timeout", String::from("0")));
         timeout = 0;
     }
 
     let baseu = bk.get_base_url()?;
-    let url = bk.url("sync", params)?;
+    let url = bk.url("sync", &params)?;
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
@@ -75,7 +75,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     };
 
                     // Message events
-                    match get_rooms_timeline_from_json(&baseu, &r, tk.clone(), since.clone()) {
+                    match get_rooms_timeline_from_json(&baseu, &r, &tk, &since) {
                         Ok(msgs) => tx.send(BKResponse::RoomMessages(msgs)).unwrap(),
                         Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
                     };

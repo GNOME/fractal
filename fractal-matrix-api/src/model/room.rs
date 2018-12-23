@@ -34,8 +34,8 @@ pub struct Room {
 impl Room {
     pub fn new(id: String, name: Option<String>) -> Room {
         Room {
-            id: id,
-            name: name,
+            id,
+            name,
             avatar: None,
             topic: None,
             alias: None,

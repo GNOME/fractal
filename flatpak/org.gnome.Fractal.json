@@ -54,7 +54,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://source.puri.sm/Librem5/libhandy"
+                    "url" : "https://source.puri.sm/Librem5/libhandy.git"
                 }
             ]
         },
@@ -93,7 +93,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://gitlab.gnome.org/World/fractal.git"
+                    "url" : "https://gitlab.gnome.org/GNOME/fractal.git"
                 }
             ]
         }
