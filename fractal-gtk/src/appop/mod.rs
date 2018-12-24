@@ -15,6 +15,7 @@ use crate::types::RoomList;
 use crate::passwd::PasswordStorage;
 
 use crate::actions::AppState;
+use crate::store;
 use crate::cache;
 use crate::uibuilder;
 use crate::widgets;
@@ -61,6 +62,7 @@ pub struct AppOp {
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
     pub unsent_messages: HashMap<String, (String, i32)>,
+    pub sidebar_store: store::Sidebar,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -98,6 +100,7 @@ impl AppOp {
             state: AppState::Login,
             since: None,
             unsent_messages: HashMap::new(),
+            sidebar_store: store::Sidebar::new(),
 
             logged_in: false,
 
