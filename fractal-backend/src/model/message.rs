@@ -50,7 +50,6 @@ impl Model for Message {
     }
 
     fn create_sql() -> String {
-        //TODO: implements relation to room as ForeignKey
         format!(
             "
         CREATE TABLE if not exists {} (
@@ -68,7 +67,9 @@ impl Model for Message {
             receipt TEXT NOT NULL,
             redacted BOOLEAN NOT NULL,
             in_reply_to TEXT,
-            extra_content TEXT
+            extra_content TEXT,
+
+            FOREIGN KEY(room) REFERENCES room(id)
         )
         ",
             Self::table_name()
@@ -149,5 +150,51 @@ impl Model for Message {
             in_reply_to: row.get(13),
             extra_content: extra_content,
         }
+    }
+}
+
+pub trait MessageModel: Sized {
+    fn get_range(room: &str, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<Self>, Error>;
+}
+
+impl MessageModel for Message {
+    /// Returns a list of Messages from filtering by `room` roomid ordered by
+    /// date
+    ///
+    /// The param `limit` defines the number of messages to return, if it's
+    /// None, all messages will be returned
+    ///
+    /// The param `offset` is used to ignore that number of messages and start
+    /// to return from that.  if it's None, the return will be done from the end
+    /// of the list.
+    fn get_range(room: &str, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<Self>, Error> {
+        let fields = Self::fields().join(",");
+        let mut query = format!(
+            "SELECT {} FROM {} WHERE room = ? ORDER BY date desc",
+            fields,
+            Self::table_name()
+        );
+
+        if let Some(l) = limit {
+            query = query + &format!(" LIMIT {}", l);
+        }
+
+        if let Some(o) = offset {
+            query = query + &format!(" OFFSET {}", o);
+        }
+
+        conn(
+            move |c| {
+                let mut stmt = c.prepare(&query)?;
+                let iter = stmt.query_map(&[room], Self::map_row)?;
+
+                let array = iter
+                    .filter(|r| r.is_ok())
+                    .map(|r| r.unwrap())
+                    .collect::<Vec<Self>>();
+                Ok(array)
+            },
+            Err(err_msg("Connection not init")),
+        )
     }
 }
