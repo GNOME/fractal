@@ -298,6 +298,7 @@ impl AppOp {
                 }
                 _ => {}
             };
+            self.sidebar_store.update_room(r);
         }
 
         if roomid == self.active_room.clone().unwrap_or_default() {
@@ -308,6 +309,7 @@ impl AppOp {
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<String>) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
             r.avatar = avatar;
+            self.sidebar_store.update_room(r);
         }
     }
 
@@ -393,6 +395,7 @@ impl AppOp {
                 RoomTag::None
             };
             r.membership = RoomMembership::Joined(tag);
+            self.sidebar_store.move_room(r);
         }
     }
 
@@ -449,6 +452,7 @@ impl AppOp {
         {
             let r = self.rooms.get_mut(&roomid).unwrap();
             r.name = name.clone();
+            self.sidebar_store.update_room(r);
         }
 
         if roomid == self.active_room.clone().unwrap_or_default() {
@@ -468,6 +472,7 @@ impl AppOp {
         {
             let r = self.rooms.get_mut(&roomid).unwrap();
             r.topic = topic.clone();
+            self.sidebar_store.update_room(r);
         }
 
         if roomid == self.active_room.clone().unwrap_or_default() {
