@@ -13,6 +13,7 @@ use actions::AppState;
 use cache;
 use widgets;
 
+use store;
 use types::Room;
 
 use util::markup_text;
@@ -30,6 +31,7 @@ pub enum RoomPanel {
 
 impl AppOp {
     pub fn remove_room(&mut self, id: String) {
+        self.sidebar_store.remove_room(&id);
         self.rooms.remove(&id);
         self.unsent_messages.remove(&id);
     }
@@ -37,6 +39,7 @@ impl AppOp {
     // If the flag is true the list of rooms will be cleared before adding the new rooms
     pub fn set_rooms(&mut self, mut rooms: Vec<Room>, flag: bool) {
         if flag {
+            self.sidebar_store.remove_all();
             self.rooms.clear();
         }
         while let Some(room) = rooms.pop() {
@@ -61,10 +64,11 @@ impl AppOp {
                     .send(BKCommand::GetRoomAvatar(room.id.clone()))
                     .unwrap();
 
+                self.sidebar_store.add_room(&room);
                 self.rooms.insert(room.id.clone(), room);
-                //TODO: add rooms to sidebar
             }
         }
+
         self.cache_rooms();
     }
 

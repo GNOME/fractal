@@ -12,7 +12,7 @@ use gtk;
 use gtk::prelude::*;
 
 use gio::ListStoreExt;
-use store::SidebarRow;
+use store;
 use widgets;
 
 pub type DndChannel = Rc<Cell<Option<DndChannelData>>>;
@@ -170,7 +170,7 @@ impl RoomListGroup {
         let store_weak = store.downgrade();
         //moving the target list into the clousure
         list.bind_model(store, move |item| {
-            let item = item.downcast_ref::<SidebarRow>().unwrap();
+            let item = item.downcast_ref::<store::SidebarRow>().unwrap();
             widgets::RoomRow::new(
                 item,
                 category,
@@ -209,26 +209,16 @@ impl RoomListGroup {
     }
 }
 
-pub struct Sidebar {
-    invites: gio::ListStore,
-    favorites: gio::ListStore,
-    rooms: gio::ListStore,
-    low_priority: gio::ListStore,
-}
+pub struct Sidebar(gtk::Box);
 
 impl Sidebar {
-    pub fn new(container: &gtk::Box) -> Self {
-        // Channel to communicate between dnd source and destiation
+    pub fn new(store: &store::Sidebar) -> Self {
+        // Channel to communicate between dnd source and destination
         let channel = Rc::new(Cell::new(None));
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        // create ListStores for each room category
-        let invites = gio::ListStore::new(SidebarRow::static_type());
-        let favorites = gio::ListStore::new(SidebarRow::static_type());
-        let rooms = gio::ListStore::new(SidebarRow::static_type());
-        let low_priority = gio::ListStore::new(SidebarRow::static_type());
 
         let invites_widget = RoomListGroup::new(
-            &invites,
+            store.get_invites_store(),
             false,
             i18n("Invites"),
             None,
@@ -236,7 +226,7 @@ impl Sidebar {
             channel.clone(),
         );
         let favorites_widget = RoomListGroup::new(
-            &favorites,
+            store.get_favorites_store(),
             true,
             i18n("Favorites"),
             Some(i18n(
@@ -246,7 +236,7 @@ impl Sidebar {
             channel.clone(),
         );
         let rooms_widget = RoomListGroup::new(
-            &rooms,
+            store.get_rooms_store(),
             true,
             i18n("Rooms"),
             Some(i18n("You don’t have any rooms yet")),
@@ -254,7 +244,7 @@ impl Sidebar {
             channel.clone(),
         );
         let low_priority_widget = RoomListGroup::new(
-            &low_priority,
+            store.get_low_priority_store(),
             true,
             i18n("Low Priority"),
             Some(i18n("Drag and drop rooms here to add them to low priority")),
@@ -292,15 +282,13 @@ impl Sidebar {
             &favorites_widget,
         );
 
-        container.add(&widget);
         widget.show();
 
-        Sidebar {
-            invites,
-            favorites,
-            rooms,
-            low_priority,
-        }
+        Sidebar(widget)
+    }
+
+    pub fn get_widget(&self) -> &gtk::Box {
+        &self.0
     }
 }
 
