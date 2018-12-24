@@ -31,12 +31,14 @@ pub enum RoomPanel {
 
 impl AppOp {
     pub fn remove_room(&mut self, id: String) {
+        self.sidebar_store.remove_room(&id);
         self.rooms.remove(&id);
         self.unsent_messages.remove(&id);
     }
 
     pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
         if clear_room_list {
+            self.sidebar_store.remove_all();
             self.rooms.clear();
         }
         while let Some(room) = rooms.pop() {
@@ -60,8 +62,9 @@ impl AppOp {
                 self.backend
                     .send(BKCommand::GetRoomAvatar(room.id.clone()))
                     .unwrap();
+
+                self.sidebar_store.add_room(&room);
                 self.rooms.insert(room.id.clone(), room);
-                //TODO: add rooms to sidebar
             }
         }
         if clear_room_list {
