@@ -304,6 +304,37 @@ impl SidebarRow {
             .downcast_unchecked()
         }
     }
+    // This updates all properties of a SidebarRow with a value
+    pub fn update(
+        &mut self,
+        name: Option<&str>,
+        avatar: Option<&str>,
+        notifications: Option<&str>,
+        direct: Option<bool>,
+        bold: Option<bool>,
+        highlight: Option<bool>,
+    ) -> Result<(), glib::BoolError> {
+        if let Some(ref value) = name {
+            self.set_property("name", value)?;
+        }
+        if let Some(ref value) = avatar {
+            self.set_property("avatar", value)?;
+        }
+        if let Some(ref value) = notifications {
+            self.set_property("notifications", value)?;
+        }
+        if let Some(ref value) = direct {
+            self.set_property("direct", value)?;
+        }
+        if let Some(ref value) = bold {
+            self.set_property("bold", value)?;
+        }
+        if let Some(ref value) = highlight {
+            self.set_property("highlight", value)?;
+        }
+
+        Ok(())
+    }
 }
 
 // Implment conversion from rust struct to SidebarRow
@@ -317,25 +348,29 @@ impl<'a> From<&'a Room> for SidebarRow {
         } else {
             "".to_string()
         };
-        // Todo: use key, bold and highlight value from room
         SidebarRow::new(
             &room.id,
             room.name.as_ref().unwrap_or(&"...".to_string()),
             room.avatar.as_ref().unwrap_or(&"".to_string()),
             &notifications,
             room.direct,
-            false,
-            false,
-            0,
+            false, // Default value for bold
+            room.highlight > 0 || room.inv,
+            room.messages
+                .last()
+                .map_or(0, |m| m.date.timestamp() as u64),
         )
     }
 }
 
+use std::collections::HashMap;
 pub struct Sidebar {
     invites: gio::ListStore,
     favorites: gio::ListStore,
     rooms: gio::ListStore,
     low_priority: gio::ListStore,
+    // FIXME: store a weak reference to SidebarRow
+    store: HashMap<String, glib::WeakRef<glib::Object>>,
 }
 
 impl Sidebar {
@@ -350,6 +385,7 @@ impl Sidebar {
             favorites,
             rooms,
             low_priority,
+            store: HashMap::new(),
         }
     }
 
@@ -370,7 +406,7 @@ impl Sidebar {
     }
 
     // Add the room to the correct liststore
-    pub fn add_room(&self, room: &Room) {
+    pub fn add_room(&mut self, room: &Room) {
         let row: SidebarRow = room.into();
         if room.fav {
             // favorites
@@ -383,6 +419,8 @@ impl Sidebar {
             self.rooms.append(&row);
         }
         //TODO:: popolate low_priority
+        let obj = row.upcast::<glib::Object>();
+        self.store.insert(room.id.clone(), obj.downgrade());
     }
 
     // Remove room to the correct liststore
@@ -407,6 +445,31 @@ impl Sidebar {
         self.rooms.remove_all();
         self.low_priority.remove_all();
     }
+
+    pub fn update_room(&self, room: &Room) {
+        let obj = self.store.get(&room.id).and_then(|obj| obj.upgrade());
+        if let Some(mut row) = obj.and_then(|obj| obj.downcast::<SidebarRow>().ok()) {
+            let notifications = if room.inv {
+                "●".to_string()
+            } else if room.notifications != 0 {
+                room.notifications.to_string()
+            } else {
+                "".to_string()
+            };
+            // Only values with some are updated.
+            // The order of the properties are name, avatar, notifications, direct, bold, highlight
+            let _ = row.update(
+                room.name.as_ref().map(|x| x.as_str()),
+                room.avatar.as_ref().map(|x| x.as_str()),
+                Some(&notifications),
+                Some(room.direct),
+                None,
+                Some(room.highlight > 0 || room.inv),
+            );
+        }
+    }
+
+    pub fn move_room(&self, room: &Room) {}
 }
 
 use gio::ListModelExt;

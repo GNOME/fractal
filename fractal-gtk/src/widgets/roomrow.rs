@@ -87,7 +87,6 @@ impl RoomRow {
 
         let number_weak: glib::object::SendWeakRef<gtk::Label> = number.downgrade().into();
         item.connect_notify("highlight", move |item, _| {
-            //TODO: use use the avatar from item
             let number = upgrade_weak!(number_weak);
             if let Ok(id) = item.get_property("highlight") {
                 if let Some(style) = number.get_style_context() {
