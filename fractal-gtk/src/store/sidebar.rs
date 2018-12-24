@@ -311,7 +311,7 @@ use fractal_api::types::Room;
 impl<'a> From<&'a Room> for SidebarRow {
     fn from(room: &Room) -> SidebarRow {
         let notifications = if room.inv {
-            ".".to_string()
+            "●".to_string()
         } else if room.notifications != 0 {
             room.notifications.to_string()
         } else {
@@ -385,10 +385,39 @@ impl Sidebar {
         //TODO:: popolate low_priority
     }
 
+    // Remove room to the correct liststore
+    pub fn remove_room(&self, id: &str) {
+        // favorites
+        if let Some(position) = get_position_by_id(&self.favorites, &id) {
+            self.favorites.remove(position);
+        }
+        // invites
+        if let Some(position) = get_position_by_id(&self.invites, &id) {
+            self.invites.remove(position);
+        }
+        // Normal rooms
+        if let Some(position) = get_position_by_id(&self.rooms, &id) {
+            self.rooms.remove(position);
+        }
+    }
+
     pub fn remove_all(&self) {
         self.invites.remove_all();
         self.favorites.remove_all();
         self.rooms.remove_all();
         self.low_priority.remove_all();
     }
+}
+
+use gio::ListModelExt;
+fn get_position_by_id(store: &gio::ListStore, id: &str) -> Option<u32> {
+    let mut i = 0;
+    while i < store.get_n_items() {
+        let obj = store.get_object(i)?;
+        if obj.get_property("room_id").ok()?.get::<String>()? == id {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
 }
