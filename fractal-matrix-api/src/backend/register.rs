@@ -1,4 +1,3 @@
-use regex::Regex;
 use std::thread;
 use url::Url;
 use JsonValue;
@@ -38,8 +37,7 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
 }
 
 fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
-    let email_re = Regex::new(globals::EMAIL_RE).unwrap();
-    let attrs = if email_re.is_match(user) {
+    let attrs = if globals::EMAIL_RE.is_match(user) {
         json!({
             "type": "m.login.password",
             "password": password,

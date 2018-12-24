@@ -1,5 +1,4 @@
 use glib;
-use regex::Regex;
 use reqwest;
 use reqwest::header::CONTENT_TYPE;
 use JsonValue;
@@ -467,8 +466,9 @@ pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
 }
 
 pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
-    let matrix_re = Regex::new(globals::MATRIX_RE).unwrap();
-    let caps = matrix_re.captures(url).ok_or(Error::BackendError)?;
+    let caps = globals::MATRIX_RE
+        .captures(url)
+        .ok_or(Error::BackendError)?;
     let server = caps["server"].to_string();
     let media = caps["media"].to_string();
 
@@ -498,8 +498,9 @@ pub fn dw_media(
     w: i32,
     h: i32,
 ) -> Result<String, Error> {
-    let matrix_re = Regex::new(globals::MATRIX_RE).unwrap();
-    let caps = matrix_re.captures(url).ok_or(Error::BackendError)?;
+    let caps = globals::MATRIX_RE
+        .captures(url)
+        .ok_or(Error::BackendError)?;
     let server = &caps["server"];
     let media = &caps["media"];
 
