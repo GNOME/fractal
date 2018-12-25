@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use types::Room;
 use types::RoomList;
 
-use fractal_api::util::cache_path;
+use fractal_api::cache_path;
 use globals;
 
 /* includes for avatar download */

@@ -50,7 +50,6 @@ extern crate mdl;
 extern crate lazy_static;
 
 use fractal_api::backend;
-use fractal_api::error;
 use fractal_api::types;
 
 mod globals;

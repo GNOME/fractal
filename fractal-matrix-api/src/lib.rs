@@ -20,12 +20,13 @@ extern crate urlencoding;
 extern crate url;
 
 #[macro_use]
-pub mod util;
+mod util;
+pub use util::cache_path;
 pub mod error;
-pub mod globals;
+mod globals;
 
 pub mod backend;
-pub mod cache;
+mod cache;
 mod model;
 pub mod types;
 
