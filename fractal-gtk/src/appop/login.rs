@@ -66,8 +66,8 @@ impl AppOp {
         self.backend.send(BKCommand::ShutDown).unwrap();
 
         let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-        let bk = Backend::new(tx);
-        self.backend = bk.run();
+        self.backend_bis = Backend::new(tx);
+        self.backend = self.backend_bis.clone().run();
         backend_loop(rx);
     }
 

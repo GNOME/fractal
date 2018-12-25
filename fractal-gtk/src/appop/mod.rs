@@ -4,8 +4,7 @@ use std::sync::mpsc::Sender;
 use gtk;
 use gtk::prelude::*;
 
-use backend;
-use backend::BKCommand;
+use backend::{BKCommand, BKResponse, Backend};
 use globals;
 
 use types::Member;
@@ -43,7 +42,8 @@ pub use self::room::RoomPanel;
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
-    pub backend: Sender<backend::BKCommand>,
+    pub backend: Sender<BKCommand>,
+    pub backend_bis: Backend,
 
     pub syncing: bool,
     pub msg_queue: Vec<TmpMsg>,
@@ -79,10 +79,14 @@ pub struct AppOp {
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
-    pub fn new(ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
+    pub fn new(ui: uibuilder::UI, tx: Sender<BKResponse>) -> AppOp {
+        let bk = Backend::new(tx);
+        let apptx = bk.clone().run();
+
         AppOp {
             ui: ui,
-            backend: tx,
+            backend: apptx,
+            backend_bis: bk,
             active_room: None,
             rooms: HashMap::new(),
             room_settings: None,
