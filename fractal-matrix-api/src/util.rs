@@ -418,54 +418,6 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
     }
 }
 
-pub fn get_room_st(base: &Url, tk: &str, roomid: &str) -> Result<JsonValue, Error> {
-    let url = client_url(
-        base,
-        &format!("rooms/{}/state", roomid),
-        &[("access_token", String::from(tk))],
-    )?;
-
-    let attrs = json!(null);
-    let st = json_q("get", &url, &attrs, globals::TIMEOUT)?;
-    Ok(st)
-}
-
-pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Result<String, Error> {
-    let st = get_room_st(base, tk, roomid)?;
-    let events = st.as_array().ok_or(Error::BackendError)?;
-
-    // we look for members that aren't me
-    let filter = |x: &&JsonValue| {
-        (x["type"] == "m.room.member"
-            && x["content"]["membership"] == "join"
-            && x["sender"] != userid)
-    };
-    let members = events.iter().filter(&filter);
-    let mut members2 = events.iter().filter(&filter);
-
-    let m1 = match members2.next() {
-        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or_default(),
-        None => "",
-    };
-
-    let mut fname = match members.count() {
-        1 => {
-            if let Ok(dest) = cache_path(&roomid) {
-                media(&base, m1, Some(&dest)).unwrap_or_default()
-            } else {
-                String::new()
-            }
-        }
-        _ => String::new(),
-    };
-
-    if fname.is_empty() {
-        fname = String::new();
-    }
-
-    Ok(fname)
-}
-
 pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
     let mut url = base.join(path)?;
 
