@@ -17,7 +17,6 @@ use std::{
 };
 
 use cache::CacheMap;
-use error::Error;
 use url::Url;
 use util::client_url;
 
@@ -49,18 +48,18 @@ impl Backend {
         }
     }
 
-    fn get_base_url(&self) -> Result<Url, Error> {
+    fn get_base_url(&self) -> Url {
         let s = self.data.lock().unwrap().server_url.clone();
-        Ok(Url::parse(&s)?)
+        Url::parse(&s).unwrap()
     }
 
-    fn url(&self, path: &str, mut params: Vec<(&str, String)>) -> Result<Url, Error> {
-        let base = self.get_base_url()?;
+    fn url(&self, path: &str, mut params: Vec<(&str, String)>) -> Url {
+        let base = self.get_base_url();
         let tk = self.data.lock().unwrap().access_token.clone();
 
         params.push(("access_token", tk));
 
-        client_url(&base, path, &params)
+        client_url(&base, path, &params).unwrap()
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {
@@ -77,249 +76,87 @@ impl Backend {
         apptx
     }
 
-    pub fn command_recv(&mut self, cmd: Result<BKCommand, RecvError>) -> bool {
+    fn command_recv(&mut self, cmd: Result<BKCommand, RecvError>) -> bool {
         let tx = self.tx.clone();
 
         cmd.map(|cmd| {
             match cmd {
                 // Register module
-                Login(user, passwd, server) => {
-                    let r = register::login(self, &user, &passwd, server);
-                    bkerror!(r, tx, BKResponse::LoginError);
-                }
-                Logout => {
-                    let r = register::logout(self);
-                    bkerror!(r, tx, BKResponse::LogoutError);
-                }
-                Register(user, passwd, server) => {
-                    let r = register::register(self, &user, &passwd, server);
-                    bkerror!(r, tx, BKResponse::LoginError);
-                }
-                Guest(server) => {
-                    let r = register::guest(self, &server);
-                    bkerror!(r, tx, BKResponse::GuestLoginError);
-                }
-                SetToken(token, uid, server) => {
-                    let r = register::set_token(self, &token, &uid, server);
-                    bkerror!(r, tx, BKResponse::LoginError);
-                }
+                Login(user, passwd, server) => self.login(user, passwd, server),
+                Logout => self.logout(),
+                Register(user, passwd, server) => self.register(user, passwd, server),
+                Guest(server) => self.guest(server),
+                SetToken(token, uid, server) => self.set_token(token, uid, server),
                 // User module
-                GetUsername => {
-                    let r = user::get_username(self);
-                    bkerror!(r, tx, BKResponse::UserNameError);
-                }
-                SetUserName(name) => {
-                    let r = user::set_username(self, name);
-                    bkerror!(r, tx, BKResponse::SetUserNameError);
-                }
-                GetThreePID => {
-                    let r = user::get_threepid(self);
-                    bkerror!(r, tx, BKResponse::GetThreePIDError);
-                }
+                GetUsername => self.get_username(),
+                SetUserName(name) => self.set_username(name),
+                GetThreePID => self.get_threepid(),
                 GetTokenEmail(identity, email, client_secret) => {
-                    let r = user::get_email_token(self, &identity, &email, client_secret);
-                    bkerror!(r, tx, BKResponse::GetTokenEmailError);
+                    self.get_email_token(identity, email, client_secret)
                 }
                 GetTokenPhone(identity, phone, client_secret) => {
-                    let r = user::get_phone_token(self, &identity, &phone, client_secret);
-                    bkerror!(r, tx, BKResponse::GetTokenEmailError);
+                    self.get_phone_token(identity, phone, client_secret)
                 }
                 SubmitPhoneToken(identity, client_secret, sid, token) => {
-                    let r = user::submit_phone_token(self, &identity, client_secret, sid, token);
-                    bkerror!(r, tx, BKResponse::SubmitPhoneTokenError);
+                    self.submit_phone_token(identity, client_secret, sid, token)
                 }
                 AddThreePID(identity, client_secret, sid) => {
-                    let r = user::add_threepid(self, &identity, &client_secret, sid);
-                    bkerror!(r, tx, BKResponse::AddThreePIDError);
+                    self.add_threepid(identity, client_secret, sid)
                 }
-                DeleteThreePID(medium, address) => {
-                    let r = user::delete_three_pid(self, &medium, &address);
-                    bkerror!(r, tx, BKResponse::DeleteThreePIDError);
-                }
+                DeleteThreePID(medium, address) => self.delete_threepid(medium, address),
                 ChangePassword(username, old_password, new_password) => {
-                    let r = user::change_password(self, &username, &old_password, &new_password);
-                    bkerror!(r, tx, BKResponse::ChangePasswordError);
+                    self.change_password(username, old_password, new_password)
                 }
                 AccountDestruction(username, password, flag) => {
-                    let r = user::account_destruction(self, &username, &password, flag);
-                    bkerror!(r, tx, BKResponse::AccountDestructionError);
+                    self.account_destruction(username, password, flag)
                 }
-                GetAvatar => {
-                    let r = user::get_avatar(self);
-                    bkerror!(r, tx, BKResponse::AvatarError);
-                }
-                SetUserAvatar(file) => {
-                    let r = user::set_user_avatar(self, file);
-                    bkerror!(r, tx, BKResponse::SetUserAvatarError);
-                }
-                GetAvatarAsync(member, ctx) => {
-                    let r = user::get_avatar_async(self, member, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                GetUserInfoAsync(sender, ctx) => {
-                    let r = user::get_user_info_async(self, &sender, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                GetUserNameAsync(sender, ctx) => {
-                    let r = user::get_username_async(self, sender, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                UserSearch(term) => {
-                    let r = user::search(self, &term);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
+                GetAvatar => self.get_avatar(),
+                SetUserAvatar(file) => self.set_user_avatar(file),
+                GetAvatarAsync(member, ctx) => self.get_avatar_async(member, ctx),
+                GetUserInfoAsync(sender, ctx) => self.get_user_info_async(sender, ctx),
+                GetUserNameAsync(sender, ctx) => self.get_username_async(sender, ctx),
+                UserSearch(term) => self.user_search(term),
                 // Sync module
-                Sync(since, initial) => {
-                    let r = sync::sync(self, since, initial);
-                    bkerror!(r, tx, BKResponse::SyncError);
-                }
-                SyncForced => {
-                    let r = sync::force_sync(self);
-                    bkerror!(r, tx, BKResponse::SyncError);
-                }
+                Sync(since, initial) => self.sync(since, initial),
+                SyncForced => self.sync_forced(),
                 // Room module
-                GetRoomMembers(room) => {
-                    let r = room::get_room_members(self, room);
-                    bkerror!(r, tx, BKResponse::RoomMembersError);
-                }
-                GetRoomMessages(room, from) => {
-                    let r = room::get_room_messages(self, room, from);
-                    bkerror!(r, tx, BKResponse::RoomMessagesError);
-                }
-                GetRoomMessagesFromMsg(room, from) => {
-                    let r = room::get_room_messages_from_msg(self, room, from);
-                    bkerror!(r, tx, BKResponse::RoomMessagesError);
-                }
-                GetMessageContext(message) => {
-                    let r = room::get_message_context(self, message);
-                    bkerror!(r, tx, BKResponse::RoomMessagesError);
-                }
-                SendMsg(msg) => {
-                    let r = room::send_msg(self, msg);
-                    bkerror!(r, tx, BKResponse::SendMsgError);
-                }
-                SendMsgRedaction(msg) => {
-                    let r = room::redact_msg(self, &msg);
-                    bkerror!(r, tx, BKResponse::SendMsgRedactionError);
-                }
-                SetRoom(id) => {
-                    let r = room::set_room(self, id);
-                    bkerror!(r, tx, BKResponse::SetRoomError);
-                }
-                GetRoomAvatar(room) => {
-                    let r = room::get_room_avatar(self, room);
-                    bkerror!(r, tx, BKResponse::GetRoomAvatarError);
-                }
-                JoinRoom(room_id) => {
-                    let r = room::join_room(self, room_id);
-                    bkerror!(r, tx, BKResponse::JoinRoomError);
-                }
-                LeaveRoom(room_id) => {
-                    let r = room::leave_room(self, &room_id);
-                    bkerror!(r, tx, BKResponse::LeaveRoomError);
-                }
-                MarkAsRead(room_id, evid) => {
-                    let r = room::mark_as_read(self, &room_id, &evid);
-                    bkerror!(r, tx, BKResponse::MarkAsReadError);
-                }
-                SetRoomName(room_id, name) => {
-                    let r = room::set_room_name(self, &room_id, &name);
-                    bkerror!(r, tx, BKResponse::SetRoomNameError);
-                }
-                SetRoomTopic(room_id, topic) => {
-                    let r = room::set_room_topic(self, &room_id, &topic);
-                    bkerror!(r, tx, BKResponse::SetRoomTopicError);
-                }
-                SetRoomAvatar(room_id, fname) => {
-                    let r = room::set_room_avatar(self, &room_id, &fname);
-                    bkerror!(r, tx, BKResponse::SetRoomAvatarError);
-                }
-                AttachFile(msg) => {
-                    let r = room::attach_file(self, msg);
-                    bkerror!(r, tx, BKResponse::AttachFileError);
-                }
-                NewRoom(name, privacy, internalid) => {
-                    let r = room::new_room(self, &name, privacy, internalid.clone());
-                    r.or_else(|e| tx.send(BKResponse::NewRoomError(e, internalid)))
-                        .unwrap();
-                }
-                DirectChat(user, internalid) => {
-                    let r = room::direct_chat(self, &user, internalid.clone());
-                    r.or_else(|e| tx.send(BKResponse::NewRoomError(e, internalid)))
-                        .unwrap();
-                }
-                AddToFav(room_id, tofav) => {
-                    let r = room::add_to_fav(self, room_id, tofav);
-                    bkerror!(r, tx, BKResponse::AddToFavError);
-                }
-                AcceptInv(room_id) => {
-                    let r = room::join_room(self, room_id);
-                    bkerror!(r, tx, BKResponse::AcceptInvError);
-                }
-                RejectInv(room_id) => {
-                    let r = room::leave_room(self, &room_id);
-                    bkerror!(r, tx, BKResponse::RejectInvError);
-                }
-                Invite(room, userid) => {
-                    let r = room::invite(self, &room, &userid);
-                    bkerror!(r, tx, BKResponse::InviteError);
-                }
+                GetRoomMembers(room) => self.get_room_members(room),
+                GetRoomMessages(room, from) => self.get_room_messages(room, from),
+                GetRoomMessagesFromMsg(room, from) => self.get_room_messages_from_msg(room, from),
+                GetMessageContext(message) => self.get_message_context(message),
+                SendMsg(msg) => self.send_msg(msg),
+                SendMsgRedaction(msg) => self.send_msg_redaction(msg),
+                SetRoom(id) => self.set_room(id),
+                GetRoomAvatar(room) => self.get_room_avatar(room),
+                JoinRoom(room_id) => self.join_room(room_id),
+                LeaveRoom(room_id) => self.leave_room(room_id),
+                MarkAsRead(room_id, evid) => self.mark_as_read(room_id, evid),
+                SetRoomName(room_id, name) => self.set_room_name(room_id, name),
+                SetRoomTopic(room_id, topic) => self.set_room_topic(room_id, topic),
+                SetRoomAvatar(room_id, fname) => self.set_room_avatar(room_id, fname),
+                AttachFile(msg) => self.attach_file(msg),
+                NewRoom(name, privacy, internalid) => self.new_room(name, privacy, internalid),
+                DirectChat(user, internalid) => self.direct_chat(user, internalid),
+                AddToFav(room_id, tofav) => self.add_to_fav(room_id, tofav),
+                AcceptInv(room_id) => self.accept_inv(room_id),
+                RejectInv(room_id) => self.reject_inv(room_id),
+                Invite(room, userid) => self.invite(room, userid),
                 // Media module
-                GetThumbAsync(media, ctx) => {
-                    let r = media::get_thumb_async(self, media, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                GetMediaAsync(media, ctx) => {
-                    let r = media::get_media_async(self, media, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
+                GetThumbAsync(media, ctx) => self.get_thumb_async(media, ctx),
+                GetMediaAsync(media, ctx) => self.get_media_async(media, ctx),
                 GetMediaListAsync(room_id, first_media_id, prev_batch, ctx) => {
-                    let r = media::get_media_list_async(
-                        self,
-                        &room_id,
-                        first_media_id,
-                        prev_batch,
-                        ctx,
-                    );
-                    bkerror!(r, tx, BKResponse::CommandError);
+                    self.get_media_list_async(room_id, first_media_id, prev_batch, ctx)
                 }
-                GetMedia(media) => {
-                    let r = media::get_media(self, media);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                GetMediaUrl(media, ctx) => {
-                    let r = media::get_media_url(self, media.to_string(), ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
-                GetFileAsync(url, ctx) => {
-                    let r = media::get_file_async(url, ctx);
-                    bkerror!(r, tx, BKResponse::CommandError);
-                }
+                GetMedia(media) => self.get_media(media),
+                GetMediaUrl(media, ctx) => self.get_media_url(media, ctx),
+                GetFileAsync(url, ctx) => self.get_file_async(url, ctx),
                 // Directory module
-                DirectoryProtocols => {
-                    let r = directory::protocols(self);
-                    bkerror!(r, tx, BKResponse::DirectoryError);
-                }
-                DirectorySearch(dhs, dq, dtp, more) => {
-                    let hs = Some(dhs).filter(|dhs| !dhs.is_empty());
-                    let q = Some(dq).filter(|dq| !dq.is_empty());
-                    let tp = Some(dtp).filter(|dtp| !dtp.is_empty());
-                    let r = directory::room_search(self, hs, q, tp, more);
-                    bkerror!(r, tx, BKResponse::DirectoryError);
-                }
+                DirectoryProtocols => self.directory_protocols(),
+                DirectorySearch(hs, q, tp, more) => self.directory_search(hs, q, tp, more),
                 // Stickers module
-                ListStickers => {
-                    let r = stickers::list(self);
-                    bkerror!(r, tx, BKResponse::StickersError);
-                }
-                SendSticker(room, sticker) => {
-                    let r = stickers::send(self, &room, &sticker);
-                    bkerror!(r, tx, BKResponse::StickersError);
-                }
-                PurchaseSticker(group) => {
-                    let r = stickers::purchase(self, &group);
-                    bkerror!(r, tx, BKResponse::StickersError);
-                }
+                ListStickers => self.list_stickers(),
+                SendSticker(room_id, sticker) => self.send_sticker(room_id, sticker),
+                PurchaseSticker(group) => self.purchase_sticker(group),
                 // Internal commands
                 ShutDown => {
                     tx.send(BKResponse::ShutDown).unwrap();

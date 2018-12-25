@@ -12,138 +12,132 @@ use util::{client_url, json_q, scalar_url};
 use error::Error;
 use globals;
 
-use backend::{
-    types::{BKCommand, BKResponse, Backend},
-    BackendData,
-};
+pub use backend::types::{BKResponse, Backend};
+use backend::{types::BKCommand, BackendData};
 
 use types::{Sticker, StickerGroup};
 
-/// Queries scalar.vector.im to list all the stickers
-pub fn list(bk: &Backend) -> Result<(), Error> {
-    let widget = bk.data.lock().unwrap().sticker_widget.clone();
-    if widget.is_none() {
-        get_sticker_widget_id(bk, BKCommand::ListStickers);
-        return Ok(());
+impl Backend {
+    /// Queries scalar.vector.im to list all the stickers
+    pub fn list_stickers(&self) {
+        let ctx = self.tx.clone();
+        let widget = self.data.lock().unwrap().sticker_widget.clone();
+        if widget.is_none() {
+            self.get_sticker_widget_id(BKCommand::ListStickers);
+            return;
+        }
+
+        let data = vec![
+            ("widget_type", "m.stickerpicker".to_string()),
+            ("widget_id", widget.unwrap()),
+            ("filter_unpurchased", "true".to_string()),
+        ];
+        let url = vurl(&self.data, "widgets/assets", data).unwrap();
+
+        get!(
+            &url,
+            |r: JsonValue| {
+                let stickers = r["assets"]
+                    .as_array()
+                    .unwrap_or(&vec![])
+                    .iter()
+                    .map(|sticker_group| StickerGroup::from_json(sticker_group))
+                    .collect();
+                ctx.send(BKResponse::Stickers(stickers)).unwrap();
+            },
+            |err| ctx.send(BKResponse::StickersError(err)).unwrap()
+        );
     }
 
-    let data = vec![
-        ("widget_type", "m.stickerpicker".to_string()),
-        ("widget_id", widget.unwrap()),
-        ("filter_unpurchased", "true".to_string()),
-    ];
-    let url = vurl(&bk.data, "widgets/assets", data)?;
+    pub fn send_sticker(&self, room_id: String, sticker: Sticker) {
+        let ctx = self.tx.clone();
+        let msg = format!("{}{}{}", &room_id, sticker.name, Local::now().to_string());
+        let digest = md5::compute(msg.as_bytes());
+        // TODO: we need to generate the msg.id in the frontend
+        let id = format!("{:x}", digest);
 
-    let tx = bk.tx.clone();
-    get!(
-        &url,
-        |r: JsonValue| {
-            let stickers = r["assets"]
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .map(|sticker_group| StickerGroup::from_json(sticker_group))
-                .collect();
-            tx.send(BKResponse::Stickers(stickers)).unwrap();
-        },
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
-    );
+        let url = self.url(&format!("rooms/{}/send/m.sticker/{}", &room_id, id), vec![]);
 
-    Ok(())
-}
-
-pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) {
-    let d = bk.data.clone();
-    let tx = bk.internal_tx.clone();
-
-    thread::spawn(move || {
-        let data = json!({
-            "data": {},
-            "type": "m.stickerpicker",
+        let attrs = json!({
+            "body": sticker.body.clone(),
+            "url": sticker.url.clone(),
+            "info": {
+                "w": sticker.size.0,
+                "h": sticker.size.1,
+                "thumbnail_url": sticker.thumbnail.clone(),
+            },
         });
-        let url = vurl(&d, "widgets/request", vec![]).unwrap();
 
-        d.lock().unwrap().sticker_widget = json_q("post", &url, &data, globals::TIMEOUT)
-            .or_else(|err| {
-                if let Error::MatrixError(js) = err {
-                    Ok(js)
-                } else {
-                    Err(err)
-                }
-            })
-            .ok()
-            .and_then(|r| {
-                r["data"]["id"]
-                    .as_str()
-                    .or(r["id"].as_str())
-                    .filter(|id| !id.is_empty())
-                    .map(Into::into)
-            });
-
-        tx.map(|t| t.send(then).unwrap());
-    });
-}
-
-pub fn send(bk: &Backend, room_id: &str, sticker: &Sticker) -> Result<(), Error> {
-    let msg = format!("{}{}{}", room_id, sticker.name, Local::now().to_string());
-    let digest = md5::compute(msg.as_bytes());
-    // TODO: we need to generate the msg.id in the frontend
-    let id = format!("{:x}", digest);
-
-    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", room_id, id), vec![])?;
-
-    let attrs = json!({
-        "body": sticker.body.clone(),
-        "url": sticker.url.clone(),
-        "info": {
-            "w": sticker.size.0,
-            "h": sticker.size.1,
-            "thumbnail_url": sticker.thumbnail.clone(),
-        },
-    });
-
-    let tx = bk.tx.clone();
-    put!(
-        &url,
-        &attrs,
-        move |js: JsonValue| {
-            let evid = js["event_id"].as_str().unwrap_or_default().to_string();
-            tx.send(BKResponse::SentMsg(id, evid)).unwrap();
-        },
-        |_| tx
-            .send(BKResponse::SendMsgError(Error::SendMsgError(id)))
-            .unwrap()
-    );
-
-    Ok(())
-}
-
-pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
-    let widget = bk.data.lock().unwrap().sticker_widget.clone();
-    if widget.is_none() {
-        get_sticker_widget_id(bk, BKCommand::PurchaseSticker(group.clone()));
-        return Ok(());
+        put!(
+            &url,
+            &attrs,
+            move |js: JsonValue| {
+                let evid = js["event_id"].as_str().unwrap_or_default().to_string();
+                ctx.send(BKResponse::SentMsg(id, evid)).unwrap();
+            },
+            |_| ctx
+                .send(BKResponse::SendMsgError(Error::SendMsgError(id)))
+                .unwrap()
+        );
     }
 
-    let widget_id = widget.unwrap();
-    let asset = group.asset.clone();
-    let data = vec![
-        ("asset_type", asset.clone()),
-        ("widget_id", widget_id.clone()),
-        ("widget_type", "m.stickerpicker".to_string()),
-    ];
-    let url = vurl(&bk.data, "widgets/purchase_asset", data)?;
-    let tx = bk.tx.clone();
-    let itx = bk.internal_tx.clone();
-    get!(
-        &url,
-        |_| itx
-            .map(|t| t.send(BKCommand::ListStickers).unwrap())
-            .unwrap_or_default(),
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
-    );
+    pub fn purchase_sticker(&self, group: StickerGroup) {
+        let ctx = self.tx.clone();
+        let itx = self.internal_tx.clone();
+        let widget = self.data.lock().unwrap().sticker_widget.clone();
+        if widget.is_none() {
+            self.get_sticker_widget_id(BKCommand::PurchaseSticker(group.clone()));
+            return;
+        }
 
-    Ok(())
+        let widget_id = widget.unwrap();
+        let asset = group.asset.clone();
+        let data = vec![
+            ("asset_type", asset.clone()),
+            ("widget_id", widget_id.clone()),
+            ("widget_type", "m.stickerpicker".to_string()),
+        ];
+        let url = vurl(&self.data, "widgets/purchase_asset", data).unwrap();
+        get!(
+            &url,
+            |_| itx
+                .map(|t| t.send(BKCommand::ListStickers).unwrap())
+                .unwrap_or_default(),
+            |err| ctx.send(BKResponse::StickersError(err)).unwrap()
+        );
+    }
+
+    fn get_sticker_widget_id(&self, then: BKCommand) {
+        let ctx = self.internal_tx.clone();
+        let d = self.data.clone();
+
+        thread::spawn(move || {
+            let data = json!({
+                "data": {},
+                "type": "m.stickerpicker",
+            });
+            let url = vurl(&d, "widgets/request", vec![]).unwrap();
+
+            d.lock().unwrap().sticker_widget = json_q("post", &url, &data, globals::TIMEOUT)
+                .or_else(|err| {
+                    if let Error::MatrixError(js) = err {
+                        Ok(js)
+                    } else {
+                        Err(err)
+                    }
+                })
+                .ok()
+                .and_then(|r| {
+                    r["data"]["id"]
+                        .as_str()
+                        .or(r["id"].as_str())
+                        .filter(|id| !id.is_empty())
+                        .map(Into::into)
+                });
+
+            ctx.map(|ctx| ctx.send(then).unwrap());
+        });
+    }
 }
 
 fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Result<Url, Error> {

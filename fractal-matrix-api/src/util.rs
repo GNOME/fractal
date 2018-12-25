@@ -550,9 +550,19 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
         return Ok(fname);
     }
 
-    let moddate = Path::new(&fname).metadata()?.modified()?;
-    // one minute cached
-    if moddate.elapsed()?.as_secs() < 60 {
+    // This chain will return Err if the file doesn't exist or
+    // there is any error, so in both cases we default to a value that
+    // returns false in the comparison to proceed to try to (re)write
+    // the file
+    if Path::new(&fname)
+        .metadata()
+        .ok()
+        .and_then(|metadata| metadata.modified().ok())
+        .and_then(|modified| modified.elapsed().ok())
+        .map(|t| t.as_secs())
+        .unwrap_or(60)
+        < 60
+    {
         return Ok(fname);
     }
 
@@ -644,6 +654,7 @@ pub fn get_room_st(base: &Url, tk: &str, room_id: &str) -> Result<JsonValue, Err
 
 pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, room_id: &str) -> Result<String, Error> {
     let st = get_room_st(base, tk, room_id)?;
+    let events = st.as_array().ok_or(Error::BackendError)?;
 
     // we look for members that aren't me
     let filter = |x: &&JsonValue| {
@@ -652,17 +663,16 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, room_id: &str) -> Res
             && x["sender"] != userid)
     };
 
-    let member = st
-        .as_array()
-        .ok_or(Error::BackendError)?
-        .iter()
-        .find(filter);
+    let members = events.iter().filter(filter);
+    let first_member = members.clone().next();
 
     let fname = cache_path(room_id)
         .ok()
-        .filter(|_| member.is_some())
+        .filter(|_| first_member.is_some() && members.count() != 1)
         .and_then(|dest| {
-            let m1 = member.and_then(|m| m["content"]["avatar_url"].as_str())?;
+            let m1 = first_member
+                .and_then(|m| m["content"]["avatar_url"].as_str())
+                .unwrap_or_default();
             media(&base, m1, Some(&dest)).ok()
         })
         .unwrap_or_default();
