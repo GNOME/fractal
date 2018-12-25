@@ -122,8 +122,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_room_detail, (room, key, v));
                 }
                 Ok(BKResponse::RoomAvatar(room, avatar)) => {
-                    let a = Some(avatar);
-                    APPOP!(set_room_avatar, (room, a));
+                    APPOP!(set_room_avatar, (room, avatar));
                 }
                 Ok(BKResponse::RoomMembers(room, members)) => {
                     APPOP!(set_room_members, (room, members));

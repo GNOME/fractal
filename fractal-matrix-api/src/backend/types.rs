@@ -106,7 +106,7 @@ pub enum BKResponse {
     Rooms(Vec<Room>, Option<Room>),
     NewRooms(Vec<Room>),
     RoomDetail(String, String, String),
-    RoomAvatar(String, String),
+    RoomAvatar(String, Option<Url>),
     NewRoomAvatar(String),
     RoomMemberEvent(Event),
     RoomMessages(Vec<Message>),

@@ -11,10 +11,8 @@ use crate::globals;
 use std::thread;
 
 use crate::util;
-use crate::util::cache_path;
 use crate::util::json_q;
 use crate::util::put_media;
-use crate::util::thumb;
 use crate::util::{client_url, media_url};
 
 use crate::backend::types::BKCommand;
@@ -30,8 +28,8 @@ use serde_json::Value as JsonValue;
 
 pub fn set_room(bk: &Backend, id: String) -> Result<(), Error> {
     /* FIXME: remove clone and pass id by reference */
-    get_room_detail(bk, id.clone(), String::from("m.room.topic"))?;
     get_room_avatar(bk, id.clone())?;
+    get_room_detail(bk, id.clone(), String::from("m.room.topic"))?;
     get_room_members(bk, id)?;
 
     Ok(())
@@ -57,34 +55,20 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
 }
 
 pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
-    let userid = bk.data.lock().unwrap().user_id.clone();
-    let baseu = bk.get_base_url();
-    let tk = bk.data.lock().unwrap().access_token.clone();
     let url = bk.url(&format!("rooms/{}/state/m.room.avatar", roomid), vec![])?;
 
     let tx = bk.tx.clone();
     get!(
         &url,
         |r: JsonValue| {
-            let avatar = match r["url"].as_str() {
-                Some(u) => {
-                    if let Ok(dest) = cache_path(&roomid) {
-                        thumb(&baseu, u, Some(&dest)).unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                }
-                None => util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default(),
-            };
+            let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
         |err: Error| match err {
             Error::MatrixError(ref js)
                 if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
             {
-                let avatar =
-                    util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default();
-                tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
+                tx.send(BKResponse::RoomAvatar(roomid, None)).unwrap();
             }
             _ => {
                 tx.send(BKResponse::RoomAvatarError(err)).unwrap();
