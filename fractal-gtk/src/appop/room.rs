@@ -1,5 +1,6 @@
 use crate::i18n::{i18n, i18n_k};
 use log::{error, warn};
+use url::Url;
 
 use gtk;
 use gtk::prelude::*;
@@ -335,9 +336,9 @@ impl AppOp {
         }
     }
 
-    pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<String>) {
+    pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<Url>) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
-            r.avatar = avatar.clone();
+            r.avatar = avatar.map(|s| s.into_string());
             self.roomlist
                 .set_room_avatar(roomid.clone(), r.avatar.clone());
         }
