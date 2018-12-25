@@ -66,15 +66,14 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
     get!(
         &url,
         |r: JsonValue| {
-            let avatar = match r["url"].as_str() {
-                Some(u) => {
-                    if let Ok(dest) = cache_path(&roomid) {
-                        thumb(&baseu, u, Some(&dest)).unwrap_or_default()
-                    } else {
-                        String::from("")
-                    }
+            let avatar = if let Some(url) = r["url"].as_str() {
+                if let Ok(dest) = cache_path(&roomid) {
+                    // Download avatar
+                    let _ = thumb(&baseu, url, Some(&dest));
                 }
-                None => util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default(),
+                url.to_string()
+            } else {
+                util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default()
             };
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
