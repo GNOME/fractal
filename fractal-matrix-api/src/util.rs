@@ -697,30 +697,20 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
             && x["content"]["membership"] == "join"
             && x["sender"] != userid)
     };
-    let members = events.iter().filter(&filter);
-    let mut members2 = events.iter().filter(&filter);
+    let mut members = events.iter().filter(&filter);
 
-    let m1 = match members2.next() {
-        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or(""),
-        None => "",
-    };
-
-    let mut fname = match members.count() {
-        1 => {
-            if let Ok(dest) = cache_path(&roomid) {
-                media(&base, m1, Some(&dest)).unwrap_or_default()
-            } else {
-                String::new()
+    if let Some(member) = members.next() {
+        if members.next().is_none() {
+            if let Some(url) = member["content"]["avatar_url"].as_str() {
+                if let Ok(dest) = cache_path(&roomid) {
+                    let _ = media(&base, url, Some(&dest));
+                    return Ok(url.to_string());
+                }
             }
         }
-        _ => String::new(),
-    };
-
-    if fname.is_empty() {
-        fname = String::from("");
     }
 
-    Ok(fname)
+    Ok(String::new())
 }
 
 pub fn calculate_room_name(roomst: &JsonValue, userid: &str) -> Result<Option<String>, Error> {
