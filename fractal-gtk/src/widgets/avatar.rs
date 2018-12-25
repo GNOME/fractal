@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use cairo;
-use fractal_api::util::cache_path;
+use fractal_api::cache_path;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufExt;

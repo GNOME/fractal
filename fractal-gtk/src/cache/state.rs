@@ -7,7 +7,7 @@ use failure::Error;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use fractal_api::util::cache_path;
+use fractal_api::cache_path;
 use types::Message;
 use types::Room;
 
