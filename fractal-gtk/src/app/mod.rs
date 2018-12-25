@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex, Weak as SyncWeak};
 
 use appop::AppOp;
 use backend::BKResponse;
-use backend::Backend;
 
 use actions;
 use globals;
@@ -74,11 +73,6 @@ impl AppWeak {
 
 impl App {
     pub fn new(gtk_app: &gtk::Application) -> App {
-        let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-
-        let bk = Backend::new(tx);
-        let apptx = bk.run();
-
         // Set up the textdomain for gettext
         setlocale(LocaleCategory::LcAll, "");
         bindtextdomain("fractal", globals::LOCALEDIR.unwrap_or("./fractal-gtk/po"));
@@ -134,7 +128,8 @@ impl App {
         stack.add_named(&child, "account-settings");
         stack_header.add_named(&child_header, "account-settings");
 
-        let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), apptx)));
+        let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
+        let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), tx)));
 
         unsafe {
             OP = Some(Arc::downgrade(&op));
