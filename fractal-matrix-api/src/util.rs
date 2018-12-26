@@ -546,10 +546,6 @@ pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error>
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
-    if dest.is_none() {
-        return Ok(fname);
-    }
-
     // This chain will return Err if the file doesn't exist or
     // there is any error, so in both cases we default to a value that
     // returns false in the comparison to proceed to try to (re)write
@@ -557,6 +553,7 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
     if Path::new(&fname)
         .metadata()
         .ok()
+        .filter(|_| dest.is_some())
         .and_then(|metadata| metadata.modified().ok())
         .and_then(|modified| modified.elapsed().ok())
         .map(|t| t.as_secs())
@@ -668,7 +665,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, room_id: &str) -> Res
 
     let fname = cache_path(room_id)
         .ok()
-        .filter(|_| first_member.is_some() && members.count() != 1)
+        .filter(|_| first_member.is_some() && members.count() == 1)
         .and_then(|dest| {
             let m1 = first_member
                 .and_then(|m| m["content"]["avatar_url"].as_str())
