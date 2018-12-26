@@ -256,10 +256,7 @@ impl AppOp {
             "image/png" => "m.image",
             "image/jpeg" => "m.image",
             "image/jpg" => "m.image",
-            "audio/aac" => "m.audio",
-            "audio/mpeg" => "m.audio",
-            "audio/flac" => "m.audio",
-            "audio/x-flac" => "m.audio",
+            audio if audio.starts_with("audio/") => "m.audio",
             "application/x-riff" => "m.audio",
             _ => "m.file",
         };
