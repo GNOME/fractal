@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/fractal/issues\n"
-"POT-Creation-Date: 2018-12-17 18:14+0000\n"
-"PO-Revision-Date: 2018-12-18 18:44+0100\n"
+"POT-Creation-Date: 2018-12-24 08:33+0000\n"
+"PO-Revision-Date: 2018-12-24 14:38+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <community-poland@mozilla.org>\n"
 "Language: pl\n"
@@ -528,7 +528,7 @@ msgstr "Prywatny"
 
 #: fractal-gtk/res/ui/password_dialog.ui:22
 #: fractal-gtk/src/actions/room_history.rs:195
-#: fractal-gtk/src/widgets/media_viewer.rs:799
+#: fractal-gtk/src/widgets/media_viewer.rs:796
 msgid "_Cancel"
 msgstr "_Anuluj"
 
@@ -694,17 +694,17 @@ msgid "Could not download the file"
 msgstr "Nie można pobrać pliku"
 
 #: fractal-gtk/src/actions/room_history.rs:191
-#: fractal-gtk/src/widgets/media_viewer.rs:795
+#: fractal-gtk/src/widgets/media_viewer.rs:792
 msgid "Save media as"
 msgstr "Zapis multimediów jako"
 
 #: fractal-gtk/src/actions/room_history.rs:194
-#: fractal-gtk/src/widgets/media_viewer.rs:798
+#: fractal-gtk/src/widgets/media_viewer.rs:795
 msgid "_Save"
 msgstr "_Zapisz"
 
 #: fractal-gtk/src/actions/room_history.rs:204
-#: fractal-gtk/src/widgets/media_viewer.rs:808
+#: fractal-gtk/src/widgets/media_viewer.rs:805
 msgid "Could not save the file"
 msgstr "Nie można zapisać pliku"
 
@@ -875,7 +875,7 @@ msgstr "{m1} i inni"
 msgid "Syncing, this could take a while"
 msgstr "Synchronizowanie. Może to chwilę zająć."
 
-#: fractal-gtk/src/widgets/media_viewer.rs:755
+#: fractal-gtk/src/widgets/media_viewer.rs:752
 msgid "Error while loading previous media"
 msgstr "Błąd podczas wczytywania poprzednich multimediów"
 
@@ -906,15 +906,17 @@ msgstr "%-l∶%M %p"
 msgid "%R"
 msgstr "%H∶%M"
 
-#: fractal-gtk/src/widgets/room_history.rs:288
-msgid "%e %B"
+#. Translators: This is a date format in the day divider without the year
+#: fractal-gtk/src/widgets/room_history.rs:298
+msgid "%B %e"
 msgstr "%-d %B"
 
-#: fractal-gtk/src/widgets/room_history.rs:290
-msgid "%e %B %Y"
+#. Translators: This is a date format in the day divider with the year
+#: fractal-gtk/src/widgets/room_history.rs:301
+msgid "%B %e, %Y"
 msgstr "%-d %B %Y"
 
-#: fractal-gtk/src/widgets/room_history.rs:308
+#: fractal-gtk/src/widgets/room_history.rs:325
 msgid "New Messages"
 msgstr "Nowe wiadomości"
 

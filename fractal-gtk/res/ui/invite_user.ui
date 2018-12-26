@@ -18,6 +18,7 @@
       <object class="GtkBox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="border_width">0</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can_focus">False</property>
@@ -40,13 +41,13 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
-            <property name="spacing">6</property>
             <child>
               <object class="GtkBox" id="invite_entry_box">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
-                <child>
+                <property name="margin">6</property>
+               <child>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -82,7 +83,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">never</property>
-                <property name="shadow_type">in</property>
+                <property name="expand">True</property>
+                <style>
+                    <class name="scrollarea-top-border"/>
+                </style>
                 <child>
                   <object class="GtkViewport">
                     <property name="height_request">150</property>
@@ -126,9 +130,6 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
           </object>
-          <packing>
-            <property name="pack_type">start</property>
-          </packing>
         </child>
         <child>
           <object class="GtkButton" id="invite_button">

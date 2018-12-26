@@ -18,6 +18,7 @@
       <object class="GtkBox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="border_width">0</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can_focus">False</property>
@@ -40,12 +41,12 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
-            <property name="spacing">6</property>
             <child>
               <object class="GtkBox" id="to_chat_entry_box">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
+                <property name="margin">6</property>
                 <child>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
@@ -82,7 +83,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">never</property>
-                <property name="shadow_type">in</property>
+                <property name="expand">True</property>
+                <style>
+                    <class name="scrollarea-top-border"/>
+                </style>
                 <child>
                   <object class="GtkViewport">
                     <property name="height_request">150</property>
@@ -117,7 +121,6 @@
     <child type="titlebar">
       <object class="GtkHeaderBar">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
         <property name="can_focus">False</property>
         <property name="title" translatable="yes">New direct chat</property>
         <child>
