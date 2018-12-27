@@ -1,4 +1,4 @@
-pub use model::{
+pub use crate::model::{
     event::Event,
     member::{Member, MemberList},
     message::Message,

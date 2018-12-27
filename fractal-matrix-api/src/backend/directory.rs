@@ -1,14 +1,14 @@
-use JsonValue;
+pub use crate::backend::types::{BKResponse, Backend};
 
-use globals;
-
-pub use backend::types::{BKResponse, Backend};
+use crate::{
+    globals,
+    types::{Protocol, Room},
+    util::{cache_path, json_q, media},
+    JsonValue,
+};
+use serde_json::json;
 use std::thread;
 use url::Url;
-
-use util::{cache_path, json_q, media};
-
-use types::{Protocol, Room};
 
 impl Backend {
     pub fn directory_protocols(&self) {

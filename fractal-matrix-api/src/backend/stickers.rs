@@ -1,21 +1,21 @@
+pub use crate::backend::types::{BKResponse, Backend};
+
+use crate::{
+    backend::{types::BKCommand, BackendData},
+    error::Error,
+    globals,
+    types::{Sticker, StickerGroup},
+    util::{client_url, json_q, scalar_url},
+    JsonValue,
+};
 use chrono::prelude::*;
 use md5;
-use JsonValue;
-
+use serde_json::json;
 use std::{
     sync::{Arc, Mutex},
     thread,
 };
 use url::Url;
-use util::{client_url, json_q, scalar_url};
-
-use error::Error;
-use globals;
-
-pub use backend::types::{BKResponse, Backend};
-use backend::{types::BKCommand, BackendData};
-
-use types::{Sticker, StickerGroup};
 
 impl Backend {
     /// Queries scalar.vector.im to list all the stickers

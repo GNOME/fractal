@@ -1,23 +1,23 @@
-use JsonValue;
+pub use crate::backend::types::{BKResponse, Backend};
 
+use crate::{
+    error::Error,
+    globals,
+    types::{Member, UserInfo},
+    util::{
+        build_url, encode_uid, get_user_avatar, get_user_avatar_img, json_q, media_url, put_media,
+        semaphore,
+    },
+    JsonValue,
+};
+use log::info;
+use serde_json::{self, json};
 use std::{
     fs,
     sync::{mpsc::Sender, Arc, Mutex},
     thread,
 };
-
-pub use backend::types::{BKResponse, Backend};
-use error::Error;
-use globals;
 use url::Url;
-use util::{
-    build_url, encode_uid, get_user_avatar, get_user_avatar_img, json_q, media_url, put_media,
-    semaphore,
-};
-
-use types::{Member, UserInfo};
-
-use serde_json;
 
 impl Backend {
     pub fn get_username(&self) {

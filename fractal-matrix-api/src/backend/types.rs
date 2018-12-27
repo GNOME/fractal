@@ -1,13 +1,12 @@
+use crate::{
+    cache::CacheMap,
+    error::Error,
+    types::{Event, Member, Message, Protocol, Room, Sticker, StickerGroup, UserInfo},
+};
 use std::{
     collections::HashMap,
     sync::{mpsc::Sender, Arc, Condvar, Mutex},
 };
-
-use error::Error;
-
-use types::{Event, Member, Message, Protocol, Room, Sticker, StickerGroup, UserInfo};
-
-use cache::CacheMap;
 use url::Url;
 
 #[derive(Debug)]

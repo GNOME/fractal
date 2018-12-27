@@ -7,6 +7,10 @@ mod sync;
 mod types;
 mod user;
 
+pub use self::types::{BKCommand, BKResponse, Backend, BackendData, RoomType};
+
+use self::types::BKCommand::*;
+use crate::{cache::CacheMap, util::client_url};
 use std::{
     collections::HashMap,
     sync::{
@@ -15,14 +19,7 @@ use std::{
     },
     thread,
 };
-
-use cache::CacheMap;
 use url::Url;
-use util::client_url;
-
-pub use self::types::{BKCommand, BKResponse, Backend, BackendData, RoomType};
-
-use self::types::BKCommand::*;
 
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Self {

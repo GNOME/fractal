@@ -1,12 +1,17 @@
-pub use backend::types::{BKResponse, Backend};
-use error::Error;
-use globals;
-use std::{thread, time};
-use util::{
-    get_rooms_from_json, get_rooms_notifies_from_json, get_rooms_timeline_from_json, json_q,
-    parse_m_direct, parse_sync_events,
+pub use crate::backend::types::{BKResponse, Backend};
+
+use crate::{
+    error::Error,
+    globals,
+    util::{
+        get_rooms_from_json, get_rooms_notifies_from_json, get_rooms_timeline_from_json, json_q,
+        parse_m_direct, parse_sync_events,
+    },
+    JsonValue,
 };
-use JsonValue;
+use log::error;
+use serde_json::json;
+use std::{thread, time};
 
 impl Backend {
     pub fn sync(&self, new_since: Option<String>, initial: bool) {

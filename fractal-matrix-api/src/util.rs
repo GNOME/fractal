@@ -1,27 +1,26 @@
+use crate::{
+    error::Error,
+    globals,
+    types::{Event, Member, Message, Room},
+    JsonValue,
+};
 use glib;
-use reqwest;
-use reqwest::header::CONTENT_TYPE;
-use JsonValue;
-
+use log::error;
+use reqwest::{self, header::CONTENT_TYPE};
+use serde_json::json;
 use std::{
     collections::{HashMap, HashSet},
+    fs::{self, create_dir_all},
     io::Read, // FIXME: reqwest::Response isn't re-exporting this, but it should
     path::Path,
     sync::{Arc, Condvar, Mutex},
     thread,
-    {fs, fs::create_dir_all},
 };
-
 use tree_magic;
 use url::{
     percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET},
     Url,
 };
-
-use error::Error;
-use types::{Event, Member, Message, Room};
-
-use globals;
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
 where

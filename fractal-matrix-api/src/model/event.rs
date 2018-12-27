@@ -1,4 +1,4 @@
-use JsonValue;
+use crate::JsonValue;
 
 #[derive(Debug, Clone)]
 pub struct Event {
