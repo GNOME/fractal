@@ -275,9 +275,9 @@ glib_wrapper! {
 impl SidebarRow {
     pub fn new(
         room_id: &str,
-        name: &str,
-        avatar: &str,
-        notifications: &str,
+        name: Option<&str>,
+        avatar: Option<&str>,
+        notifications: Option<&str>,
         direct: bool,
         bold: bool,
         highlight: bool,
@@ -305,36 +305,82 @@ impl SidebarRow {
             .downcast_unchecked()
         }
     }
-    // This updates all properties of a SidebarRow with a value
-    pub fn update(
-        &mut self,
-        name: Option<&str>,
-        avatar: Option<&str>,
-        notifications: Option<&str>,
-        direct: Option<bool>,
-        bold: Option<bool>,
-        highlight: Option<bool>,
-    ) -> Result<(), glib::BoolError> {
-        if let Some(ref value) = name {
-            self.set_property("name", value)?;
-        }
-        if let Some(ref value) = avatar {
-            self.set_property("avatar", value)?;
-        }
-        if let Some(ref value) = notifications {
-            self.set_property("notifications", value)?;
-        }
-        if let Some(ref value) = direct {
-            self.set_property("direct", value)?;
-        }
-        if let Some(ref value) = bold {
-            self.set_property("bold", value)?;
-        }
-        if let Some(ref value) = highlight {
-            self.set_property("highlight", value)?;
-        }
 
-        Ok(())
+    pub fn change_name(&mut self, value: Option<&str>) {
+        let name = "name";
+        if let Some(value) = value {
+            if let Some(current_value) =
+                self.get_property(name).ok().and_then(|x| x.get::<String>())
+            {
+                if value == current_value {
+                    return;
+                }
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+
+    pub fn change_avatar(&mut self, value: Option<&str>) {
+        let name = "avatar";
+        if let Some(value) = value {
+            if let Some(current_value) =
+                self.get_property(name).ok().and_then(|x| x.get::<String>())
+            {
+                if value == current_value {
+                    return;
+                }
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+    pub fn change_notifications(&mut self, value: Option<&str>) {
+        let name = "notifications";
+        if let Some(value) = value {
+            if let Some(current_value) =
+                self.get_property(name).ok().and_then(|x| x.get::<String>())
+            {
+                if value == current_value {
+                    return;
+                }
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+    pub fn change_direct(&mut self, value: bool) {
+        let name = "direct";
+        if let Some(current_value) = self.get_property(name).ok().and_then(|x| x.get::<bool>()) {
+            if value == current_value {
+                return;
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+    pub fn change_bold(&mut self, value: bool) {
+        let name = "bold";
+        if let Some(current_value) = self.get_property(name).ok().and_then(|x| x.get::<bool>()) {
+            if value == current_value {
+                return;
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+    pub fn change_hightlight(&mut self, value: bool) {
+        let name = "highlight";
+        if let Some(current_value) = self.get_property(name).ok().and_then(|x| x.get::<bool>()) {
+            if value == current_value {
+                return;
+            }
+        }
+        let _ = self.set_property(name, &value);
+    }
+    pub fn change_key(&mut self, value: u64) {
+        let name = "key";
+        if let Some(current_value) = self.get_property(name).ok().and_then(|x| x.get::<u64>()) {
+            if value == current_value {
+                return;
+            }
+        }
+        let _ = self.set_property(name, &value);
     }
 }
 
@@ -342,18 +388,19 @@ impl SidebarRow {
 use fractal_api::types::Room;
 impl<'a> From<&'a Room> for SidebarRow {
     fn from(room: &Room) -> SidebarRow {
+        let n = room.notifications.to_string();
         let notifications = if room.membership.is_invited() {
-            "●".to_string()
+            Some("●")
         } else if room.notifications != 0 {
-            room.notifications.to_string()
+            Some(n.as_str())
         } else {
-            "".to_string()
+            None
         };
         SidebarRow::new(
             &room.id,
-            room.name.as_ref().unwrap_or(&"...".to_string()),
-            room.avatar.as_ref().unwrap_or(&"".to_string()),
-            &notifications,
+            room.name.as_ref().map(|x| x.as_str()),
+            room.avatar.as_ref().map(|x| x.as_str()),
+            notifications,
             room.direct,
             false, // Default value for bold
             room.highlight > 0 || room.membership.is_invited(),
@@ -364,14 +411,39 @@ impl<'a> From<&'a Room> for SidebarRow {
     }
 }
 
+use gio::ListStoreExtManual;
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 pub struct Sidebar {
     invites: gio::ListStore,
     favorites: gio::ListStore,
     rooms: gio::ListStore,
     low_priority: gio::ListStore,
-    // FIXME: store a weak reference to SidebarRow
+    // FIXME: store a weak reference to SidebarRow directly not as gObject
     store: HashMap<String, glib::WeakRef<glib::Object>>,
+    // We need an Arc<Mutex> because connect_notify() is sync (thread-safe)
+    // Rc<Cell> would be better because it has a smaller overhead
+    selected: Arc<Mutex<Option<SelectedData>>>,
+}
+
+struct SelectedData {
+    listbox: glib::object::SendWeakRef<gtk::ListBox>,
+    row: glib::object::SendWeakRef<gtk::ListBoxRow>,
+    room_id: String,
+}
+
+impl SelectedData {
+    pub fn new(listbox: &gtk::ListBox, row: &gtk::ListBoxRow) -> Option<Self> {
+        let room_id = row
+            .get_action_target_value()
+            .and_then(|x| x.get::<String>())?;
+        Some(SelectedData {
+            listbox: listbox.downgrade().into(),
+            row: row.downgrade().into(),
+            room_id,
+        })
+    }
 }
 
 impl Sidebar {
@@ -381,12 +453,14 @@ impl Sidebar {
         let favorites = gio::ListStore::new(SidebarRow::static_type());
         let rooms = gio::ListStore::new(SidebarRow::static_type());
         let low_priority = gio::ListStore::new(SidebarRow::static_type());
+
         Sidebar {
             invites,
             favorites,
             rooms,
             low_priority,
             store: HashMap::new(),
+            selected: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -408,13 +482,43 @@ impl Sidebar {
 
     // Add the room to the correct liststore
     pub fn add_room(&mut self, room: &Room) {
+        let sort_methode = |a: &glib::Object, b: &glib::Object| {
+            if let Some(key_a) = a.get_property("key").ok().map(|x| x.get::<u64>()) {
+                if let Some(key_b) = b.get_property("key").ok().map(|x| x.get::<u64>()) {
+                    return key_b.cmp(&key_a);
+                }
+            }
+            Ordering::Less
+        };
+
         let row: SidebarRow = room.into();
         match room.membership {
             RoomMembership::Invited(_) => self.invites.append(&row),
             RoomMembership::Joined(ref tag) => match tag {
                 RoomTag::Favourite => self.favorites.append(&row),
                 RoomTag::LowPriority => self.low_priority.append(&row),
-                _ => self.rooms.append(&row),
+                _ => {
+                    // Normal rooms
+                    self.rooms.insert_sorted(&row, sort_methode);
+                    // Connect to key notify, so we can reorder the liststore when the value changes
+                    let store_weak: glib::object::SendWeakRef<gio::ListStore> =
+                        self.rooms.downgrade().into();
+                    let selected = Arc::downgrade(&self.selected);
+                    row.connect_notify("key", move |_, _| {
+                        let store = upgrade_weak!(store_weak);
+                        // We need to reset the selection after sort
+                        let selected = upgrade_weak!(selected);
+                        let selected_unwraped = { selected.lock().unwrap().take() };
+                        store.sort(sort_methode);
+                        if let Some(old) = selected_unwraped {
+                            let old_listbox = upgrade_weak!(old.listbox);
+                            if let Some(position) = get_position_by_id(&store, &old.room_id) {
+                                let row = old_listbox.get_row_at_index(position as i32);
+                                old_listbox.select_row(&row);
+                            }
+                        }
+                    });
+                }
             },
             _ => {}
         }
@@ -445,30 +549,48 @@ impl Sidebar {
         self.low_priority.remove_all();
     }
 
+    // Update all properties for a row in the sidebar
     pub fn update_room(&self, room: &Room) {
         let obj = self.store.get(&room.id).and_then(|obj| obj.upgrade());
         if let Some(mut row) = obj.and_then(|obj| obj.downcast::<SidebarRow>().ok()) {
+            let n = room.notifications.to_string();
             let notifications = if room.membership.is_invited() {
-                "●".to_string()
+                Some("●")
             } else if room.notifications != 0 {
-                room.notifications.to_string()
+                Some(n.as_str())
             } else {
-                "".to_string()
+                None
             };
-            // Only values with some are updated.
-            // The order of the properties are name, avatar, notifications, direct, bold, highlight
-            let _ = row.update(
-                room.name.as_ref().map(|x| x.as_str()),
-                room.avatar.as_ref().map(|x| x.as_str()),
-                Some(&notifications),
-                Some(room.direct),
-                None,
-                Some(room.highlight > 0 || room.membership.is_invited()),
+            row.change_name(room.name.as_ref().map(|x| x.as_str()));
+            row.change_avatar(room.avatar.as_ref().map(|x| x.as_str()));
+            row.change_notifications(notifications);
+            row.change_direct(room.direct);
+            row.change_bold(false);
+            row.change_hightlight(room.highlight > 0 || room.membership.is_invited());
+            row.change_key(
+                room.messages
+                    .last()
+                    .map_or(0, |m| m.date.timestamp() as u64),
             );
         }
     }
 
-    pub fn move_room(&self, room: &Room) {}
+    // Allow only one row to be selected
+    pub fn connect_selection(&self, listbox: &gtk::ListBox) {
+        let selected = Arc::downgrade(&self.selected);
+        listbox.connect_row_selected(move |listbox, row| {
+            let selected = upgrade_weak!(selected);
+            let selected_unwraped = { selected.lock().unwrap().take() };
+            if let Some(old) = selected_unwraped {
+                let old_listbox = upgrade_weak!(old.listbox);
+                let old_row = upgrade_weak!(old.row);
+                old_listbox.unselect_row(&old_row);
+            }
+            if let Some(row) = row {
+                *selected.lock().unwrap() = SelectedData::new(&listbox, &row);
+            }
+        });
+    }
 }
 
 use gio::ListModelExt;

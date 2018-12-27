@@ -395,7 +395,6 @@ impl AppOp {
                 RoomTag::None
             };
             r.membership = RoomMembership::Joined(tag);
-            self.sidebar_store.move_room(r);
         }
     }
 
