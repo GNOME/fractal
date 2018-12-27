@@ -1,19 +1,18 @@
-use serde_json;
+pub use crate::backend::types::{BKResponse, Backend};
+
+use crate::{
+    backend::types::{BKCommand, RoomType},
+    error::Error,
+    globals,
+    types::{Member, Message, Room},
+    util::{self, cache_path, client_url, json_q, media_url, put_media, thumb},
+    JsonValue,
+};
+use log::error;
+use serde_json::{self, json};
+use std::{fs, sync::mpsc::Sender, thread};
 use url::Url;
 use urlencoding;
-use JsonValue;
-
-use std::{fs, sync::mpsc::Sender, thread};
-
-use error::Error;
-use globals;
-use types::{Member, Message, Room};
-
-use util;
-use util::{cache_path, client_url, json_q, media_url, put_media, thumb};
-
-use backend::types::{BKCommand, RoomType};
-pub use backend::types::{BKResponse, Backend};
 
 impl Backend {
     pub fn get_room_members(&self, room_id: String) {

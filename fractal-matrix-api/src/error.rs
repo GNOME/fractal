@@ -1,12 +1,10 @@
+use crate::JsonValue;
 use glib;
 use regex;
 use reqwest;
-use url;
-use JsonValue;
-
-use std::{ffi::OsString, io, time::SystemTimeError};
-
 use serde_json;
+use std::{ffi::OsString, io, time::SystemTimeError};
+use url;
 
 #[derive(Debug)]
 pub enum Error {

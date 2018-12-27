@@ -1,10 +1,11 @@
-use JsonValue;
-
-use model::{
-    member::{Member, MemberList},
-    message::Message,
+use crate::{
+    model::{
+        member::{Member, MemberList},
+        message::Message,
+    },
+    JsonValue,
 };
-
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

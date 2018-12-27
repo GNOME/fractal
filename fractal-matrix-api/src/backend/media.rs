@@ -1,14 +1,15 @@
-pub use backend::types::{BKResponse, Backend};
-use error::Error;
-use globals;
-use std::{sync::mpsc::Sender, thread};
+pub use crate::backend::types::{BKResponse, Backend};
 
-use util;
-use util::{
-    cache_dir_path, download_file, get_room_media_list, resolve_media_url, semaphore, thumb,
+use crate::{
+    error::Error,
+    globals,
+    types::Message,
+    util::{
+        self, cache_dir_path, download_file, get_room_media_list, resolve_media_url, semaphore,
+        thumb,
+    },
 };
-
-use types::Message;
+use std::{sync::mpsc::Sender, thread};
 
 impl Backend {
     pub fn get_thumb_async(&self, media: String, ctx: Sender<String>) {
