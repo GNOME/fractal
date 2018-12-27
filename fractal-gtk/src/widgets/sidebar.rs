@@ -257,30 +257,10 @@ impl Sidebar {
         widget.add(rooms_widget.get_widget());
         widget.add(low_priority_widget.get_widget());
 
-        connect_selecting(
-            &invites_widget,
-            &rooms_widget,
-            &favorites_widget,
-            &low_priority_widget,
-        );
-        connect_selecting(
-            &favorites_widget,
-            &invites_widget,
-            &rooms_widget,
-            &low_priority_widget,
-        );
-        connect_selecting(
-            &rooms_widget,
-            &invites_widget,
-            &favorites_widget,
-            &low_priority_widget,
-        );
-        connect_selecting(
-            &low_priority_widget,
-            &rooms_widget,
-            &invites_widget,
-            &favorites_widget,
-        );
+        store.connect_selection(invites_widget.get_listbox());
+        store.connect_selection(favorites_widget.get_listbox());
+        store.connect_selection(low_priority_widget.get_listbox());
+        store.connect_selection(rooms_widget.get_listbox());
 
         widget.show();
 
@@ -290,24 +270,4 @@ impl Sidebar {
     pub fn get_widget(&self) -> &gtk::Box {
         &self.0
     }
-}
-
-// This deselectes all row of other lisboxes
-// TODO replace this function with a macro
-pub fn connect_selecting(
-    list: &RoomListGroup,
-    other1: &RoomListGroup,
-    other2: &RoomListGroup,
-    other3: &RoomListGroup,
-) {
-    let other1 = other1.get_listbox().downgrade();
-    let other2 = other2.get_listbox().downgrade();
-    let other3 = other3.get_listbox().downgrade();
-    list.get_listbox().connect_row_selected(move |_, row| {
-        if row.is_some() {
-            upgrade_weak!(other1).unselect_all();
-            upgrade_weak!(other2).unselect_all();
-            upgrade_weak!(other3).unselect_all();
-        }
-    });
 }

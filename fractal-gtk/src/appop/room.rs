@@ -13,7 +13,6 @@ use actions::AppState;
 use cache;
 use widgets;
 
-use store;
 use types::Room;
 
 use util::markup_text;
@@ -393,7 +392,6 @@ impl AppOp {
     pub fn added_to_fav(&mut self, roomid: String, tofav: bool) {
         if let Some(ref mut r) = self.rooms.get_mut(&roomid) {
             r.fav = tofav;
-            self.sidebar_store.move_room(r);
         }
     }
 

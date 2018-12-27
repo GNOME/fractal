@@ -15,7 +15,6 @@ use backend::Backend;
 
 use actions;
 use globals;
-use store;
 use uibuilder;
 use widgets;
 
