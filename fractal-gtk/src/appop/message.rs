@@ -310,6 +310,7 @@ impl AppOp {
                     r.messages.push(msg.clone());
                     msgs.push(msg.clone());
                 }
+                self.sidebar_store.update_room(&r);
             }
         }
 

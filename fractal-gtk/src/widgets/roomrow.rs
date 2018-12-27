@@ -64,6 +64,14 @@ impl RoomRow {
         row.show_all();
         item.bind_property("name", &name, "label")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .transform_to(|_, value| {
+                let res = if value.get::<String>().is_none() {
+                    "...".to_value()
+                } else {
+                    value.clone()
+                };
+                Some(res)
+            })
             .build();
 
         number.set_valign(gtk::Align::Center);
@@ -73,10 +81,15 @@ impl RoomRow {
             .transform_to(|binding, value| {
                 if let Some(target) = binding.get_target() {
                     if let Ok(widget) = target.downcast::<gtk::Widget>() {
-                        if let Some(string) = value.get::<String>() {
-                            widget.set_visible(!string.is_empty());
+                        if value.get::<String>().is_some() {
+                            widget.show();
                             if let Some(style) = widget.get_style_context() {
                                 style.add_class("notify-badge");
+                            }
+                        } else {
+                            widget.hide();
+                            if let Some(style) = widget.get_style_context() {
+                                style.remove_class("notify-badge");
                             }
                         }
                     }
