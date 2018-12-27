@@ -4,7 +4,6 @@ use crate::{
     types::{Event, Member, Message, Room},
     JsonValue,
 };
-use glib;
 use log::error;
 use reqwest::{self, header::CONTENT_TYPE};
 use serde_json::json;
@@ -16,7 +15,6 @@ use std::{
     sync::{Arc, Condvar, Mutex},
     thread,
 };
-use tree_magic;
 use url::{
     percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET},
     Url,
@@ -125,7 +123,7 @@ macro_rules! query {
     };
 }
 
-pub fn evc(events: &JsonValue, t: &str, field: &str) -> String {
+fn evc(events: &JsonValue, t: &str, field: &str) -> String {
     events
         .as_array()
         .and_then(|arr| arr.iter().find(|x| x["type"] == t))
@@ -800,17 +798,17 @@ pub fn cache_path(name: &str) -> Result<String, Error> {
 }
 
 pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
-    let mut path = glib::get_user_cache_dir().unwrap_or(std::env::temp_dir());
-    path.push("fractal");
-    path.push(dir);
+    let ref path = directories::ProjectDirs::from("org", "GNOME", "Fractal")
+        .map(|project_dir| project_dir.cache_dir().to_path_buf())
+        .unwrap_or(std::env::temp_dir().join("fractal"))
+        .join(dir)
+        .join(name);
 
-    if !path.exists() {
-        create_dir_all(&path)?;
+    if !path.is_dir() {
+        create_dir_all(path.parent().unwrap())?;
     }
 
-    path.push(name);
-
-    Ok(path.into_os_string().into_string()?)
+    path.to_str().map(Into::into).ok_or(Error::CacheError)
 }
 
 pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {

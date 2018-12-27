@@ -12,7 +12,6 @@ use log::error;
 use serde_json::{self, json};
 use std::{fs, sync::mpsc::Sender, thread};
 use url::Url;
-use urlencoding;
 
 impl Backend {
     pub fn get_room_members(&self, room_id: String) {

@@ -1,5 +1,3 @@
-#![deny(unused_extern_crates)]
-
 #[macro_use]
 mod util;
 pub mod backend;

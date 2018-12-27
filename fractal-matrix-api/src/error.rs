@@ -1,10 +1,5 @@
 use crate::JsonValue;
-use glib;
-use regex;
-use reqwest;
-use serde_json;
-use std::{ffi::OsString, io, time::SystemTimeError};
-use url;
+use std::{io, time::SystemTimeError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -25,7 +20,5 @@ impl From<reqwest::Error> for Error {
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
-derror!(glib::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
-derror!(OsString, Error::CacheError);
 derror!(serde_json::Error, Error::CacheError);

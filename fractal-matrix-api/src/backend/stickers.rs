@@ -9,7 +9,6 @@ use crate::{
     JsonValue,
 };
 use chrono::prelude::*;
-use md5;
 use serde_json::json;
 use std::{
     sync::{Arc, Mutex},
