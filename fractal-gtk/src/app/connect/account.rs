@@ -1,11 +1,12 @@
 use fractal_api::clone;
+use gio::ActionMapExt;
+use glib;
 use gtk;
 use gtk::prelude::*;
 
-use glib;
-
 use crate::app::App;
-use crate::i18n::i18n;
+
+use crate::actions::{AccountSettings, StateExt};
 
 impl App {
     pub fn connect_account_settings(&self) {
@@ -92,28 +93,38 @@ impl App {
             .get_object::<gtk::Button>("account_settings_delete_btn")
             .expect("Can't find account_settings_delete_btn in ui file.");
 
+        // FIXME: don't clone the backend
+        let backend = self.op.lock().unwrap().backend.clone();
+        let window = self.main_window.upcast_ref::<gtk::Window>();
+        let actions = AccountSettings::new(&window, &backend);
+        let container = self
+            .ui
+            .builder
+            .get_object::<gtk::Box>("account_settings_box")
+            .expect("Can't find account_settings_box in ui file.");
+        container.insert_action_group("user-settings", &actions);
+
         /* Body */
-        avatar_btn.connect_clicked(clone!(op, builder => move |_| {
-            let window = builder
-                .get_object::<gtk::Window>("main_window")
-                .expect("Can't find main_window in ui file.");
-            let file_chooser = gtk::FileChooserNative::new(
-                i18n("Pick a new avatar").as_str(),
-                Some(&window),
-                gtk::FileChooserAction::Open,
-                Some(i18n("Select").as_str()),
-                None
-            );
-            /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
-            let result = file_chooser.run();
-            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
-                if let Some(file) = file_chooser.get_filename() {
-                    if let Some(path) = file.to_str() {
-                        op.lock().unwrap().update_avatar_account_settings(String::from(path));
-                    }
+        if let Some(action) = actions.lookup_action("change-avatar") {
+            action.bind_button_state(&avatar_btn);
+            avatar_btn.set_action_name("user-settings.change-avatar");
+            let avatar_spinner = self
+                .ui
+                .builder
+                .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
+                .expect("Can't find account_settings_avatar_spinner in ui file.");
+            let spinner = avatar_spinner.downgrade();
+            avatar_btn.connect_property_sensitive_notify(move |w| {
+                let spinner = upgrade_weak!(spinner);
+                if !w.get_sensitive() {
+                    spinner.start();
+                    spinner.show();
+                } else {
+                    spinner.hide();
+                    spinner.stop();
                 }
-            }
-        }));
+            });
+        }
 
         let button = name_btn.clone();
         name_entry.connect_property_text_notify(clone!(op => move |w| {
