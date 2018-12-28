@@ -332,8 +332,6 @@ impl AppOp {
         };
     }
 
-    pub fn filter_rooms(&self, _term: Option<String>) {}
-
     pub fn new_room_dialog(&self) {
         let dialog = self
             .ui
