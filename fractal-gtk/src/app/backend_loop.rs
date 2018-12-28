@@ -103,9 +103,14 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let s = Some(since);
                     APPOP!(synced, (s));
                 }
-                Ok(BKResponse::Rooms(rooms, _default)) => {
+                Ok(BKResponse::Rooms(rooms, default)) => {
                     let clear_room_list = true;
                     APPOP!(set_rooms, (rooms, clear_room_list));
+                    // Open the newly joined room
+                    if let Some(room) = default {
+                        let room_id = room.id;
+                        APPOP!(set_active_room_by_id, (room_id));
+                    }
                 }
                 Ok(BKResponse::NewRooms(rooms)) => {
                     let clear_room_list = false;
