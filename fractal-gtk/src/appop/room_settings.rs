@@ -8,6 +8,11 @@ use crate::widgets;
 
 impl AppOp {
     pub fn create_room_settings(&mut self) -> Option<()> {
+        let window = self
+            .ui
+            .builder
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
         let stack = self
             .ui
             .builder
@@ -21,8 +26,12 @@ impl AppOp {
 
         {
             let room = self.rooms.get(&self.active_room.clone()?)?;
-            let mut panel =
-                widgets::RoomSettings::new(self.backend.clone(), self.uid.clone(), room.clone());
+            let mut panel = widgets::RoomSettings::new(
+                &window,
+                self.backend.clone(),
+                self.uid.clone(),
+                room.clone(),
+            );
             let (body, header) = panel.create()?;
 
             /* remove old panel */
