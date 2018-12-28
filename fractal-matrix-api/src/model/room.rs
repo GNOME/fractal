@@ -1,8 +1,9 @@
 use serde_json::Value as JsonValue;
 
-use model::member::Member;
-use model::member::MemberList;
-use model::message::Message;
+use crate::model::member::Member;
+use crate::model::member::MemberList;
+use crate::model::message::Message;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

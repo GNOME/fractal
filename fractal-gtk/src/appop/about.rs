@@ -1,10 +1,10 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use globals;
+use crate::appop::AppOp;
+use crate::globals;
 
 impl AppOp {
     pub fn about_dialog(&self) {

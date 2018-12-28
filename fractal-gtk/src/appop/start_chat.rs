@@ -1,12 +1,12 @@
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use appop::RoomPanel;
-use appop::SearchType;
+use crate::appop::AppOp;
+use crate::appop::RoomPanel;
+use crate::appop::SearchType;
 
-use backend::BKCommand;
-use types::Room;
+use crate::backend::BKCommand;
+use crate::types::Room;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
