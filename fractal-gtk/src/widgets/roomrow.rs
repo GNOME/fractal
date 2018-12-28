@@ -127,6 +127,20 @@ impl RoomRow {
             )
             .build();
 
+        // The row is set to visible when added to the listbox:
+        // this makes sure that the item property hidden is respected
+        let item_weak = item.downgrade();
+        row.connect_property_visible_notify(move |w| {
+            let item = upgrade_weak!(item_weak);
+            if let Some(value) = item
+                .get_property("hidden")
+                .ok()
+                .and_then(|x| x.get::<bool>())
+            {
+                w.set_visible(!value);
+            }
+        });
+
         item.bind_property("room_id", &row, "action-target")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
             .transform_to(|_, value| {
