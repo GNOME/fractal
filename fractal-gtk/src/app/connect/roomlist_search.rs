@@ -23,38 +23,30 @@ impl App {
             .get_object::<gtk::SearchEntry>("room_list_search")
             .expect("Can't find room_list_search in ui file.");
 
-        search_btn.connect_toggled(clone!(search_bar => move |btn| {
-            search_bar.set_search_mode(btn.get_active());
-        }));
-
-        search_bar.connect_property_search_mode_enabled_notify(clone!(search_btn => move |bar| {
-            search_btn.set_active(bar.get_search_mode());
-        }));
+        search_btn
+            .bind_property("active", &search_bar, "search-mode-enabled")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
 
         search_entry.connect_search_changed(clone!(op => move |entry| {
-            op.lock().unwrap().filter_rooms(entry.get_text());
+            if let Some(text) = entry.get_text() {
+                op.lock().unwrap().sidebar_store.filter(&text);
+            }
         }));
 
-        // hidding left and right boxes to align with top buttons
-        let boxes = search_bar.get_children()[0]
-            .clone()
-            .downcast::<gtk::Revealer>()
-            .unwrap() // revealer
-            .get_children()[0]
-            .clone()
-            .downcast::<gtk::Box>()
-            .unwrap(); // box
-        boxes.get_children()[0]
-            .clone()
-            .downcast::<gtk::Box>()
-            .unwrap()
-            .hide();
-        boxes.get_children()[1].clone().set_hexpand(true);
-        boxes.get_children()[1].clone().set_halign(gtk::Align::Fill);
-        boxes.get_children()[2]
-            .clone()
-            .downcast::<gtk::Box>()
-            .unwrap()
-            .hide();
+        // The searchbar has a lef and right box, but we don't want them because we like the search entry
+        // to be aligt with the button in the headerbar
+        let boxes = search_bar
+            .get_child()
+            .and_then(|w| w.downcast::<gtk::Revealer>().ok())
+            .and_then(|w| w.get_child())
+            .and_then(|w| w.downcast::<gtk::Box>().ok());
+        if let Some(boxes) = boxes {
+            let children = boxes.get_children();
+            children[0].hide();
+            children[1].set_hexpand(true);
+            children[1].set_halign(gtk::Align::Fill);
+            children[2].hide();
+        }
     }
 }
