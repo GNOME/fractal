@@ -2,23 +2,24 @@ use chrono::prelude::*;
 use comrak::{markdown_to_html, ComrakOptions};
 use gtk;
 use gtk::prelude::*;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tree_magic;
 
-use appop::room::Force;
-use appop::AppOp;
-use App;
+use crate::appop::room::Force;
+use crate::appop::AppOp;
+use crate::App;
 
-use backend::BKCommand;
-use uitypes::MessageContent;
-use uitypes::RowType;
-use widgets;
+use crate::backend::BKCommand;
+use crate::uitypes::MessageContent;
+use crate::uitypes::RowType;
+use crate::widgets;
 
+use crate::types::Message;
 use gdk_pixbuf::Pixbuf;
 use serde_json::Value as JsonValue;
-use types::Message;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -527,7 +528,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let (_, w, h) = Pixbuf::get_file_info(file)?;
     let size = fs::metadata(file).ok()?.len();
 
-    let info = json!({
+    let info = serde_json::json!({
         "info": {
             "w": w,
             "h": h,

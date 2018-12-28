@@ -1,15 +1,17 @@
+use lazy_static::lazy_static;
 use mdl::Cache;
 use mdl::Model;
 use mdl::Store;
+use serde::{Deserialize, Serialize};
 
 use failure::Error;
 
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use fractal_api::util::cache_path;
-use types::Message;
-use types::Room;
+use crate::types::Message;
+use crate::types::Room;
+use fractal_matrix_api::util::cache_path;
 
 // Models
 
@@ -97,7 +99,7 @@ pub struct FCache {
 }
 
 impl FCache {
-    pub fn get_store(&self) -> MutexGuard<Cache> {
+    pub fn get_store(&self) -> MutexGuard<'_, Cache> {
         self.cache.lock().unwrap()
     }
 

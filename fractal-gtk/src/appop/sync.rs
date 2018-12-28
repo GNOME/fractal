@@ -1,8 +1,8 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
 impl AppOp {
     pub fn initial_sync(&self, show: bool) {

@@ -1,4 +1,4 @@
-use appop::AppOp;
+use crate::appop::AppOp;
 
 impl AppOp {
     pub fn clear_room_notifications(&mut self, r: String) {

@@ -1,13 +1,13 @@
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use cache::download_to_cache;
+use crate::cache::download_to_cache;
 
-use backend::BKCommand;
-use widgets;
-use widgets::AvatarExt;
+use crate::backend::BKCommand;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 impl AppOp {
     pub fn get_username(&self) {

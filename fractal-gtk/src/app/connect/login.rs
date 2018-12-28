@@ -1,7 +1,7 @@
 use gtk;
 use gtk::prelude::*;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_login_view(&self) {
