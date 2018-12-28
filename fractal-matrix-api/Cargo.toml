@@ -15,8 +15,10 @@ repository = "https://gitlab.gnome.org/World/fractal"
 documentation = "https://world.pages.gitlab.gnome.org/fractal/fractal_matrix_api/index.html"
 
 [dependencies]
+chrono = { version = "0.4.6", features = ["serde"] }
+directories = "1.0.2"
 log = "0.4.6"
-glib = "0.6.1"
+md5 = "0.6.1"
 regex = "1.1.0"
 reqwest = "0.9.5"
 serde = "1.0.82"
@@ -26,12 +28,3 @@ time = "0.1.41"
 tree_magic = "0.2.1"
 url = "1.7.2"
 urlencoding = "1.0.0"
-md5 = "0.6.1"
-
-[dependencies.cairo-rs]
-features = ["png"]
-version = "0.5.0"
-
-[dependencies.chrono]
-features = ["serde"]
-version = "0.4.6"
