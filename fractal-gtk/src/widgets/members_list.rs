@@ -1,3 +1,4 @@
+use fractal_api::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -5,10 +6,10 @@ use glib::signal;
 use gtk;
 use gtk::prelude::*;
 
-use i18n::i18n;
-use types::Member;
-use widgets;
-use widgets::avatar::AvatarExt;
+use crate::i18n::i18n;
+use crate::types::Member;
+use crate::widgets;
+use crate::widgets::avatar::AvatarExt;
 
 #[derive(Debug, Clone)]
 pub struct MembersList {

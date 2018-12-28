@@ -1,15 +1,16 @@
-use app::App;
-use i18n::i18n;
+use crate::app::App;
+use crate::i18n::i18n;
+use log::{error, info};
 
-use actions::AppState;
-use appop::RoomPanel;
+use crate::actions::AppState;
+use crate::appop::RoomPanel;
 
 use glib;
 use std::process::Command;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
-use backend::BKResponse;
+use crate::backend::BKResponse;
 use fractal_api::error::Error;
 
 use std::sync::mpsc::RecvError;

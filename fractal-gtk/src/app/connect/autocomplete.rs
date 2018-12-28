@@ -1,8 +1,8 @@
 use gtk;
 
-use widgets;
+use crate::widgets;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_autocomplete(&self) {

@@ -1,8 +1,10 @@
+use fractal_api::clone;
 use gdk;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::i18n::i18n;
 use dirs;
 use gdk::*;
 use glib;
@@ -10,21 +12,20 @@ use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use gtk::ResponseType;
-use i18n::i18n;
 
-use types::Message;
-use types::Room;
+use crate::types::Message;
+use crate::types::Room;
 
 use std::fs;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
+use crate::widgets::image;
+use crate::widgets::ErrorDialog;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
-use widgets::image;
-use widgets::ErrorDialog;
 
 const FLOATING_POINT_ERROR: f64 = 0.01;
 const ZOOM_LEVELS: [f64; 7] = [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];

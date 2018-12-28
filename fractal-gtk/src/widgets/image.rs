@@ -14,7 +14,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use tree_magic;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]

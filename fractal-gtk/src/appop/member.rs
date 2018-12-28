@@ -1,17 +1,18 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
 
-use actions::AppState;
-use appop::AppOp;
-use backend::BKCommand;
+use crate::actions::AppState;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
+use crate::widgets;
+use crate::App;
 use glib;
-use widgets;
-use App;
 
-use types::Event;
-use types::Member;
+use crate::types::Event;
+use crate::types::Member;
 
 #[derive(Debug, Clone)]
 pub enum SearchType {

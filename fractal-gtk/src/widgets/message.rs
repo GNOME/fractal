@@ -1,6 +1,8 @@
-use app::App;
-use i18n::i18n;
+use crate::app::App;
+use crate::i18n::i18n;
+use fractal_api::clone;
 use itertools::Itertools;
+use log::info;
 
 use chrono::prelude::*;
 use glib;
@@ -8,24 +10,24 @@ use gtk;
 use gtk::prelude::*;
 use pango;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
-use util::markup_text;
+use crate::util::markup_text;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
-use cache::download_to_cache;
-use cache::download_to_cache_username;
-use cache::download_to_cache_username_emote;
+use crate::cache::download_to_cache;
+use crate::cache::download_to_cache_username;
+use crate::cache::download_to_cache_username_emote;
 
-use globals;
-use uitypes::MessageContent as Message;
-use uitypes::RowType;
-use widgets;
-use widgets::message_menu::MessageMenu;
-use widgets::AvatarExt;
+use crate::globals;
+use crate::uitypes::MessageContent as Message;
+use crate::uitypes::RowType;
+use crate::widgets;
+use crate::widgets::message_menu::MessageMenu;
+use crate::widgets::AvatarExt;
 
 /* A message row in the room history */
 #[derive(Clone, Debug)]

@@ -1,5 +1,5 @@
+use crate::widgets::SVEntry;
 use gtk::{self, prelude::*};
-use widgets::SVEntry;
 
 #[derive(Clone, Debug)]
 pub struct UI {

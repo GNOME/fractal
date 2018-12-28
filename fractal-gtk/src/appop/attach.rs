@@ -1,4 +1,5 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use fractal_api::clone;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -13,13 +14,13 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use App;
+use crate::appop::AppOp;
+use crate::App;
 
+use crate::util::get_pixbuf_data;
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufExt;
-use util::get_pixbuf_data;
 
 impl AppOp {
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {

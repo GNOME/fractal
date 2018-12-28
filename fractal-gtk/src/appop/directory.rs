@@ -2,13 +2,13 @@ use gtk;
 use gtk::prelude::*;
 use libhandy::Column;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use backend::BKCommand;
-use widgets;
+use crate::backend::BKCommand;
+use crate::widgets;
 
-use types::Protocol;
-use types::Room;
+use crate::types::Protocol;
+use crate::types::Room;
 
 impl AppOp {
     pub fn init_protocols(&self) {

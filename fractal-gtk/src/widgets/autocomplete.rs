@@ -1,3 +1,5 @@
+use fractal_api::clone;
+use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -10,10 +12,10 @@ use gtk::prelude::*;
 use gtk::TextTag;
 use sourceview;
 
-use types::Member;
+use crate::types::Member;
 
-use appop::AppOp;
-use widgets;
+use crate::appop::AppOp;
+use crate::widgets;
 
 pub struct Autocomplete {
     entry: sourceview::View,

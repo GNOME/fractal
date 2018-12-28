@@ -1,54 +1,3 @@
-#![deny(unused_extern_crates)]
-extern crate gdk;
-extern crate gio;
-extern crate glib;
-extern crate gtk;
-extern crate sourceview;
-
-extern crate dirs;
-extern crate gdk_pixbuf;
-extern crate itertools;
-extern crate rand;
-extern crate regex;
-
-extern crate gstreamer as gst;
-extern crate gstreamer_player as gst_player;
-
-#[macro_use]
-extern crate log;
-
-#[macro_use]
-extern crate failure;
-
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate serde_json;
-
-#[macro_use]
-extern crate fractal_matrix_api as fractal_api;
-
-extern crate html2pango;
-
-extern crate libhandy;
-
-extern crate gettextrs;
-
-extern crate cairo;
-extern crate chrono;
-extern crate comrak;
-extern crate letter_avatar;
-extern crate pango;
-extern crate secret_service;
-extern crate tree_magic;
-extern crate url;
-
-extern crate fragile;
-
-extern crate mdl;
-#[macro_use]
-extern crate lazy_static;
-
 use fractal_api::backend;
 use fractal_api::error;
 use fractal_api::types;
@@ -72,7 +21,7 @@ mod appop;
 use std::env::args;
 use std::error::Error;
 
-use app::App;
+use crate::app::App;
 use gio::ApplicationExt;
 use gio::ApplicationExtManual;
 

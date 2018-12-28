@@ -1,9 +1,10 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use glib;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_join_room_dialog(&self) {
