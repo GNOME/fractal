@@ -1,7 +1,7 @@
+use crate::i18n::i18n;
 use gtk;
 use gtk::prelude::*;
 use gtk::ResponseType;
-use crate::i18n::i18n;
 use std::path::PathBuf;
 
 pub fn save(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
