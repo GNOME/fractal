@@ -1,20 +1,20 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
 use gtk;
 use gtk::prelude::*;
 use pango;
 
-use types::Room;
+use crate::types::Room;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
-use util::markup_text;
+use crate::util::markup_text;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
+use crate::widgets;
+use crate::widgets::AvatarExt;
 use gtk::WidgetExt;
-use widgets;
-use widgets::AvatarExt;
 
 const AVATAR_SIZE: i32 = 60;
 const JOIN_BUTTON_WIDTH: i32 = 84;

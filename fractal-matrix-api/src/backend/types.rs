@@ -2,18 +2,18 @@ use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 
-use error::Error;
+use crate::error::Error;
 
-use types::Event;
-use types::Member;
-use types::Message;
-use types::Protocol;
-use types::Room;
-use types::Sticker;
-use types::StickerGroup;
-use types::UserInfo;
+use crate::types::Event;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::Protocol;
+use crate::types::Room;
+use crate::types::Sticker;
+use crate::types::StickerGroup;
+use crate::types::UserInfo;
 
-use cache::CacheMap;
+use crate::cache::CacheMap;
 use url::Url;
 
 #[derive(Debug)]

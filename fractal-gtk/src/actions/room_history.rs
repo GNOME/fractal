@@ -1,9 +1,14 @@
+use fractal_matrix_api::clone;
 use std::fs;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
+use crate::i18n::i18n;
+use crate::types::Message;
+use crate::uibuilder::UI;
+use crate::App;
 use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionExt;
@@ -11,13 +16,9 @@ use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
 use gtk::ResponseType;
-use i18n::i18n;
-use types::Message;
-use uibuilder::UI;
-use App;
 
-use widgets::ErrorDialog;
-use widgets::SourceDialog;
+use crate::widgets::ErrorDialog;
+use crate::widgets::SourceDialog;
 
 /* This creates all actions the room history can perform */
 pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {

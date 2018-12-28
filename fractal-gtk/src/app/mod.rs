@@ -9,13 +9,13 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak as SyncWeak};
 
-use appop::AppOp;
-use backend::BKResponse;
-use backend::Backend;
+use crate::appop::AppOp;
+use crate::backend::BKResponse;
+use crate::backend::Backend;
 
-use actions;
-use globals;
-use uibuilder;
+use crate::actions;
+use crate::globals;
+use crate::uibuilder;
 
 mod connect;
 

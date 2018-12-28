@@ -1,3 +1,4 @@
+use fractal_matrix_api::derror;
 use secret_service;
 
 #[derive(Debug)]
@@ -41,7 +42,7 @@ mod ss_storage {
     use super::secret_service::EncryptionType;
     use super::secret_service::SecretService;
 
-    use globals;
+    use crate::globals;
 
     pub fn delete_pass(key: &str) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;

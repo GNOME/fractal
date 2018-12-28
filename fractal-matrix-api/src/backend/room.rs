@@ -1,4 +1,6 @@
+use log::error;
 use serde_json;
+use serde_json::json;
 use urlencoding;
 
 use std::fs::File;
@@ -6,25 +8,25 @@ use std::io::prelude::*;
 use std::sync::mpsc::Sender;
 use url::Url;
 
-use error::Error;
-use globals;
+use crate::error::Error;
+use crate::globals;
 use std::thread;
 
-use util;
-use util::cache_path;
-use util::json_q;
-use util::put_media;
-use util::thumb;
-use util::{client_url, media_url};
+use crate::util;
+use crate::util::cache_path;
+use crate::util::json_q;
+use crate::util::put_media;
+use crate::util::thumb;
+use crate::util::{client_url, media_url};
 
-use backend::types::BKCommand;
-use backend::types::BKResponse;
-use backend::types::Backend;
-use backend::types::RoomType;
+use crate::backend::types::BKCommand;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::backend::types::RoomType;
 
-use types::Member;
-use types::Message;
-use types::Room;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::Room;
 
 use serde_json::Value as JsonValue;
 
