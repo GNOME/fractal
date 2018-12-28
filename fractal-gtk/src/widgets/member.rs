@@ -2,14 +2,14 @@ use gtk;
 use gtk::prelude::*;
 use pango;
 
-use types::Member;
+use crate::types::Member;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use cache::download_to_cache;
-use globals;
-use widgets;
-use widgets::AvatarExt;
+use crate::cache::download_to_cache;
+use crate::globals;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 // Room Search item
 pub struct MemberBox<'a> {

@@ -1,18 +1,18 @@
-use i18n::{i18n, i18n_k};
+use crate::i18n::{i18n, i18n_k};
 
 use gtk;
 use gtk::prelude::*;
 
-use appop::member::SearchType;
-use appop::AppOp;
+use crate::appop::member::SearchType;
+use crate::appop::AppOp;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
-use globals;
+use crate::globals;
 
-use widgets;
+use crate::widgets;
 
-use types::Member;
+use crate::types::Member;
 
 impl AppOp {
     pub fn add_to_invite(&mut self, u: Member) {
@@ -298,8 +298,8 @@ impl AppOp {
             .expect("Can't find invite_entry in ui file.");
 
         if let Some(buffer) = invite_entry.get_buffer() {
-            let mut start = buffer.get_start_iter();
-            let mut end = buffer.get_end_iter();
+            let start = buffer.get_start_iter();
+            let end = buffer.get_end_iter();
 
             if let Some(text) = buffer.get_text(&start, &end, true) {
                 if text == globals::PLACEHOLDER_TEXT && self.invite_list.is_empty() {
