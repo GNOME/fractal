@@ -84,6 +84,7 @@ fractal-gtk/src/widgets/autocomplete.rs
 fractal-gtk/src/widgets/avatar.rs
 fractal-gtk/src/widgets/divider.rs
 fractal-gtk/src/widgets/error_dialog.rs
+fractal-gtk/src/widgets/file_dialog.rs
 fractal-gtk/src/widgets/image.rs
 fractal-gtk/src/widgets/inline_player.rs
 fractal-gtk/src/widgets/media_viewer.rs
