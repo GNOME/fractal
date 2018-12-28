@@ -1,7 +1,6 @@
 use directories::ProjectDirs;
 use log::error;
 use regex::Regex;
-use reqwest;
 use serde_json::json;
 
 use serde_json::Value as JsonValue;
@@ -9,7 +8,6 @@ use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use tree_magic;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
