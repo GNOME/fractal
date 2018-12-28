@@ -5,9 +5,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use crate::appop::AppOp;
-use crate::App;
 use crate::i18n::i18n;
 use crate::widgets::FileDialog::open;
+use crate::App;
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
