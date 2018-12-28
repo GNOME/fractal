@@ -1,7 +1,8 @@
+use fractal_matrix_api::clone;
 use gtk;
 use gtk::prelude::*;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_roomlist_search(&self) {

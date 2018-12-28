@@ -1,25 +1,26 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use log::error;
 
-use globals;
+use crate::globals;
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use backend::BKCommand;
-use backend::BKResponse;
-use backend::Backend;
-use cache;
+use crate::backend::BKCommand;
+use crate::backend::BKResponse;
+use crate::backend::Backend;
+use crate::cache;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 
-use app::backend_loop;
+use crate::app::backend_loop;
 
-use passwd::PasswordStorage;
+use crate::passwd::PasswordStorage;
 
-use actions::AppState;
-use widgets::ErrorDialog;
+use crate::actions::AppState;
+use crate::widgets::ErrorDialog;
 
 impl AppOp {
     pub fn bk_login(&mut self, uid: String, token: String, device: Option<String>) {

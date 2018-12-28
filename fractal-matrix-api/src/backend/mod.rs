@@ -6,11 +6,11 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use url::Url;
 
-use util::client_url;
+use crate::util::client_url;
 
-use error::Error;
+use crate::error::Error;
 
-use cache::CacheMap;
+use crate::cache::CacheMap;
 
 mod directory;
 mod media;

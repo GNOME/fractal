@@ -1,19 +1,19 @@
-use backend::types::BKResponse;
-use backend::types::Backend;
-use error::Error;
-use globals;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::error::Error;
+use crate::globals;
 use std::sync::mpsc::Sender;
 use std::thread;
 
-use util;
-use util::cache_dir_path;
-use util::download_file;
-use util::get_room_media_list;
-use util::resolve_media_url;
-use util::semaphore;
-use util::thumb;
+use crate::util;
+use crate::util::cache_dir_path;
+use crate::util::download_file;
+use crate::util::get_room_media_list;
+use crate::util::resolve_media_url;
+use crate::util::semaphore;
+use crate::util::thumb;
 
-use types::Message;
+use crate::types::Message;
 
 pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
