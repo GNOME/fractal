@@ -1,10 +1,11 @@
-use appop::attach;
+use crate::appop::attach;
+use fractal_matrix_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
 use sourceview::BufferExt;
 
-use app::App;
+use crate::app::App;
 
 const MAX_INPUT_HEIGHT: i32 = 100;
 

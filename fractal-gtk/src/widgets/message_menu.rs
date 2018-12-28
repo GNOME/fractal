@@ -3,7 +3,7 @@ use gdk::prelude::*;
 use gtk;
 use gtk::prelude::*;
 
-use uitypes::RowType;
+use crate::uitypes::RowType;
 
 #[derive(Clone)]
 struct Widgets {

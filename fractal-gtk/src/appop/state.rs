@@ -1,9 +1,9 @@
 use gtk;
 use gtk::prelude::*;
 
-use actions::AppState;
-use appop::room::RoomPanel;
-use appop::AppOp;
+use crate::actions::AppState;
+use crate::appop::room::RoomPanel;
+use crate::appop::AppOp;
 
 impl AppOp {
     pub fn set_state(&mut self, state: AppState) {

@@ -4,10 +4,10 @@ use gtk;
 use gtk::prelude::*;
 use pango;
 
-use types::Room;
+use crate::types::Room;
 
-use widgets;
-use widgets::AvatarExt;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 const ICON_SIZE: i32 = 24;
 

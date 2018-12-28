@@ -466,7 +466,6 @@ dependencies = [
  "regex 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "secret-service 0.4.0 (git+https://github.com/jhaye/secret-service-rs?rev=3c265527e43376fe8e00ddfa645a70813c35f449)",
  "serde 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "sourceview 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tree_magic 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -485,7 +484,6 @@ dependencies = [
  "regex 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "tree_magic 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2021,6 +2019,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "serde"
 version = "1.0.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde_derive 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "serde_derive"

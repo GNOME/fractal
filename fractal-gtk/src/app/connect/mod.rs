@@ -13,7 +13,7 @@ mod new_room;
 mod roomlist_search;
 mod send;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_gtk(&self) {

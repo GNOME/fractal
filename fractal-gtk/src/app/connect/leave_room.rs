@@ -1,9 +1,10 @@
+use fractal_matrix_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use glib;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_leave_room_dialog(&self) {

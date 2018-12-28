@@ -1,4 +1,5 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use fractal_matrix_api::clone;
 
 use gdk;
 use gdk::DragContextExtManual;
@@ -10,11 +11,11 @@ use gtk::prelude::*;
 use std::collections::HashMap;
 use url::Url;
 
-use globals;
+use crate::globals;
+use crate::types::Message;
+use crate::types::Room;
+use crate::widgets::roomrow::RoomRow;
 use std::sync::{Arc, Mutex, MutexGuard};
-use types::Message;
-use types::Room;
-use widgets::roomrow::RoomRow;
 
 use chrono::prelude::*;
 
@@ -388,7 +389,7 @@ impl RGroup {
         }
     }
 
-    pub fn get(&self) -> MutexGuard<RoomListGroup> {
+    pub fn get(&self) -> MutexGuard<'_, RoomListGroup> {
         self.g.lock().unwrap()
     }
 }
