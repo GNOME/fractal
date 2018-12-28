@@ -4,7 +4,7 @@ use gtk;
 use gtk::prelude::*;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use tree_magic;
 
 use appop::room::Force;
@@ -241,12 +241,10 @@ impl AppOp {
         self.dequeue_message();
     }
 
-    pub fn attach_message(&mut self, file: String) -> Message {
+    pub fn attach_message(&mut self, path: PathBuf) -> Option<()> {
         let now = Local::now();
-        let room = self.active_room.clone();
-        let f = file.clone();
-        let p: &Path = Path::new(&f);
-        let mime = tree_magic::from_filepath(p);
+        let room = self.active_room.clone()?;
+        let mime = tree_magic::from_filepath(&path);
         let mtype = match mime.as_ref() {
             "image/gif" => "m.image",
             "image/png" => "m.image",
@@ -254,21 +252,23 @@ impl AppOp {
             "image/jpg" => "m.image",
             _ => "m.file",
         };
-        let body = String::from(file.split("/").last().unwrap_or(&file));
+        let body = path.file_name().and_then(|s| s.to_str());
+        let path_string = path.to_str()?.to_string();
 
         let info = match mtype {
-            "m.image" => get_image_media_info(&file, mime.as_ref()),
+            "m.image" => get_image_media_info(&path_string, mime.as_ref()),
             _ => None,
         };
 
+        // TODO: write constructor for Message
         let mut m = Message {
-            sender: self.uid.clone().unwrap_or_default(),
+            sender: self.uid.clone()?,
             mtype: mtype.to_string(),
-            body: body,
-            room: room.unwrap_or_default(),
+            body: body?.to_string(),
+            room,
             date: now,
             thumb: None,
-            url: Some(file),
+            url: Some(path_string),
             id: None,
             formatted_body: None,
             format: None,
@@ -280,10 +280,10 @@ impl AppOp {
         };
 
         m.id = Some(m.get_txn_id());
-        self.add_tmp_room_message(m.clone());
+        self.add_tmp_room_message(m);
         self.dequeue_message();
 
-        m
+        Some(())
     }
 
     /// This method is called when a tmp message with an attach is sent correctly
@@ -296,35 +296,6 @@ impl AppOp {
             w.widget.map(|w| w.destroy());
         }
         self.add_tmp_room_message(msg);
-    }
-
-    pub fn attach_file(&mut self) {
-        let window: gtk::ApplicationWindow = self
-            .ui
-            .builder
-            .get_object("main_window")
-            .expect("Can't find main_window in ui file.");
-
-        let file_chooser = gtk::FileChooserNative::new(
-            None,
-            Some(&window),
-            gtk::FileChooserAction::Open,
-            None,
-            None,
-        );
-
-        // Running in a *thread* to free self lock
-        // FIXME don't use idle_add
-        gtk::idle_add(move || {
-            let result = file_chooser.run();
-            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
-                if let Some(fname) = file_chooser.get_filename() {
-                    let f = String::from(fname.to_str().unwrap_or(""));
-                    APPOP!(attach_message, (f));
-                }
-            }
-            gtk::Continue(false)
-        });
     }
 
     /* TODO: find a better name for this function */
