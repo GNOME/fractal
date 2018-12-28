@@ -1,12 +1,12 @@
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use appop::AppState;
+use crate::appop::AppOp;
+use crate::appop::AppState;
 
-use widgets;
+use crate::widgets;
 
-use types::Message;
+use crate::types::Message;
 
 impl AppOp {
     /* FIXME: take msg by reference and maybe create an action for this */

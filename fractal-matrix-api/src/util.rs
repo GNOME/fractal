@@ -1,6 +1,8 @@
 use directories::ProjectDirs;
+use log::error;
 use regex::Regex;
 use reqwest;
+use serde_json::json;
 
 use serde_json::Value as JsonValue;
 
@@ -21,15 +23,15 @@ use std::thread;
 
 use std::time::Duration as StdDuration;
 
-use error::Error;
-use types::Event;
-use types::Member;
-use types::Message;
-use types::Room;
+use crate::error::Error;
+use crate::types::Event;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::Room;
 
 use reqwest::header::CONTENT_TYPE;
 
-use globals;
+use crate::globals;
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
 where

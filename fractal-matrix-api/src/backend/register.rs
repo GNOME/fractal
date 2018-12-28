@@ -1,15 +1,16 @@
 use regex::Regex;
+use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use std::thread;
 use url::Url;
 
-use error::Error;
-use globals;
-use util::json_q;
+use crate::error::Error;
+use crate::globals;
+use crate::util::json_q;
 
-use backend::types::BKResponse;
-use backend::types::Backend;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
 
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
     let url = Url::parse(server)

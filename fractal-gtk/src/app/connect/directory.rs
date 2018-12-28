@@ -1,11 +1,12 @@
+use fractal_matrix_api::clone;
 use gtk;
 
-use i18n::i18n;
+use crate::i18n::i18n;
 
 use gtk::prelude::*;
 use libhandy::{Column, ColumnExt};
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_directory(&self) {
