@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use crate::appop::AppOp;
 use crate::App;
 use fractal_api::types::Message;
+use crate::i18n::i18n;
+use crate::widgets::FileDialog::open;
 use gio::prelude::*;
 use gio::SimpleAction;
 use glib;
@@ -85,6 +87,8 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let directory = SimpleAction::new("directory", None);
     //TODO: use roomid as value
     let room_settings = SimpleAction::new("open-room-settings", None);
+    // TODO: send file should be a room_history action
+    let send_file = SimpleAction::new("send-file", None);
 
     app.add_action(&settings);
     app.add_action(&account);
@@ -106,6 +110,8 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.add_action(&room_settings);
     app.add_action(&media_viewer);
     app.add_action(&account);
+
+    app.add_action(&send_file);
 
     // When activated, shuts down the application
     let app_weak = app.downgrade();
@@ -203,6 +209,16 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
                 if op.logged_in {
                     op.set_state(AppState::NoRoom);
                 }
+            }
+        }
+    });
+
+    let app_weak = app.downgrade();
+    send_file.connect_activate(move |_, _| {
+        let app = upgrade_weak!(app_weak);
+        if let Some(window) = app.get_active_window() {
+            if let Some(path) = open(&window, i18n("Select a file").as_str()) {
+                APPOP!(attach_message, (path));
             }
         }
     });
