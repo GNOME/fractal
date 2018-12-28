@@ -1,5 +1,4 @@
 mod account;
-mod attach;
 mod autocomplete;
 mod direct;
 mod directory;
@@ -21,7 +20,6 @@ impl App {
         self.connect_login_view();
 
         self.connect_send();
-        self.connect_attach();
         self.connect_markdown();
         self.connect_autocomplete();
 

@@ -35,6 +35,7 @@ impl Default for SVEntry {
         attach.set_image(&attach_img);
         attach.set_valign(gtk::Align::End);
         attach.set_receives_default(true);
+        attach.set_action_name("app.send-file");
         // TODO: there was an a11y object in the xml
         /*
         <object class="AtkObject" id="attach_button-atkobject">
