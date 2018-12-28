@@ -5,7 +5,6 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use failure::err_msg;
 use failure::Error;
 
 use gdk;
@@ -72,8 +71,8 @@ impl AppOp {
                 }));
                 /* FIXME: make this a action */
                 okbtn.connect_clicked(clone!(pixb, dialog => move |_| {
-                    if let Ok(file) = store_pixbuf(&pixb) {
-                        APPOP!(attach_message, (file))
+                    if let Ok(path) = store_pixbuf(&pixb) {
+                        APPOP!(attach_message, (path))
                     }
                     dialog.destroy();
                 }));
@@ -84,19 +83,15 @@ impl AppOp {
     }
 }
 
-fn store_pixbuf(pixb: &Pixbuf) -> Result<String, Error> {
+fn store_pixbuf(pixb: &Pixbuf) -> Result<PathBuf, Error> {
     let data = get_pixbuf_data(pixb)?;
     let mut path = glib::get_tmp_dir().unwrap_or(PathBuf::from("/tmp"));
     path.push("fractal-pasted-image");
-    let file = path
-        .into_os_string()
-        .into_string()
-        .map_err(|_| err_msg("bad string"))?;
-    let mut f = File::create(file.clone())?;
+    let mut f = File::create(&path)?;
     f.write_all(&data)?;
     f.sync_data()?;
 
-    Ok(file)
+    Ok(path)
 }
 
 /// This function receives the appop mutex to avoid lock the interface
