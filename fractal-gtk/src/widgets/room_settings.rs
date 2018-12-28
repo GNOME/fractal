@@ -1,20 +1,21 @@
+use fractal_api::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::i18n::i18n;
+use crate::i18n::ni18n_f;
 use gtk;
 use gtk::prelude::*;
-use i18n::i18n;
-use i18n::ni18n_f;
 
-use backend::BKCommand;
-use cache::download_to_cache;
+use crate::backend::BKCommand;
+use crate::cache::download_to_cache;
+use crate::types::Member;
+use crate::util::markup_text;
+use crate::widgets;
+use crate::widgets::avatar::AvatarExt;
+use crate::widgets::members_list::MembersList;
 use fractal_api::types::Room;
 use std::sync::mpsc::Sender;
-use types::Member;
-use util::markup_text;
-use widgets;
-use widgets::avatar::AvatarExt;
-use widgets::members_list::MembersList;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {

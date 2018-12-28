@@ -3,9 +3,9 @@ use gtk::prelude::*;
 use sourceview;
 use sourceview::prelude::*;
 
-use util;
+use crate::util;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_markdown(&self) {

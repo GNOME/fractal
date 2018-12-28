@@ -17,9 +17,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use fractal_api::clone;
 use gst::prelude::*;
 use gst::ClockTime;
 use gst_player;
+use log::{error, warn};
 
 use gtk;
 use gtk::prelude::*;
@@ -38,7 +40,7 @@ trait PlayerExt {
     fn play(&self);
     fn pause(&self);
     fn stop(&self);
-    fn set_uri(&self, &str);
+    fn set_uri(&self, uri: &str);
 }
 
 #[derive(Debug, Clone)]

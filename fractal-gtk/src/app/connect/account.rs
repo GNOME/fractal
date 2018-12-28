@@ -1,10 +1,11 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use glib;
 
-use app::App;
-use i18n::i18n;
+use crate::app::App;
+use crate::i18n::i18n;
 
 impl App {
     pub fn connect_account_settings(&self) {
