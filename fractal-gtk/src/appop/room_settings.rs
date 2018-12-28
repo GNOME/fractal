@@ -1,10 +1,10 @@
 use gtk;
 use gtk::prelude::*;
 
-use actions::AppState;
-use appop::AppOp;
+use crate::actions::AppState;
+use crate::appop::AppOp;
 
-use widgets;
+use crate::widgets;
 
 impl AppOp {
     pub fn create_room_settings(&mut self) -> Option<()> {

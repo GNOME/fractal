@@ -1,3 +1,4 @@
+use fractal_matrix_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
@@ -5,7 +6,7 @@ use gtk::prelude::*;
 use glib;
 use std::sync::{Arc, Mutex};
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_invite_dialog(&self) {

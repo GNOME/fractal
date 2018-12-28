@@ -7,19 +7,19 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
-use appop::AppOp;
-use backend::BKCommand;
-use i18n::i18n;
-use uitypes::MessageContent;
-use uitypes::RowType;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
+use crate::i18n::i18n;
+use crate::uitypes::MessageContent;
+use crate::uitypes::RowType;
 
+use crate::globals;
+use crate::widgets;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
 use glib::source;
-use globals;
 use gtk;
 use gtk::prelude::*;
-use widgets;
 
 struct List {
     list: VecDeque<Element>,
