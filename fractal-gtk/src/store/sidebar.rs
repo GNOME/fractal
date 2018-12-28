@@ -525,7 +525,7 @@ impl Sidebar {
     }
 
     // Remove room to the correct liststore
-    pub fn remove_room(&self, id: &str) {
+    pub fn remove_room(&mut self, id: &str) {
         // favorites
         if let Some(position) = get_position_by_id(&self.favorites, &id) {
             self.favorites.remove(position);
@@ -538,13 +538,15 @@ impl Sidebar {
         if let Some(position) = get_position_by_id(&self.rooms, &id) {
             self.rooms.remove(position);
         }
+        self.store.remove(id);
     }
 
-    pub fn remove_all(&self) {
+    pub fn remove_all(&mut self) {
         self.invites.remove_all();
         self.favorites.remove_all();
         self.rooms.remove_all();
         self.low_priority.remove_all();
+        self.store.clear();
     }
 
     // Update all properties for a row in the sidebar
@@ -588,6 +590,22 @@ impl Sidebar {
                 *selected.lock().unwrap() = SelectedData::new(&listbox, &row);
             }
         });
+    }
+
+    pub fn filter(&self, filter: &str) {
+        let filter = filter.to_lowercase();
+        for (_, obj) in self.store.iter() {
+            if let Some(obj) = obj.upgrade() {
+                if let Some(value) = obj
+                    .get_property("name")
+                    .ok()
+                    .and_then(|x| x.get::<String>())
+                {
+                    let filter = !value.to_lowercase().contains(&filter);
+                    let _ = obj.set_property("hidden", &filter);
+                }
+            }
+        }
     }
 }
 
