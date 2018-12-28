@@ -475,24 +475,6 @@ impl AppOp {
         }
     }
 
-    pub fn update_avatar_account_settings(&mut self, file: String) {
-        let avatar_spinner = self
-            .ui
-            .builder
-            .get_object::<gtk::Spinner>("account_settings_avatar_spinner")
-            .expect("Can't find account_settings_avatar_spinner in ui file.");
-        let avatar_btn = self
-            .ui
-            .builder
-            .get_object::<gtk::Button>("account_settings_avatar_button")
-            .expect("Can't find account_settings_avatar_button in ui file.");
-        let command = BKCommand::SetUserAvatar(file.clone());
-        self.backend.send(command).unwrap();
-        avatar_btn.set_sensitive(false);
-        avatar_spinner.show();
-        self.show_avatar();
-    }
-
     pub fn show_new_username(&mut self, name: Option<String>) {
         let entry = self
             .ui
