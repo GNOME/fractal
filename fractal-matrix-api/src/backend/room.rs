@@ -1,7 +1,5 @@
 use log::error;
-use serde_json;
 use serde_json::json;
-use urlencoding;
 
 use std::fs::File;
 use std::io::prelude::*;
