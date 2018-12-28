@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use md5;
 use serde_json::json;
 
 use crate::backend::BackendData;
