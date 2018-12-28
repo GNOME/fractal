@@ -1,11 +1,14 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use i18n::i18n;
 use i18n::ni18n_f;
 
+use actions;
+use actions::ButtonState;
+use actions::StateExt;
 use backend::BKCommand;
 use cache::download_to_cache;
 use fractal_api::types::Room;
@@ -18,6 +21,7 @@ use widgets::members_list::MembersList;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {
+    actions: gio::SimpleActionGroup,
     room: Room,
     uid: Option<String>,
     builder: gtk::Builder,
@@ -26,14 +30,27 @@ pub struct RoomSettings {
 }
 
 impl RoomSettings {
-    pub fn new(backend: Sender<BKCommand>, uid: Option<String>, room: Room) -> RoomSettings {
+    pub fn new(
+        window: &gtk::Window,
+        backend: Sender<BKCommand>,
+        uid: Option<String>,
+        room: Room,
+    ) -> RoomSettings {
         let builder = gtk::Builder::new();
 
         builder
             .add_from_resource("/org/gnome/Fractal/ui/room_settings.ui")
             .expect("Can't load ui file: room_settings.ui");
 
+        let stack = builder
+            .get_object::<gtk::Stack>("room_settings_stack")
+            .expect("Can't find room_settings_stack in ui file.");
+
+        let actions = actions::RoomSettings::new(&window, &backend);
+        stack.insert_action_group("room-settings", Some(&actions));
+
         RoomSettings {
+            actions,
             room: room,
             uid: uid,
             builder: builder,
@@ -113,6 +130,7 @@ impl RoomSettings {
             button.set_visible(result.is_some());
         }));
 
+        // TODO: create actions for all button
         let button = name_btn.clone();
         name_entry.connect_activate(move |_w| {
             let _ = button.emit("clicked", &[]);
@@ -131,33 +149,27 @@ impl RoomSettings {
             this.borrow_mut().update_room_topic();
         }));
 
-        /* Connect avatar button */
-        avatar_btn.connect_clicked(clone!(this => move |w| {
-            this.borrow_mut().create_file_chooser(w);
-        }));
-    }
-
-    fn create_file_chooser(&mut self, w: &gtk::Button) -> Option<()> {
-        let window = w.get_toplevel()?;
-        if let Ok(window) = window.downcast::<gtk::Window>() {
-            /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
-            let file_chooser = gtk::FileChooserNative::new(
-                i18n("Pick a new room avatar").as_str(),
-                Some(&window),
-                gtk::FileChooserAction::Open,
-                Some(i18n("Select").as_str()),
-                None,
-            );
-            let result = file_chooser.run();
-            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
-                if let Some(file) = file_chooser.get_filename() {
-                    if let Some(path) = file.to_str() {
-                        self.update_room_avatar(String::from(path));
-                    }
+        if let Some(action) = self.actions.lookup_action("change-avatar") {
+            action.bind_button_state(&avatar_btn);
+            let data = glib::Variant::from(&self.room.id);
+            avatar_btn.set_action_target_value(&data);
+            avatar_btn.set_action_name("room-settings.change-avatar");
+            let avatar_spinner = self
+                .builder
+                .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
+                .expect("Can't find room_settings_avatar_spinner in ui file.");
+            let spinner = avatar_spinner.downgrade();
+            avatar_btn.connect_property_sensitive_notify(move |w| {
+                let spinner = upgrade_weak!(spinner);
+                if !w.get_sensitive() {
+                    spinner.start();
+                    spinner.show();
+                } else {
+                    spinner.hide();
+                    spinner.stop();
                 }
-            }
+            });
         }
-        None
     }
 
     fn init_room_settings(&mut self) -> Option<()> {
@@ -438,24 +450,6 @@ impl RoomSettings {
         return None;
     }
 
-    pub fn update_room_avatar(&mut self, file: String) -> Option<()> {
-        let avatar_spinner = self
-            .builder
-            .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
-            .expect("Can't find room_settings_avatar_spinner in ui file.");
-        let avatar_btn = self
-            .builder
-            .get_object::<gtk::Button>("room_settings_avatar_button")
-            .expect("Can't find room_settings_avatar_button in ui file.");
-        let room = &self.room;
-        let command = BKCommand::SetRoomAvatar(room.id.clone(), file.clone());
-        self.backend.send(command).unwrap();
-        self.room_settings_show_avatar(true);
-        avatar_btn.set_sensitive(false);
-        avatar_spinner.show();
-        None
-    }
-
     pub fn update_room_name(&mut self) -> Option<()> {
         let entry = self
             .builder
@@ -529,19 +523,9 @@ impl RoomSettings {
     }
 
     pub fn show_new_room_avatar(&self) {
-        let avatar_spinner = self
-            .builder
-            .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
-            .expect("Can't find room_settings_avatar_spinner in ui file.");
-        let avatar_btn = self
-            .builder
-            .get_object::<gtk::Button>("room_settings_avatar_button")
-            .expect("Can't find room_settings_avatar_button in ui file.");
-
-        /* We could update the avatar for this room,
-         * but we are waiting for the new avatar event */
-        avatar_spinner.hide();
-        avatar_btn.set_sensitive(true);
+        if let Some(action) = self.actions.lookup_action("change-avatar") {
+            action.change_state(&ButtonState::Sensitive.into());
+        }
     }
 
     pub fn show_new_room_name(&self) {
