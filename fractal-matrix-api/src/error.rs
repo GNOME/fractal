@@ -23,8 +23,6 @@ impl From<reqwest::Error> for Error {
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
-derror!(cairo::Status, Error::BackendError);
-derror!(cairo::IoError, Error::BackendError);
 derror!(glib::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
