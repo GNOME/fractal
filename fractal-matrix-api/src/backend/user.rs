@@ -252,10 +252,12 @@ pub fn submit_phone_token(
     Ok(())
 }
 
-pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) {
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu.join("/_matrix/client/unstable/account/3pid/delete")?;
+    let mut url = baseu
+        .join("/_matrix/client/unstable/account/3pid/delete")
+        .expect("Wrong URL in delete_three_pid()");
     url.query_pairs_mut()
         .clear()
         .append_pair("access_token", &tk);
@@ -275,8 +277,6 @@ pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) -> Result<(),
             tx.send(BKResponse::DeleteThreePIDError(err)).unwrap();
         }
     );
-
-    Ok(())
 }
 
 pub fn change_password(
@@ -346,7 +346,7 @@ pub fn account_destruction(
 }
 
 pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let tx = bk.tx.clone();
@@ -367,7 +367,7 @@ pub fn get_user_info_async(
     uid: &str,
     tx: Option<Sender<(String, String)>>,
 ) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     let u = String::from(uid);
 
@@ -429,7 +429,7 @@ pub fn get_avatar_async(
     member: Option<Member>,
     tx: Sender<String>,
 ) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     if member.is_none() {
         tx.send(String::new()).unwrap();
@@ -458,7 +458,7 @@ pub fn get_avatar_async(
 }
 
 pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let id = bk.data.lock().unwrap().user_id.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
