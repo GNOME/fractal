@@ -58,35 +58,44 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
         "type": "m.stickerpicker",
     });
     let d = bk.data.clone();
-    let tx = bk.internal_tx.clone();
+    let itx = bk.internal_tx.clone();
 
-    thread::spawn(move || {
-        let url = vurl(&d, "widgets/request", &[]).unwrap();
-        match json_q("post", &url, &data, globals::TIMEOUT) {
-            Ok(r) => {
-                let mut id = "".to_string();
-                if let Some(i) = r["id"].as_str() {
-                    id = i.to_string();
-                }
-                if let Some(i) = r["data"]["id"].as_str() {
-                    id = i.to_string();
-                }
+    let url = vurl(&d, "widgets/request", &[]).unwrap();
+    post!(
+        &url,
+        &data,
+        |r: JsonValue| {
+            let mut id = "".to_string();
+            if let Some(i) = r["id"].as_str() {
+                id = i.to_string();
+            }
+            if let Some(i) = r["data"]["id"].as_str() {
+                id = i.to_string();
+            }
 
-                let widget_id = if id.is_empty() { None } else { Some(id) };
-                d.lock().unwrap().sticker_widget = widget_id;
+            let widget_id = if id.is_empty() { None } else { Some(id) };
+            d.lock().unwrap().sticker_widget = widget_id;
+
+            if let Some(t) = itx {
+                t.send(then).unwrap();
             }
-            Err(Error::MatrixError(js)) => {
-                let widget_id = js["data"]["id"].as_str().map(|id| id.to_string());
-                d.lock().unwrap().sticker_widget = widget_id;
+        },
+        |err| {
+            match err {
+                Error::MatrixError(js) => {
+                    let widget_id = js["data"]["id"].as_str().map(|id| id.to_string());
+                    d.lock().unwrap().sticker_widget = widget_id;
+                }
+                _ => {
+                    d.lock().unwrap().sticker_widget = None;
+                }
             }
-            Err(_err) => {
-                d.lock().unwrap().sticker_widget = None;
+
+            if let Some(t) = itx {
+                t.send(then).unwrap();
             }
-        };
-        if let Some(t) = tx {
-            t.send(then).unwrap();
         }
-    });
+    );
 
     Ok(())
 }

@@ -11,6 +11,7 @@ use crate::util::parse_m_direct;
 use crate::util::parse_sync_events;
 use log::error;
 use serde_json::json;
+use serde_json::Value as JsonValue;
 use std::{thread, time};
 
 pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
@@ -65,105 +66,108 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
 
     let attrs = json!(null);
 
-    thread::spawn(move || {
-        match json_q("get", &url, &attrs, timeout) {
-            Ok(r) => {
-                let next_batch = String::from(r["next_batch"].as_str().unwrap_or(""));
-                if let Some(since) = since {
-                    // New rooms
-                    match get_rooms_from_json(&r, &userid, &baseu) {
-                        Ok(rs) => tx.send(BKResponse::NewRooms(rs)).unwrap(),
-                        Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
-                    };
+    get!(
+        &url,
+        &attrs,
+        |r: JsonValue| {
+            let next_batch: String = r["next_batch"].as_str().map(Into::into).unwrap_or_default();
+            if let Some(since) = since {
+                // New rooms
+                match get_rooms_from_json(&r, &userid, &baseu) {
+                    Ok(rs) => tx.send(BKResponse::NewRooms(rs)).unwrap(),
+                    Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
+                };
 
-                    // Message events
-                    match get_rooms_timeline_from_json(&baseu, &r, &tk, &since) {
-                        Ok(msgs) => tx.send(BKResponse::RoomMessages(msgs)).unwrap(),
-                        Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
-                    };
-                    // Room notifications
-                    match get_rooms_notifies_from_json(&r) {
-                        Ok(notifies) => {
-                            for (r, n, h) in notifies {
-                                tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
-                                    .unwrap();
-                            }
+                // Message events
+                match get_rooms_timeline_from_json(&baseu, &r, &tk, &since) {
+                    Ok(msgs) => tx.send(BKResponse::RoomMessages(msgs)).unwrap(),
+                    Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
+                };
+                // Room notifications
+                match get_rooms_notifies_from_json(&r) {
+                    Ok(notifies) => {
+                        for (r, n, h) in notifies {
+                            tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
+                                .unwrap();
                         }
-                        Err(_) => {}
-                    };
-                    // Other events
-                    match parse_sync_events(&r) {
-                        Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
-                        Ok(events) => {
-                            for ev in events {
-                                match ev.stype.as_ref() {
-                                    "m.room.name" => {
-                                        let name =
-                                            String::from(ev.content["name"].as_str().unwrap_or(""));
-                                        tx.send(BKResponse::RoomName(ev.room.clone(), name))
-                                            .unwrap();
-                                    }
-                                    "m.room.topic" => {
-                                        let t = String::from(
-                                            ev.content["topic"].as_str().unwrap_or(""),
-                                        );
-                                        tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
-                                    }
-                                    "m.room.avatar" => {
-                                        tx.send(BKResponse::NewRoomAvatar(ev.room.clone()))
-                                            .unwrap();
-                                    }
-                                    "m.room.member" => {
-                                        tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
-                                    }
-                                    "m.sticker" => {
-                                        // This event is managed in the room list
-                                    }
-                                    _ => {
-                                        error!("EVENT NOT MANAGED: {:?}", ev);
-                                    }
+                    }
+                    Err(_) => {}
+                };
+                // Other events
+                match parse_sync_events(&r) {
+                    Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
+                    Ok(events) => {
+                        for ev in events {
+                            match ev.stype.as_ref() {
+                                "m.room.name" => {
+                                    let name = ev.content["name"]
+                                        .as_str()
+                                        .map(Into::into)
+                                        .unwrap_or_default();
+                                    tx.send(BKResponse::RoomName(ev.room.clone(), name))
+                                        .unwrap();
+                                }
+                                "m.room.topic" => {
+                                    let t = ev.content["topic"]
+                                        .as_str()
+                                        .map(Into::into)
+                                        .unwrap_or_default();
+                                    tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
+                                }
+                                "m.room.avatar" => {
+                                    tx.send(BKResponse::NewRoomAvatar(ev.room.clone())).unwrap();
+                                }
+                                "m.room.member" => {
+                                    tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
+                                }
+                                "m.sticker" => {
+                                    // This event is managed in the room list
+                                }
+                                _ => {
+                                    error!("EVENT NOT MANAGED: {:?}", ev);
                                 }
                             }
                         }
-                    };
-                } else {
-                    data.lock().unwrap().m_direct = parse_m_direct(&r);
-
-                    let rooms = match get_rooms_from_json(&r, &userid, &baseu) {
-                        Ok(rs) => rs,
-                        Err(err) => {
-                            tx.send(BKResponse::SyncError(err)).unwrap();
-                            vec![]
-                        }
-                    };
-
-                    let mut def: Option<Room> = None;
-                    let jtr = data.lock().unwrap().join_to_room.clone();
-                    if !jtr.is_empty() {
-                        if let Some(r) = rooms.iter().find(|x| x.id == jtr) {
-                            def = Some(r.clone());
-                        }
                     }
-                    tx.send(BKResponse::Rooms(rooms, def)).unwrap();
-                }
+                };
+            } else {
+                data.lock().unwrap().m_direct = parse_m_direct(&r);
 
-                tx.send(BKResponse::Sync(next_batch.clone())).unwrap();
-                data.lock().unwrap().since = if !next_batch.is_empty() {
-                    Some(next_batch)
-                } else {
-                    None
-                }
-            }
-            Err(err) => {
-                // we wait if there's an error to avoid 100% CPU
-                error!("Sync Error, waiting 10 seconds to respond for the next sync");
-                let ten_seconds = time::Duration::from_millis(10000);
-                thread::sleep(ten_seconds);
+                let rooms = match get_rooms_from_json(&r, &userid, &baseu) {
+                    Ok(rs) => rs,
+                    Err(err) => {
+                        tx.send(BKResponse::SyncError(err)).unwrap();
+                        vec![]
+                    }
+                };
 
-                tx.send(BKResponse::SyncError(err)).unwrap();
+                let mut def: Option<Room> = None;
+                let jtr = data.lock().unwrap().join_to_room.clone();
+                if !jtr.is_empty() {
+                    if let Some(r) = rooms.iter().find(|x| x.id == jtr) {
+                        def = Some(r.clone());
+                    }
+                }
+                tx.send(BKResponse::Rooms(rooms, def)).unwrap();
             }
-        };
-    });
+
+            tx.send(BKResponse::Sync(next_batch.clone())).unwrap();
+            data.lock().unwrap().since = if !next_batch.is_empty() {
+                Some(next_batch)
+            } else {
+                None
+            }
+        },
+        |err| {
+            // we wait if there's an error to avoid 100% CPU
+            error!("Sync Error, waiting 10 seconds to respond for the next sync");
+            let ten_seconds = time::Duration::from_millis(10000);
+            thread::sleep(ten_seconds);
+
+            tx.send(BKResponse::SyncError(err)).unwrap();
+        },
+        timeout
+    );
 
     Ok(())
 }
