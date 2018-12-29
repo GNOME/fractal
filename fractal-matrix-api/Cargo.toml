@@ -29,10 +29,6 @@ urlencoding = "1.0.0"
 md5 = "0.6.1"
 lazy_static = "1.2.0"
 
-[dependencies.cairo-rs]
-features = ["png"]
-version = "0.5.0"
-
 [dependencies.chrono]
 features = ["serde"]
 version = "0.4.6"

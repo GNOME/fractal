@@ -1,4 +1,3 @@
-use cairo;
 use glib;
 use regex;
 use reqwest;
@@ -29,8 +28,6 @@ impl From<reqwest::Error> for Error {
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
-derror!(cairo::Status, Error::BackendError);
-derror!(cairo::IoError, Error::BackendError);
 derror!(glib::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
