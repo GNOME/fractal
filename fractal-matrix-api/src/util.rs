@@ -2,11 +2,10 @@ use reqwest;
 
 use serde_json::Value as JsonValue;
 
-use glib;
+use directories::ProjectDirs;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use std::path::PathBuf;
 use tree_magic;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
@@ -860,38 +859,21 @@ pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
 }
 
 pub fn cache_path(name: &str) -> Result<String, Error> {
-    let mut path = match glib::get_user_cache_dir() {
-        Some(path) => path,
-        None => PathBuf::from("/tmp"),
-    };
-
-    path.push("fractal");
-
-    if !path.exists() {
-        create_dir_all(&path)?;
-    }
-
-    path.push(name);
-
-    Ok(path.into_os_string().into_string()?)
+    cache_dir_path("", name)
 }
 
 pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
-    let mut path = match glib::get_user_cache_dir() {
-        Some(path) => path,
-        None => PathBuf::from("/tmp"),
-    };
+    let path = &ProjectDirs::from("org", "GNOME", "Fractal")
+        .map(|project_dir| project_dir.cache_dir().to_path_buf())
+        .unwrap_or(std::env::temp_dir().join("fractal"))
+        .join(dir)
+        .join(name);
 
-    path.push("fractal");
-    path.push(dir);
-
-    if !path.exists() {
-        create_dir_all(&path)?;
+    if !path.is_dir() {
+        create_dir_all(path.parent().expect("Wrong cache directory path"))?;
     }
 
-    path.push(name);
-
-    Ok(path.into_os_string().into_string()?)
+    path.to_str().map(Into::into).ok_or(Error::CacheError)
 }
 
 pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
