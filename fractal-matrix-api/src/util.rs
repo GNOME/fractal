@@ -114,6 +114,13 @@ macro_rules! post {
 }
 
 #[macro_export]
+macro_rules! put {
+    ($($args: expr),+) => {
+        query!("put", $($args),+)
+    };
+}
+
+#[macro_export]
 macro_rules! query {
     ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
         thread::spawn(move || {
