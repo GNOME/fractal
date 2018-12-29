@@ -16,7 +16,7 @@ use crate::util::thumb;
 use crate::types::Message;
 
 pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match thumb(&baseu, &media, None) {
@@ -33,7 +33,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
 }
 
 pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match util::media(&baseu, &media, None) {
@@ -56,7 +56,7 @@ pub fn get_media_list_async(
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let room = String::from(roomid);
 
@@ -80,7 +80,7 @@ pub fn get_media_list_async(
 }
 
 pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     let tx = bk.tx.clone();
     thread::spawn(move || {
@@ -98,7 +98,7 @@ pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
 }
 
 pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match resolve_media_url(&baseu, &media, false, 0, 0) {
