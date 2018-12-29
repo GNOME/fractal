@@ -157,8 +157,7 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
 }
 
 fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Result<Url, Error> {
-    let s = data.lock().unwrap().server_url.clone();
-    let url = Url::parse(&s)?;
+    let url = data.lock().unwrap().server_url.clone();
     Ok(url)
 }
 
