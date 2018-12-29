@@ -11,10 +11,11 @@ use backend::types::BKResponse;
 use backend::types::Backend;
 
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
-    let url = Url::parse(server)
-        .unwrap()
-        .join("/_matrix/client/r0/register?kind=guest")?;
-    bk.data.lock().unwrap().server_url = Url::parse(server)?;
+    let baseu = Url::parse(server)?;
+    let url = baseu
+        .join("/_matrix/client/r0/register?kind=guest")
+        .unwrap();
+    bk.data.lock().unwrap().server_url = baseu;
 
     let data = bk.data.clone();
     let tx = bk.tx.clone();
