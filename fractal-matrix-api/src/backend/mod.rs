@@ -52,13 +52,12 @@ impl Backend {
         }
     }
 
-    fn get_base_url(&self) -> Result<Url, Error> {
-        let url = self.data.lock().unwrap().server_url.clone();
-        Ok(url)
+    fn get_base_url(&self) -> Url {
+        self.data.lock().unwrap().server_url.clone()
     }
 
     fn url(&self, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-        let base = self.get_base_url()?;
+        let base = self.get_base_url();
         let tk = self.data.lock().unwrap().access_token.clone();
 
         let mut params2 = params.to_vec();
@@ -137,8 +136,7 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::AddThreePIDError);
             }
             Ok(BKCommand::DeleteThreePID(medium, address)) => {
-                let r = user::delete_three_pid(self, &medium, &address);
-                bkerror!(r, tx, BKResponse::DeleteThreePIDError);
+                user::delete_three_pid(self, &medium, &address);
             }
             Ok(BKCommand::ChangePassword(username, old_password, new_password)) => {
                 let r = user::change_password(self, &username, &old_password, &new_password);
@@ -301,8 +299,7 @@ impl Backend {
 
             // Directory module
             Ok(BKCommand::DirectoryProtocols) => {
-                let r = directory::protocols(self);
-                bkerror!(r, tx, BKResponse::DirectoryError);
+                directory::protocols(self);
             }
             Ok(BKCommand::DirectorySearch(dhs, dq, dtp, more)) => {
                 let hs = match dhs {
