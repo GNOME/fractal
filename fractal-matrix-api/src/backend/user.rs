@@ -478,14 +478,13 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
             Ok(js) => {
                 let uri = js["content_uri"].as_str().unwrap_or_default();
                 let attrs = json!({ "avatar_url": uri });
-                match json_q("put", &url, &attrs, 0) {
-                    Ok(_) => {
-                        tx.send(BKResponse::SetUserAvatar(avatar)).unwrap();
-                    }
-                    Err(err) => {
-                        tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
-                    }
-                };
+                put!(
+                    &url,
+                    &attrs,
+                    |_| tx.send(BKResponse::SetUserAvatar(avatar)).unwrap(),
+                    |err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap(),
+                    0
+                );
             }
         };
     });
