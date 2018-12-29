@@ -34,7 +34,8 @@ impl Backend {
         let data = BackendData {
             user_id: String::from("Guest"),
             access_token: String::new(),
-            server_url: String::from("https://matrix.org"),
+            server_url: Url::parse("https://matrix.org")
+                .expect("Wrong server_url value in BackendData"),
             scalar_token: None,
             scalar_url: String::from("https://scalar.vector.im"),
             sticker_widget: None,
@@ -53,8 +54,7 @@ impl Backend {
     }
 
     fn get_base_url(&self) -> Result<Url, Error> {
-        let s = self.data.lock().unwrap().server_url.clone();
-        let url = Url::parse(&s)?;
+        let url = self.data.lock().unwrap().server_url.clone();
         Ok(url)
     }
 
