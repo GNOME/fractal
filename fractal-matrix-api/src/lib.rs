@@ -9,7 +9,6 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate cairo;
 extern crate chrono;
 extern crate glib;
 extern crate md5;
