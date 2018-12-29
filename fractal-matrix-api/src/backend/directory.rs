@@ -6,6 +6,7 @@ use globals;
 use backend::types::BKResponse;
 use backend::types::Backend;
 use error::Error;
+use std::str::Split;
 use std::thread;
 
 use util::cache_path;
@@ -24,7 +25,6 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
         .append_pair("access_token", &tk);
 
     let tx = bk.tx.clone();
-    let s = bk.data.lock().unwrap().server_url.clone();
     get!(
         &url,
         move |r: JsonValue| {
@@ -32,7 +32,11 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
 
             protocols.push(Protocol {
                 id: String::from(""),
-                desc: String::from(s.split('/').last().unwrap_or("")),
+                desc: baseu
+                    .path_segments()
+                    .and_then(Split::last)
+                    .unwrap_or("")
+                    .into(),
             });
 
             if let Some(prs) = r.as_object() {
