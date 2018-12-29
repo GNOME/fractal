@@ -14,7 +14,7 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
     let url = Url::parse(server)
         .unwrap()
         .join("/_matrix/client/r0/register?kind=guest")?;
-    bk.data.lock().unwrap().server_url = String::from(server);
+    bk.data.lock().unwrap().server_url = Url::parse(server)?;
 
     let data = bk.data.clone();
     let tx = bk.tx.clone();
@@ -66,8 +66,7 @@ fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
 }
 
 pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
-    let s = String::from(server);
-    bk.data.lock().unwrap().server_url = s;
+    bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("login", &[])?;
 
     let attrs = build_login_attrs(user, password)?;
@@ -99,8 +98,7 @@ pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(
 }
 
 pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Result<(), Error> {
-    let s = String::from(server);
-    bk.data.lock().unwrap().server_url = s;
+    bk.data.lock().unwrap().server_url = Url::parse(server)?;
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
@@ -130,8 +128,7 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
 }
 
 pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
-    let s = String::from(server);
-    bk.data.lock().unwrap().server_url = s;
+    bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("register", &vec![("kind", String::from("user"))])?;
 
     let attrs = json!({

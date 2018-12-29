@@ -186,7 +186,7 @@ pub enum RoomType {
 pub struct BackendData {
     pub user_id: String,
     pub access_token: String,
-    pub server_url: String,
+    pub server_url: Url,
     pub scalar_token: Option<String>,
     pub scalar_url: String,
     pub sticker_widget: Option<String>,
