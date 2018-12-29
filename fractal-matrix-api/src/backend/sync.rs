@@ -57,7 +57,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         timeout = 0;
     }
 
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let url = bk.url("sync", &params)?;
 
     let tx = bk.tx.clone();
