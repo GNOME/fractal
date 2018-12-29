@@ -102,27 +102,15 @@ macro_rules! bkerror {
 
 #[macro_export]
 macro_rules! get {
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        query!("get", $url, $attrs, $okcb, $errcb, $timeout)
-    };
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!("get", $url, $attrs, $okcb, $errcb)
-    };
-    ($url: expr, $okcb: expr, $errcb: expr) => {
-        query!("get", $url, $okcb, $errcb)
+    ($($args: expr),+) => {
+        query!("get", $($args),+)
     };
 }
 
 #[macro_export]
 macro_rules! post {
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
-        query!("post", $url, $attrs, $okcb, $errcb, $timeout)
-    };
-    ($url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!("post", $url, $attrs, $okcb, $errcb)
-    };
-    ($url: expr, $okcb: expr, $errcb: expr) => {
-        query!("post", $url, $okcb, $errcb)
+    ($($args: expr),+) => {
+        query!("post", $($args),+)
     };
 }
 
