@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::io;
 use std::time::SystemTimeError;
 
@@ -23,8 +22,6 @@ impl From<reqwest::Error> for Error {
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
-derror!(glib::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
-derror!(OsString, Error::CacheError);
 derror!(serde_json::Error, Error::CacheError);
