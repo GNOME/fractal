@@ -16,7 +16,7 @@ repository = "https://gitlab.gnome.org/GNOME/fractal"
 documentation = "https://gnome.pages.gitlab.gnome.org/fractal/fractal_matrix_api/index.html"
 
 [dependencies]
-glib = "0.6.1"
+directories = "1.0.2"
 lazy_static = "1.2.0"
 log = "0.4.6"
 md5 = "0.6.1"
