@@ -16,7 +16,7 @@ documentation = "https://gnome.pages.gitlab.gnome.org/fractal/fractal_matrix_api
 
 [dependencies]
 log = "0.4.6"
-glib = "0.6.1"
+directories = "1.0.2"
 regex = "1.1.0"
 reqwest = "0.9.5"
 serde = "1.0.82"

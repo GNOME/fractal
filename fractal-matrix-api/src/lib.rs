@@ -8,7 +8,7 @@ extern crate serde_derive;
 extern crate log;
 
 extern crate chrono;
-extern crate glib;
+extern crate directories;
 extern crate md5;
 extern crate regex;
 extern crate reqwest;
