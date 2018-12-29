@@ -58,7 +58,7 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
 
 pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
     let userid = bk.data.lock().unwrap().user_id.clone();
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let url = bk.url(&format!("rooms/{}/state/m.room.avatar", roomid), &[])?;
 
@@ -153,7 +153,7 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
 pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) -> Result<(), Error> {
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let id = msg.id.unwrap_or_default();
     let tx = bk.internal_tx.clone();
@@ -226,7 +226,7 @@ fn parse_context(
 
 pub fn get_message_context(bk: &Backend, msg: Message) -> Result<(), Error> {
     let tx = bk.tx.clone();
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let roomid = msg.room.clone();
     let msgid = msg.id.unwrap_or_default();
     let tk = bk.data.lock().unwrap().access_token.clone();
@@ -427,7 +427,7 @@ pub fn set_room_topic(bk: &Backend, roomid: &str, topic: &str) -> Result<(), Err
 }
 
 pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", &params)?;
@@ -471,7 +471,7 @@ pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
     let mut contents: Vec<u8> = vec![];
     file.read_to_end(&mut contents)?;
 
-    let baseu = bk.get_base_url()?;
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", &params)?;

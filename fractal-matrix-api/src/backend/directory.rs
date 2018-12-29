@@ -17,10 +17,12 @@ use crate::util::media;
 use crate::types::Protocol;
 use crate::types::Room;
 
-pub fn protocols(bk: &Backend) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+pub fn protocols(bk: &Backend) {
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu.join("/_matrix/client/unstable/thirdparty/protocols")?;
+    let mut url = baseu
+        .join("/_matrix/client/unstable/thirdparty/protocols")
+        .unwrap();
     url.query_pairs_mut()
         .clear()
         .append_pair("access_token", &tk);
@@ -59,8 +61,6 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
             tx.send(BKResponse::DirectoryError(err)).unwrap();
         }
     );
-
-    Ok(())
 }
 
 pub fn room_search(
@@ -82,7 +82,7 @@ pub fn room_search(
     }
 
     let url = bk.url("publicRooms", &params)?;
-    let base = bk.get_base_url()?;
+    let base = bk.get_base_url();
 
     let mut attrs = json!({ "limit": globals::ROOM_DIRECTORY_LIMIT });
 

@@ -165,9 +165,8 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     Ok(())
 }
 
-fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Result<Url, Error> {
-    let url = data.lock().unwrap().server_url.clone();
-    Ok(url)
+fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Url {
+    data.lock().unwrap().server_url.clone()
 }
 
 fn url(
@@ -175,7 +174,7 @@ fn url(
     path: &str,
     params: &[(&str, String)],
 ) -> Result<Url, Error> {
-    let base = get_base_url(data)?;
+    let base = get_base_url(data);
     let tk = data.lock().unwrap().access_token.clone();
 
     let mut params2 = params.to_vec();
@@ -191,7 +190,7 @@ fn get_scalar_token(data: &Arc<Mutex<BackendData>>) -> Result<String, Error> {
     let url = url(data, &format!("user/{}/openid/request_token", uid), &[])?;
     let js = json_q("post", &url, &json!({}), globals::TIMEOUT)?;
 
-    let vurl = base.join("/api/register")?;
+    let vurl = base.join("/api/register").unwrap();
     let js = json_q("post", &vurl, &js, globals::TIMEOUT)?;
 
     match js["scalar_token"].as_str() {
