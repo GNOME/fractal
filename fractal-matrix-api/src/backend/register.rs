@@ -133,7 +133,7 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
 pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
     let s = String::from(server);
     bk.data.lock().unwrap().server_url = s;
-    let url = bk.url("register", &vec![("kind", String::from("user"))])?;
+    let url = bk.url("register", &[("kind", String::from("user"))])?;
 
     let attrs = json!({
         "auth": {"type": "m.login.password"},
