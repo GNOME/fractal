@@ -59,7 +59,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     }
 
     let baseu = bk.get_base_url()?;
-    let url = bk.url("sync", &params)?;
+    let url = bk.url("sync", params)?;
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
