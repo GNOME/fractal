@@ -36,7 +36,7 @@ impl Backend {
             access_token: String::new(),
             server_url: Url::parse("https://matrix.org").unwrap(),
             scalar_token: None,
-            scalar_url: String::from("https://scalar.vector.im"),
+            scalar_url: Url::parse("https://scalar.vector.im").unwrap(),
             sticker_widget: None,
             since: None,
             rooms_since: String::new(),
