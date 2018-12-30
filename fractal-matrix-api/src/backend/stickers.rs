@@ -184,13 +184,13 @@ fn url(
 }
 
 fn get_scalar_token(data: &Arc<Mutex<BackendData>>) -> Result<String, Error> {
-    let s = data.lock().unwrap().scalar_url.clone();
+    let base = data.lock().unwrap().scalar_url.clone();
     let uid = data.lock().unwrap().user_id.clone();
 
     let url = url(data, &format!("user/{}/openid/request_token", uid), vec![])?;
     let js = json_q("post", &url, &json!({}), globals::TIMEOUT)?;
 
-    let vurl = Url::parse(&format!("{}/api/register", s))?;
+    let vurl = base.join("/api/register")?;
     let js = json_q("post", &vurl, &js, globals::TIMEOUT)?;
 
     match js["scalar_token"].as_str() {
@@ -207,8 +207,7 @@ fn vurl(
     path: &str,
     mut params: Vec<(&str, String)>,
 ) -> Result<Url, Error> {
-    let s = data.lock().unwrap().scalar_url.clone();
-    let base = Url::parse(&s)?;
+    let base = data.lock().unwrap().scalar_url.clone();
     let token = data.lock().unwrap().scalar_token.clone();
     let tk = match token {
         None => get_scalar_token(&data)?,

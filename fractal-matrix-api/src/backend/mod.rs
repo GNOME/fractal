@@ -37,7 +37,8 @@ impl Backend {
             server_url: Url::parse("https://matrix.org")
                 .expect("Wrong server_url value in BackendData"),
             scalar_token: None,
-            scalar_url: String::from("https://scalar.vector.im"),
+            scalar_url: Url::parse("https://scalar.vector.im")
+                .expect("Wrong scalar_url value in BackendData"),
             sticker_widget: None,
             since: None,
             rooms_since: String::new(),
