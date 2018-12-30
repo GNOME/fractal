@@ -69,7 +69,7 @@ fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
 pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
     let s = String::from(server);
     bk.data.lock().unwrap().server_url = s;
-    let url = bk.url("login", &[])?;
+    let url = bk.url("login", vec![])?;
 
     let attrs = build_login_attrs(user, password)?;
     let data = bk.data.clone();
@@ -111,7 +111,7 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Resu
 }
 
 pub fn logout(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url("logout", &[])?;
+    let url = bk.url("logout", vec![])?;
     let attrs = json!({});
 
     let data = bk.data.clone();
@@ -133,7 +133,7 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
 pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
     let s = String::from(server);
     bk.data.lock().unwrap().server_url = s;
-    let url = bk.url("register", &vec![("kind", String::from("user"))])?;
+    let url = bk.url("register", vec![("kind", String::from("user"))])?;
 
     let attrs = json!({
         "auth": {"type": "m.login.password"},
