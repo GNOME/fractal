@@ -76,7 +76,7 @@ pub fn room_search(
         params.push(("server", hs));
     }
 
-    let url = bk.url("publicRooms", &params)?;
+    let url = bk.url("publicRooms", params)?;
     let base = bk.get_base_url()?;
 
     let mut attrs = json!({ "limit": globals::ROOM_DIRECTORY_LIMIT });
