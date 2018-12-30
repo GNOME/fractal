@@ -188,7 +188,7 @@ pub struct BackendData {
     pub access_token: String,
     pub server_url: Url,
     pub scalar_token: Option<String>,
-    pub scalar_url: String,
+    pub scalar_url: Url,
     pub sticker_widget: Option<String>,
     pub since: Option<String>,
     pub rooms_since: String,
