@@ -58,14 +58,13 @@ impl Backend {
         Ok(url)
     }
 
-    fn url(&self, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
+    fn url(&self, path: &str, mut params: Vec<(&str, String)>) -> Result<Url, Error> {
         let base = self.get_base_url()?;
         let tk = self.data.lock().unwrap().access_token.clone();
 
-        let mut params2 = params.to_vec();
-        params2.push(("access_token", tk.clone()));
+        params.push(("access_token", tk));
 
-        client_url(&base, path, &params2)
+        client_url(&base, path, &params)
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {

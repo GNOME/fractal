@@ -25,7 +25,7 @@ use serde_json::Value as JsonValue;
 
 pub fn get_username(bk: &Backend) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -41,7 +41,7 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
 
 pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
 
     let attrs = json!({
         "displayname": name,
@@ -64,7 +64,7 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
 }
 
 pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), &[])?;
+    let url = bk.url(&format!("account/3pid"), vec![])?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -111,7 +111,7 @@ pub fn get_email_token(
     email: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url("account/3pid/email/requestToken", &[])?;
+    let url = bk.url("account/3pid/email/requestToken", vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -150,7 +150,7 @@ pub fn get_phone_token(
     phone: &str,
     client_secret: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), &[])?;
+    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
 
     let attrs = json!({
         "id_server": identity[8..],
@@ -190,7 +190,7 @@ pub fn add_threepid(
     client_secret: &str,
     sid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), &[])?;
+    let url = bk.url(&format!("account/3pid"), vec![])?;
     let attrs = json!({
         "three_pid_creds": {
             "id_server": identity[8..],
@@ -283,7 +283,7 @@ pub fn change_password(
     old_password: &str,
     new_password: &str,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/password"), &[])?;
+    let url = bk.url(&format!("account/password"), vec![])?;
 
     let attrs = json!({
         "new_password": new_password,
@@ -316,7 +316,7 @@ pub fn account_destruction(
     password: &str,
     flag: bool,
 ) -> Result<(), Error> {
-    let url = bk.url(&format!("account/deactivate"), &[])?;
+    let url = bk.url(&format!("account/deactivate"), vec![])?;
 
     let attrs = json!({
         "erase": flag,
@@ -409,7 +409,7 @@ pub fn get_user_info_async(
 }
 
 pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Result<(), Error> {
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), &[])?;
+    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
     get!(
         &url,
         |r: JsonValue| {
@@ -461,7 +461,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = vec![("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", &params)?;
-    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), &[])?;
+    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
 
     let mut file = File::open(&avatar)?;
     let mut contents: Vec<u8> = vec![];
@@ -492,7 +492,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
 }
 
 pub fn search(bk: &Backend, term: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("user_directory/search"), &[])?;
+    let url = bk.url(&format!("user_directory/search"), vec![])?;
 
     let attrs = json!({
         "search_term": term,
