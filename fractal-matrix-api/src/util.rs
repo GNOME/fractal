@@ -419,10 +419,10 @@ pub fn get_prev_batch_from(
     roomid: &str,
     evid: &str,
 ) -> Result<String, Error> {
-    let params = vec![("access_token", String::from(tk)), ("limit", 0.to_string())];
+    let params = &[("access_token", String::from(tk)), ("limit", 0.to_string())];
 
     let path = format!("rooms/{}/context/{}", roomid, evid);
-    let url = client_url(baseu, &path, &params)?;
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
@@ -674,7 +674,7 @@ pub fn get_room_st(base: &Url, tk: &str, roomid: &str) -> Result<JsonValue, Erro
     let url = client_url(
         base,
         &format!("rooms/{}/state", roomid),
-        &vec![("access_token", String::from(tk))],
+        &[("access_token", String::from(tk))],
     )?;
 
     let attrs = json!(null);
@@ -791,17 +791,16 @@ pub fn fill_room_gap(
     let mut ms: Vec<Message> = vec![];
     let nend;
 
-    let mut params = vec![
+    let params = &[
         ("dir", String::from("f")),
         ("limit", format!("{}", globals::PAGE_LIMIT)),
         ("access_token", tk.clone()),
+        ("from", String::from(from)),
+        ("to", String::from(to)),
     ];
 
-    params.push(("from", String::from(from)));
-    params.push(("to", String::from(to)));
-
     let path = format!("rooms/{}/messages", roomid);
-    let url = client_url(baseu, &path, &params)?;
+    let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
     nend = String::from(r["end"].as_str().unwrap_or_default());

@@ -224,13 +224,13 @@ pub fn submit_phone_token(
     sid: String,
     token: String,
 ) -> Result<(), Error> {
-    let params = vec![
+    let params = &[
         ("sid", sid.clone()),
         ("client_secret", client_secret.clone()),
         ("token", token),
     ];
     let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
-    let url = build_url(&Url::parse(&url)?, path, &params)?;
+    let url = build_url(&Url::parse(&url)?, path, params)?;
 
     let tx = bk.tx.clone();
     post!(
@@ -461,8 +461,8 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
     let id = bk.data.lock().unwrap().user_id.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let params = vec![("access_token", tk.clone())];
-    let mediaurl = media_url(&baseu, "upload", &params)?;
+    let params = &[("access_token", tk.clone())];
+    let mediaurl = media_url(&baseu, "upload", params)?;
     let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
 
     let mut file = File::open(&avatar)?;
