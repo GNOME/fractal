@@ -44,8 +44,7 @@ impl App {
                     let end = buffer.get_end_iter();
 
                     if let Some(text) = buffer.get_text(&start, &end, false) {
-                        let mut mut_text = text;
-                        op.lock().unwrap().send_message(mut_text);
+                        op.lock().unwrap().send_message(text);
                     }
 
                     buffer.set_text("");
