@@ -1,9 +1,8 @@
-use chrono::prelude::*;
 use comrak::{markdown_to_html, ComrakOptions};
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use log::error;
 use std::fs;
 use std::path::PathBuf;
 use tree_magic;
@@ -32,7 +31,7 @@ impl AppOp {
         let room = self.rooms.get(room_id)?;
         room.messages
             .iter()
-            .find(|m| m.id == Some(id.to_string()))
+            .find(|m| m.id == id.to_string())
             .cloned()
     }
 
@@ -127,7 +126,7 @@ impl AppOp {
             self.backend
                 .send(BKCommand::MarkAsRead(
                     last_message.room.clone(),
-                    last_message.id.clone()?,
+                    last_message.id.clone(),
                 ))
                 .unwrap();
         }
@@ -140,7 +139,7 @@ impl AppOp {
                 w.destroy();
             }
             m.widget = None;
-            m.msg.id = Some(evid);
+            m.msg.id = evid;
             self.show_room_messages(vec![m.msg.clone()]);
         }
         self.force_dequeue_message();
@@ -186,106 +185,80 @@ impl AppOp {
             return;
         }
 
-        let room = self.active_room.clone();
-        let now = Local::now();
+        if let Some(room) = self.active_room.clone() {
+            if let Some(sender) = self.uid.clone() {
+                let body = msg.clone();
+                let mtype = String::from("m.text");
+                let mut m = Message::new(room, sender, body, mtype);
 
-        let mtype = String::from("m.text");
+                if msg.starts_with("/me ") {
+                    m.body = msg.trim_left_matches("/me ").to_owned();
+                    m.mtype = String::from("m.emote");
+                }
 
-        let mut m = Message {
-            sender: self.uid.clone().unwrap_or_default(),
-            mtype: mtype,
-            body: msg.clone(),
-            room: room.clone().unwrap_or_default(),
-            date: now,
-            thumb: None,
-            url: None,
-            id: None,
-            formatted_body: None,
-            format: None,
-            source: None,
-            receipt: HashMap::new(),
-            redacted: false,
-            in_reply_to: None,
-            extra_content: None,
-        };
+                // Riot does not properly show emotes with Markdown;
+                // Emotes with markdown have a newline after the username
+                if m.mtype != "m.emote" && self.md_enabled {
+                    let mut md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
-        if msg.starts_with("/me ") {
-            m.body = msg.trim_left_matches("/me ").to_owned();
-            m.mtype = String::from("m.emote");
-        }
+                    // Removing wrap tag: <p>..</p>\n
+                    let limit = md_parsed_msg.len() - 5;
+                    let trim = match (md_parsed_msg.get(0..3), md_parsed_msg.get(limit..)) {
+                        (Some(open), Some(close)) if open == "<p>" && close == "</p>\n" => true,
+                        _ => false,
+                    };
+                    if trim {
+                        md_parsed_msg = md_parsed_msg
+                            .get(3..limit)
+                            .unwrap_or(&md_parsed_msg)
+                            .to_string();
+                    }
 
-        // Riot does not properly show emotes with Markdown;
-        // Emotes with markdown have a newline after the username
-        if m.mtype != "m.emote" && self.md_enabled {
-            let mut md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
+                    if md_parsed_msg != msg {
+                        m.formatted_body = Some(md_parsed_msg);
+                        m.format = Some(String::from("org.matrix.custom.html"));
+                    }
+                }
 
-            // Removing wrap tag: <p>..</p>\n
-            let limit = md_parsed_msg.len() - 5;
-            let trim = match (md_parsed_msg.get(0..3), md_parsed_msg.get(limit..)) {
-                (Some(open), Some(close)) if open == "<p>" && close == "</p>\n" => true,
-                _ => false,
-            };
-            if trim {
-                md_parsed_msg = md_parsed_msg
-                    .get(3..limit)
-                    .unwrap_or(&md_parsed_msg)
-                    .to_string();
+                self.add_tmp_room_message(m);
+                self.dequeue_message();
+            } else {
+                error!("Can't send message: No user is logged in");
             }
-
-            if md_parsed_msg != msg {
-                m.formatted_body = Some(md_parsed_msg);
-                m.format = Some(String::from("org.matrix.custom.html"));
-            }
+        } else {
+            error!("Can't send message: No active room");
         }
-
-        m.id = Some(m.get_txn_id());
-        self.add_tmp_room_message(m.clone());
-        self.dequeue_message();
     }
 
-    pub fn attach_message(&mut self, path: PathBuf) -> Option<()> {
-        let now = Local::now();
-        let room = self.active_room.clone()?;
-        let mime = tree_magic::from_filepath(&path);
-        let mtype = match mime.as_ref() {
-            "image/gif" => "m.image",
-            "image/png" => "m.image",
-            "image/jpeg" => "m.image",
-            "image/jpg" => "m.image",
-            _ => "m.file",
-        };
-        let body = path.file_name().and_then(|s| s.to_str());
-        let path_string = path.to_str()?.to_string();
+    pub fn attach_message(&mut self, path: PathBuf) {
+        if let Some(room) = self.active_room.clone() {
+            if let Some(sender) = self.uid.clone() {
+                let mime = tree_magic::from_filepath(&path);
+                let mtype = match mime.as_ref() {
+                    "image/gif" => "m.image",
+                    "image/png" => "m.image",
+                    "image/jpeg" => "m.image",
+                    "image/jpg" => "m.image",
+                    _ => "m.file",
+                };
+                let body = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or_default();
+                let path_string = path.to_str().unwrap_or_default();
 
-        let info = match mtype {
-            "m.image" => get_image_media_info(&path_string, mime.as_ref()),
-            _ => None,
-        };
-
-        // TODO: write constructor for Message
-        let mut m = Message {
-            sender: self.uid.clone()?,
-            mtype: mtype.to_string(),
-            body: body?.to_string(),
-            room,
-            date: now,
-            thumb: None,
-            url: Some(path_string),
-            id: None,
-            formatted_body: None,
-            format: None,
-            source: None,
-            receipt: HashMap::new(),
-            redacted: false,
-            in_reply_to: None,
-            extra_content: info,
-        };
-
-        m.id = Some(m.get_txn_id());
-        self.add_tmp_room_message(m);
-        self.dequeue_message();
-
-        Some(())
+                let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
+                if mtype == "m.image" {
+                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                }
+                self.add_tmp_room_message(m);
+                self.dequeue_message();
+            } else {
+                error!("Can't send message: No user is logged in");
+            }
+        } else {
+            error!("Can't send message: No active room");
+        }
     }
 
     /// This method is called when a tmp message with an attach is sent correctly
@@ -321,15 +294,13 @@ impl AppOp {
                     || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
 
             if should_notify {
-                if let Some(ref id) = msg.id {
-                    let window: gtk::Window = self
-                        .ui
-                        .builder
-                        .get_object("main_window")
-                        .expect("Can't find main_window in ui file.");
-                    if let Some(app) = window.get_application() {
-                        self.notify(app, &msg.room, id);
-                    }
+                let window: gtk::Window = self
+                    .ui
+                    .builder
+                    .get_object("main_window")
+                    .expect("Can't find main_window in ui file.");
+                if let Some(app) = window.get_application() {
+                    self.notify(app, &msg.room, &msg.id);
                 }
             }
 
@@ -465,7 +436,7 @@ fn create_ui_message(
 ) -> MessageContent {
     MessageContent {
         msg: msg.clone(),
-        id: msg.id.unwrap_or_default(),
+        id: msg.id,
         sender: msg.sender,
         sender_name: name,
         mtype: t,

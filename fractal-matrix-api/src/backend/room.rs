@@ -155,11 +155,10 @@ pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) ->
     // normal get_room_messages
     let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let id = msg.id.unwrap_or_default();
     let tx = bk.internal_tx.clone();
 
     thread::spawn(move || {
-        if let Ok(from) = util::get_prev_batch_from(&baseu, &tk, &roomid, &id) {
+        if let Ok(from) = util::get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
             if let Some(t) = tx {
                 t.send(BKCommand::GetRoomMessages(roomid, from)).unwrap();
             }
@@ -228,10 +227,9 @@ pub fn get_message_context(bk: &Backend, msg: Message) -> Result<(), Error> {
     let tx = bk.tx.clone();
     let baseu = bk.get_base_url();
     let roomid = msg.room.clone();
-    let msgid = msg.id.unwrap_or_default();
     let tk = bk.data.lock().unwrap().access_token.clone();
 
-    parse_context(tx, tk, baseu, roomid, &msgid, globals::PAGE_LIMIT)?;
+    parse_context(tx, tk, baseu, roomid, &msg.id, globals::PAGE_LIMIT)?;
 
     Ok(())
 }
@@ -239,9 +237,8 @@ pub fn get_message_context(bk: &Backend, msg: Message) -> Result<(), Error> {
 pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
     let roomid = msg.room.clone();
 
-    let id = msg.id.unwrap_or_default();
     let url = bk.url(
-        &format!("rooms/{}/send/m.room.message/{}", roomid, id),
+        &format!("rooms/{}/send/m.room.message/{}", roomid, msg.id),
         vec![],
     )?;
 
@@ -250,16 +247,16 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
         "msgtype": msg.mtype.clone()
     });
 
-    if let Some(u) = msg.url {
+    if let Some(ref u) = msg.url {
         attrs["url"] = json!(u);
     }
 
-    if let (Some(f), Some(f_b)) = (msg.format, msg.formatted_body) {
+    if let (Some(f), Some(f_b)) = (msg.format.as_ref(), msg.formatted_body.as_ref()) {
         attrs["formatted_body"] = json!(f_b);
         attrs["format"] = json!(f);
     }
 
-    if let Some(xctx) = msg.extra_content {
+    if let Some(xctx) = msg.extra_content.as_ref() {
         if let Some(xctx) = xctx.as_object() {
             for (k, v) in xctx {
                 attrs[k] = v.clone();
@@ -274,10 +271,11 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string())).unwrap();
+            tx.send(BKResponse::SentMsg(msg.id, evid.to_string()))
+                .unwrap();
         },
         |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
+            tx.send(BKResponse::SendMsgError(Error::SendMsgError(msg.id)))
                 .unwrap();
         }
     );
@@ -287,11 +285,10 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
 
 pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
     let roomid = msg.room.clone();
-    let msgid = msg.id.clone().unwrap_or_default();
-    let txnid = msg.get_txn_id();
+    let txnid = msg.id.clone();
 
     let url = bk.url(
-        &format!("rooms/{}/redact/{}/{}", roomid, msgid, txnid),
+        &format!("rooms/{}/redact/{}/{}", roomid, msg.id, txnid),
         vec![],
     )?;
 
@@ -299,6 +296,7 @@ pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
         "reason": "Deletion requested by the sender"
     });
 
+    let msgid = msg.id.clone();
     let tx = bk.tx.clone();
     query!(
         "put",
