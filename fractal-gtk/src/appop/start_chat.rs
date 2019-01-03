@@ -6,7 +6,7 @@ use crate::appop::RoomPanel;
 use crate::appop::SearchType;
 
 use crate::backend::BKCommand;
-use crate::types::Room;
+use crate::types::{Room, RoomStatus, RoomTag};
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -25,7 +25,8 @@ impl AppOp {
             .unwrap();
         self.close_direct_chat_dialog();
 
-        let mut fakeroom = Room::new(internal_id.clone(), user.0.alias.clone());
+        let mut fakeroom = Room::new(internal_id.clone(), RoomStatus::Joined(RoomTag::None));
+        fakeroom.name = user.0.alias;
         fakeroom.direct = true;
 
         self.new_room(fakeroom, None);
