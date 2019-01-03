@@ -26,6 +26,8 @@ use types::Event;
 use types::Member;
 use types::Message;
 use types::Room;
+use types::RoomStatus;
+use types::RoomTag;
 
 use reqwest::header::CONTENT_TYPE;
 
@@ -202,7 +204,17 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         let ephemeral = &room["ephemeral"];
         let dataevs = &room["account_data"]["events"];
         let name = calculate_room_name(stevents, userid)?;
-        let mut r = Room::new(k.clone(), name);
+        let mut room_tag = RoomTag::None;
+        if let Some(ev) = dataevs.as_array() {
+            for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
+                if tag["content"]["tags"]["m.favourite"].as_object().is_some() {
+                    room_tag = RoomTag::Favourite;
+                }
+            }
+        }
+
+        let mut r = Room::new(k.clone(), RoomStatus::Joined(room_tag));
+        r.name = name;
 
         r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
         r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
@@ -216,14 +228,6 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
             .unwrap_or(0) as i32;
 
         r.prev_batch = timeline["prev_batch"].as_str().map(String::from);
-
-        if let Some(ev) = dataevs.as_array() {
-            for tag in ev.iter().filter(|x| x["type"] == "m.tag") {
-                if tag["content"]["tags"]["m.favourite"].as_object().is_some() {
-                    r.fav = true;
-                }
-            }
-        }
 
         if let Some(evs) = timeline["events"].as_array() {
             let ms = Message::from_json_events_iter(&k, evs.iter());
@@ -267,8 +271,7 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
 
     // left rooms
     for k in leave.keys() {
-        let mut r = Room::new(k.clone(), None);
-        r.left = true;
+        let r = Room::new(k.clone(), RoomStatus::Left);
         rooms.push(r);
     }
 
@@ -277,14 +280,6 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         let room = invite.get(k).ok_or(Error::BackendError)?;
         let stevents = &room["invite_state"]["events"];
         let name = calculate_room_name(stevents, userid)?;
-        let mut r = Room::new(k.clone(), name);
-        r.inv = true;
-
-        r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
-        r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
-        r.topic = Some(evc(stevents, "m.room.topic", "topic"));
-        r.direct = direct.contains(k);
-
         if let Some(arr) = stevents.as_array() {
             if let Some(ev) = arr
                 .iter()
@@ -293,16 +288,23 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
                 if let Ok((alias, avatar)) =
                     get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default())
                 {
-                    r.inv_sender = Some(Member {
+                    let inv_sender = Member {
                         alias: Some(alias),
                         avatar: Some(avatar),
                         uid: String::from(userid),
-                    });
+                    };
+                    let mut r = Room::new(k.clone(), RoomStatus::Invited(inv_sender));
+                    r.name = name;
+
+                    r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
+                    r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
+                    r.topic = Some(evc(stevents, "m.room.topic", "topic"));
+                    r.direct = direct.contains(k);
+
+                    rooms.push(r);
                 }
             }
         }
-
-        rooms.push(r);
     }
 
     Ok(rooms)

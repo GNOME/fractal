@@ -5,6 +5,54 @@ use model::member::MemberList;
 use model::message::Message;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum RoomStatus {
+    // If the user hasn't yet joined a room, e.g. in the room directory
+    None,
+    Joined(RoomTag),
+    // An invite is send by some other user
+    Invited(Member),
+    Left,
+}
+
+impl RoomStatus {
+    pub fn is_joined(&self) -> bool {
+        if let RoomStatus::Joined(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_invited(&self) -> bool {
+        if let RoomStatus::Invited(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_left(&self) -> bool {
+        self == &RoomStatus::Left
+    }
+
+    pub fn match_joined_tag(&self, tag: RoomTag) -> bool {
+        if let RoomStatus::Joined(this_tag) = self {
+            this_tag == &tag
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum RoomTag {
+    None,
+    Favourite,
+    LowPriority,
+    Custom(String),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
     pub id: String,
@@ -19,12 +67,9 @@ pub struct Room {
     pub notifications: i32,
     pub highlight: i32,
     pub messages: Vec<Message>,
-    pub fav: bool,
-    pub left: bool,
-    pub inv: bool,
+    pub status: RoomStatus,
     pub direct: bool,
     pub prev_batch: Option<String>,
-    pub inv_sender: Option<Member>,
 
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
@@ -32,10 +77,10 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(id: String, name: Option<String>) -> Room {
+    pub fn new(id: String, status: RoomStatus) -> Room {
         Room {
             id,
-            name,
+            name: None,
             avatar: None,
             topic: None,
             alias: None,
@@ -46,11 +91,8 @@ impl Room {
             highlight: 0,
             messages: vec![],
             members: HashMap::new(),
-            fav: false,
-            left: false,
-            inv: false,
+            status,
             direct: false,
-            inv_sender: None,
             power_levels: HashMap::new(),
             prev_batch: None,
         }

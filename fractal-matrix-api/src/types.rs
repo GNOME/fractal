@@ -5,6 +5,8 @@ pub use model::message::Message;
 pub use model::protocol::Protocol;
 pub use model::room::Room;
 pub use model::room::RoomList;
+pub use model::room::RoomStatus;
+pub use model::room::RoomTag;
 pub use model::stickers::Sticker;
 pub use model::stickers::StickerGroup;
 pub use model::userinfo::UserInfo;
