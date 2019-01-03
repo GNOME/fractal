@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use url::Url;
 
 use crate::globals;
-use crate::types::Room;
+use crate::types::{Room, RoomTag};
 use crate::widgets::roomrow::RoomRow;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -461,21 +461,21 @@ impl RoomList {
         self.inv.get().add_rooms(
             array
                 .iter()
-                .filter(|r| r.inv)
+                .filter(|r| r.status.is_invited())
                 .cloned()
                 .collect::<Vec<Room>>(),
         );
         self.fav.get().add_rooms(
             array
                 .iter()
-                .filter(|r| r.fav)
+                .filter(|r| r.status.match_joined_tag(RoomTag::Favourite))
                 .cloned()
                 .collect::<Vec<Room>>(),
         );
         self.rooms.get().add_rooms(
             array
                 .iter()
-                .filter(|r| !r.fav && !r.inv)
+                .filter(|r| !r.status.match_joined_tag(RoomTag::Favourite))
                 .cloned()
                 .collect::<Vec<Room>>(),
         );
@@ -527,11 +527,13 @@ impl RoomList {
     }
 
     pub fn add_room(&mut self, r: Room) {
-        if r.inv {
+        if r.status.is_invited() {
             self.inv.get().add_room(r);
-        } else if r.fav {
+        } else if r.status.match_joined_tag(RoomTag::Favourite) {
+            println!("We have fav rooms");
             self.fav.get().add_room(r);
         } else {
+            println!("We have non fav rooms");
             self.rooms.get().add_room(r);
         }
         self.show_and_hide();
