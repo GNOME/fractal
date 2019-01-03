@@ -15,7 +15,7 @@ use crate::util::json_q;
 use crate::util::media;
 
 use crate::types::Protocol;
-use crate::types::Room;
+use crate::types::{Room, RoomMembership};
 
 pub fn protocols(bk: &Backend) {
     let baseu = bk.get_base_url();
@@ -110,24 +110,28 @@ pub fn room_search(
 
             let mut rooms: Vec<Room> = vec![];
             for room in r["chunk"].as_array().unwrap() {
-                let alias = String::from(room["canonical_alias"].as_str().unwrap_or_default());
-                let id = String::from(room["room_id"].as_str().unwrap_or_default());
-                let name = String::from(room["name"].as_str().unwrap_or_default());
-                let mut r = Room::new(id.clone(), Some(name));
-                r.alias = Some(alias);
-                r.avatar = Some(String::from(
-                    room["avatar_url"].as_str().unwrap_or_default(),
-                ));
-                r.topic = Some(String::from(room["topic"].as_str().unwrap_or_default()));
-                r.n_members = room["num_joined_members"].as_i64().unwrap_or_default() as i32;
-                r.world_readable = room["world_readable"].as_bool().unwrap_or_default();
-                r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or_default();
-                /* download the avatar */
-                if let Some(avatar) = r.avatar.clone() {
-                    if let Ok(dest) = cache_path(&id) {
-                        media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
+                // Panic when we have rooms without an id
+                let id = room["room_id"]
+                    .as_str()
+                    .expect("Couldn't handle room: no valid id");
+                let alias = room["canonical_alias"].as_str();
+                let name = room["name"].as_str();
+                let avatar = room["avatar_url"].as_str();
+                /* download the avatar for the room */
+                if let Some(avatar) = avatar {
+                    if let Ok(dest) = cache_path(id) {
+                        let _ = media(&base.clone(), avatar, Some(&dest));
                     }
                 }
+
+                let mut r = Room::new(id.to_string(), RoomMembership::None);
+                r.name = name.map(String::from);
+                r.alias = alias.map(String::from);
+                r.avatar = avatar.map(String::from);
+                r.topic = room["topic"].as_str().map(String::from);
+                r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
+                r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
+                r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
                 rooms.push(r);
             }
 

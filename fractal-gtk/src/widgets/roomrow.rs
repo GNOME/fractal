@@ -43,7 +43,7 @@ impl RoomRow {
 
         let n = room.notifications;
         let h = room.highlight;
-        let ntext = if room.inv {
+        let ntext = if room.membership.is_invited() {
             String::from("•")
         } else {
             format!("{}", n)
@@ -52,14 +52,14 @@ impl RoomRow {
         if let Some(style) = notifications.get_style_context() {
             style.add_class("notify-badge");
 
-            if h > 0 || room.inv {
+            if h > 0 || room.membership.is_invited() {
                 style.add_class("notify-highlight");
             } else {
                 style.remove_class("notify-highlight");
             }
         }
 
-        if n > 0 || room.inv {
+        if n > 0 || room.membership.is_invited() {
             notifications.show();
         } else {
             notifications.hide();
@@ -85,14 +85,14 @@ impl RoomRow {
         self.room.notifications = n;
         self.room.highlight = h;
         self.notifications.set_text(&format!("{}", n));
-        if n > 0 || self.room.inv {
+        if n > 0 || self.room.membership.is_invited() {
             self.notifications.show();
         } else {
             self.notifications.hide();
         }
 
         if let Some(style) = self.notifications.get_style_context() {
-            if h > 0 || self.room.inv {
+            if h > 0 || self.room.membership.is_invited() {
                 style.add_class("notify-highlight");
             } else {
                 style.remove_class("notify-highlight");
@@ -112,7 +112,7 @@ impl RoomRow {
 
     pub fn render_notifies(&self) {
         let n = self.room.notifications;
-        if n > 0 || self.room.inv {
+        if n > 0 || self.room.membership.is_invited() {
             self.notifications.show();
         } else {
             self.notifications.hide();
@@ -169,7 +169,7 @@ impl RoomRow {
     }
 
     pub fn connect_dnd(&self) {
-        if self.room.inv {
+        if self.room.membership.is_invited() {
             return;
         }
 
