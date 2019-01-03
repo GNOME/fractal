@@ -351,14 +351,7 @@ impl MediaViewer {
 
         let current_media_index = media_list
             .iter()
-            .position(|media| {
-                media.id.clone().map_or(false, |media_id| {
-                    current_media_msg
-                        .id
-                        .clone()
-                        .map_or(false, |current_media_id| media_id == current_media_id)
-                })
-            })
+            .position(|media| media.id == current_media_msg.id)
             .unwrap_or_default();
 
         MediaViewer {
@@ -728,7 +721,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
     let roomid = msg.room.clone();
-    let first_media_id = msg.id.clone();
+    let first_media_id = Some(msg.id.clone());
     let prev_batch = data.borrow().prev_batch.clone();
 
     let (tx, rx): (
