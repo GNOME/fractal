@@ -7,6 +7,7 @@ use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
+//FIXME make properties privat
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub sender: String,
@@ -16,7 +17,7 @@ pub struct Message {
     pub room: String,
     pub thumb: Option<String>,
     pub url: Option<String>,
-    pub id: Option<String>,
+    pub id: String,
     pub formatted_body: Option<String>,
     pub format: Option<String>,
     pub source: Option<String>,
@@ -30,34 +31,9 @@ pub struct Message {
     pub extra_content: Option<JsonValue>,
 }
 
-impl Default for Message {
-    fn default() -> Message {
-        Message {
-            sender: String::new(),
-            mtype: String::from("m.text"),
-            body: String::from("default"),
-            date: Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
-            room: String::new(),
-            thumb: None,
-            url: None,
-            id: None,
-            formatted_body: None,
-            format: None,
-            source: None,
-            receipt: HashMap::new(),
-            redacted: false,
-            in_reply_to: None,
-            extra_content: None,
-        }
-    }
-}
-
 impl PartialEq for Message {
     fn eq(&self, other: &Message) -> bool {
-        match (self.id.clone(), other.id.clone()) {
-            (Some(self_id), Some(other_id)) => self_id == other_id,
-            _ => self.sender == other.sender && self.body == other.body,
-        }
+        self.id == other.id
     }
 }
 
@@ -72,15 +48,25 @@ impl PartialOrd for Message {
 }
 
 impl Message {
-    /// Generates an unique transaction id for this message
-    /// The txn_id is generated using the md5sum of a concatenation of the message room id, the
-    /// message body and the date.
-
-    /// https://matrix.org/docs/spec/client_server/r0.3.0.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid
-    pub fn get_txn_id(&self) -> String {
-        let msg = format!("{}{}{}", self.room, self.body, self.date.to_string());
-        let digest = md5::compute(msg.as_bytes());
-        format!("{:x}", digest)
+    pub fn new(room: String, sender: String, body: String, mtype: String) -> Self {
+        let date = Local::now();
+        Message {
+            id: get_txn_id(&room, &body, &date.to_string()),
+            sender,
+            mtype,
+            body,
+            date,
+            room,
+            thumb: None,
+            url: None,
+            formatted_body: None,
+            format: None,
+            source: None,
+            receipt: HashMap::new(),
+            redacted: false,
+            in_reply_to: None,
+            extra_content: None,
+        }
     }
 
     /// List all supported types. By default a message map a m.room.message event, but there's
@@ -125,7 +111,7 @@ impl Message {
             sender: sender.to_string(),
             date: server_timestamp,
             room: String::from(roomid),
-            id: Some(id.to_string()),
+            id: id.to_string(),
             mtype: type_.to_string(),
             body: "".to_string(),
             url: None,
@@ -218,4 +204,14 @@ impl Message {
     pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {
         self.receipt = receipt;
     }
+}
+/// Generates an unique transaction id for this message
+/// The txn_id is generated using the md5sum of a concatenation of the message room id, the
+/// message body and the date.
+
+/// https://matrix.org/docs/spec/client_server/r0.3.0.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid
+pub fn get_txn_id(room: &str, body: &str, date: &str) -> String {
+    let msg = format!("{}{}{}", room, body, date);
+    let digest = md5::compute(msg.as_bytes());
+    format!("{:x}", digest)
 }
