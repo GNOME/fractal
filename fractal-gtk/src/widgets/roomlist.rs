@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use url::Url;
 
 use crate::globals;
-use crate::types::Message;
 use crate::types::Room;
 use crate::widgets::roomrow::RoomRow;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -40,7 +39,7 @@ impl RoomUpdated {
     pub fn new(room: Room) -> RoomUpdated {
         let updated = match room.messages.last() {
             Some(l) => l.date,
-            None => Message::default().date,
+            None => Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
         };
 
         RoomUpdated { room, updated }
@@ -315,7 +314,7 @@ impl RoomListGroup {
     pub fn add_rooms(&mut self, mut array: Vec<Room>) {
         array.sort_by_key(|ref x| match x.messages.last() {
             Some(l) => l.date,
-            None => Message::default().date,
+            None => Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
         });
 
         for r in array.iter().rev() {
