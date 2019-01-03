@@ -25,6 +25,8 @@ use backend::types::RoomType;
 use types::Member;
 use types::Message;
 use types::Room;
+use types::RoomStatus;
+use types::RoomTag;
 
 use serde_json::Value as JsonValue;
 
@@ -526,8 +528,8 @@ pub fn new_room(
         &attrs,
         move |r: JsonValue| {
             let id = String::from(r["room_id"].as_str().unwrap_or(""));
-            let name = n;
-            let r = Room::new(id, Some(name));
+            let mut r = Room::new(id, RoomStatus::Joined(RoomTag::None));
+            r.name = Some(n);
             tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
         },
         |err| {
@@ -558,7 +560,8 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
         &attrs,
         move |r: JsonValue| {
             let id = String::from(r["room_id"].as_str().unwrap_or(""));
-            let mut r = Room::new(id.clone(), m.alias.clone());
+            let mut r = Room::new(id.clone(), RoomStatus::Joined(RoomTag::None));
+            r.name = m.alias.clone();
             r.direct = true;
             tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
 
