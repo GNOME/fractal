@@ -80,7 +80,7 @@ impl Room {
 
         if let Some(receipts) = receipts.clone() {
             for msg in self.messages.iter_mut() {
-                if let Some(r) = msg.id.clone().and_then(|id| receipts.get(&id)) {
+                if let Some(r) = receipts.get(&msg.id) {
                     msg.set_receipt(r.clone());
                 }
             }
@@ -91,7 +91,7 @@ impl Room {
         for msg in self
             .messages
             .iter_mut()
-            .filter(|m| m.id == Some(evid.to_string()))
+            .filter(|m| m.id == evid.to_string())
         {
             msg.receipt.insert(uid.to_string(), 0);
         }

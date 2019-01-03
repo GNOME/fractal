@@ -82,10 +82,7 @@ impl Model for AppRoom {
 
 impl Model for AppMsg {
     fn key(&self) -> String {
-        // messages should have always an ID to be stored in the cache
-        // in other case we'll store with the "msg:room:" key.
-        let id = self.msg.id.clone().unwrap_or_default();
-        format!("msg:{}:{}", self.msg.room, id)
+        format!("msg:{}:{}", self.msg.room, self.msg.id)
     }
 }
 
