@@ -14,6 +14,7 @@ use util::media;
 
 use types::Protocol;
 use types::Room;
+use types::RoomStatus;
 
 pub fn protocols(bk: &Backend) -> Result<(), Error> {
     let baseu = bk.get_base_url()?;
@@ -105,22 +106,28 @@ pub fn room_search(
 
             let mut rooms: Vec<Room> = vec![];
             for room in r["chunk"].as_array().unwrap() {
-                let alias = String::from(room["canonical_alias"].as_str().unwrap_or(""));
-                let id = String::from(room["room_id"].as_str().unwrap_or(""));
-                let name = String::from(room["name"].as_str().unwrap_or(""));
-                let mut r = Room::new(id.clone(), Some(name));
-                r.alias = Some(alias);
-                r.avatar = Some(String::from(room["avatar_url"].as_str().unwrap_or("")));
-                r.topic = Some(String::from(room["topic"].as_str().unwrap_or("")));
+                // Panic when we have rooms without an id
+                let id = room["room_id"]
+                    .as_str()
+                    .expect("Couldn't handle room: no valid id");
+                let alias = room["canonical_alias"].as_str();
+                let name = room["name"].as_str();
+                let avatar = room["avatar_url"].as_str();
+                /* download the avatar for the room */
+                if let Some(avatar) = avatar {
+                    if let Ok(dest) = cache_path(id) {
+                        let _ = media(&base.clone(), avatar, Some(&dest));
+                    }
+                }
+
+                let mut r = Room::new(id.to_string(), RoomStatus::None);
+                r.name = name.map(String::from);
+                r.alias = alias.map(String::from);
+                r.avatar = avatar.map(String::from);
+                r.topic = room["topic"].as_str().map(String::from);
                 r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
                 r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
                 r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
-                /* download the avatar */
-                if let Some(avatar) = r.avatar.clone() {
-                    if let Ok(dest) = cache_path(&id) {
-                        media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
-                    }
-                }
                 rooms.push(r);
             }
 
