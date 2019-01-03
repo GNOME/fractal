@@ -5,6 +5,8 @@ pub use crate::model::message::Message;
 pub use crate::model::protocol::Protocol;
 pub use crate::model::room::Room;
 pub use crate::model::room::RoomList;
+pub use crate::model::room::RoomStatus;
+pub use crate::model::room::RoomTag;
 pub use crate::model::stickers::Sticker;
 pub use crate::model::stickers::StickerGroup;
 pub use crate::model::userinfo::UserInfo;
