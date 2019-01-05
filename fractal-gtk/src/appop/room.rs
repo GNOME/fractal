@@ -95,9 +95,8 @@ impl AppOp {
             if let Some(ref active_room) = self.active_room {
                 self.roomlist.select(active_room);
             }
+            self.cache_rooms();
         }
-
-        self.cache_rooms();
     }
 
     pub fn reload_rooms(&mut self) {
