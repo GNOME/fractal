@@ -321,7 +321,7 @@ impl AppOp {
             let result = file_chooser.run();
             if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
                 if let Some(fname) = file_chooser.get_filename() {
-                    let f = String::from(fname.to_str().unwrap_or(""));
+                    let f = String::from(fname.to_str().unwrap_or_default());
                     APPOP!(attach_message, (f));
                 }
             }

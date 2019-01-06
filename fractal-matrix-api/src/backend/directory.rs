@@ -33,7 +33,7 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
 
             protocols.push(Protocol {
                 id: String::new(),
-                desc: String::from(s.split('/').last().unwrap_or("")),
+                desc: String::from(s.split('/').last().unwrap_or_default()),
             });
 
             if let Some(prs) = r.as_object() {
@@ -101,19 +101,21 @@ pub fn room_search(
         &url,
         &attrs,
         move |r: JsonValue| {
-            let next_branch = r["next_batch"].as_str().unwrap_or("");
+            let next_branch = r["next_batch"].as_str().unwrap_or_default();
             data.lock().unwrap().rooms_since = String::from(next_branch);
 
             let mut rooms: Vec<Room> = vec![];
             for room in r["chunk"].as_array().unwrap() {
-                let alias = String::from(room["canonical_alias"].as_str().unwrap_or(""));
-                let id = String::from(room["room_id"].as_str().unwrap_or(""));
-                let name = String::from(room["name"].as_str().unwrap_or(""));
+                let alias = String::from(room["canonical_alias"].as_str().unwrap_or_default());
+                let id = String::from(room["room_id"].as_str().unwrap_or_default());
+                let name = String::from(room["name"].as_str().unwrap_or_default());
                 let mut r = Room::new(id.clone(), Some(name));
                 r.alias = Some(alias);
-                r.avatar = Some(String::from(room["avatar_url"].as_str().unwrap_or("")));
-                r.topic = Some(String::from(room["topic"].as_str().unwrap_or("")));
-                r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
+                r.avatar = Some(String::from(
+                    room["avatar_url"].as_str().unwrap_or_default(),
+                ));
+                r.topic = Some(String::from(room["topic"].as_str().unwrap_or_default()));
+                r.n_members = room["num_joined_members"].as_i64().unwrap_or_default() as i32;
                 r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
                 r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
                 /* download the avatar */

@@ -68,7 +68,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     thread::spawn(move || {
         match json_q("get", &url, &attrs, timeout) {
             Ok(r) => {
-                let next_batch = String::from(r["next_batch"].as_str().unwrap_or(""));
+                let next_batch = String::from(r["next_batch"].as_str().unwrap_or_default());
                 if let Some(since) = since {
                     // New rooms
                     match get_rooms_from_json(&r, &userid, &baseu) {
@@ -98,14 +98,15 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             for ev in events {
                                 match ev.stype.as_ref() {
                                     "m.room.name" => {
-                                        let name =
-                                            String::from(ev.content["name"].as_str().unwrap_or(""));
+                                        let name = String::from(
+                                            ev.content["name"].as_str().unwrap_or_default(),
+                                        );
                                         tx.send(BKResponse::RoomName(ev.room.clone(), name))
                                             .unwrap();
                                     }
                                     "m.room.topic" => {
                                         let t = String::from(
-                                            ev.content["topic"].as_str().unwrap_or(""),
+                                            ev.content["topic"].as_str().unwrap_or_default(),
                                         );
                                         tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
                                     }

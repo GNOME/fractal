@@ -210,10 +210,10 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         r.direct = direct.contains(k);
         r.notifications = room["unread_notifications"]["notification_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
         r.highlight = room["unread_notifications"]["highlight_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
 
         r.prev_batch = timeline["prev_batch"].as_str().map(String::from);
 
@@ -376,10 +376,10 @@ pub fn get_rooms_notifies_from_json(r: &JsonValue) -> Result<Vec<(String, i32, i
         let room = join.get(k).ok_or(Error::BackendError)?;
         let n = room["unread_notifications"]["notification_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
         let h = room["unread_notifications"]["highlight_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
 
         out.push((k.clone(), n, h));
     }
@@ -408,10 +408,10 @@ pub fn parse_sync_events(r: &JsonValue) -> Result<Vec<Event>, Error> {
             //info!("ev: {:#?}", ev);
             evs.push(Event {
                 room: k.clone(),
-                sender: String::from(ev["sender"].as_str().unwrap_or("")),
+                sender: String::from(ev["sender"].as_str().unwrap_or_default()),
                 content: ev["content"].clone(),
-                stype: String::from(ev["type"].as_str().unwrap_or("")),
-                id: String::from(ev["id"].as_str().unwrap_or("")),
+                stype: String::from(ev["type"].as_str().unwrap_or_default()),
+                id: String::from(ev["id"].as_str().unwrap_or_default()),
             });
         }
     }
@@ -702,7 +702,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     let mut members2 = events.iter().filter(&filter);
 
     let m1 = match members2.next() {
-        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or(""),
+        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or_default(),
         None => "",
     };
 
@@ -810,7 +810,7 @@ pub fn fill_room_gap(
     let url = client_url(baseu, &path, &params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
-    nend = String::from(r["end"].as_str().unwrap_or(""));
+    nend = String::from(r["end"].as_str().unwrap_or_default());
 
     let array = r["chunk"].as_array();
     if array.is_none() || array.unwrap().is_empty() {
@@ -904,7 +904,7 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
 }
 
 pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
-    let sender = msg["sender"].as_str().unwrap_or("");
+    let sender = msg["sender"].as_str().unwrap_or_default();
 
     let c = &msg["content"];
 

@@ -24,9 +24,9 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
@@ -79,9 +79,9 @@ pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
 
             if uid.is_empty() || tk.is_empty() {
                 tx.send(BKResponse::LoginError(Error::BackendError))
@@ -148,9 +148,9 @@ pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Resul
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
 
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();

@@ -127,13 +127,13 @@ pub fn get_email_token(
         &url,
         &attrs,
         |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or(""));
+            let sid = String::from(r["sid"].as_str().unwrap_or_default());
             tx.send(BKResponse::GetTokenEmail(sid, client_secret))
                 .unwrap();
         },
         |err| match err {
             Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" =>
+                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
                 tx.send(BKResponse::GetTokenEmailUsed).unwrap();
             }
@@ -167,13 +167,13 @@ pub fn get_phone_token(
         &url,
         &attrs,
         |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or(""));
+            let sid = String::from(r["sid"].as_str().unwrap_or_default());
             tx.send(BKResponse::GetTokenPhone(sid, client_secret))
                 .unwrap();
         },
         |err| match err {
             Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or("") == "M_THREEPID_IN_USE" =>
+                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
                 tx.send(BKResponse::GetTokenPhoneUsed).unwrap();
             }
@@ -476,7 +476,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
                 tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
             }
             Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or("");
+                let uri = js["content_uri"].as_str().unwrap_or_default();
                 let attrs = json!({ "avatar_url": uri });
                 match json_q("put", &url, &attrs, 0) {
                     Ok(_) => {
