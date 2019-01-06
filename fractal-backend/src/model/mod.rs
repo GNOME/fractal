@@ -4,9 +4,12 @@ use failure::Error;
 use rusqlite::Row;
 use rusqlite::NO_PARAMS;
 
+pub mod member;
 pub mod message;
 pub mod room;
 
+pub use self::member::Member;
+pub use self::member::MemberModel;
 pub use self::message::Message;
 pub use self::message::MessageModel;
 pub use self::room::Room;
@@ -64,6 +67,11 @@ pub trait Model: Sized {
             },
             Err(err_msg("Connection not init")),
         )
+    }
+
+    fn update(&self) -> Result<(), Error> {
+        self.delete()?;
+        self.store()
     }
 
     fn create_table() -> Result<usize, Error> {

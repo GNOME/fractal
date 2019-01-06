@@ -44,7 +44,6 @@ impl Model for Room {
 
     fn create_sql() -> String {
         //TODO: implements relations for:
-        //  members: MemberList,
         //  inv_sender: Option<Member>,
         format!(
             "
