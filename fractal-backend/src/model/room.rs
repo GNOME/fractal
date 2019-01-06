@@ -7,6 +7,8 @@ use failure::Error;
 use rusqlite::types::ToSql;
 use rusqlite::Row;
 
+use serde_json;
+
 use super::conn;
 use super::Model;
 
@@ -36,16 +38,14 @@ impl Model for Room {
             "inv",
             "direct",
             "prev_batch",
+            "power_levels",
         ]
     }
 
     fn create_sql() -> String {
         //TODO: implements relations for:
         //  members: MemberList,
-        //  messages: Vec<Message>,
         //  inv_sender: Option<Member>,
-        // TODO: maybe we should store power_level in the Member Table
-        //  power_levels: HashMap<String, i32>,
         format!(
             "
         CREATE TABLE if not exists {} (
@@ -63,7 +63,8 @@ impl Model for Room {
             left BOOLEAN NOT NULL,
             inv BOOLEAN NOT NULL,
             direct BOOLEAN NOT NULL,
-            prev_batch TEXT
+            prev_batch TEXT,
+            power_levels TEXT NOT NULL
         )
         ",
             Self::table_name()
@@ -83,6 +84,8 @@ impl Model for Room {
             fields,
             questions
         );
+
+        let power_levels = serde_json::to_string(&self.power_levels)?;
 
         conn(
             move |c| {
@@ -104,6 +107,7 @@ impl Model for Room {
                         &self.inv,
                         &self.direct,
                         &self.prev_batch,
+                        &power_levels,
                     ],
                 )
                 .map(|_| ())
@@ -114,6 +118,9 @@ impl Model for Room {
     }
 
     fn map_row(row: &Row) -> Self {
+        let strp: String = row.get(15);
+        let power_levels: HashMap<String, i32> = serde_json::from_str(&strp).unwrap_or_default();
+
         Self {
             id: row.get(0),
             avatar: row.get(1),
@@ -130,9 +137,9 @@ impl Model for Room {
             inv: row.get(12),
             direct: row.get(13),
             prev_batch: row.get(14),
+            power_levels: power_levels,
 
             inv_sender: None,
-            power_levels: HashMap::new(),
             messages: vec![],
             members: HashMap::new(),
         }
