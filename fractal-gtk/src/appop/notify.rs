@@ -51,7 +51,7 @@ impl AppOp {
             if let Some(name) = r.name.clone() {
                 format!(" ({})", name)
             } else {
-                String::from("")
+                String::new()
             }
         };
 

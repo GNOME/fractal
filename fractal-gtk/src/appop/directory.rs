@@ -54,10 +54,10 @@ impl AppOp {
                     let v = protocol_model.get_value(&it, 1);
                     v.get().unwrap()
                 }
-                None => String::from(""),
+                None => String::new(),
             }
         } else {
-            String::from("")
+            String::new()
         };
 
         let q = self
@@ -81,10 +81,10 @@ impl AppOp {
         let homeserver = if other_homeserver_radio.get_active() {
             other_homeserver_url.get_text()
         } else if protocol == "matrix.org" {
-            protocol = String::from("");
+            protocol = String::new();
             String::from("matrix.org")
         } else {
-            String::from("")
+            String::new()
         };
 
         if !more {

@@ -24,7 +24,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
                 tx.send(fname).unwrap();
             }
             Err(_) => {
-                tx.send(String::from("")).unwrap();
+                tx.send(String::new()).unwrap();
             }
         };
     });
@@ -41,7 +41,7 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
                 tx.send(fname).unwrap();
             }
             Err(_) => {
-                tx.send(String::from("")).unwrap();
+                tx.send(String::new()).unwrap();
             }
         };
     });
@@ -106,7 +106,7 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
                 tx.send(uri.to_string()).unwrap();
             }
             Err(_) => {
-                tx.send(String::from("")).unwrap();
+                tx.send(String::new()).unwrap();
             }
         };
     });
@@ -127,7 +127,7 @@ pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
                 tx.send(fname).unwrap();
             }
             Err(_) => {
-                tx.send(String::from("")).unwrap();
+                tx.send(String::new()).unwrap();
             }
         };
     });

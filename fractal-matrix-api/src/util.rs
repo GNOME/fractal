@@ -669,10 +669,10 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
                     let img = thumb(baseu, &url, Some(&dest))?;
                     Ok((name.clone(), img))
                 }
-                None => Ok((name.clone(), String::from(""))),
+                None => Ok((name.clone(), String::new())),
             }
         }
-        Err(_) => Ok((String::from(userid), String::from(""))),
+        Err(_) => Ok((String::from(userid), String::new())),
     }
 }
 
@@ -718,7 +718,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     };
 
     if fname.is_empty() {
-        fname = String::from("");
+        fname = String::new();
     }
 
     Ok(fname)
@@ -896,7 +896,7 @@ pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
 
 pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
     if avatar.is_empty() {
-        return Ok(String::from(""));
+        return Ok(String::new());
     }
 
     let dest = cache_path(&userid)?;

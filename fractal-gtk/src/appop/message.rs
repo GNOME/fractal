@@ -494,7 +494,7 @@ fn create_ui_message(
 ) -> MessageContent {
     MessageContent {
         msg: msg.clone(),
-        id: msg.id.unwrap_or(String::from("")),
+        id: msg.id.unwrap_or(String::new()),
         sender: msg.sender,
         sender_name: name,
         mtype: t,

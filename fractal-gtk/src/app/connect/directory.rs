@@ -139,7 +139,7 @@ impl App {
                     let v = protocol_model.get_value(&it, 0);
                     v.get().unwrap()
                 }
-                None => String::from(""),
+                None => String::new(),
             };
 
             directory_choice_label.set_text(&protocol);
@@ -153,7 +153,7 @@ impl App {
                         let v = protocol_model.get_value(&it, 0);
                         v.get().unwrap()
                     }
-                    None => String::from(""),
+                    None => String::new(),
                 };
 
                 directory_choice_label.set_text(&protocol);

@@ -232,7 +232,7 @@ impl AppOp {
             .get_object::<gtk::MessageDialog>("invite_dialog")
             .expect("Can't find invite_dialog in ui file.");
 
-        let empty = String::from("");
+        let empty = String::new();
         let room_name = room_name.unwrap_or(&empty);
         let title = i18n_k("Join {room_name}?", &[("room_name", &room_name)]);
         let secondary;

@@ -32,7 +32,7 @@ pub fn protocols(bk: &Backend) -> Result<(), Error> {
             let mut protocols: Vec<Protocol> = vec![];
 
             protocols.push(Protocol {
-                id: String::from(""),
+                id: String::new(),
                 desc: String::from(s.split('/').last().unwrap_or("")),
             });
 

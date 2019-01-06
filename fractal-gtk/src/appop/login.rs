@@ -208,15 +208,15 @@ impl AppOp {
 
         let username = match user_entry.get_text() {
             Some(s) => s,
-            None => String::from(""),
+            None => String::new(),
         };
         let password = match pass_entry.get_text() {
             Some(s) => s,
-            None => String::from(""),
+            None => String::new(),
         };
         let passconf = match pass_conf.get_text() {
             Some(s) => s,
-            None => String::from(""),
+            None => String::new(),
         };
 
         if password != passconf {

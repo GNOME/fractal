@@ -71,7 +71,7 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
                     if let Ok(dest) = cache_path(&roomid) {
                         thumb(&baseu, u, Some(&dest)).unwrap_or_default()
                     } else {
-                        String::from("")
+                        String::new()
                     }
                 }
                 None => util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default(),
