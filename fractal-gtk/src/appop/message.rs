@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tree_magic;
+use gstreamer_editing_services::UriClipAsset;
+use gstreamer_editing_services::UriClipAssetExt;
 
 use crate::appop::room::Force;
 use crate::appop::AppOp;
@@ -254,7 +256,7 @@ impl AppOp {
             "image/png" => "m.image",
             "image/jpeg" => "m.image",
             "image/jpg" => "m.image",
-            audio if audio.starts_with("audio/") => "m.audio",
+            mimetype if mimetype.starts_with("audio/") => "m.audio",
             "application/x-riff" => "m.audio",
             _ => "m.file",
         };
