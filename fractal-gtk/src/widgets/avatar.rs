@@ -32,7 +32,7 @@ impl AvatarData {
     }
 
     pub fn redraw_pixbuf(&mut self) {
-        let path = cache_path(&self.uid).unwrap_or(String::from(""));
+        let path = cache_path(&self.uid).unwrap_or_default();
         self.cache = load_pixbuf(&path, self.size);
         self.widget.queue_draw();
     }
@@ -77,7 +77,7 @@ impl AvatarExt for gtk::Box {
     fn circle(&self, uid: String, username: Option<String>, size: i32) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
-        let path = cache_path(&uid).unwrap_or(String::from(""));
+        let path = cache_path(&uid).unwrap_or_default();
         let user_avatar = load_pixbuf(&path, size);
         let uname = username.clone();
         /* remove IRC postfix from the username */

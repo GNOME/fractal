@@ -3,6 +3,7 @@ authors = ["Daniel Garcia <danigm@wadobo.com>"]
 name = "fractal-matrix-api"
 version = "4.0.0"
 workspace = "../"
+edition = "2018"
 
 description = """
 Library to communicate with a Matrix.org server
@@ -11,27 +12,30 @@ keywords = [
     "matrix", "fractal"
 ]
 license = "GPL-3.0"
-repository = "https://gitlab.gnome.org/World/fractal"
-documentation = "https://world.pages.gitlab.gnome.org/fractal/fractal_matrix_api/index.html"
+repository = "https://gitlab.gnome.org/GNOME/fractal"
+documentation = "https://gnome.pages.gitlab.gnome.org/fractal/fractal_matrix_api/index.html"
 
 [dependencies]
-log = "0.4.6"
 glib = "0.6.1"
+lazy_static = "1.2.0"
+log = "0.4.6"
+md5 = "0.6.1"
 regex = "1.1.0"
 reqwest = "0.9.5"
-serde = "1.0.82"
-serde_derive = "1.0.82"
 serde_json = "1.0.33"
 time = "0.1.41"
 tree_magic = "0.2.1"
 url = "1.7.2"
 urlencoding = "1.0.0"
-md5 = "0.6.1"
 
 [dependencies.cairo-rs]
-features = ["png"]
 version = "0.5.0"
+features = ["png"]
 
 [dependencies.chrono]
-features = ["serde"]
 version = "0.4.6"
+features = ["serde"]
+
+[dependencies.serde]
+version = "1.0.82"
+features = ["derive"]

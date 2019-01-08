@@ -1,5 +1,5 @@
-use regex::Regex;
-use reqwest;
+use log::error;
+use serde_json::json;
 
 use serde_json::Value as JsonValue;
 
@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
-use tree_magic;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
@@ -22,15 +21,15 @@ use std::thread;
 
 use std::time::Duration as StdDuration;
 
-use error::Error;
-use types::Event;
-use types::Member;
-use types::Message;
-use types::Room;
+use crate::error::Error;
+use crate::types::Event;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::Room;
 
 use reqwest::header::CONTENT_TYPE;
 
-use globals;
+use crate::globals;
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
 where
@@ -211,10 +210,10 @@ pub fn get_rooms_from_json(r: &JsonValue, userid: &str, baseu: &Url) -> Result<V
         r.direct = direct.contains(k);
         r.notifications = room["unread_notifications"]["notification_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
         r.highlight = room["unread_notifications"]["highlight_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
 
         r.prev_batch = timeline["prev_batch"].as_str().map(String::from);
 
@@ -377,10 +376,10 @@ pub fn get_rooms_notifies_from_json(r: &JsonValue) -> Result<Vec<(String, i32, i
         let room = join.get(k).ok_or(Error::BackendError)?;
         let n = room["unread_notifications"]["notification_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
         let h = room["unread_notifications"]["highlight_count"]
             .as_i64()
-            .unwrap_or(0) as i32;
+            .unwrap_or_default() as i32;
 
         out.push((k.clone(), n, h));
     }
@@ -409,10 +408,10 @@ pub fn parse_sync_events(r: &JsonValue) -> Result<Vec<Event>, Error> {
             //info!("ev: {:#?}", ev);
             evs.push(Event {
                 room: k.clone(),
-                sender: String::from(ev["sender"].as_str().unwrap_or("")),
+                sender: String::from(ev["sender"].as_str().unwrap_or_default()),
                 content: ev["content"].clone(),
-                stype: String::from(ev["type"].as_str().unwrap_or("")),
-                id: String::from(ev["id"].as_str().unwrap_or("")),
+                stype: String::from(ev["type"].as_str().unwrap_or_default()),
+                id: String::from(ev["id"].as_str().unwrap_or_default()),
             });
         }
     }
@@ -507,8 +506,9 @@ pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
 }
 
 pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
-    let re = Regex::new(r"mxc://(?P<server>[^/]+)/(?P<media>.+)")?;
-    let caps = re.captures(url).ok_or(Error::BackendError)?;
+    let caps = globals::MATRIX_RE
+        .captures(url)
+        .ok_or(Error::BackendError)?;
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
@@ -534,8 +534,9 @@ pub fn dw_media(
     w: i32,
     h: i32,
 ) -> Result<String, Error> {
-    let re = Regex::new(r"mxc://(?P<server>[^/]+)/(?P<media>.+)")?;
-    let caps = re.captures(url).ok_or(Error::BackendError)?;
+    let caps = globals::MATRIX_RE
+        .captures(url)
+        .ok_or(Error::BackendError)?;
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
@@ -668,10 +669,10 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
                     let img = thumb(baseu, &url, Some(&dest))?;
                     Ok((name.clone(), img))
                 }
-                None => Ok((name.clone(), String::from(""))),
+                None => Ok((name.clone(), String::new())),
             }
         }
-        Err(_) => Ok((String::from(userid), String::from(""))),
+        Err(_) => Ok((String::from(userid), String::new())),
     }
 }
 
@@ -701,7 +702,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     let mut members2 = events.iter().filter(&filter);
 
     let m1 = match members2.next() {
-        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or(""),
+        Some(m) => m["content"]["avatar_url"].as_str().unwrap_or_default(),
         None => "",
     };
 
@@ -717,7 +718,7 @@ pub fn get_room_avatar(base: &Url, tk: &str, userid: &str, roomid: &str) -> Resu
     };
 
     if fname.is_empty() {
-        fname = String::from("");
+        fname = String::new();
     }
 
     Ok(fname)
@@ -809,7 +810,7 @@ pub fn fill_room_gap(
     let url = client_url(baseu, &path, &params)?;
 
     let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
-    nend = String::from(r["end"].as_str().unwrap_or(""));
+    nend = String::from(r["end"].as_str().unwrap_or_default());
 
     let array = r["chunk"].as_array();
     if array.is_none() || array.unwrap().is_empty() {
@@ -895,7 +896,7 @@ pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
 
 pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
     if avatar.is_empty() {
-        return Ok(String::from(""));
+        return Ok(String::new());
     }
 
     let dest = cache_path(&userid)?;
@@ -903,7 +904,7 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
 }
 
 pub fn parse_room_member(msg: &JsonValue) -> Option<Member> {
-    let sender = msg["sender"].as_str().unwrap_or("");
+    let sender = msg["sender"].as_str().unwrap_or_default();
 
     let c = &msg["content"];
 

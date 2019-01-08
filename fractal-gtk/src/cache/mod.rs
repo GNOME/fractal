@@ -1,26 +1,27 @@
 use gtk;
 use gtk::LabelExt;
+use serde::{Deserialize, Serialize};
 use std::fs::remove_dir_all;
 
+use crate::types::Room;
+use crate::types::RoomList;
 use failure::err_msg;
 use failure::Error;
 use std::collections::HashMap;
-use types::Room;
-use types::RoomList;
 
+use crate::globals;
 use fractal_api::util::cache_path;
-use globals;
 
 /* includes for avatar download */
-use backend::BKCommand;
+use crate::backend::BKCommand;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::TryRecvError;
 
+use crate::widgets::AvatarData;
 use std::cell::RefCell;
 use std::rc::Rc;
-use widgets::AvatarData;
 
 mod state;
 pub use self::state::get;

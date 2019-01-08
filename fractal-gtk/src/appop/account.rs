@@ -1,15 +1,17 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
+use log::info;
 
-use appop::AppOp;
-use appop::AppState;
+use crate::appop::AppOp;
+use crate::appop::AppState;
 
-use backend::BKCommand;
-use i18n::i18n;
-use widgets;
-use widgets::AvatarExt;
+use crate::backend::BKCommand;
+use crate::i18n::i18n;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
-use cache::download_to_cache;
+use crate::cache::download_to_cache;
 use fractal_api::types::UserInfo;
 
 impl AppOp {

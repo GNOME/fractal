@@ -4,20 +4,20 @@ use std::sync::mpsc::Sender;
 use gtk;
 use gtk::prelude::*;
 
-use backend;
-use backend::BKCommand;
-use globals;
+use crate::backend;
+use crate::backend::BKCommand;
+use crate::globals;
 
-use types::Member;
-use types::Room;
-use types::RoomList;
+use crate::types::Member;
+use crate::types::Room;
+use crate::types::RoomList;
 
-use passwd::PasswordStorage;
+use crate::passwd::PasswordStorage;
 
-use actions::AppState;
-use cache;
-use uibuilder;
-use widgets;
+use crate::actions::AppState;
+use crate::cache;
+use crate::uibuilder;
+use crate::widgets;
 
 mod about;
 mod account;
@@ -117,7 +117,7 @@ impl AppOp {
 
         if let Ok(data) = cache::load() {
             let r: Vec<Room> = data.rooms.values().cloned().collect();
-            self.set_rooms(&r, None);
+            self.set_rooms(r, true);
             /* Make sure that since is never an empty string */
             self.since = data.since.filter(|s| !s.is_empty());
             self.username = Some(data.username);

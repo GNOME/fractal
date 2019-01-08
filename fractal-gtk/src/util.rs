@@ -1,4 +1,5 @@
 use cairo;
+use failure::format_err;
 use failure::Error;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
@@ -8,7 +9,7 @@ use gio::{Settings, SettingsExt, SettingsSchemaSource};
 use html2pango::{html_escape, markup_links};
 
 pub mod glib_thread_prelude {
-    pub use error::Error;
+    pub use crate::error::Error;
     pub use std::sync::mpsc::channel;
     pub use std::sync::mpsc::TryRecvError;
     pub use std::sync::mpsc::{Receiver, Sender};
@@ -62,7 +63,7 @@ pub fn get_markdown_schema() -> bool {
             let settings: Settings = Settings::new("org.gnome.Fractal");
             Some(settings.get_boolean("markdown-active"))
         })
-        .unwrap_or(false)
+        .unwrap_or_default()
 }
 
 pub fn set_markdown_schema(md: bool) {

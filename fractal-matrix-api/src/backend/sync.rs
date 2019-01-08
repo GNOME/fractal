@@ -1,15 +1,17 @@
-use backend::types::BKResponse;
-use backend::types::Backend;
-use error::Error;
-use globals;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::error::Error;
+use crate::globals;
+use crate::types::Room;
+use crate::util::get_rooms_from_json;
+use crate::util::get_rooms_notifies_from_json;
+use crate::util::get_rooms_timeline_from_json;
+use crate::util::json_q;
+use crate::util::parse_m_direct;
+use crate::util::parse_sync_events;
+use log::error;
+use serde_json::json;
 use std::{thread, time};
-use types::Room;
-use util::get_rooms_from_json;
-use util::get_rooms_notifies_from_json;
-use util::get_rooms_timeline_from_json;
-use util::json_q;
-use util::parse_m_direct;
-use util::parse_sync_events;
 
 pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
@@ -66,7 +68,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     thread::spawn(move || {
         match json_q("get", &url, &attrs, timeout) {
             Ok(r) => {
-                let next_batch = String::from(r["next_batch"].as_str().unwrap_or(""));
+                let next_batch = String::from(r["next_batch"].as_str().unwrap_or_default());
                 if let Some(since) = since {
                     // New rooms
                     match get_rooms_from_json(&r, &userid, &baseu) {
@@ -96,14 +98,15 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             for ev in events {
                                 match ev.stype.as_ref() {
                                     "m.room.name" => {
-                                        let name =
-                                            String::from(ev.content["name"].as_str().unwrap_or(""));
+                                        let name = String::from(
+                                            ev.content["name"].as_str().unwrap_or_default(),
+                                        );
                                         tx.send(BKResponse::RoomName(ev.room.clone(), name))
                                             .unwrap();
                                     }
                                     "m.room.topic" => {
                                         let t = String::from(
-                                            ev.content["topic"].as_str().unwrap_or(""),
+                                            ev.content["topic"].as_str().unwrap_or_default(),
                                         );
                                         tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
                                     }

@@ -1,8 +1,7 @@
 use chrono::prelude::*;
 use chrono::DateTime;
 use chrono::TimeZone;
-use md5;
-use serde_json;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -111,13 +110,13 @@ impl Message {
     /// * `roomid` - The message room id
     /// * `msg` - The message event as Json
     pub fn parse_room_message(roomid: &str, msg: &JsonValue) -> Message {
-        let sender = msg["sender"].as_str().unwrap_or("");
+        let sender = msg["sender"].as_str().unwrap_or_default();
 
-        let timestamp = msg["origin_server_ts"].as_i64().unwrap_or(0) / 1000;
+        let timestamp = msg["origin_server_ts"].as_i64().unwrap_or_default() / 1000;
         let server_timestamp: DateTime<Local> = Local.timestamp(timestamp, 0);
 
-        let id = msg["event_id"].as_str().unwrap_or("");
-        let type_ = msg["type"].as_str().unwrap_or("");
+        let id = msg["event_id"].as_str().unwrap_or_default();
+        let type_ = msg["type"].as_str().unwrap_or_default();
 
         let redacted = msg["unsigned"].get("redacted_because") != None;
 
@@ -127,7 +126,7 @@ impl Message {
             room: String::from(roomid),
             id: Some(id.to_string()),
             mtype: type_.to_string(),
-            body: "".to_string(),
+            body: String::new(),
             url: None,
             thumb: None,
             formatted_body: None,
@@ -150,15 +149,15 @@ impl Message {
     }
 
     fn parse_m_room_message(msg: &mut Message, c: &JsonValue) {
-        let mtype = c["msgtype"].as_str().unwrap_or("");
-        let body = c["body"].as_str().unwrap_or("");
+        let mtype = c["msgtype"].as_str().unwrap_or_default();
+        let body = c["body"].as_str().unwrap_or_default();
         let formatted_body = c["formatted_body"].as_str().map(String::from);
         let format = c["format"].as_str().map(String::from);
 
         match mtype {
             "m.image" | "m.file" | "m.video" | "m.audio" => {
-                let url = String::from(c["url"].as_str().unwrap_or(""));
-                let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
+                let url = String::from(c["url"].as_str().unwrap_or_default());
+                let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or_default());
                 if t.is_empty() && !url.is_empty() {
                     t = url.clone();
                 }
@@ -183,10 +182,10 @@ impl Message {
     }
 
     fn parse_m_sticker(msg: &mut Message, c: &JsonValue) {
-        let body = c["body"].as_str().unwrap_or("");
+        let body = c["body"].as_str().unwrap_or_default();
 
-        let url = String::from(c["url"].as_str().unwrap_or(""));
-        let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or(""));
+        let url = String::from(c["url"].as_str().unwrap_or_default());
+        let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or_default());
         if t.is_empty() && !url.is_empty() {
             t = url.clone();
         }

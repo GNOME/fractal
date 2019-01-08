@@ -7,12 +7,12 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
-use i18n::i18n;
+use crate::i18n::i18n;
 
-use appop::AppOp;
-use backend::BKCommand;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
 
-use widgets::ErrorDialog;
+use crate::widgets::ErrorDialog;
 
 impl AppOp {
     pub fn inapp_notify(&self, msg: &str) {
@@ -51,7 +51,7 @@ impl AppOp {
             if let Some(name) = r.name.clone() {
                 format!(" ({})", name)
             } else {
-                String::from("")
+                String::new()
             }
         };
 

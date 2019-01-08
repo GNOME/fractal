@@ -1,15 +1,15 @@
-use regex::Regex;
+use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use std::thread;
 use url::Url;
 
-use error::Error;
-use globals;
-use util::json_q;
+use crate::error::Error;
+use crate::globals;
+use crate::util::json_q;
 
-use backend::types::BKResponse;
-use backend::types::Backend;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
 
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
     let url = Url::parse(server)
@@ -24,9 +24,9 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
@@ -40,12 +40,8 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
 }
 
 fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
-    let emailre = Regex::new(
-        r"^([0-9a-zA-Z]([-\.\w]*[0-9a-zA-Z])+@([0-9a-zA-Z][-\w]*[0-9a-zA-Z]\.)+[a-zA-Z]{2,9})$",
-    )?;
-
     // Email
-    let attrs = if emailre.is_match(&user) {
+    let attrs = if globals::EMAIL_RE.is_match(&user) {
         json!({
             "type": "m.login.password",
             "password": password,
@@ -83,9 +79,9 @@ pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
 
             if uid.is_empty() || tk.is_empty() {
                 tx.send(BKResponse::LoginError(Error::BackendError))
@@ -152,9 +148,9 @@ pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Resul
         &url,
         &attrs,
         |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or(""));
-            let tk = String::from(r["access_token"].as_str().unwrap_or(""));
-            let dev = String::from(r["device_id"].as_str().unwrap_or(""));
+            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
+            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
+            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
 
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();

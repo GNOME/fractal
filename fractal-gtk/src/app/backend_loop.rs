@@ -1,15 +1,16 @@
-use app::App;
-use i18n::i18n;
+use crate::app::App;
+use crate::i18n::i18n;
+use log::{error, info};
 
-use actions::AppState;
-use appop::RoomPanel;
+use crate::actions::AppState;
+use crate::appop::RoomPanel;
 
 use glib;
 use std::process::Command;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
-use backend::BKResponse;
+use crate::backend::BKResponse;
 use fractal_api::error::Error;
 
 use std::sync::mpsc::RecvError;
@@ -104,10 +105,17 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(synced, (s));
                 }
                 Ok(BKResponse::Rooms(rooms, default)) => {
-                    APPOP!(update_rooms, (rooms, default));
+                    let clear_room_list = true;
+                    APPOP!(set_rooms, (rooms, clear_room_list));
+                    // Open the newly joined room
+                    if let Some(room) = default {
+                        let room_id = room.id;
+                        APPOP!(set_active_room_by_id, (room_id));
+                    }
                 }
                 Ok(BKResponse::NewRooms(rooms)) => {
-                    APPOP!(new_rooms, (rooms));
+                    let clear_room_list = false;
+                    APPOP!(set_rooms, (rooms, clear_room_list));
                 }
                 Ok(BKResponse::RoomDetail(room, key, value)) => {
                     let v = Some(value);

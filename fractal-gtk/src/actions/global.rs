@@ -1,14 +1,16 @@
+use fractal_api::clone;
+use log::{debug, info};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use appop::AppOp;
+use crate::appop::AppOp;
+use crate::App;
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
 use glib;
 use gtk::prelude::*;
-use App;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppState {

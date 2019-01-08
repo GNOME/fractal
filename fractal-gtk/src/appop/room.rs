@@ -1,21 +1,22 @@
-use i18n::{i18n, i18n_k};
+use crate::i18n::{i18n, i18n_k};
+use log::{error, warn};
 
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use backend;
-use backend::BKCommand;
+use crate::backend;
+use crate::backend::BKCommand;
 
-use actions;
-use actions::AppState;
-use cache;
-use widgets;
+use crate::actions;
+use crate::actions::AppState;
+use crate::cache;
+use crate::widgets;
 
-use types::Room;
+use crate::types::Room;
 
-use util::markup_text;
+use crate::util::markup_text;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -29,99 +30,74 @@ pub enum RoomPanel {
 }
 
 impl AppOp {
-    pub fn update_rooms(&mut self, rooms: Vec<Room>, default: Option<Room>) {
-        let rs: Vec<Room> = rooms.iter().filter(|x| !x.left).cloned().collect();
-        self.set_rooms(&rs, default);
-
-        // uploading each room avatar
-        for r in rooms.iter() {
-            self.backend
-                .send(BKCommand::GetRoomAvatar(r.id.clone()))
-                .unwrap();
-        }
-    }
-
-    pub fn new_rooms(&mut self, rooms: Vec<Room>) {
-        // ignoring existing rooms
-        let rs: Vec<&Room> = rooms
-            .iter()
-            .filter(|x| !self.rooms.contains_key(&x.id) && !x.left)
-            .collect();
-
-        for r in rs {
-            self.rooms.insert(r.id.clone(), r.clone());
-            self.roomlist.add_room(r.clone());
-            self.roomlist.moveup(r.id.clone());
-        }
-
-        // removing left rooms
-        let rs: Vec<&Room> = rooms.iter().filter(|x| x.left).collect();
-        for r in rs {
-            if r.id == self.active_room.clone().unwrap_or_default() {
-                self.really_leave_active_room();
-            } else {
-                self.remove_room(r.id.clone());
-            }
-        }
-    }
-
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
-        self.roomlist.remove_room(id.clone());
         self.unsent_messages.remove(&id);
+        self.roomlist.remove_room(id);
     }
 
-    pub fn set_rooms(&mut self, rooms: &Vec<Room>, def: Option<Room>) {
-        let container: gtk::Box = self
-            .ui
-            .builder
-            .get_object("room_container")
-            .expect("Couldn't find room_container in ui file.");
-
-        self.rooms.clear();
-        for ch in container.get_children().iter() {
-            container.remove(ch);
+    pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
+        if clear_room_list {
+            self.rooms.clear();
         }
-
-        for r in rooms.iter() {
-            if let None = r.name {
-                // This will force the room name calculation for 1:1 rooms and other rooms with no
-                // name
+        let mut roomlist = vec![];
+        while let Some(room) = rooms.pop() {
+            if room.left {
+                // removing left rooms
+                if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
+                    self.really_leave_active_room();
+                } else {
+                    self.remove_room(room.id);
+                }
+            } else if self.rooms.contains_key(&room.id) {
+                // TODO: update the existing rooms
+            } else {
+                if room.name.is_none() {
+                    // This force the room name calculation for 1:1 rooms and for rooms with no name
+                    self.backend
+                        .send(BKCommand::GetRoomMembers(room.id.clone()))
+                        .unwrap();
+                }
+                // Download the room avatar
                 self.backend
-                    .send(BKCommand::GetRoomMembers(r.id.clone()))
+                    .send(BKCommand::GetRoomAvatar(room.id.clone()))
                     .unwrap();
-            }
-
-            self.rooms.insert(r.id.clone(), r.clone());
-        }
-
-        self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
-        self.roomlist.add_rooms(rooms.iter().cloned().collect());
-        container.add(self.roomlist.widget());
-
-        let bk = self.backend.clone();
-        self.roomlist.connect_fav(move |room, tofav| {
-            bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
-                .unwrap();
-        });
-
-        let mut godef = def;
-        if let Some(aroom) = self.active_room.clone() {
-            if let Some(r) = self.rooms.get(&aroom) {
-                godef = Some(r.clone());
+                if clear_room_list {
+                    roomlist.push(room.clone());
+                } else {
+                    self.roomlist.add_room(room.clone());
+                    self.roomlist.moveup(room.id.clone());
+                }
+                self.rooms.insert(room.id.clone(), room);
             }
         }
 
-        if let Some(d) = godef {
-            self.set_active_room_by_id(d.id.clone());
-        } else {
-            self.set_state(AppState::NoRoom);
-            self.room_panel(RoomPanel::NoRoom);
-            self.active_room = None;
-            self.clear_tmp_msgs();
-        }
+        if clear_room_list {
+            let container: gtk::Box = self
+                .ui
+                .builder
+                .get_object("room_container")
+                .expect("Couldn't find room_container in ui file.");
 
-        self.cache_rooms();
+            for ch in container.get_children().iter() {
+                container.remove(ch);
+            }
+
+            self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
+            self.roomlist.add_rooms(roomlist);
+            container.add(self.roomlist.widget());
+
+            let bk = self.backend.clone();
+            self.roomlist.connect_fav(move |room, tofav| {
+                bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
+                    .unwrap();
+            });
+            // Select active room in the sidebar
+            if let Some(ref active_room) = self.active_room {
+                self.roomlist.select(active_room);
+            }
+            self.cache_rooms();
+        }
     }
 
     pub fn reload_rooms(&mut self) {
@@ -250,7 +226,7 @@ impl AppOp {
             .get_object::<gtk::ToggleButton>("private_visibility_button")
             .expect("Can't find private_visibility_button in ui file.");
 
-        let n = name.get_text().unwrap_or(String::from(""));
+        let n = name.get_text().unwrap_or_default();
 
         // Since the switcher
         let p = if private.get_active() {
@@ -310,7 +286,7 @@ impl AppOp {
                     .unsent_messages
                     .get(&active_room_id)
                     .cloned()
-                    .unwrap_or((String::new(), 0));
+                    .unwrap_or_default();
                 if let Some(buffer) = self.ui.sventry.view.get_buffer() {
                     buffer.set_text(&msg.0);
 
@@ -425,11 +401,7 @@ impl AppOp {
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.");
 
-        let n = name
-            .get_text()
-            .unwrap_or(String::from(""))
-            .trim()
-            .to_string();
+        let n = name.get_text().unwrap_or_default().trim().to_string();
 
         self.backend.send(BKCommand::JoinRoom(n.clone())).unwrap();
     }
@@ -478,12 +450,12 @@ impl AppOp {
 
             let m1 = match members.next() {
                 Some((_uid, m)) => m.get_alias(),
-                None => "".to_string(),
+                None => String::new(),
             };
 
             let m2 = match members.next() {
                 Some((_uid, m)) => m.get_alias(),
-                None => "".to_string(),
+                None => String::new(),
             };
 
             let name = match n {

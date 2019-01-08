@@ -1,4 +1,5 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use fractal_api::clone;
 
 use gdk;
 use gdk::DragContextExtManual;
@@ -10,11 +11,11 @@ use gtk::prelude::*;
 use std::collections::HashMap;
 use url::Url;
 
-use globals;
+use crate::globals;
+use crate::types::Message;
+use crate::types::Room;
+use crate::widgets::roomrow::RoomRow;
 use std::sync::{Arc, Mutex, MutexGuard};
-use types::Message;
-use types::Room;
-use widgets::roomrow::RoomRow;
 
 use chrono::prelude::*;
 
@@ -359,7 +360,7 @@ impl RoomListGroup {
             if let Some(row) = self.list.get_row_at_index(i as i32) {
                 match term {
                     &Some(ref t) if !t.is_empty() => {
-                        let rname = r.room.name.clone().unwrap_or("".to_string()).to_lowercase();
+                        let rname = r.room.name.clone().unwrap_or_default().to_lowercase();
                         if rname.contains(&t.to_lowercase()) {
                             row.show();
                         } else {
@@ -388,7 +389,7 @@ impl RGroup {
         }
     }
 
-    pub fn get(&self) -> MutexGuard<RoomListGroup> {
+    pub fn get(&self) -> MutexGuard<'_, RoomListGroup> {
         self.g.lock().unwrap()
     }
 }

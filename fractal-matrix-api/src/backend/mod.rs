@@ -6,11 +6,11 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use url::Url;
 
-use util::client_url;
+use crate::util::client_url;
 
-use error::Error;
+use crate::error::Error;
 
-use cache::CacheMap;
+use crate::cache::CacheMap;
 
 mod directory;
 mod media;
@@ -33,14 +33,14 @@ impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
             user_id: String::from("Guest"),
-            access_token: String::from(""),
+            access_token: String::new(),
             server_url: String::from("https://matrix.org"),
             scalar_token: None,
             scalar_url: String::from("https://scalar.vector.im"),
             sticker_widget: None,
             since: None,
-            rooms_since: String::from(""),
-            join_to_room: String::from(""),
+            rooms_since: String::new(),
+            join_to_room: String::new(),
             m_direct: HashMap::new(),
         };
         Backend {

@@ -1,30 +1,30 @@
-use serde_json;
-use urlencoding;
+use log::error;
+use serde_json::json;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::mpsc::Sender;
 use url::Url;
 
-use error::Error;
-use globals;
+use crate::error::Error;
+use crate::globals;
 use std::thread;
 
-use util;
-use util::cache_path;
-use util::json_q;
-use util::put_media;
-use util::thumb;
-use util::{client_url, media_url};
+use crate::util;
+use crate::util::cache_path;
+use crate::util::json_q;
+use crate::util::put_media;
+use crate::util::thumb;
+use crate::util::{client_url, media_url};
 
-use backend::types::BKCommand;
-use backend::types::BKResponse;
-use backend::types::Backend;
-use backend::types::RoomType;
+use crate::backend::types::BKCommand;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::backend::types::RoomType;
 
-use types::Member;
-use types::Message;
-use types::Room;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::Room;
 
 use serde_json::Value as JsonValue;
 
@@ -47,7 +47,7 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
         |r: JsonValue| {
             let k = keys.split('.').last().unwrap();
 
-            let value = String::from(r[&k].as_str().unwrap_or(""));
+            let value = String::from(r[&k].as_str().unwrap_or_default());
             tx.send(BKResponse::RoomDetail(roomid, key, value)).unwrap();
         },
         |err| tx.send(BKResponse::RoomDetailError(err)).unwrap()
@@ -71,7 +71,7 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
                     if let Ok(dest) = cache_path(&roomid) {
                         thumb(&baseu, u, Some(&dest)).unwrap_or_default()
                     } else {
-                        String::from("")
+                        String::new()
                     }
                 }
                 None => util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default(),
@@ -79,7 +79,9 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
         |err: Error| match err {
-            Error::MatrixError(ref js) if js["errcode"].as_str().unwrap_or("") == "M_NOT_FOUND" => {
+            Error::MatrixError(ref js)
+                if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
+            {
                 let avatar =
                     util::get_room_avatar(&baseu, &tk, &userid, &roomid).unwrap_or_default();
                 tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
@@ -193,7 +195,7 @@ fn parse_context(
             let array = r["events_before"].as_array();
             for msg in array.unwrap().iter().rev() {
                 if id.is_none() {
-                    id = Some(msg["event_id"].as_str().unwrap_or("").to_string());
+                    id = Some(msg["event_id"].as_str().unwrap_or_default().to_string());
                 }
 
                 if !Message::supported_event(&&msg) {
@@ -442,7 +444,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
                 tx.send(BKResponse::SetRoomAvatarError(err)).unwrap();
             }
             Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or("");
+                let uri = js["content_uri"].as_str().unwrap_or_default();
                 let attrs = json!({ "url": uri });
                 match json_q("put", &roomurl, &attrs, 0) {
                     Ok(_) => {
@@ -484,7 +486,7 @@ pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
                 tx.send(BKResponse::AttachFileError(err)).unwrap();
             }
             Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or("");
+                let uri = js["content_uri"].as_str().unwrap_or_default();
                 m.url = Some(uri.to_string());
                 if let Some(t) = itx {
                     t.send(BKCommand::SendMsg(m.clone())).unwrap();
@@ -525,7 +527,7 @@ pub fn new_room(
         &url,
         &attrs,
         move |r: JsonValue| {
-            let id = String::from(r["room_id"].as_str().unwrap_or(""));
+            let id = String::from(r["room_id"].as_str().unwrap_or_default());
             let name = n;
             let r = Room::new(id, Some(name));
             tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
@@ -557,7 +559,7 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
         &url,
         &attrs,
         move |r: JsonValue| {
-            let id = String::from(r["room_id"].as_str().unwrap_or(""));
+            let id = String::from(r["room_id"].as_str().unwrap_or_default());
             let mut r = Room::new(id.clone(), m.alias.clone());
             r.direct = true;
             tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();

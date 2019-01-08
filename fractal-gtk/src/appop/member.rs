@@ -1,17 +1,18 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
 
-use actions::AppState;
-use appop::AppOp;
-use backend::BKCommand;
+use crate::actions::AppState;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
+use crate::widgets;
+use crate::App;
 use glib;
-use widgets;
-use App;
 
-use types::Event;
-use types::Member;
+use crate::types::Event;
+use crate::types::Member;
 
 #[derive(Debug, Clone)]
 pub enum SearchType {
@@ -62,10 +63,10 @@ impl AppOp {
             Some("join") => {
                 let m = Member {
                     avatar: Some(String::from(
-                        ev.content["avatar_url"].as_str().unwrap_or(""),
+                        ev.content["avatar_url"].as_str().unwrap_or_default(),
                     )),
                     alias: Some(String::from(
-                        ev.content["displayname"].as_str().unwrap_or(""),
+                        ev.content["displayname"].as_str().unwrap_or_default(),
                     )),
                     uid: sender.clone(),
                 };

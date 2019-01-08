@@ -1,23 +1,23 @@
 use chrono::prelude::*;
-use md5;
+use serde_json::json;
 
-use backend::BackendData;
+use crate::backend::BackendData;
+use crate::util::json_q;
+use crate::util::{client_url, scalar_url};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use url::Url;
-use util::json_q;
-use util::{client_url, scalar_url};
 
-use globals;
+use crate::globals;
 //use std::thread;
-use error::Error;
+use crate::error::Error;
 
-use backend::types::BKCommand;
-use backend::types::BKResponse;
-use backend::types::Backend;
+use crate::backend::types::BKCommand;
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::types::Sticker;
+use crate::types::StickerGroup;
 use serde_json::Value as JsonValue;
-use types::Sticker;
-use types::StickerGroup;
 
 /// Queries scalar.vector.im to list all the stickers
 pub fn list(bk: &Backend) -> Result<(), Error> {
@@ -64,7 +64,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
         let url = vurl(&d, "widgets/request", &[]).unwrap();
         match json_q("post", &url, &data, globals::TIMEOUT) {
             Ok(r) => {
-                let mut id = "".to_string();
+                let mut id = String::new();
                 if let Some(i) = r["id"].as_str() {
                     id = i.to_string();
                 }

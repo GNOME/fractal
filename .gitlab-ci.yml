@@ -76,7 +76,7 @@ review:
         url: "https://gitlab.gnome.org/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/raw/${BUNDLE}"
         on_stop: stop_review
     except:
-        - master@World/fractal
+        - master@GNOME/fractal
         - tags
 
 stop_review:
@@ -88,7 +88,7 @@ stop_review:
         name: "review/${CI_COMMIT_REF_NAME}"
         action: stop
     except:
-        - master@World/fractal
+        - master@GNOME/fractal
         - tags
 
 

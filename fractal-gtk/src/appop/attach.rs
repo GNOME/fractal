@@ -1,4 +1,5 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use fractal_api::clone;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -13,13 +14,13 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use App;
+use crate::appop::AppOp;
+use crate::App;
 
+use crate::util::get_pixbuf_data;
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufExt;
-use util::get_pixbuf_data;
 
 impl AppOp {
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {
@@ -105,7 +106,7 @@ fn store_pixbuf(pixb: &Pixbuf) -> Result<String, Error> {
 /// problems because we call to wait_is_image_available that makes that
 /// tries to continue the loop and that give us to a deadlock so
 /// this function minimize the lock and avoid that kind of problems
-/// See: https://gitlab.gnome.org/World/fractal/issues/284
+/// See: https://gitlab.gnome.org/GNOME/fractal/issues/284
 pub fn paste(op: Arc<Mutex<AppOp>>) {
     if let Some(display) = gdk::Display::get_default() {
         if let Some(clipboard) = gtk::Clipboard::get_default(&display) {

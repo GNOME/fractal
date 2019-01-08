@@ -139,7 +139,7 @@ msgstr "Informació avançada"
 
 #: fractal-gtk/res/ui/account_settings.ui:338
 msgid "Homeserver"
-msgstr "Servidor domestic"
+msgstr "Servidor domèstic"
 
 #: fractal-gtk/res/ui/account_settings.ui:353
 #: fractal-gtk/res/ui/account_settings.ui:381
@@ -544,7 +544,7 @@ msgstr "C_anvia"
 
 #: fractal-gtk/res/ui/password_dialog.ui:133
 msgid "The passwords do not match."
-msgstr "Les contrasenyes no coincideixen"
+msgstr "Les contrasenyes no coincideixen."
 
 #: fractal-gtk/res/ui/password_dialog.ui:151
 msgid "_Verify New Password"
@@ -764,7 +764,7 @@ msgstr "No s'ha pogut crear la sala, torneu a provar-ho"
 
 #: fractal-gtk/src/app/backend_loop.rs:227
 msgid "Can’t join the room, try again."
-msgstr "No s'ha pogut entrar a la sala, torneu a provar-ho"
+msgstr "No s'ha pogut entrar a la sala, torneu a provar-ho."
 
 #: fractal-gtk/src/app/backend_loop.rs:233
 msgid "Can’t login, try again"

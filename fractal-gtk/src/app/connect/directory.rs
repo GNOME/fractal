@@ -1,11 +1,12 @@
+use fractal_api::clone;
 use gtk;
 
-use i18n::i18n;
+use crate::i18n::i18n;
 
 use gtk::prelude::*;
 use libhandy::{Column, ColumnExt};
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_directory(&self) {
@@ -138,7 +139,7 @@ impl App {
                     let v = protocol_model.get_value(&it, 0);
                     v.get().unwrap()
                 }
-                None => String::from(""),
+                None => String::new(),
             };
 
             directory_choice_label.set_text(&protocol);
@@ -152,7 +153,7 @@ impl App {
                         let v = protocol_model.get_value(&it, 0);
                         v.get().unwrap()
                     }
-                    None => String::from(""),
+                    None => String::new(),
                 };
 
                 directory_choice_label.set_text(&protocol);

@@ -2,25 +2,25 @@ use chrono::prelude::*;
 use comrak::{markdown_to_html, ComrakOptions};
 use gtk;
 use gtk::prelude::*;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tree_magic;
 
-use appop::room::Force;
-use appop::AppOp;
-use App;
+use crate::appop::room::Force;
+use crate::appop::AppOp;
+use crate::App;
 
-use backend::BKCommand;
-use uitypes::MessageContent;
-use uitypes::RowType;
-use widgets;
+use crate::backend::BKCommand;
+use crate::uitypes::MessageContent;
+use crate::uitypes::RowType;
+use crate::widgets;
 
+use crate::types::Message;
 use gdk_pixbuf::Pixbuf;
-use gstreamer_editing_services::prelude::*;
-use gstreamer_editing_services::UriClipAsset;
+use serde_json::json;
 use serde_json::Value as JsonValue;
-use types::Message;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -324,7 +324,7 @@ impl AppOp {
             let result = file_chooser.run();
             if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
                 if let Some(fname) = file_chooser.get_filename() {
-                    let f = String::from(fname.to_str().unwrap_or(""));
+                    let f = String::from(fname.to_str().unwrap_or_default());
                     APPOP!(attach_message, (f));
                 }
             }
@@ -497,7 +497,7 @@ fn create_ui_message(
 ) -> MessageContent {
     MessageContent {
         msg: msg.clone(),
-        id: msg.id.unwrap_or(String::from("")),
+        id: msg.id.unwrap_or_default(),
         sender: msg.sender,
         sender_name: name,
         mtype: t,
