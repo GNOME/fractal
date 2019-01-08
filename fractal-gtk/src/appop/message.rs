@@ -1,5 +1,7 @@
 use chrono::prelude::*;
 use comrak::{markdown_to_html, ComrakOptions};
+use gstreamer_editing_services::UriClipAsset;
+use gstreamer_editing_services::UriClipAssetExt;
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
@@ -7,8 +9,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tree_magic;
-use gstreamer_editing_services::UriClipAsset;
-use gstreamer_editing_services::UriClipAssetExt;
 
 use crate::appop::room::Force;
 use crate::appop::AppOp;
