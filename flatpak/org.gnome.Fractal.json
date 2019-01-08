@@ -93,7 +93,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://gitlab.gnome.org/GNOME/fractal.git"
+                    "url" : "https://gitlab.gnome.org/World/fractal.git"
                 }
             ]
         }
