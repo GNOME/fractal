@@ -4,7 +4,11 @@ use gtk::prelude::*;
 use gtk::ResponseType;
 use std::path::PathBuf;
 
-pub fn save(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
+pub fn save(
+    parent: &gtk::Window,
+    title: &str,
+    filter: Option<&gtk::FileFilter>,
+) -> Option<PathBuf> {
     let file_chooser = gtk::FileChooserNative::new(
         Some(i18n("Save media as").as_str()),
         Some(parent),
@@ -12,6 +16,9 @@ pub fn save(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
         Some(i18n("_Save").as_str()),
         Some(i18n("_Cancel").as_str()),
     );
+    if let Some(filter) = filter {
+        file_chooser.add_filter(filter);
+    }
 
     file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(title);
@@ -22,7 +29,11 @@ pub fn save(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
     None
 }
 
-pub fn open(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
+pub fn open(
+    parent: &gtk::Window,
+    title: &str,
+    filter: Option<&gtk::FileFilter>,
+) -> Option<PathBuf> {
     let file_chooser = gtk::FileChooserNative::new(
         Some(title),
         Some(parent),
@@ -30,6 +41,10 @@ pub fn open(parent: &gtk::Window, title: &str) -> Option<PathBuf> {
         Some(i18n("_Select").as_str()),
         Some(i18n("_Cancel").as_str()),
     );
+
+    if let Some(filter) = filter {
+        file_chooser.add_filter(filter);
+    }
 
     let response = file_chooser.run();
     if gtk::ResponseType::from(response) == gtk::ResponseType::Accept {
