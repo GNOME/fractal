@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop">
-  <id>@appid@.desktop</id>
+<component type="desktop-application">
+  <id>@appid@</id>
   <name>Fractal</name>
   <project_license>GPL-3.0</project_license>
   <metadata_license>CC0-1.0</metadata_license>
   <developer_name>Daniel García Moreno</developer_name>
   <summary>Matrix group messaging app</summary>
-  <url type="homepage">https://gitlab.gnome.org/GNOME/fractal</url>
   <description>
   <p>
     Fractal is a Matrix messaging app for GNOME written in Rust. Its interface is optimized for collaboration in large groups, such as free software projects.
@@ -44,8 +43,13 @@
       </description>
     </release>
   </releases>
+  <launchable type="desktop-id">@appid@.desktop</launchable>
   <update_contact>danigm@wadobo.com</update_contact>
-
+  <url type="homepage">https://gitlab.gnome.org/GNOME/fractal</url>
+  <url type="bugtracker">https://gitlab.gnome.org/GNOME/fractal/issues/</url>
+  <url type="donation">http://www.gnome.org/friends/</url>
+  <translation type="gettext">fractal</translation>
+  <project_group>GNOME</project_group>
   <content_rating type="oars-1.0">
     <content_attribute id="violence-cartoon">none</content_attribute>
     <content_attribute id="violence-fantasy">none</content_attribute>
