@@ -170,7 +170,7 @@ impl AppOp {
         if let Some(next) = self.msg_queue.last() {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
-                "m.image" | "m.file" | "m.audio" => {
+                "m.image" | "m.file" | "m.audio" | "m.video" => {
                     self.backend.send(BKCommand::AttachFile(msg)).unwrap();
                 }
                 _ => {
@@ -258,6 +258,9 @@ impl AppOp {
             "image/jpg" => "m.image",
             mimetype if mimetype.starts_with("audio/") => "m.audio",
             "application/x-riff" => "m.audio",
+            "video/mp4" => "m.video",
+            "video/web" => "m.video",
+            "video/ogg" => "m.video",
             _ => "m.file",
         };
         let body = String::from(file.split("/").last().unwrap_or(&file));
@@ -265,6 +268,7 @@ impl AppOp {
         let info = match mtype {
             "m.image" => get_image_media_info(&file, mime.as_ref()),
             "m.audio" => get_audio_media_info(&file, mime.as_ref()),
+            "m.video" => get_video_media_info(&file, mime.as_ref()),
             _ => None,
         };
 
@@ -558,6 +562,32 @@ fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
             "size": size,
             "mimetype": mimetype,
             "duration": duration,
+        }
+    });
+
+    Some(info)
+}
+
+fn get_video_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+    let nfile = format!("file://{}", file);
+    let uri = UriClipAsset::request_sync(&nfile).ok()?;
+    let duration = uri?.get_duration().mseconds()?;
+    let size = fs::metadata(file).ok()?.len();
+
+    let info = json!({
+        "info": {
+            "size": size,
+            "mimetype": mimetype,
+            "duration": duration,
+        // Still have to figure out how to populate the thumbnail metadata
+        // "thumbnail_info": {
+        //         "h": 300,
+        //         "mimetype": "image/jpeg",
+        //         "size": 46144,
+        //         "w": 300
+        //     },
+        //     "thumbnail_url": "mxc://localhost/FHyPlCeYUSFFxlgbQYZmoEoe",
+        //     "w": 480,
         }
     });
 
