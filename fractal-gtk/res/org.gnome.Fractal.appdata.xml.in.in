@@ -50,6 +50,11 @@
   <url type="donation">http://www.gnome.org/friends/</url>
   <translation type="gettext">fractal</translation>
   <project_group>GNOME</project_group>
+  <kudos>
+    <kudo>HiDpiIcon</kudo>
+    <kudo>ModernToolkit</kudo>
+    <kudo>Notifications</kudo>
+  </kudos>
   <content_rating type="oars-1.0">
     <content_attribute id="violence-cartoon">none</content_attribute>
     <content_attribute id="violence-fantasy">none</content_attribute>
