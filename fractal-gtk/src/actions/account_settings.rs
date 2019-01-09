@@ -26,7 +26,10 @@ pub fn new(window: &gtk::Window, backend: &Sender<BKCommand>) -> gio::SimpleActi
     let backend = backend.clone();
     change_avatar.connect_activate(move |a, _| {
         let window = upgrade_weak!(window_weak);
-        if let Some(path) = open(&window, i18n("Select a new avatar").as_str()) {
+        let filter = gtk::FileFilter::new();
+        filter.add_mime_type("image/*");
+        FileFilterExt::set_name(&filter, Some(i18n("Images").as_str()));
+        if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
             if let Some(file) = path.to_str() {
                 a.change_state(&ButtonState::Insensitive.into());
                 let _ = backend.send(BKCommand::SetUserAvatar(file.to_string()));
