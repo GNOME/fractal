@@ -217,7 +217,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     send_file.connect_activate(move |_, _| {
         let app = upgrade_weak!(app_weak);
         if let Some(window) = app.get_active_window() {
-            if let Some(path) = open(&window, i18n("Select a file").as_str()) {
+            if let Some(path) = open(&window, i18n("Select a file").as_str(), &[]) {
                 APPOP!(attach_message, (path));
             }
         }

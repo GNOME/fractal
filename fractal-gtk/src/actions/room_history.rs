@@ -114,7 +114,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                     },
                     Ok(fname) => {
                         let window = upgrade_weak!(parent_weak, gtk::Continue(true));
-                        if let Some(path) = save(&window, &name) {
+                        if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
                             if let Err(_) = fs::copy(fname.clone(), path) {
                                 ErrorDialog::new(false, &i18n("Couldn't save file"));
