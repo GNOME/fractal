@@ -7,7 +7,7 @@ use crate::error::Error;
 use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
-use crate::types::Protocol;
+use crate::types::ProtocolInstance;
 use crate::types::Room;
 use crate::types::Sticker;
 use crate::types::StickerGroup;
@@ -115,7 +115,7 @@ pub enum BKResponse {
     RoomMembers(String, Vec<Member>),
     SentMsg(String, String),
     SentMsgRedaction(String, String),
-    DirectoryProtocols(Vec<Protocol>),
+    DirectoryProtocols(Vec<ProtocolInstance>),
     DirectorySearch(Vec<Room>),
     JoinRoom,
     LeaveRoom,
