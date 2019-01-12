@@ -7,7 +7,7 @@ use crate::appop::AppOp;
 use crate::backend::BKCommand;
 use crate::widgets;
 
-use crate::types::Protocol;
+use crate::types::ProtocolInstance;
 use crate::types::Room;
 
 impl AppOp {
@@ -15,7 +15,7 @@ impl AppOp {
         self.backend.send(BKCommand::DirectoryProtocols).unwrap();
     }
 
-    pub fn set_protocols(&self, protocols: Vec<Protocol>) {
+    pub fn set_protocols(&self, protocols: Vec<ProtocolInstance>) {
         let combo = self
             .ui
             .builder
