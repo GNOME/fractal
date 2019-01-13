@@ -7,15 +7,14 @@ use crate::globals;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
-use std::str::Split;
 use std::thread;
 
 use crate::util::cache_path;
 use crate::util::json_q;
 use crate::util::media;
 
-use crate::types::ProtocolInstance;
 use crate::types::Room;
+use crate::types::SupportedProtocols;
 
 pub fn protocols(bk: &Backend) {
     let baseu = bk.get_base_url();
@@ -31,40 +30,17 @@ pub fn protocols(bk: &Backend) {
     get!(
         &url,
         move |r: JsonValue| {
-            let mut protocols = vec![ProtocolInstance {
-                id: Default::default(),
-                desc: baseu
-                    .path_segments()
-                    .and_then(Split::last)
-                    .map(Into::into)
-                    .unwrap_or_default(),
-                icon: Default::default(),
-                fields: Default::default(),
-            }];
-
-            // let protocols_json: Vec<ProtocolInstance> = serde_json::from_value(r)
-            //     .map(|protocol| protocol.instances)
-            //     .unwrap_or_default();
-            //
-            //  protocols.extend(protocols_json);
-
-            if let Some(prs) = r.as_object() {
-                for k in prs.keys() {
-                    let ins = prs[k]["instances"].as_array();
-                    for i in ins.unwrap_or(&vec![]) {
-                        let p = ProtocolInstance {
-                            id: i["instance_id"]
-                                .as_str()
-                                .map(Into::into)
-                                .unwrap_or_default(),
-                            desc: i["desc"].as_str().map(Into::into).unwrap_or_default(),
-                            icon: i["icon"].as_str().map(Into::into),
-                            fields: i["fields"].clone(),
-                        };
-                        protocols.push(p);
-                    }
-                }
-            }
+            let protocols = serde_json::from_value(r)
+                .map(|protocols: SupportedProtocols| {
+                    protocols
+                        .into_iter()
+                        .inspect(|p| {
+                            eprintln!("{:?}", p);
+                        })
+                        .flat_map(|(_, protocol)| protocol.instances.into_iter())
+                        .collect()
+                })
+                .unwrap_or_default();
 
             tx.send(BKResponse::DirectoryProtocols(protocols)).unwrap();
         },
