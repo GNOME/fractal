@@ -8,7 +8,9 @@ pub type SupportedProtocols = BTreeMap<String, Protocol>;
 pub struct Protocol {
     pub user_fields: Vec<String>,
     pub location_fields: Vec<String>,
-    pub icon: String,
+    // This field is documented as "required",
+    // but for some reason matrix.org does not send this
+    pub icon: Option<String>,
     pub field_types: BTreeMap<String, FieldType>,
     pub instances: Vec<ProtocolInstance>,
 }
@@ -21,7 +23,7 @@ pub struct FieldType {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProtocolInstance {
-    #[serde(rename = "rename_id")]
+    #[serde(rename = "network_id")]
     pub id: String,
     pub desc: String,
     pub icon: Option<String>,
