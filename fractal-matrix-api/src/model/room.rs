@@ -121,6 +121,35 @@ impl PartialEq for Room {
 
 pub type RoomList = HashMap<String, Room>;
 
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicRoomsRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
+    #[serde(flatten)]
+    pub third_party_networks: ThirdPartyNetworks,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "include_all_networks", content = "third_party_instance_id")]
+pub enum ThirdPartyNetworks {
+    #[serde(rename = "false")]
+    None,
+    #[serde(rename = "false")]
+    Only(String),
+    #[serde(rename = "true")]
+    All,
+}
+
+impl Default for ThirdPartyNetworks {
+    fn default() -> Self {
+        ThirdPartyNetworks::None
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct PublicRooms {
     pub chunk: Vec<PublicRoomsChunk>,
