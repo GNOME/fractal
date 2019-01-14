@@ -122,7 +122,7 @@ pub fn room_search(
                 r.n_members = room["num_joined_members"].as_i64().unwrap_or_default() as i32;
                 r.world_readable = room["world_readable"].as_bool().unwrap_or_default();
                 r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or_default();
-                /* download the avatar */
+                // download the avatar
                 if let Some(avatar) = r.avatar.clone() {
                     if let Ok(dest) = cache_path(&id) {
                         media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
