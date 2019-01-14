@@ -99,6 +99,20 @@ impl Room {
     }
 }
 
+impl From<PublicRoomsChunk> for Room {
+    fn from(input: PublicRoomsChunk) -> Self {
+        let mut room = Self::new(input.room_id, input.name);
+        room.alias = input.canonical_alias;
+        room.avatar = input.avatar_url;
+        room.topic = input.topic;
+        room.n_members = input.num_joined_members;
+        room.world_readable = input.world_readable;
+        room.guest_can_join = input.guest_can_join;
+
+        room
+    }
+}
+
 impl PartialEq for Room {
     fn eq(&self, other: &Room) -> bool {
         self.id == other.id
@@ -106,3 +120,24 @@ impl PartialEq for Room {
 }
 
 pub type RoomList = HashMap<String, Room>;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PublicRoomsResponse {
+    pub chunk: Vec<PublicRoomsChunk>,
+    pub next_batch: Option<String>,
+    pub prev_batch: Option<String>,
+    pub total_room_count_estimate: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PublicRoomsChunk {
+    pub aliases: Option<Vec<String>>,
+    pub avatar_url: Option<String>,
+    pub canonical_alias: Option<String>,
+    pub guest_can_join: bool,
+    pub name: Option<String>,
+    pub num_joined_members: i32,
+    pub room_id: String,
+    pub topic: Option<String>,
+    pub world_readable: bool,
+}
