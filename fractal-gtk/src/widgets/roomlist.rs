@@ -427,8 +427,8 @@ impl RoomList {
         );
         let fav = RGroup::new(
             &baseu,
-            i18n("Favorites").as_str(),
-            i18n("Drag and drop rooms here to add them to your favorites").as_str(),
+            i18n("Favourites").as_str(),
+            i18n("Drag and drop rooms here to add them to your favourites").as_str(),
         );
         let rooms = RGroup::new(
             &baseu,

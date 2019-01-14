@@ -423,7 +423,7 @@ impl MessageBox {
         let use_ampm = false;
         let format = if use_ampm {
             /* Use 12h time format (AM/PM) */
-            i18n("%l:%M %p")
+            i18n("%l∶%M %p")
         } else {
             /* Use 24 time format */
             i18n("%R")

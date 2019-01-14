@@ -239,12 +239,12 @@ impl AppOp {
         if let Some(ref sender) = sender {
             let sender_name = sender.get_alias();
             secondary = i18n_k(
-                "You’ve been invited to join to <b>{room_name}</b> room by <b>{sender_name}</b>",
+                "You’ve been invited to join <b>{room_name}</b> room by <b>{sender_name}</b>",
                 &[("room_name", &room_name), ("sender_name", &sender_name)],
             );
         } else {
             secondary = i18n_k(
-                "You’ve been invited to join to <b>{room_name}</b>",
+                "You’ve been invited to join <b>{room_name}</b>",
                 &[("room_name", &room_name)],
             );
         }
