@@ -16,7 +16,9 @@ use crate::util::media;
 
 use crate::types::Protocol;
 use crate::types::PublicRooms;
+use crate::types::PublicRoomsRequest;
 use crate::types::Room;
+use crate::types::ThirdPartyNetworks;
 
 pub fn protocols(bk: &Backend) {
     let baseu = bk.get_base_url();
@@ -67,7 +69,7 @@ pub fn protocols(bk: &Backend) {
 pub fn room_search(
     bk: &Backend,
     homeserver: Option<String>,
-    query: Option<String>,
+    filter: Option<String>,
     third_party: Option<String>,
     more: bool,
 ) -> Result<(), Error> {
@@ -85,20 +87,22 @@ pub fn room_search(
     let url = bk.url("publicRooms", params)?;
     let base = bk.get_base_url();
 
-    let mut attrs = json!({ "limit": globals::ROOM_DIRECTORY_LIMIT });
+    let since = if more {
+        Some(bk.data.lock().unwrap().rooms_since.clone())
+    } else {
+        None
+    };
 
-    if let Some(q) = query {
-        attrs["filter"] = json!({ "generic_search_term": q });
-    }
+    let request = PublicRoomsRequest {
+        limit: Some(globals::ROOM_DIRECTORY_LIMIT),
+        filter,
+        since,
+        third_party_networks: third_party
+            .map(|tp| ThirdPartyNetworks::Only(tp))
+            .unwrap_or_default(),
+    };
 
-    if let Some(tp) = third_party {
-        attrs["third_party_instance_id"] = json!(tp);
-    }
-
-    if more {
-        let since = bk.data.lock().unwrap().rooms_since.clone();
-        attrs["since"] = json!(since);
-    }
+    let attrs = serde_json::to_value(request).unwrap();
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
