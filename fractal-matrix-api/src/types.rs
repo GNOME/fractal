@@ -3,6 +3,7 @@ pub use crate::model::member::Member;
 pub use crate::model::member::MemberList;
 pub use crate::model::message::Message;
 pub use crate::model::protocol::Protocol;
+pub use crate::model::room::PublicRooms;
 pub use crate::model::room::Room;
 pub use crate::model::room::RoomList;
 pub use crate::model::stickers::Sticker;
