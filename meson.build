@@ -14,6 +14,7 @@ dependency('gdk-pixbuf-2.0')
 dependency('gtk+-3.0', version: '>= 3.22')
 dependency('libhandy-0.0', version: '>= 0.0.5')
 dependency('gtksourceview-3.0', version: '>= 3.22')
+dependency('gspell-1', version: '>= 1.8')
 
 dependency('gstreamer-1.0', version: '>= 1.12')
 dependency('gstreamer-base-1.0', version: '>= 1.12')

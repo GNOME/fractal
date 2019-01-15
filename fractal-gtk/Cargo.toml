@@ -66,6 +66,10 @@ features = ["gettext-system"]
 version = "0.5.0"
 features = ["v3_22"]
 
+[dependencies.gspell]
+git = "https://gitlab.gnome.org/BrainBlasted/gspell-rs"
+branch = "generate-gspell-textview"
+
 [dependencies.serde]
 version = "1.0.82"
 features = ["derive"]

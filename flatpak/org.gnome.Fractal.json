@@ -72,6 +72,15 @@
             ]
         },
         {
+            "name": "gspell",
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://gitlab.gnome.org/GNOME/gspell.git"
+                }
+            ]
+        },
+        {
             "name" : "fractal",
             "buildsystem" : "meson",
             "config-opts" : [
