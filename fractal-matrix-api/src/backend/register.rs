@@ -8,6 +8,12 @@ use crate::error::Error;
 use crate::globals;
 use crate::util::json_q;
 
+use crate::types::Auth;
+use crate::types::LoginRequest;
+use crate::types::LoginResponse;
+use crate::types::Medium;
+use crate::types::UserIdentifier;
+
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 
@@ -40,48 +46,48 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn build_login_attrs(user: &str, password: &str) -> Result<JsonValue, Error> {
+fn build_login_attrs(user: String, password: String) -> JsonValue {
     // Email
     let attrs = if globals::EMAIL_RE.is_match(&user) {
-        json!({
-            "type": "m.login.password",
-            "password": password,
-            "initial_device_display_name": "Fractal",
-            "medium": "email",
-            "address": user,
-            "identifier": {
-                "type": "m.id.thirdparty",
-                "medium": "email",
-                "address": user,
-            }
-        })
+        LoginRequest {
+            auth: Auth::Password { password },
+            initial_device_display_name: Some(String::from("Fractal")),
+            medium: Some(Medium::Email),
+            address: Some(user.clone()),
+            identifier: UserIdentifier::ThirdParty {
+                medium: Medium::Email,
+                address: user,
+            },
+            ..Default::default()
+        }
     } else {
-        json!({
-            "type": "m.login.password",
-            "initial_device_display_name": "Fractal",
-            "user": user,
-            "password": password
-        })
+        LoginRequest {
+            auth: Auth::Password { password },
+            initial_device_display_name: Some(String::from("Fractal")),
+            user: Some(user.clone()),
+            identifier: UserIdentifier::User { user },
+            ..Default::default()
+        }
     };
 
-    Ok(attrs)
+    serde_json::to_value(attrs).expect("Failed to serialize login request")
 }
 
-pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(), Error> {
+pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
     bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("login", vec![])?;
 
-    let attrs = build_login_attrs(user, password)?;
+    let attrs = build_login_attrs(user, password);
     let data = bk.data.clone();
 
     let tx = bk.tx.clone();
     post!(
         &url,
         &attrs,
-        |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
-            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
-            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<LoginResponse>(r) {
+            let uid = response.user_id.unwrap_or_default();
+            let tk = response.access_token.unwrap_or_default();
+            let dev = response.device_id;
 
             if uid.is_empty() || tk.is_empty() {
                 tx.send(BKResponse::LoginError(Error::BackendError))
@@ -90,8 +96,11 @@ pub fn login(bk: &Backend, user: &str, password: &str, server: &str) -> Result<(
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
                 data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, Some(dev))).unwrap();
+                tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
             }
+        } else {
+            tx.send(BKResponse::LoginError(Error::BackendError))
+                .unwrap();
         },
         |err| tx.send(BKResponse::LoginError(err)).unwrap()
     );
