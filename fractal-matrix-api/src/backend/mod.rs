@@ -87,7 +87,7 @@ impl Backend {
         match cmd {
             // Register module
             Ok(BKCommand::Login(user, passwd, server)) => {
-                let r = register::login(self, &user, &passwd, &server);
+                let r = register::login(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
             Ok(BKCommand::Logout) => {
