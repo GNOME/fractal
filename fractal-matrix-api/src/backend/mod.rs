@@ -95,7 +95,7 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::LogoutError);
             }
             Ok(BKCommand::Register(user, passwd, server)) => {
-                let r = register::register(self, &user, &passwd, &server);
+                let r = register::register(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
             Ok(BKCommand::Guest(server)) => {
