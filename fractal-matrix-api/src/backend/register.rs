@@ -9,9 +9,13 @@ use crate::globals;
 use crate::util::json_q;
 
 use crate::types::Auth;
+use crate::types::AuthenticationData;
+use crate::types::AuthenticationKind;
 use crate::types::LoginRequest;
 use crate::types::LoginResponse;
 use crate::types::Medium;
+use crate::types::RegisterRequest;
+use crate::types::RegisterResponse;
 use crate::types::UserIdentifier;
 
 use crate::backend::types::BKResponse;
@@ -26,19 +30,25 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
 
     let data = bk.data.clone();
     let tx = bk.tx.clone();
-    let attrs = json!({});
+    let attrs = RegisterRequest::default();
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize guest register request");
     post!(
         &url,
-        &attrs,
-        |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
-            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
-            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<RegisterResponse>(r) {
+            let uid = response.user_id;
+            let tk = response.access_token.unwrap_or_default();
+            let dev = response.device_id;
+
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, Some(dev))).unwrap();
+            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
             tx.send(BKResponse::Rooms(vec![], None)).unwrap();
+        } else {
+            tx.send(BKResponse::GuestLoginError(Error::BackendError))
+                .unwrap();
         },
         |err| tx.send(BKResponse::GuestLoginError(err)).unwrap()
     );
@@ -142,27 +152,35 @@ pub fn register(bk: &Backend, user: &str, password: &str, server: &str) -> Resul
     bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("register", vec![("kind", String::from("user"))])?;
 
-    let attrs = json!({
-        "auth": {"type": "m.login.password"},
-        "username": user,
-        "bind_email": false,
-        "password": password
-    });
+    let attrs = RegisterRequest {
+        auth: Some(AuthenticationData {
+            kind: AuthenticationKind::Password,
+            session: None,
+        }),
+        username: Some(user.into()),
+        password: Some(password.into()),
+        ..Default::default()
+    };
 
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize user register request");
     let data = bk.data.clone();
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
-        |r: JsonValue| {
-            let uid = String::from(r["user_id"].as_str().unwrap_or_default());
-            let tk = String::from(r["access_token"].as_str().unwrap_or_default());
-            let dev = String::from(r["device_id"].as_str().unwrap_or_default());
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<RegisterResponse>(r) {
+            let uid = response.user_id;
+            let tk = response.access_token.unwrap_or_default();
+            let dev = response.device_id;
 
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, Some(dev))).unwrap();
+            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
+        } else {
+            tx.send(BKResponse::LoginError(Error::BackendError))
+                .unwrap();
         },
         |err| tx.send(BKResponse::LoginError(err)).unwrap()
     );
