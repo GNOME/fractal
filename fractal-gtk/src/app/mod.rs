@@ -104,6 +104,22 @@ impl App {
         window.set_application(gtk_app);
 
         window.set_title("Fractal");
+
+        { // connect mouse back button to app.back action
+            let gtk_app = gtk_app.clone();
+            window.connect_button_press_event(move |_, e| {
+                if e.get_button() == 8 {
+                    gtk_app
+                        .lookup_action("back")
+                        .expect("App did not have back action.")
+                        .activate(None);
+                    Inhibit(true)
+                } else {
+                    Inhibit(false)
+                }
+            });
+        }
+
         window.show_all();
 
         if gtk_app
