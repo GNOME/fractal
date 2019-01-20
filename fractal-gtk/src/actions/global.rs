@@ -227,6 +227,23 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.set_accels_for_action("app.quit", &["<Ctrl>Q"]);
     app.set_accels_for_action("app.back", &["Escape"]);
 
+    // connect mouse back button to app.back action
+    let app_weak = app.downgrade();
+    if let Some(window) = app.get_active_window() {
+        window.connect_button_press_event(move |_, e| {
+            if e.get_button() == 8 {
+                if let Some(app) = app_weak.upgrade() {
+                    app.lookup_action("back")
+                        .expect("App did not have back action.")
+                        .activate(None);
+                    return Inhibit(true);
+                }
+            }
+
+            Inhibit(false)
+        });
+    }
+
     // TODO: Mark active room as read when window gets focus
     //op.lock().unwrap().mark_active_room_messages();
 }
