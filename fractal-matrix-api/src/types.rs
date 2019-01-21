@@ -14,4 +14,7 @@ pub use crate::model::room::RoomTag;
 pub use crate::model::room::ThirdPartyNetworks;
 pub use crate::model::stickers::Sticker;
 pub use crate::model::stickers::StickerGroup;
+pub use crate::model::sync::JoinedRoom;
+pub use crate::model::sync::SyncResponse;
+pub use crate::model::sync::UnreadNotificationsCount;
 pub use crate::model::userinfo::UserInfo;
