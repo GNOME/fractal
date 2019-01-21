@@ -12,7 +12,7 @@ use crate::util::parse_sync_events;
 use log::error;
 use serde_json::json;
 use serde_json::Value as JsonValue;
-use std::{thread, time};
+use std::{iter, thread, time};
 
 pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
@@ -23,18 +23,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     let since = bk.data.lock().unwrap().since.clone().or(new_since);
     let userid = bk.data.lock().unwrap().user_id.clone();
 
-    let mut params: Vec<(&str, String)> = vec![];
-    params.push(("full_state", String::from("false")));
-
-    let timeout;
-
-    if let Some(since) = since.clone() {
-        params.push(("since", since));
-    }
-
-    if !initial {
-        params.push(("timeout", String::from("30000")));
-        timeout = 30;
+    let (filter, timeout) = if !initial {
+        (None, time::Duration::from_secs(30))
     } else {
         let filter = format!(r#"{{
             "room": {{
@@ -53,10 +43,14 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             "event_fields": ["type", "content", "sender", "origin_server_ts", "event_id", "unsigned"]
         }}"#, globals::PAGE_LIMIT);
 
-        params.push(("filter", filter));
-        params.push(("timeout", String::from("0")));
-        timeout = 0;
-    }
+        (Some(filter), Default::default())
+    };
+
+    let params = iter::once(("full_state", false.to_string()))
+        .chain(since.clone().map(|since| ("since", since)))
+        .chain(filter.map(|filter| ("filter", filter)))
+        .chain(iter::once(("timeout", timeout.as_secs().to_string())))
+        .collect();
 
     let baseu = bk.get_base_url();
     let url = bk.url("sync", params)?;
@@ -84,14 +78,11 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     Err(err) => tx.send(BKResponse::RoomMessagesError(err)).unwrap(),
                 };
                 // Room notifications
-                match get_rooms_notifies_from_json(&r) {
-                    Ok(notifies) => {
-                        for (r, n, h) in notifies {
-                            tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
-                                .unwrap();
-                        }
+                if let Ok(notifies) = get_rooms_notifies_from_json(&r) {
+                    for (r, n, h) in notifies {
+                        tx.send(BKResponse::RoomNotifications(r.clone(), n, h))
+                            .unwrap();
                     }
-                    Err(_) => {}
                 };
                 // Other events
                 match parse_sync_events(&r) {
@@ -137,7 +128,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     Ok(rs) => rs,
                     Err(err) => {
                         tx.send(BKResponse::SyncError(err)).unwrap();
-                        vec![]
+                        Default::default()
                     }
                 };
 
@@ -161,12 +152,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         |err| {
             // we wait if there's an error to avoid 100% CPU
             error!("Sync Error, waiting 10 seconds to respond for the next sync");
-            let ten_seconds = time::Duration::from_millis(10000);
-            thread::sleep(ten_seconds);
+            let wait = time::Duration::from_secs(10);
+            thread::sleep(wait);
 
             tx.send(BKResponse::SyncError(err)).unwrap();
         },
-        timeout
+        timeout.as_secs()
     );
 
     Ok(())
