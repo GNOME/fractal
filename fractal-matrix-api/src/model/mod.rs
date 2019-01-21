@@ -5,4 +5,5 @@ pub mod protocol;
 pub mod register;
 pub mod room;
 pub mod stickers;
+pub mod sync;
 pub mod userinfo;
