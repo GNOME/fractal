@@ -1,4 +1,8 @@
 pub use crate::model::event::Event;
+pub use crate::model::filter::EventFilter;
+pub use crate::model::filter::Filter;
+pub use crate::model::filter::RoomEventFilter;
+pub use crate::model::filter::RoomFilter;
 pub use crate::model::member::Member;
 pub use crate::model::member::MemberList;
 pub use crate::model::message::Message;
