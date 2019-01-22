@@ -21,6 +21,7 @@ use std::time::Duration as StdDuration;
 
 use crate::error::Error;
 use crate::types::Message;
+use crate::types::RoomEventFilter;
 
 use reqwest::header::CONTENT_TYPE;
 
@@ -187,8 +188,12 @@ pub fn get_room_media_list(
         ("access_token", String::from(tk)),
         (
             "filter",
-            "{\"filter_json\": { \"contains_url\": true, \"not_types\": [\"m.sticker\"] } }"
-                .to_string(),
+            serde_json::to_string(&RoomEventFilter {
+                contains_url: true,
+                not_types: vec!["m.sticker"],
+                ..Default::default()
+            })
+            .expect("Failed to serialize room media list request filter"),
         ),
     ];
 

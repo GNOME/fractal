@@ -3,8 +3,12 @@ use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
 use crate::types::Event;
+use crate::types::EventFilter;
+use crate::types::Filter;
 use crate::types::Message;
 use crate::types::Room;
+use crate::types::RoomEventFilter;
+use crate::types::RoomFilter;
 use crate::types::SyncResponse;
 use crate::types::UnreadNotificationsCount;
 use crate::util::json_q;
@@ -32,23 +36,41 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
     let timeout = if !initial {
         time::Duration::from_secs(30)
     } else {
-        let filter = format!(r#"{{
-            "room": {{
-                "state": {{
-                    "types": ["m.room.*"],
-                    "not_types": ["m.room.member"]
-                }},
-                "timeline": {{
-                    "types": ["m.room.message", "m.sticker"],
-                    "limit": {}
-                }},
-                "ephemeral": {{ "types": [] }}
-            }},
-            "presence": {{ "types": [] }},
-            "event_format": "client",
-            "event_fields": ["type", "content", "sender", "origin_server_ts", "event_id", "unsigned"]
-        }}"#, globals::PAGE_LIMIT);
-        params.push(("filter", filter));
+        let filter = Filter {
+            room: Some(RoomFilter {
+                state: Some(RoomEventFilter {
+                    types: Some(vec!["m.room.*"]),
+                    not_types: vec!["m.room.member"],
+                    ..Default::default()
+                }),
+                timeline: Some(RoomEventFilter {
+                    types: Some(vec!["m.room.message", "m.sticker"]),
+                    limit: Some(globals::PAGE_LIMIT),
+                    ..Default::default()
+                }),
+                ephemeral: Some(RoomEventFilter {
+                    types: Some(vec![]),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            presence: Some(EventFilter {
+                types: Some(vec![]),
+                ..Default::default()
+            }),
+            event_fields: Some(vec![
+                "type",
+                "content",
+                "sender",
+                "origin_server_ts",
+                "event_id",
+                "unsigned",
+            ]),
+            ..Default::default()
+        };
+        let filter_str =
+            serde_json::to_string(&filter).expect("Failed to serialize sync request filter");
+        params.push(("filter", filter_str));
 
         Default::default()
     };

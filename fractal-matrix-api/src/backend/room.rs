@@ -24,6 +24,7 @@ use crate::backend::types::RoomType;
 
 use crate::types::Member;
 use crate::types::Message;
+use crate::types::RoomEventFilter;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 use serde_json::Value as JsonValue;
@@ -129,7 +130,11 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
         ("limit", format!("{}", globals::PAGE_LIMIT)),
         (
             "filter",
-            "{ \"types\": [\"m.room.message\", \"m.sticker\"] }".to_string(),
+            serde_json::to_string(&RoomEventFilter {
+                types: Some(vec!["m.room.message", "m.sticker"]),
+                ..Default::default()
+            })
+            .expect("Failed to serialize room messages request filter"),
         ),
     ];
     let url = bk.url(&format!("rooms/{}/messages", roomid), params)?;
