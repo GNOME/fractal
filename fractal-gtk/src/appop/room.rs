@@ -1,5 +1,7 @@
 use crate::i18n::{i18n, i18n_k};
 use log::{error, warn};
+use std::fs::remove_file;
+use std::os::unix::fs;
 use url::Url;
 
 use gtk;
@@ -9,6 +11,7 @@ use crate::appop::AppOp;
 
 use crate::backend;
 use crate::backend::BKCommand;
+use fractal_api::util::cache_path;
 
 use crate::actions;
 use crate::actions::AppState;
@@ -337,7 +340,27 @@ impl AppOp {
     }
 
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<Url>) {
+        if avatar.is_none() {
+            if let Ok(dest) = cache_path(&roomid) {
+                let _ = remove_file(dest);
+            }
+        }
         if let Some(r) = self.rooms.get_mut(&roomid) {
+            if avatar.is_none() && r.members.len() == 2 {
+                if let Some(ref uid) = self.uid {
+                    for m in r.members.keys() {
+                        if m != uid {
+                            //FIXME: Find a better solution
+                            // create a symlink from user avatar to room avatar (works only on unix)
+                            if let Ok(source) = cache_path(m) {
+                                if let Ok(dest) = cache_path(&roomid) {
+                                    let _ = fs::symlink(source, dest);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             r.avatar = avatar.map(|s| s.into_string());
             self.roomlist
                 .set_room_avatar(roomid.clone(), r.avatar.clone());

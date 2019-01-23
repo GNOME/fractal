@@ -11,8 +11,10 @@ use crate::globals;
 use std::thread;
 
 use crate::util;
+use crate::util::cache_path;
 use crate::util::json_q;
 use crate::util::put_media;
+use crate::util::thumb;
 use crate::util::{client_url, media_url};
 
 use crate::backend::types::BKCommand;
@@ -56,12 +58,16 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
 
 pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
     let url = bk.url(&format!("rooms/{}/state/m.room.avatar", roomid), vec![])?;
-
+    let baseu = bk.get_base_url();
     let tx = bk.tx.clone();
     get!(
         &url,
         |r: JsonValue| {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
+            let dest = cache_path(&roomid).ok();
+            if let Some(ref avatar) = avatar {
+                let _ = thumb(&baseu, avatar.as_str(), dest.as_ref().map(String::as_str));
+            }
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },
         |err: Error| match err {
