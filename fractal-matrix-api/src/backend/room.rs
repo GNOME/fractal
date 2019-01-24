@@ -32,7 +32,6 @@ pub fn set_room(bk: &Backend, id: String) -> Result<(), Error> {
     /* FIXME: remove clone and pass id by reference */
     get_room_avatar(bk, id.clone())?;
     get_room_detail(bk, id.clone(), String::from("m.room.topic"))?;
-    get_room_members(bk, id)?;
 
     Ok(())
 }

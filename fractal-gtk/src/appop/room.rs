@@ -56,12 +56,7 @@ impl AppOp {
             } else if self.rooms.contains_key(&room.id) {
                 // TODO: update the existing rooms
             } else {
-                if room.name.is_none() {
-                    // This force the room name calculation for 1:1 rooms and for rooms with no name
-                    self.backend
-                        .send(BKCommand::GetRoomMembers(room.id.clone()))
-                        .unwrap();
-                }
+                // TODO: Use the avatar url retured by sync
                 // Download the room avatar
                 self.backend
                     .send(BKCommand::GetRoomAvatar(room.id.clone()))

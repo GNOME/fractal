@@ -39,9 +39,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         let filter = format!(r#"{{
             "room": {{
                 "state": {{
-                    "types": ["m.room.*"],
-                    "not_types": ["m.room.member"]
-                }},
+                    "lazy_load_members": true
+                    }},
                 "timeline": {{
                     "types": ["m.room.message", "m.sticker"],
                     "limit": {}
