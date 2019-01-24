@@ -2,13 +2,13 @@ use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
+use crate::types::Event;
 use crate::types::Message;
+use crate::types::Room;
 use crate::types::SyncResponse;
 use crate::types::UnreadNotificationsCount;
-use crate::util::get_rooms_from_sync_response;
 use crate::util::json_q;
 use crate::util::parse_m_direct;
-use crate::util::parse_sync_events;
 use log::error;
 use serde_json::json;
 use serde_json::Value as JsonValue;
@@ -69,14 +69,14 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         |r: JsonValue| {
             if let Ok(response) = serde_json::from_value::<SyncResponse>(r) {
                 if since.is_some() {
+                    let join = &response.rooms.join;
+
                     // New rooms
-                    let rs = get_rooms_from_sync_response(&response, &userid, &baseu);
+                    let rs = Room::from_sync_response(&response, &userid, &baseu);
                     tx.send(BKResponse::NewRooms(rs)).unwrap();
 
                     // Message events
-                    let msgs = response
-                        .rooms
-                        .join
+                    let msgs = join
                         .iter()
                         .flat_map(|(k, room)| {
                             let events = room.timeline.events.iter();
@@ -86,7 +86,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     tx.send(BKResponse::RoomMessages(msgs)).unwrap();
 
                     // Room notifications
-                    for (k, room) in response.rooms.join.iter() {
+                    for (k, room) in join.iter() {
                         let UnreadNotificationsCount {
                             highlight_count: h,
                             notification_count: n,
@@ -94,42 +94,60 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         tx.send(BKResponse::RoomNotifications(k.clone(), n, h))
                             .unwrap();
                     }
+
                     // Other events
-                    for ev in parse_sync_events(&response.rooms.join) {
-                        match ev.stype.as_ref() {
-                            "m.room.name" => {
-                                let name = ev.content["name"]
-                                    .as_str()
-                                    .map(Into::into)
-                                    .unwrap_or_default();
-                                tx.send(BKResponse::RoomName(ev.room.clone(), name))
-                                    .unwrap();
+                    join.iter()
+                        .flat_map(|(k, room)| {
+                            room.timeline
+                                .events
+                                .iter()
+                                .filter(|x| x["type"] != "m.room.message")
+                                .map(move |ev| Event {
+                                    room: k.clone(),
+                                    sender: ev["sender"]
+                                        .as_str()
+                                        .map(Into::into)
+                                        .unwrap_or_default(),
+                                    content: ev["content"].clone(),
+                                    stype: ev["type"].as_str().map(Into::into).unwrap_or_default(),
+                                    id: ev["id"].as_str().map(Into::into).unwrap_or_default(),
+                                })
+                        })
+                        .for_each(|ev| {
+                            match ev.stype.as_ref() {
+                                "m.room.name" => {
+                                    let name = ev.content["name"]
+                                        .as_str()
+                                        .map(Into::into)
+                                        .unwrap_or_default();
+                                    tx.send(BKResponse::RoomName(ev.room.clone(), name))
+                                        .unwrap();
+                                }
+                                "m.room.topic" => {
+                                    let t = ev.content["topic"]
+                                        .as_str()
+                                        .map(Into::into)
+                                        .unwrap_or_default();
+                                    tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
+                                }
+                                "m.room.avatar" => {
+                                    tx.send(BKResponse::NewRoomAvatar(ev.room.clone())).unwrap();
+                                }
+                                "m.room.member" => {
+                                    tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
+                                }
+                                "m.sticker" => {
+                                    // This event is managed in the room list
+                                }
+                                _ => {
+                                    error!("EVENT NOT MANAGED: {:?}", ev);
+                                }
                             }
-                            "m.room.topic" => {
-                                let t = ev.content["topic"]
-                                    .as_str()
-                                    .map(Into::into)
-                                    .unwrap_or_default();
-                                tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
-                            }
-                            "m.room.avatar" => {
-                                tx.send(BKResponse::NewRoomAvatar(ev.room.clone())).unwrap();
-                            }
-                            "m.room.member" => {
-                                tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
-                            }
-                            "m.sticker" => {
-                                // This event is managed in the room list
-                            }
-                            _ => {
-                                error!("EVENT NOT MANAGED: {:?}", ev);
-                            }
-                        }
-                    }
+                        });
                 } else {
                     data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
 
-                    let rooms = get_rooms_from_sync_response(&response, &userid, &baseu);
+                    let rooms = Room::from_sync_response(&response, &userid, &baseu);
                     let jtr = data.lock().unwrap().join_to_room.clone();
                     let def = if !jtr.is_empty() {
                         rooms.iter().find(|x| x.id == jtr).cloned()
