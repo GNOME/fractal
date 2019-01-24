@@ -28,11 +28,12 @@ use crate::types::{Room, RoomMembership, RoomTag};
 
 use serde_json::Value as JsonValue;
 
+// FIXME: Remove this function, this is used only to request information we should already have
+// when opening a room
 pub fn set_room(bk: &Backend, id: String) -> Result<(), Error> {
     /* FIXME: remove clone and pass id by reference */
     get_room_avatar(bk, id.clone())?;
     get_room_detail(bk, id.clone(), String::from("m.room.topic"))?;
-    get_room_members(bk, id)?;
 
     Ok(())
 }
