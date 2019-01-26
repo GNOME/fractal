@@ -1,5 +1,6 @@
 use gtk;
 use gtk::prelude::*;
+use libhandy::LeafletExt;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
@@ -44,6 +45,16 @@ impl AppOp {
         view_child.map(|name| {
             stack.set_visible_child_name(name);
         });
+
+        match self.state {
+            AppState::NoRoom => self
+                .ui
+                .builder
+                .get_object::<libhandy::Leaflet>("header_leaflet")
+                .expect("Can't find header_leaflet in ui file.")
+                .set_visible_child_name("sidebar"),
+            _ => (),
+        };
 
         self.ui
             .builder
