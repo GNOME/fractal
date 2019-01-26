@@ -16,6 +16,7 @@ impl AppOp {
                 "login"
             }
             AppState::NoRoom => {
+                self.leaflet.set_visible_child_name("sidebar");
                 self.set_state_no_room();
                 "chat"
             }
@@ -25,16 +26,6 @@ impl AppOp {
             AppState::AccountSettings => "account-settings",
             AppState::RoomSettings => "room-settings",
             AppState::MediaViewer => "media-viewer",
-        };
-
-        match self.state {
-            AppState::NoRoom => self
-                .ui
-                .builder
-                .get_object::<libhandy::Leaflet>("header_leaflet")
-                .expect("Can't find header_leaflet in ui file.")
-                .set_visible_child_name("sidebar"),
-            _ => (),
         };
 
         self.ui

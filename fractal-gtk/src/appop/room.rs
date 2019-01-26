@@ -3,6 +3,7 @@ use log::{error, warn};
 
 use gtk;
 use gtk::prelude::*;
+use libhandy::LeafletExt;
 
 use crate::appop::AppOp;
 
@@ -185,6 +186,7 @@ impl AppOp {
 
     pub fn really_leave_active_room(&mut self) {
         let r = self.active_room.clone().unwrap_or_default();
+        self.leaflet.set_visible_child_name("sidebar");
         self.backend.send(BKCommand::LeaveRoom(r.clone())).unwrap();
         self.rooms.remove(&r);
         self.active_room = None;
