@@ -28,11 +28,13 @@ impl AppOp {
             AppState::NoRoom => {
                 view_child = Some("noroom");
                 self.set_state_no_room(&headerbar);
+                self.leaflet.set_visible_child_name("sidebar");
                 "chat"
             }
             AppState::Room => {
                 view_child = Some("room_view");
                 self.set_state_room(&headerbar);
+                self.leaflet.set_visible_child_name("content");
                 "chat"
             }
             AppState::Directory => "directory",
@@ -45,16 +47,6 @@ impl AppOp {
         view_child.map(|name| {
             stack.set_visible_child_name(name);
         });
-
-        match self.state {
-            AppState::NoRoom => self
-                .ui
-                .builder
-                .get_object::<libhandy::Leaflet>("header_leaflet")
-                .expect("Can't find header_leaflet in ui file.")
-                .set_visible_child_name("sidebar"),
-            _ => (),
-        };
 
         self.ui
             .builder
