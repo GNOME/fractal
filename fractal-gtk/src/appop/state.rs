@@ -28,12 +28,7 @@ impl AppOp {
         };
 
         match self.state {
-            AppState::NoRoom => self
-                .ui
-                .builder
-                .get_object::<libhandy::Leaflet>("header_leaflet")
-                .expect("Can't find header_leaflet in ui file.")
-                .set_visible_child_name("sidebar"),
+            AppState::NoRoom => self.leaflet.set_visible_child_name("sidebar"),
             _ => (),
         };
 
