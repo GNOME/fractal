@@ -160,7 +160,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     open_room.connect_activate(clone!(op => move |_, data| {
         if let Some(id) = get_room_id(data) {
             op.lock().unwrap().set_active_room_by_id(id.to_string());
-            /* This does nothing if fractal is already in focus */
+           /* This does nothing if fractal is already in focus */
             op.lock().unwrap().activate();
         }
         let back = upgrade_weak!(back_weak);

@@ -1,5 +1,6 @@
 use gtk;
 use gtk::prelude::*;
+use libhandy::LeafletExt;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
@@ -25,13 +26,15 @@ impl AppOp {
                 "login"
             }
             AppState::NoRoom => {
-                view_child = Some("noroom");
                 self.set_state_no_room(&headerbar);
+                self.leaflet.set_visible_child_name("sidebar");
+                stack.set_visible_child_name("noroom");
                 "chat"
             }
             AppState::Room => {
-                view_child = Some("room_view");
                 self.set_state_room(&headerbar);
+                self.leaflet.set_visible_child_name("content");
+                stack.set_visible_child_name("room_view");
                 "chat"
             }
             AppState::Directory => "directory",
@@ -40,10 +43,6 @@ impl AppOp {
             AppState::RoomSettings => "room-settings",
             AppState::MediaViewer => "media-viewer",
         };
-
-        view_child.map(|name| {
-            stack.set_visible_child_name(name);
-        });
 
         self.ui
             .builder
