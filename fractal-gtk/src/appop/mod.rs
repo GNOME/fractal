@@ -73,12 +73,18 @@ pub struct AppOp {
     search_type: SearchType,
 
     pub directory: Vec<Room>,
+    pub leaflet: libhandy::Leaflet,
 }
 
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
     pub fn new(ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
+        let leaflet = ui
+            .builder
+            .get_object::<libhandy::Leaflet>("header_leaflet")
+            .expect("Couldn't find header_leaflet in ui file");
+
         AppOp {
             ui: ui,
             backend: tx,
@@ -108,6 +114,7 @@ impl AppOp {
             search_type: SearchType::Invite,
 
             directory: vec![],
+            leaflet: leaflet,
         }
     }
 
