@@ -1,5 +1,6 @@
 use gtk;
 use gtk::prelude::*;
+use libhandy::LeafletExt;
 
 use crate::actions::AppState;
 use crate::appop::room::RoomPanel;
@@ -24,6 +25,16 @@ impl AppOp {
             AppState::AccountSettings => "account-settings",
             AppState::RoomSettings => "room-settings",
             AppState::MediaViewer => "media-viewer",
+        };
+
+        match self.state {
+            AppState::NoRoom => self
+                .ui
+                .builder
+                .get_object::<libhandy::Leaflet>("header_leaflet")
+                .expect("Can't find header_leaflet in ui file.")
+                .set_visible_child_name("sidebar"),
+            _ => (),
         };
 
         self.ui

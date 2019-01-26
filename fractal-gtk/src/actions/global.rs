@@ -13,6 +13,7 @@ use gio::prelude::*;
 use gio::SimpleAction;
 use glib;
 use gtk::prelude::*;
+use libhandy::LeafletExt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppState {
@@ -160,7 +161,13 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     open_room.connect_activate(clone!(op => move |_, data| {
         if let Some(id) = get_room_id(data) {
             op.lock().unwrap().set_active_room_by_id(id.to_string());
-            /* This does nothing if fractal is already in focus */
+            let leaflet: libhandy::Leaflet = op.lock().unwrap()
+                                    .ui
+                                    .builder
+                                    .get_object("header_leaflet")
+                                    .expect("Could not find header_leaflet in ui file");
+            leaflet.set_visible_child_name("content");
+           /* This does nothing if fractal is already in focus */
             op.lock().unwrap().activate();
         }
         let back = upgrade_weak!(back_weak);
