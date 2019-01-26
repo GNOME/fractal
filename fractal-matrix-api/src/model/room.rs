@@ -50,6 +50,12 @@ impl RoomMembership {
     }
 }
 
+impl Default for RoomMembership {
+    fn default() -> Self {
+        RoomMembership::None
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum RoomTag {
     None,
@@ -58,7 +64,7 @@ pub enum RoomTag {
     Custom(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Room {
     pub id: String,
     pub avatar: Option<String>,
@@ -85,63 +91,52 @@ impl Room {
     pub fn new(id: String, membership: RoomMembership) -> Room {
         Room {
             id,
-            name: None,
-            avatar: None,
-            topic: None,
-            alias: None,
+            membership,
             guest_can_join: true,
             world_readable: true,
-            n_members: 0,
-            notifications: 0,
-            highlight: 0,
-            messages: vec![],
-            members: HashMap::new(),
-            membership,
-            direct: false,
-            power_levels: HashMap::new(),
-            prev_batch: None,
+            ..Default::default()
         }
     }
 
-    pub fn from_sync_response(r: &SyncResponse, userid: &str, baseu: &Url) -> Vec<Self> {
-        let join = r.rooms.join.clone();
-        let leave = r.rooms.leave.clone();
-        let invite = r.rooms.invite.clone();
-
+    pub fn from_sync_response(response: &SyncResponse, userid: &str, baseu: &Url) -> Vec<Self> {
         // getting the list of direct rooms
-        let direct: HashSet<String> = parse_m_direct(&r.account_data.events)
+        let direct: HashSet<String> = parse_m_direct(&response.account_data.events)
             .values()
             .flatten()
             .cloned()
             .collect();
 
-        let mut rooms: Vec<Self> = vec![];
-        for (k, room) in join.iter() {
+        let joined_rooms = response.rooms.join.iter().map(|(k, room)| {
             let stevents = &room.state.events;
             let timeline = &room.timeline;
             let ephemeral = &room.ephemeral;
             let dataevs = &room.account_data.events;
-            let name = calculate_room_name(stevents, userid);
-            let mut room_tag = RoomTag::None;
-            for tag in dataevs.iter().filter(|x| x["type"] == "m.tag") {
-                if tag["content"]["tags"]["m.favourite"].as_object().is_some() {
-                    room_tag = RoomTag::Favourite;
-                }
-            }
-            let mut r = Self::new(k.clone(), RoomMembership::Joined(room_tag));
+            let room_tag = dataevs
+                .iter()
+                .filter(|x| x["type"] == "m.tag")
+                .find_map(|tag| tag["content"]["tags"]["m.favourite"].as_object())
+                .and(Some(RoomTag::Favourite))
+                .unwrap_or(RoomTag::None);
 
-            r.name = name;
-            r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
-            r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
-            r.topic = Some(evc(stevents, "m.room.topic", "topic"));
-            r.direct = direct.contains(k);
-            r.notifications = room.unread_notifications.notification_count;
-            r.highlight = room.unread_notifications.highlight_count;
-
-            r.prev_batch = timeline.prev_batch.clone();
-
-            let ms = Message::from_json_events_iter(&k, timeline.events.iter());
-            r.messages.extend(ms);
+            let mut r = Self {
+                name: calculate_room_name(stevents, userid),
+                avatar: evc(stevents, "m.room.avatar", "url"),
+                alias: evc(stevents, "m.room.canonical_alias", "alias"),
+                topic: evc(stevents, "m.room.topic", "topic"),
+                direct: direct.contains(k),
+                notifications: room.unread_notifications.notification_count,
+                highlight: room.unread_notifications.highlight_count,
+                prev_batch: timeline.prev_batch.clone(),
+                messages: Message::from_json_events_iter(&k, timeline.events.iter()),
+                power_levels: get_admins(stevents),
+                members: stevents
+                    .iter()
+                    .filter(|x| x["type"] == "m.room.member")
+                    .filter_map(parse_room_member)
+                    .map(|m| (m.uid.clone(), m))
+                    .collect(),
+                ..Self::new(k.clone(), RoomMembership::Joined(room_tag))
+            };
 
             r.add_receipt_from_json(
                 ephemeral
@@ -151,89 +146,75 @@ impl Room {
                     .collect(),
             );
             // Adding fully read to the receipts events
-            if let Some(fread) = dataevs.into_iter().find(|x| x["type"] == "m.fully_read") {
-                if let Some(ev) = fread["content"]["event_id"].as_str() {
-                    r.add_receipt_from_fully_read(userid, ev);
-                }
+            if let Some(ev) = dataevs
+                .into_iter()
+                .find(|x| x["type"] == "m.fully_read")
+                .and_then(|fread| fread["content"]["event_id"].as_str())
+            {
+                r.add_receipt_from_fully_read(userid, ev);
             }
 
-            let mevents = stevents.iter().filter(|x| x["type"] == "m.room.member");
+            r
+        });
 
-            for ev in mevents {
-                let member = parse_room_member(ev);
-                if let Some(m) = member {
-                    r.members.insert(m.uid.clone(), m.clone());
-                }
-            }
+        let left_rooms = response
+            .rooms
+            .leave
+            .keys()
+            .map(|k| Self::new(k.clone(), RoomMembership::Left));
 
-            // power levels info
-            r.power_levels = get_admins(stevents);
-
-            rooms.push(r);
-        }
-
-        // left rooms
-        for k in leave.keys() {
-            let r = Self::new(k.clone(), RoomMembership::Left);
-            rooms.push(r);
-        }
-
-        // invitations
-        for (k, room) in invite.iter() {
+        let invited_rooms = response.rooms.invite.iter().filter_map(|(k, room)| {
             let stevents = &room.invite_state.events;
-            let name = calculate_room_name(stevents, userid);
-
-            if let Some(ev) = stevents
+            if let Some((alias, avatar)) = stevents
                 .iter()
                 .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
+                .and_then(|ev| {
+                    get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok()
+                })
             {
-                if let Ok((alias, avatar)) =
-                    get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default())
-                {
-                    let inv_sender = Member {
-                        alias: Some(alias),
-                        avatar: Some(avatar),
-                        uid: String::from(userid),
-                    };
-                    let mut r = Self::new(k.clone(), RoomMembership::Invited(inv_sender));
-                    r.name = name;
+                let inv_sender = Member {
+                    alias: Some(alias),
+                    avatar: Some(avatar),
+                    uid: String::from(userid),
+                };
 
-                    r.avatar = Some(evc(stevents, "m.room.avatar", "url"));
-                    r.alias = Some(evc(stevents, "m.room.canonical_alias", "alias"));
-                    r.topic = Some(evc(stevents, "m.room.topic", "topic"));
-                    r.direct = direct.contains(k);
-
-                    rooms.push(r);
-                }
+                Some(Self {
+                    name: calculate_room_name(stevents, userid),
+                    avatar: evc(stevents, "m.room.avatar", "url"),
+                    alias: evc(stevents, "m.room.canonical_alias", "alias"),
+                    topic: evc(stevents, "m.room.topic", "topic"),
+                    direct: direct.contains(k),
+                    ..Self::new(k.clone(), RoomMembership::Invited(inv_sender))
+                })
+            } else {
+                None
             }
-        }
+        });
 
-        rooms
+        joined_rooms
+            .chain(left_rooms)
+            .chain(invited_rooms)
+            .collect()
     }
 
     pub fn add_receipt_from_json(&mut self, mut events: Vec<&JsonValue>) {
-        let receipts = events
+        let receipts: HashMap<String, HashMap<String, i64>> = events
             .pop()
             .and_then(|ev| ev["content"].as_object())
-            .and_then(|content| {
-                let mut msgs: HashMap<String, HashMap<String, i64>> = HashMap::new();
+            .into_iter()
+            .flatten()
+            .filter_map(|(mid, obj)| {
+                let receipts = obj["m.read"]
+                    .as_object()?
+                    .iter()
+                    .map(|(uid, ts)| (uid.to_string(), ts["ts"].as_i64().unwrap()))
+                    .collect();
 
-                for (mid, obj) in content.iter() {
-                    if let Some(reads) = obj["m.read"].as_object() {
-                        let mut receipts: HashMap<String, i64> = HashMap::new();
+                Some((mid.to_string(), receipts))
+            })
+            .collect();
 
-                        for (uid, ts) in reads.iter() {
-                            receipts.insert(uid.to_string(), ts["ts"].as_i64().unwrap());
-                        }
-
-                        msgs.insert(mid.to_string(), receipts);
-                    }
-                }
-
-                Some(msgs)
-            });
-
-        if let Some(receipts) = receipts.clone() {
+        if !receipts.is_empty() {
             for msg in self.messages.iter_mut() {
                 if let Some(r) = receipts.get(&msg.id) {
                     msg.set_receipt(r.clone());
@@ -243,28 +224,26 @@ impl Room {
     }
 
     pub fn add_receipt_from_fully_read(&mut self, uid: &str, evid: &str) {
-        for msg in self
+        let _ = self
             .messages
             .iter_mut()
-            .filter(|m| m.id == evid.to_string())
-        {
-            msg.receipt.insert(uid.to_string(), 0);
-        }
+            .filter(|msg| msg.id == evid.to_string())
+            .map(|msg| msg.receipt.insert(uid.to_string(), 0));
     }
 }
 
 impl From<PublicRoomsChunk> for Room {
     fn from(input: PublicRoomsChunk) -> Self {
-        let mut room = Self::new(input.room_id, RoomMembership::None);
-        room.alias = input.canonical_alias;
-        room.name = input.name;
-        room.avatar = input.avatar_url;
-        room.topic = input.topic;
-        room.n_members = input.num_joined_members;
-        room.world_readable = input.world_readable;
-        room.guest_can_join = input.guest_can_join;
-
-        room
+        Self {
+            alias: input.canonical_alias,
+            name: input.name,
+            avatar: input.avatar_url,
+            topic: input.topic,
+            n_members: input.num_joined_members,
+            world_readable: input.world_readable,
+            guest_can_join: input.guest_can_join,
+            ..Self::new(input.room_id, RoomMembership::None)
+        }
     }
 }
 
@@ -328,116 +307,77 @@ pub struct PublicRoomsChunk {
     pub world_readable: bool,
 }
 
-fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> String {
+fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
     events
         .iter()
         .find(|x| x["type"] == t)
         .and_then(|js| js["content"][field].as_str())
         .map(Into::into)
-        .unwrap_or_default()
 }
 
 fn get_admins(stevents: &Vec<JsonValue>) -> HashMap<String, i32> {
-    let mut admins = HashMap::new();
-
-    let plevents = stevents
+    stevents
         .iter()
-        .filter(|x| x["type"] == "m.room.power_levels");
-
-    for ev in plevents {
-        if let Some(users) = ev["content"]["users"].as_object() {
-            for u in users.keys() {
-                let level = users[u].as_i64().unwrap_or_default();
-                admins.insert(u.to_string(), level as i32);
-            }
-        }
-    }
-
-    admins
+        .filter(|x| x["type"] == "m.room.power_levels")
+        .filter_map(|ev| ev["content"]["users"].as_object())
+        .flatten()
+        .map(|(k, v)| (k.clone(), v.as_i64().map(|v| v as i32).unwrap_or_default()))
+        .collect()
 }
 
 fn calculate_room_name(events: &Vec<JsonValue>, userid: &str) -> Option<String> {
     // looking for "m.room.name" event
-    if let Some(name) = events.iter().find(|x| x["type"] == "m.room.name") {
-        if let Some(name) = name["content"]["name"].as_str() {
-            if !name.to_string().is_empty() {
-                return Some(name.to_string());
-            }
-        }
+    if let Some(name) = events
+        .iter()
+        .find(|x| x["type"] == "m.room.name")
+        .and_then(|name| name["content"]["name"].as_str())
+        .filter(|name| !name.is_empty())
+        .map(Into::into)
+    {
+        return Some(name);
     }
 
     // looking for "m.room.canonical_alias" event
     if let Some(name) = events
         .iter()
         .find(|x| x["type"] == "m.room.canonical_alias")
+        .and_then(|name| name["content"]["alias"].as_str())
+        .map(Into::into)
     {
-        if let Some(name) = name["content"]["alias"].as_str() {
-            return Some(name.to_string());
-        }
+        return Some(name);
     }
 
     // we look for members that aren't me
-    let filter = |x: &&JsonValue| {
-        (x["type"] == "m.room.member"
-            && ((x["content"]["membership"] == "join" && x["sender"] != userid)
-                || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
-    };
-    let c = events.iter().filter(&filter);
-    let members = events.iter().filter(&filter);
-    let mut members2 = events.iter().filter(&filter);
+    let members: Vec<&str> = events
+        .iter()
+        .filter(|x| {
+            (x["type"] == "m.room.member"
+                && ((x["content"]["membership"] == "join" && x["sender"] != userid)
+                    || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
+        })
+        .take(3)
+        .map(|m| {
+            let sender = m["sender"].as_str().unwrap_or("NONAMED");
+            m["content"]["displayname"].as_str().unwrap_or(sender)
+        })
+        .collect();
 
-    if c.count() == 0 {
+    match members.len() {
         // we don't have information to calculate the name
-        return None;
+        0 => None,
+        1 => Some(members[0].to_string()),
+        2 => Some(format!("{} and {}", members[0], members[1])),
+        _ => Some(format!("{} and Others", members[0])),
     }
-
-    let m1 = match members2.next() {
-        Some(m) => {
-            let sender = m["sender"].as_str().unwrap_or("NONAMED");
-            m["content"]["displayname"].as_str().unwrap_or(sender)
-        }
-        None => "",
-    };
-    let m2 = match members2.next() {
-        Some(m) => {
-            let sender = m["sender"].as_str().unwrap_or("NONAMED");
-            m["content"]["displayname"].as_str().unwrap_or(sender)
-        }
-        None => "",
-    };
-
-    let name = match members.count() {
-        0 => String::from("EMPTY ROOM"),
-        1 => String::from(m1),
-        2 => format!("{} and {}", m1, m2),
-        _ => format!("{} and Others", m1),
-    };
-
-    Some(name)
 }
 
 fn parse_room_member(msg: &JsonValue) -> Option<Member> {
-    let sender = msg["sender"].as_str().unwrap_or_default();
-
     let c = &msg["content"];
-
-    let membership = c["membership"].as_str();
-    if membership.is_none() || membership.unwrap() != "join" {
-        return None;
-    }
-
-    let displayname = match c["displayname"].as_str() {
-        None => None,
-        Some(s) => Some(String::from(s)),
-    };
-    let avatar_url = match c["avatar_url"].as_str() {
-        None => None,
-        Some(s) => Some(String::from(s)),
-    };
+    let _ = c["membership"].as_str().filter(|&m| m == "join")?;
 
     Some(Member {
-        uid: String::from(sender),
-        alias: displayname,
-        avatar: avatar_url,
+        uid: msg["sender"].as_str().map(Into::into).unwrap_or_default(),
+        alias: c["displayname"].as_str().map(Into::into),
+        avatar: c["avatar_url"].as_str().map(Into::into),
     })
 }
