@@ -1,4 +1,5 @@
 pub mod event;
+pub mod fileinfo;
 pub mod filter;
 pub mod member;
 pub mod message;
