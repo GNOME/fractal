@@ -470,17 +470,26 @@ fn create_ui_message(
 fn get_image_media_info(bk: &Backend, file: &str, mimetype: &str) -> Option<JsonValue> {
     let (_, w, h) = Pixbuf::get_file_info(file)?;
     let size = fs::metadata(file).ok()?.len();
-    //check image dimensions
-    //make thumbnail max 800x600
-    //upload thumbnail
+    // make thumbnail max 800x600
+    let thumb = new_from_file_at_scale(file, 800, 600, true)?;
+    pixbuf.savev("thumb.png", "png", &[("", "")])?;
+    let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
+    // upload thumbnail
+    let thumb_url = upload_thumbnail(bk, file);
 
     let info = json!({
         "info": {
+            "thumbnail_url": thumb_url,
+            "thumbnail_info": {
+                "w": thumb_w,
+                "h": thumb_h,
+                "mimetype": "image/png"
+            }
             "w": w,
             "h": h,
             "size": size,
             "mimetype": mimetype,
-            "orientation": 0,
+            "orientation": 0
         }
     });
 
