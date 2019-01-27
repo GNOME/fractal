@@ -3,6 +3,7 @@ use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
+use pixbuf::Pixbuf;
 use std::fs;
 use std::path::PathBuf;
 use tree_magic;
@@ -230,7 +231,7 @@ impl AppOp {
         }
     }
 
-    pub fn attach_message(&mut self, path: PathBuf) {
+    pub fn attach_message(&mut self, bk: &Backend, path: PathBuf) {
         if let Some(room) = self.active_room.clone() {
             if let Some(sender) = self.uid.clone() {
                 let mime = tree_magic::from_filepath(&path);
@@ -249,7 +250,7 @@ impl AppOp {
 
                 let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
                 if mtype == "m.image" {
-                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                    m.extra_content = get_image_media_info(&bk, path_string, mime.as_ref());
                 }
                 self.add_tmp_room_message(m);
                 self.dequeue_message();
