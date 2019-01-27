@@ -1,4 +1,6 @@
 pub use crate::model::event::Event;
+pub use crate::model::fileinfo::ExtraContent;
+pub use crate::model::fileinfo::Info;
 pub use crate::model::filter::EventFilter;
 pub use crate::model::filter::Filter;
 pub use crate::model::filter::RoomEventFilter;
