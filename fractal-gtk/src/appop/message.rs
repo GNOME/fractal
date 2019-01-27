@@ -3,7 +3,6 @@ use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
-use std::fs;
 use std::path::PathBuf;
 use tree_magic;
 
@@ -17,9 +16,6 @@ use crate::uitypes::RowType;
 use crate::widgets;
 
 use crate::types::Message;
-use gdk_pixbuf::Pixbuf;
-use serde_json::json;
-use serde_json::Value as JsonValue;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -248,9 +244,8 @@ impl AppOp {
                 let path_string = path.to_str().unwrap_or_default();
 
                 let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
-                if mtype == "m.image" {
-                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
-                }
+                m.url = Some(path_string.to_string());
+
                 self.add_tmp_room_message(m);
                 self.dequeue_message();
             } else {
@@ -451,35 +446,4 @@ fn create_ui_message(
         redactable,
         widget: None,
     }
-}
-
-/// This function open the image and fill the info data as a Json value
-/// If something fails this will returns None
-///
-/// The output json will look like:
-///
-/// {
-///  "info": {
-///   "h": 296,
-///   "w": 296,
-///   "size": 8796,
-///   "orientation": 0,
-///   "mimetype": "image/png"
-///  }
-/// }
-fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
-    let (_, w, h) = Pixbuf::get_file_info(file)?;
-    let size = fs::metadata(file).ok()?.len();
-
-    let info = json!({
-        "info": {
-            "w": w,
-            "h": h,
-            "size": size,
-            "mimetype": mimetype,
-            "orientation": 0,
-        }
-    });
-
-    Some(info)
 }
