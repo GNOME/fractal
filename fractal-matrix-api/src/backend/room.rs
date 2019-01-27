@@ -22,6 +22,7 @@ use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::backend::types::RoomType;
 
+use crate::types::ExtraContent;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
@@ -462,42 +463,65 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
     Ok(())
 }
 
-pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
+pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
+    let thumb = msg.thumb.clone().unwrap_or_default();
 
-    if fname.starts_with("mxc://") {
+    let tx = bk.tx.clone();
+    let itx = bk.internal_tx.clone();
+    let baseu = bk.get_base_url().clone();
+    let tk = bk.data.lock().unwrap().access_token.clone();
+
+    if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
         return send_msg(bk, msg);
     }
 
-    let mut file = File::open(&fname)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
-
-    let baseu = bk.get_base_url();
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    let params = &[("access_token", tk.clone())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
-
-    let mut m = msg.clone();
-    let tx = bk.tx.clone();
-    let itx = bk.internal_tx.clone();
     thread::spawn(move || {
-        match put_media(mediaurl.as_str(), contents) {
+        if thumb != "" {
+            match upload_file(&tk, &baseu, &thumb) {
+                Err(err) => {
+                    tx.send(BKResponse::AttachFileError(err)).unwrap();
+                }
+                Ok(thumb_uri) => {
+                    msg.thumb = Some(thumb_uri.to_string());
+
+                    let mut extra_content: ExtraContent =
+                        serde_json::from_value(msg.extra_content.unwrap()).unwrap();
+                    extra_content.info.thumbnail_url = Some(thumb_uri);
+                    msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
+                }
+            }
+        }
+
+        match upload_file(&tk, &baseu, &fname) {
             Err(err) => {
                 tx.send(BKResponse::AttachFileError(err)).unwrap();
             }
-            Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or_default();
-                m.url = Some(uri.to_string());
+            Ok(uri) => {
+                msg.url = Some(uri.to_string());
                 if let Some(t) = itx {
-                    t.send(BKCommand::SendMsg(m.clone())).unwrap();
+                    t.send(BKCommand::SendMsg(msg.clone())).unwrap();
                 }
-                tx.send(BKResponse::AttachedFile(m)).unwrap();
+                tx.send(BKResponse::AttachedFile(msg)).unwrap();
             }
         };
     });
 
     Ok(())
+}
+
+fn upload_file(tk: &str, baseu: &Url, fname: &str) -> Result<String, Error> {
+    let mut file = File::open(fname)?;
+    let mut contents: Vec<u8> = vec![];
+    file.read_to_end(&mut contents)?;
+
+    let params = &[("access_token", tk.to_string())];
+    let mediaurl = media_url(&baseu, "upload", params)?;
+
+    match put_media(mediaurl.as_str(), contents) {
+        Err(err) => Err(err),
+        Ok(js) => Ok(js["content_uri"].as_str().unwrap_or_default().to_string()),
+    }
 }
 
 pub fn new_room(
