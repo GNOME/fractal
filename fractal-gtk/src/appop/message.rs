@@ -1,5 +1,6 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufExt;
 use gio::prelude::{FileExt, FileInfoExt};
 use gstreamer_editing_services::prelude::*;
 use gstreamer_editing_services::UriClipAsset;
@@ -7,6 +8,8 @@ use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
+use serde_json::json;
+use serde_json::Value as JsonValue;
 use std::fs;
 use std::path::PathBuf;
 
@@ -20,9 +23,6 @@ use crate::uitypes::RowType;
 use crate::widgets;
 
 use crate::types::Message;
-
-use serde_json::json;
-use serde_json::Value as JsonValue;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -485,31 +485,30 @@ fn create_ui_message(
     }
 }
 
-/// This function open the image and fill the info data as a Json value
-/// If something fails this will returns None
-///
-/// The output json will look like:
-///
-/// {
-///  "info": {
-///   "h": 296,
-///   "w": 296,
-///   "size": 8796,
-///   "orientation": 0,
-///   "mimetype": "image/png"
-///  }
-/// }
+/// This function opens the image, creates a thumbnail
+/// and populates the info Json with the information it has
+
 fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
-    let (_, w, h) = Pixbuf::get_file_info(file)?;
-    let size = fs::metadata(file).ok()?.len();
+    let (_, w, h) = Pixbuf::get_file_info(&file)?;
+    let size = fs::metadata(&file).ok()?.len();
+
+    // make thumbnail max 800x600
+    let thumb = Pixbuf::new_from_file_at_scale(&file, 800, 600, true).ok()?;
+    thumb.savev("/tmp/fractal_thumb.png", "png", &[]).ok()?;
 
     let info = json!({
         "info": {
+            "thumbnail_url": "",
+            "thumbnail_info": {
+                "w": thumb.get_width(),
+                "h": thumb.get_height(),
+                "mimetype": "image/png"
+            },
             "w": w,
             "h": h,
             "size": size,
             "mimetype": mimetype,
-            "orientation": 0,
+            "orientation": 0
         }
     });
 
