@@ -467,9 +467,12 @@ fn create_ui_message(
 ///   "mimetype": "image/png"
 ///  }
 /// }
-fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+fn get_image_media_info(bk: &Backend, file: &str, mimetype: &str) -> Option<JsonValue> {
     let (_, w, h) = Pixbuf::get_file_info(file)?;
     let size = fs::metadata(file).ok()?.len();
+    //check image dimensions
+    //make thumbnail max 800x600
+    //upload thumbnail
 
     let info = json!({
         "info": {
@@ -482,4 +485,15 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     });
 
     Some(info)
+}
+
+fn upload_thumbnail(bk: &Backend, thumbname: &str) -> Result<&str, Error> {
+    let mut file = File::open(&thumbname)?;
+    let mut contents: Vec<u8> = vec![];
+    file.read_to_end(&mut contents)?;
+
+    let baseu = bk.get_base_url();
+    let tk = bk.data.lock().unwrap().access_token.clone();
+    let params = &[("access_token", tk.clone())];
+    media_url(&baseu, "upload", params)?
 }
