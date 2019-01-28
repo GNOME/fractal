@@ -8,8 +8,6 @@ use crate::error::Error;
 use crate::globals;
 use crate::util::json_q;
 
-use crate::types::AuthenticationData;
-use crate::types::AuthenticationKind;
 use crate::types::LoginRequest;
 use crate::types::LoginResponse;
 use crate::types::RegisterRequest;
@@ -57,7 +55,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
     bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("login", vec![])?;
 
-    let attrs = LoginRequest::new(user.clone(), password);
+    let attrs = LoginRequest::new(user.clone(), password, Some(String::from("Fractal")), None);
     let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize login request");
     let data = bk.data.clone();
 
@@ -124,10 +122,6 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
     let url = bk.url("register", vec![("kind", String::from("user"))])?;
 
     let attrs = RegisterRequest {
-        auth: Some(AuthenticationData {
-            kind: AuthenticationKind::Password,
-            session: None,
-        }),
         username: Some(user),
         password: Some(password),
         ..Default::default()
