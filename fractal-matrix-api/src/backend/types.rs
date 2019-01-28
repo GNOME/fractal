@@ -5,13 +5,14 @@ use std::sync::{Arc, Condvar, Mutex};
 use crate::error::Error;
 
 use crate::types::Event;
+use crate::types::Medium;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::ProtocolInstance;
 use crate::types::Room;
 use crate::types::Sticker;
 use crate::types::StickerGroup;
-use crate::types::UserInfo;
+use crate::types::ThirdPartyIdentifier;
 
 use crate::cache::CacheMap;
 use url::Url;
@@ -32,7 +33,7 @@ pub enum BKCommand {
     GetTokenPhone(String, String, String),
     SubmitPhoneToken(String, String, String, String),
     AddThreePID(String, String, String),
-    DeleteThreePID(String, String),
+    DeleteThreePID(Medium, String),
     ChangePassword(String, String, String),
     AccountDestruction(String, String, bool),
     GetAvatar,
@@ -90,7 +91,7 @@ pub enum BKResponse {
     Logout,
     Name(String),
     SetUserName(String),
-    GetThreePID(Vec<UserInfo>),
+    GetThreePID(Vec<ThirdPartyIdentifier>),
     GetTokenEmail(String, String),
     GetTokenPhone(String, String),
     SubmitPhoneToken(Option<String>, String),

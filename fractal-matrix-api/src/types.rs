@@ -14,4 +14,5 @@ pub use crate::model::room::RoomTag;
 pub use crate::model::room::ThirdPartyNetworks;
 pub use crate::model::stickers::Sticker;
 pub use crate::model::stickers::StickerGroup;
-pub use crate::model::userinfo::UserInfo;
+pub use crate::model::user::*;
+pub use crate::model::*;
