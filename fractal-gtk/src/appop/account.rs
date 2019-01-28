@@ -12,10 +12,11 @@ use crate::widgets;
 use crate::widgets::AvatarExt;
 
 use crate::cache::download_to_cache;
-use fractal_api::types::UserInfo;
+use fractal_api::types::Medium;
+use fractal_api::types::ThirdPartyIdentifier;
 
 impl AppOp {
-    pub fn set_three_pid(&self, data: Option<Vec<UserInfo>>) {
+    pub fn set_three_pid(&self, data: Option<Vec<ThirdPartyIdentifier>>) {
         self.update_address(data);
     }
 
@@ -312,7 +313,7 @@ impl AppOp {
         self.set_state(AppState::AccountSettings);
     }
 
-    pub fn update_address(&self, data: Option<Vec<UserInfo>>) {
+    pub fn update_address(&self, data: Option<Vec<ThirdPartyIdentifier>>) {
         let grid = self
             .ui
             .builder
@@ -368,34 +369,37 @@ impl AppOp {
         phone.pack_start(&empty_phone.create(None), true, true, 0);
         if let Some(data) = data {
             for item in data {
-                if item.medium == "email" {
-                    if first_email {
-                        empty_email.update(Some(item.address));
-                        let entry =
-                            widgets::Address::new(widgets::AddressType::Email, &self).create(None);
-                        grid.insert_next_to(&email, gtk::PositionType::Bottom);
-                        grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
-                        first_email = false;
-                    } else {
-                        let entry = widgets::Address::new(widgets::AddressType::Email, &self)
-                            .create(Some(item.address));
-                        grid.insert_next_to(&email, gtk::PositionType::Bottom);
-                        grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
+                match item.medium {
+                    Medium::Email => {
+                        if first_email {
+                            empty_email.update(Some(item.address));
+                            let entry = widgets::Address::new(widgets::AddressType::Email, &self)
+                                .create(None);
+                            grid.insert_next_to(&email, gtk::PositionType::Bottom);
+                            grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
+                            first_email = false;
+                        } else {
+                            let entry = widgets::Address::new(widgets::AddressType::Email, &self)
+                                .create(Some(item.address));
+                            grid.insert_next_to(&email, gtk::PositionType::Bottom);
+                            grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
+                        }
                     }
-                } else if item.medium == "msisdn" {
-                    if first_phone {
-                        empty_phone.update(Some(item.address));
-                        let entry =
-                            widgets::Address::new(widgets::AddressType::Phone, &self).create(None);
-                        grid.insert_next_to(&phone, gtk::PositionType::Bottom);
-                        grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
-                        first_phone = false;
-                    } else {
-                        let s = String::from("+") + &String::from(item.address);
-                        let entry = widgets::Address::new(widgets::AddressType::Phone, &self)
-                            .create(Some(s));
-                        grid.insert_next_to(&phone, gtk::PositionType::Bottom);
-                        grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
+                    Medium::MsIsdn => {
+                        if first_phone {
+                            empty_phone.update(Some(item.address));
+                            let entry = widgets::Address::new(widgets::AddressType::Phone, &self)
+                                .create(None);
+                            grid.insert_next_to(&phone, gtk::PositionType::Bottom);
+                            grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
+                            first_phone = false;
+                        } else {
+                            let s = String::from("+") + &item.address;
+                            let entry = widgets::Address::new(widgets::AddressType::Phone, &self)
+                                .create(Some(s));
+                            grid.insert_next_to(&phone, gtk::PositionType::Bottom);
+                            grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
+                        }
                     }
                 }
             }

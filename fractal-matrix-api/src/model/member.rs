@@ -1,3 +1,4 @@
+use crate::types::User;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -27,6 +28,16 @@ impl Member {
 impl PartialEq for Member {
     fn eq(&self, other: &Member) -> bool {
         self.uid == other.uid
+    }
+}
+
+impl From<User> for Member {
+    fn from(user: User) -> Self {
+        Self {
+            uid: user.user_id,
+            alias: user.display_name,
+            avatar: user.avatar_url,
+        }
     }
 }
 
