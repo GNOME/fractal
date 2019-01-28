@@ -1,3 +1,4 @@
+use fractal_api::types::Medium;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
@@ -170,8 +171,8 @@ impl<'a> Address<'a> {
             entry.set_editable(false);
 
             let medium = match medium {
-                AddressType::Email => String::from("email"),
-                AddressType::Phone => String::from("msisdn"),
+                AddressType::Email => Medium::Email,
+                AddressType::Phone => Medium::MsIsdn,
             };
 
             match action {
@@ -189,7 +190,7 @@ impl<'a> Address<'a> {
 
 fn delete_address(
     backend: &Sender<BKCommand>,
-    medium: String,
+    medium: Medium,
     address: Option<String>,
 ) -> Option<String> {
     backend
@@ -200,19 +201,22 @@ fn delete_address(
 
 fn add_address(
     backend: &Sender<BKCommand>,
-    medium: String,
+    medium: Medium,
     id_server: String,
     address: Option<String>,
 ) -> Option<String> {
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
-    if medium == "msisdn" {
-        backend
-            .send(BKCommand::GetTokenPhone(id_server, address?, secret))
-            .unwrap();
-    } else {
-        backend
-            .send(BKCommand::GetTokenEmail(id_server, address?, secret))
-            .unwrap();
+    match medium {
+        Medium::MsIsdn => {
+            backend
+                .send(BKCommand::GetTokenPhone(id_server, address?, secret))
+                .unwrap();
+        }
+        Medium::Email => {
+            backend
+                .send(BKCommand::GetTokenEmail(id_server, address?, secret))
+                .unwrap();
+        }
     }
     None
 }
