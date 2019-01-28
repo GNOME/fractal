@@ -7,7 +7,7 @@ pub mod register;
 pub mod room;
 pub mod stickers;
 pub mod sync;
-pub mod userinfo;
+pub mod user;
 
 use serde::{Deserialize, Serialize};
 
