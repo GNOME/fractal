@@ -19,8 +19,26 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use url::Url;
 
+use crate::types::AddThreePIDRequest;
+use crate::types::AuthenticationData;
+use crate::types::ChangePasswordRequest;
+use crate::types::DeactivateAccountRequest;
+use crate::types::DeleteThreePIDRequest;
+use crate::types::EmailTokenRequest;
+use crate::types::GetDisplayNameResponse;
+use crate::types::Identifier;
+use crate::types::Medium;
 use crate::types::Member;
-use crate::types::UserInfo;
+use crate::types::PhoneTokenRequest;
+use crate::types::PutDisplayNameRequest;
+use crate::types::SearchUserRequest;
+use crate::types::SearchUserResponse;
+use crate::types::SubmitPhoneTokenRequest;
+use crate::types::SubmitPhoneTokenResponse;
+use crate::types::ThirdPartyIDResponse;
+use crate::types::ThirdPartyTokenResponse;
+use crate::types::ThreePIDCredentials;
+use crate::types::UserIdentifier;
 
 use serde_json;
 use serde_json::Value as JsonValue;
@@ -31,9 +49,12 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
     let tx = bk.tx.clone();
     get!(
         &url,
-        |r: JsonValue| {
-            let name = String::from(r["displayname"].as_str().unwrap_or(&id));
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
+            let name = response.displayname.unwrap_or(id);
             tx.send(BKResponse::Name(name)).unwrap();
+        } else {
+            tx.send(BKResponse::UserNameError(Error::BackendError))
+                .unwrap();
         },
         |err| tx.send(BKResponse::UserNameError(err)).unwrap()
     );
@@ -45,15 +66,17 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
     let id = bk.data.lock().unwrap().user_id.clone();
     let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
 
-    let attrs = json!({
-        "displayname": name,
-    });
+    let attrs = PutDisplayNameRequest {
+        displayname: Some(name.clone()),
+    };
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize display name setting request");
 
     let tx = bk.tx.clone();
     query!(
         "put",
         &url,
-        &attrs,
+        &attrs_json,
         |_| {
             tx.send(BKResponse::SetUserName(name)).unwrap();
         },
@@ -70,36 +93,12 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
     let tx = bk.tx.clone();
     get!(
         &url,
-        |r: JsonValue| {
-            let mut result: Vec<UserInfo> = vec![];
-            if let Some(arr) = r["threepids"].as_array() {
-                for pid in arr.iter() {
-                    let address = match pid["address"].as_str() {
-                        None => String::new(),
-                        Some(a) => a.to_string(),
-                    };
-                    let add = match pid["added_at"].as_u64() {
-                        None => 0,
-                        Some(a) => a,
-                    };
-                    let medium = match pid["medium"].as_str() {
-                        None => String::new(),
-                        Some(a) => a.to_string(),
-                    };
-                    let val = match pid["validated_at"].as_u64() {
-                        None => 0,
-                        Some(a) => a,
-                    };
-
-                    result.push(UserInfo {
-                        address: address,
-                        added_at: add,
-                        validated_at: val,
-                        medium: medium,
-                    });
-                }
-            }
-            tx.send(BKResponse::GetThreePID(result)).unwrap();
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyIDResponse>(r) {
+            tx.send(BKResponse::GetThreePID(response.threepids))
+                .unwrap();
+        } else {
+            tx.send(BKResponse::GetThreePIDError(Error::BackendError))
+                .unwrap();
         },
         |err| tx.send(BKResponse::GetThreePIDError(err)).unwrap()
     );
@@ -109,26 +108,31 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
 
 pub fn get_email_token(
     bk: &Backend,
-    identity: &str,
-    email: &str,
+    identity: String,
+    email: String,
     client_secret: String,
 ) -> Result<(), Error> {
     let url = bk.url("account/3pid/email/requestToken", vec![])?;
 
-    let attrs = json!({
-        "id_server": identity[8..],
-        "client_secret": client_secret.clone(),
-        "email": email,
-        "send_attempt": "1",
-    });
+    let attrs = EmailTokenRequest {
+        id_server: identity[8..].into(),
+        client_secret: client_secret.clone(),
+        email: email,
+        send_attempt: 1,
+        next_link: None,
+    };
+
+    let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize email token request");
 
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
-        |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or_default());
-            tx.send(BKResponse::GetTokenEmail(sid, client_secret))
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
+            tx.send(BKResponse::GetTokenEmail(response.sid, client_secret))
+                .unwrap();
+        } else {
+            tx.send(BKResponse::GetTokenEmailError(Error::BackendError))
                 .unwrap();
         },
         |err| match err {
@@ -148,27 +152,32 @@ pub fn get_email_token(
 
 pub fn get_phone_token(
     bk: &Backend,
-    identity: &str,
-    phone: &str,
+    identity: String,
+    phone: String,
     client_secret: String,
 ) -> Result<(), Error> {
     let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
 
-    let attrs = json!({
-        "id_server": identity[8..],
-        "client_secret": client_secret,
-        "phone_number": phone,
-        "country": "",
-        "send_attempt": "1",
-    });
+    let attrs = PhoneTokenRequest {
+        id_server: identity[8..].into(),
+        client_secret: client_secret.clone(),
+        phone_number: phone,
+        country: String::new(),
+        send_attempt: 1,
+        next_link: None,
+    };
+
+    let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize phone token request");
 
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
-        |r: JsonValue| {
-            let sid = String::from(r["sid"].as_str().unwrap_or_default());
-            tx.send(BKResponse::GetTokenPhone(sid, client_secret))
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
+            tx.send(BKResponse::GetTokenPhone(response.sid, client_secret))
+                .unwrap();
+        } else {
+            tx.send(BKResponse::GetTokenPhoneError(Error::BackendError))
                 .unwrap();
         },
         |err| match err {
@@ -188,25 +197,28 @@ pub fn get_phone_token(
 
 pub fn add_threepid(
     bk: &Backend,
-    identity: &str,
-    client_secret: &str,
+    identity: String,
+    client_secret: String,
     sid: String,
 ) -> Result<(), Error> {
     let url = bk.url(&format!("account/3pid"), vec![])?;
-    let attrs = json!({
-        "three_pid_creds": {
-            "id_server": identity[8..],
-            "sid": sid,
-            "client_secret": client_secret.clone()
+    let attrs = AddThreePIDRequest {
+        three_pid_creds: ThreePIDCredentials {
+            id_server: identity[8..].into(),
+            sid: sid.clone(),
+            client_secret,
         },
-        "bind": true
-    });
+        bind: true,
+    };
+
+    let attrs_json = serde_json::to_value(attrs)
+        .expect("Failed to serialize add third party information request");
 
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
-        |_r: JsonValue| {
+        &attrs_json,
+        |_| {
             tx.send(BKResponse::AddThreePID(sid)).unwrap();
         },
         |err| {
@@ -224,24 +236,27 @@ pub fn submit_phone_token(
     sid: String,
     token: String,
 ) -> Result<(), Error> {
-    let params = &[
-        ("sid", sid.clone()),
-        ("client_secret", client_secret.clone()),
-        ("token", token),
-    ];
     let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
-    let url = build_url(&Url::parse(&url)?, path, params)?;
+    let url = build_url(&Url::parse(url)?, path, &[])?;
 
+    let attrs = SubmitPhoneTokenRequest {
+        sid: sid.clone(),
+        client_secret: client_secret.clone(),
+        token,
+    };
+
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize phone token submit request");
     let tx = bk.tx.clone();
     post!(
         &url,
-        |r: JsonValue| {
-            let result = if r["success"] == true {
-                Some(sid)
-            } else {
-                None
-            };
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<SubmitPhoneTokenResponse>(r) {
+            let result = Some(sid).filter(|_| response.success);
             tx.send(BKResponse::SubmitPhoneToken(result, client_secret))
+                .unwrap();
+        } else {
+            tx.send(BKResponse::SubmitPhoneTokenError(Error::BackendError))
                 .unwrap();
         },
         |err| {
@@ -252,7 +267,7 @@ pub fn submit_phone_token(
     Ok(())
 }
 
-pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) {
+pub fn delete_three_pid(bk: &Backend, medium: Medium, address: String) {
     let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let mut url = baseu
@@ -261,15 +276,14 @@ pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) {
     url.query_pairs_mut()
         .clear()
         .append_pair("access_token", &tk);
-    let attrs = json!({
-        "medium": medium,
-        "address": address,
-    });
+    let attrs = DeleteThreePIDRequest { medium, address };
 
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize third party ID delete request");
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
+        &attrs_json,
         |_r: JsonValue| {
             tx.send(BKResponse::DeleteThreePID).unwrap();
         },
@@ -281,25 +295,27 @@ pub fn delete_three_pid(bk: &Backend, medium: &str, address: &str) {
 
 pub fn change_password(
     bk: &Backend,
-    username: &str,
-    old_password: &str,
-    new_password: &str,
+    user: String,
+    old_password: String,
+    new_password: String,
 ) -> Result<(), Error> {
     let url = bk.url(&format!("account/password"), vec![])?;
 
-    let attrs = json!({
-        "new_password": new_password,
-        "auth": {
-            "type": "m.login.password",
-            "user": username,
-            "password": old_password,
-        }
-    });
+    let attrs = ChangePasswordRequest {
+        new_password,
+        auth: Some(AuthenticationData::Password {
+            identifier: Identifier::new(UserIdentifier::User { user }),
+            password: old_password,
+            session: None,
+        }),
+    };
 
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize password change request");
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
+        &attrs_json,
         |r: JsonValue| {
             info!("{}", r);
             tx.send(BKResponse::ChangePassword).unwrap();
@@ -312,27 +328,23 @@ pub fn change_password(
     Ok(())
 }
 
-pub fn account_destruction(
-    bk: &Backend,
-    username: &str,
-    password: &str,
-    flag: bool,
-) -> Result<(), Error> {
+pub fn account_destruction(bk: &Backend, user: String, password: String) -> Result<(), Error> {
     let url = bk.url(&format!("account/deactivate"), vec![])?;
 
-    let attrs = json!({
-        "erase": flag,
-        "auth": {
-            "type": "m.login.password",
-            "user": username,
-            "password": password,
-        }
-    });
+    let attrs = DeactivateAccountRequest {
+        auth: Some(AuthenticationData::Password {
+            identifier: Identifier::new(UserIdentifier::User { user }),
+            password,
+            session: None,
+        }),
+    };
 
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize account deactivation request");
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
+        &attrs_json,
         |r: JsonValue| {
             info!("{}", r);
             tx.send(BKResponse::AccountDestruction).unwrap();
@@ -414,11 +426,13 @@ pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Resu
     let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
     get!(
         &url,
-        |r: JsonValue| {
-            let name = String::from(r["displayname"].as_str().unwrap_or(&uid));
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
+            let name = response.displayname.unwrap_or(uid);
             tx.send(name).unwrap();
+        } else {
+            tx.send(uid.to_string()).unwrap();
         },
-        |_err| tx.send(uid.to_string()).unwrap()
+        |_| tx.send(uid.to_string()).unwrap()
     );
 
     Ok(())
@@ -492,28 +506,26 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn search(bk: &Backend, term: &str) -> Result<(), Error> {
+pub fn search(bk: &Backend, search_term: String) -> Result<(), Error> {
     let url = bk.url(&format!("user_directory/search"), vec![])?;
 
-    let attrs = json!({
-        "search_term": term,
-    });
+    let attrs = SearchUserRequest {
+        search_term,
+        ..Default::default()
+    };
 
+    let attrs_json =
+        serde_json::to_value(attrs).expect("Failed to serialize user directory search request");
     let tx = bk.tx.clone();
     post!(
         &url,
-        &attrs,
-        |js: JsonValue| {
-            let mut users: Vec<Member> = vec![];
-            if let Some(arr) = js["results"].as_array() {
-                for member in arr.iter() {
-                    let mut member_s: Member = serde_json::from_value(member.clone()).unwrap();
-                    member_s.uid = member["user_id"].as_str().unwrap_or_default().to_string();
-
-                    users.push(member_s);
-                }
-            }
+        &attrs_json,
+        |r: JsonValue| if let Ok(response) = serde_json::from_value::<SearchUserResponse>(r) {
+            let users = response.results.into_iter().map(Into::into).collect();
             tx.send(BKResponse::UserSearch(users)).unwrap();
+        } else {
+            tx.send(BKResponse::CommandError(Error::BackendError))
+                .unwrap();
         },
         |err| {
             tx.send(BKResponse::CommandError(err)).unwrap();
