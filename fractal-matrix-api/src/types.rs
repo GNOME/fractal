@@ -21,4 +21,5 @@ pub use crate::model::stickers::StickerGroup;
 pub use crate::model::sync::JoinedRoom;
 pub use crate::model::sync::SyncResponse;
 pub use crate::model::sync::UnreadNotificationsCount;
-pub use crate::model::userinfo::UserInfo;
+pub use crate::model::user::*;
+pub use crate::model::*;

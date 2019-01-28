@@ -121,11 +121,11 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::GetThreePIDError);
             }
             Ok(BKCommand::GetTokenEmail(identity, email, client_secret)) => {
-                let r = user::get_email_token(self, &identity, &email, client_secret);
+                let r = user::get_email_token(self, identity, email, client_secret);
                 bkerror!(r, tx, BKResponse::GetTokenEmailError);
             }
             Ok(BKCommand::GetTokenPhone(identity, phone, client_secret)) => {
-                let r = user::get_phone_token(self, &identity, &phone, client_secret);
+                let r = user::get_phone_token(self, identity, phone, client_secret);
                 bkerror!(r, tx, BKResponse::GetTokenEmailError);
             }
             Ok(BKCommand::SubmitPhoneToken(identity, client_secret, sid, token)) => {
@@ -133,18 +133,18 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::SubmitPhoneTokenError);
             }
             Ok(BKCommand::AddThreePID(identity, client_secret, sid)) => {
-                let r = user::add_threepid(self, &identity, &client_secret, sid);
+                let r = user::add_threepid(self, identity, client_secret, sid);
                 bkerror!(r, tx, BKResponse::AddThreePIDError);
             }
             Ok(BKCommand::DeleteThreePID(medium, address)) => {
-                user::delete_three_pid(self, &medium, &address);
+                user::delete_three_pid(self, medium, address);
             }
             Ok(BKCommand::ChangePassword(username, old_password, new_password)) => {
-                let r = user::change_password(self, &username, &old_password, &new_password);
+                let r = user::change_password(self, username, old_password, new_password);
                 bkerror!(r, tx, BKResponse::ChangePasswordError);
             }
-            Ok(BKCommand::AccountDestruction(username, password, flag)) => {
-                let r = user::account_destruction(self, &username, &password, flag);
+            Ok(BKCommand::AccountDestruction(username, password, _)) => {
+                let r = user::account_destruction(self, username, password);
                 bkerror!(r, tx, BKResponse::AccountDestructionError);
             }
             Ok(BKCommand::GetAvatar) => {
@@ -168,7 +168,7 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::CommandError);
             }
             Ok(BKCommand::UserSearch(term)) => {
-                let r = user::search(self, &term);
+                let r = user::search(self, term);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
 
