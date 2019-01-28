@@ -1,3 +1,4 @@
+use super::{AuthenticationData, Identifier, Medium, UserIdentifier};
 use crate::globals;
 use serde::{Deserialize, Serialize};
 use std::ops::Not;
@@ -22,14 +23,6 @@ pub struct LoginResponse {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub enum Medium {
-    #[serde(rename = "email")]
-    Email,
-    #[serde(rename = "msisdn")]
-    MsIsdn,
-}
-
-#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum Auth {
     #[serde(rename = "m.login.password")]
@@ -38,78 +31,29 @@ pub enum Auth {
     Token { token: String },
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(tag = "type")]
-pub enum UserIdentifier {
-    #[serde(rename = "m.id.user")]
-    User { user: String },
-    #[serde(rename = "m.id.thirdparty")]
-    ThirdParty { medium: Medium, address: String },
-    #[serde(rename = "m.id.phone")]
-    Phone { country: String, phone: String },
-}
-
-#[derive(Clone, Debug, Serialize)]
-enum LegacyMedium {
-    #[serde(rename = "email")]
-    Email,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(untagged)]
-enum LegacyIdentifier {
-    User {
-        user: String,
-    },
-    Email {
-        medium: LegacyMedium,
-        address: String,
-    },
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct Identifier {
-    identifier: UserIdentifier,
-    #[serde(flatten)]
-    legacy_identifier: Option<LegacyIdentifier>,
-}
-
-impl Identifier {
-    pub fn new(identifier: UserIdentifier) -> Self {
-        Self {
-            identifier: identifier.clone(),
-            legacy_identifier: match identifier {
-                UserIdentifier::User { user } => Some(LegacyIdentifier::User { user }),
-                UserIdentifier::ThirdParty { medium: _, address } => {
-                    Some(LegacyIdentifier::Email {
-                        medium: LegacyMedium::Email,
-                        address,
-                    })
-                }
-                UserIdentifier::Phone { .. } => None,
-            },
-        }
-    }
-}
-
 impl LoginRequest {
-    pub fn new(user: String, password: String) -> Self {
+    pub fn new(
+        user: String,
+        password: String,
+        initial_device_display_name: Option<String>,
+        device_id: Option<String>,
+    ) -> Self {
         if globals::EMAIL_RE.is_match(&user) {
             Self {
                 auth: Auth::Password { password },
-                initial_device_display_name: Some(String::from("Fractal")),
+                initial_device_display_name,
                 identifier: Identifier::new(UserIdentifier::ThirdParty {
                     medium: Medium::Email,
                     address: user,
                 }),
-                device_id: None,
+                device_id,
             }
         } else {
             Self {
                 auth: Auth::Password { password },
-                initial_device_display_name: Some(String::from("Fractal")),
+                initial_device_display_name,
                 identifier: Identifier::new(UserIdentifier::User { user }),
-                device_id: None,
+                device_id,
             }
         }
     }
@@ -138,28 +82,4 @@ pub struct RegisterResponse {
     pub user_id: String,
     pub access_token: Option<String>,
     pub device_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct AuthenticationData {
-    #[serde(rename = "type")]
-    pub kind: AuthenticationKind,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub session: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub enum AuthenticationKind {
-    #[serde(rename = "m.login.password")]
-    Password,
-    #[serde(rename = "m.login.recaptcha")]
-    Recaptcha,
-    #[serde(rename = "m.login.oauth2")]
-    OAuth2,
-    #[serde(rename = "m.login.email.identity")]
-    Email,
-    #[serde(rename = "m.login.token")]
-    Token,
-    #[serde(rename = "m.login.dummy")]
-    Dummy,
 }
