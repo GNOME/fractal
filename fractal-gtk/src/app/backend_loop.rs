@@ -3,7 +3,6 @@ use crate::i18n::i18n;
 use log::{error, info};
 
 use crate::actions::AppState;
-use crate::appop::RoomPanel;
 
 use glib;
 use std::process::Command;
@@ -225,17 +224,17 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     error!("{:?}", err);
 
                     let error = i18n("Can’t create the room, try again");
-                    let panel = RoomPanel::NoRoom;
+                    let state = AppState::NoRoom;
                     APPOP!(remove_room, (internal_id));
                     APPOP!(show_error, (error));
-                    APPOP!(room_panel, (panel));
+                    APPOP!(set_state, (state));
                 }
                 Ok(BKResponse::JoinRoomError(err)) => {
                     error!("{:?}", err);
                     let error = format!("{}", i18n("Can’t join the room, try again."));
-                    let panel = RoomPanel::NoRoom;
+                    let state = AppState::NoRoom;
                     APPOP!(show_error, (error));
-                    APPOP!(room_panel, (panel));
+                    APPOP!(set_state, (state));
                 }
                 Ok(BKResponse::LoginError(_)) => {
                     let error = i18n("Can’t login, try again");
