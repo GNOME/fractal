@@ -874,39 +874,50 @@
                       </object>
                     </child>
                     <child type="title">
-                      <object class="GtkBox" id="room_info">
+                      <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
+                        <property name="hexpand">True</property>
+                        <property name="hscrollbar_policy">never</property>
+                        <property name="vscrollbar_policy">never</property>
+                        <property name="propagate_natural_height">True</property>
+                        <property name="propagate_natural_width">False</property>
                         <child>
-                          <object class="GtkLabel" id="room_name">
+                          <object class="GtkBox" id="room_info">
+                            <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Room name</property>
-                            <property name="ellipsize">end</property>
-                            <style>
-                              <class name="title"/>
-                            </style>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkLabel" id="room_name">
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Room name</property>
+                                <property name="ellipsize">end</property>
+                                <style>
+                                  <class name="title"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="room_topic">
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Room topic</property>
+                                <property name="ellipsize">end</property>
+                                <style>
+                                  <class name="subtitle"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="room_topic">
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Room topic</property>
-                            <property name="ellipsize">end</property>
-                            <style>
-                              <class name="subtitle"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
                         </child>
                       </object>
                     </child>
