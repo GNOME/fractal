@@ -1,8 +1,8 @@
 use gtk;
 use gtk::prelude::*;
 
+use crate::actions::AppState;
 use crate::appop::AppOp;
-use crate::appop::RoomPanel;
 use crate::appop::SearchType;
 
 use crate::backend::BKCommand;
@@ -31,7 +31,7 @@ impl AppOp {
 
         self.new_room(fakeroom, None);
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Room);
+        self.set_state(AppState::Room);
     }
 
     pub fn show_direct_chat_dialog(&mut self) {

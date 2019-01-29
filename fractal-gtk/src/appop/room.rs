@@ -23,12 +23,6 @@ use rand::{thread_rng, Rng};
 
 pub struct Force(pub bool);
 
-#[derive(Debug, Clone)]
-pub enum RoomPanel {
-    Room,
-    NoRoom,
-}
-
 impl AppOp {
     pub fn remove_room(&mut self, id: String) {
         self.rooms.remove(&id);
@@ -112,7 +106,7 @@ impl AppOp {
                 return;
             }
         }
-        self.room_panel(RoomPanel::Room);
+        self.set_state(AppState::Room);
 
         let msg_entry = self.ui.sventry.view.clone();
         if let Some(buffer) = msg_entry.get_buffer() {
@@ -189,7 +183,7 @@ impl AppOp {
         self.rooms.remove(&r);
         self.active_room = None;
         self.clear_tmp_msgs();
-        self.room_panel(RoomPanel::NoRoom);
+        self.set_state(AppState::NoRoom);
 
         self.roomlist.remove_room(r);
     }
@@ -244,63 +238,7 @@ impl AppOp {
         fakeroom.name = Some(n);
         self.new_room(fakeroom, None);
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Room);
-    }
-
-    pub fn room_panel(&self, t: RoomPanel) {
-        let s = self
-            .ui
-            .builder
-            .get_object::<gtk::Stack>("room_view_stack")
-            .expect("Can't find room_view_stack in ui file.");
-        let headerbar = self
-            .ui
-            .builder
-            .get_object::<gtk::HeaderBar>("room_header_bar")
-            .expect("Can't find room_header_bar in ui file.");
-
-        let v = match t {
-            RoomPanel::Room => "room_view",
-            RoomPanel::NoRoom => "noroom",
-        };
-
-        s.set_visible_child_name(v);
-
-        match v {
-            "noroom" => {
-                for ch in headerbar.get_children().iter() {
-                    ch.hide();
-
-                    // Select new active room in the sidebar
-                    self.roomlist.unselect();
-                }
-            }
-            "room_view" => {
-                for ch in headerbar.get_children().iter() {
-                    ch.show();
-                }
-
-                self.ui.sventry.view.grab_focus();
-
-                let active_room_id = self.active_room.clone().unwrap_or_default();
-                let msg = self
-                    .unsent_messages
-                    .get(&active_room_id)
-                    .cloned()
-                    .unwrap_or_default();
-                if let Some(buffer) = self.ui.sventry.view.get_buffer() {
-                    buffer.set_text(&msg.0);
-
-                    let iter = buffer.get_iter_at_offset(msg.1);
-                    buffer.place_cursor(&iter);
-                }
-            }
-            _ => {
-                for ch in headerbar.get_children().iter() {
-                    ch.show();
-                }
-            }
-        }
+        self.set_state(AppState::Room);
     }
 
     pub fn cache_rooms(&self) {
