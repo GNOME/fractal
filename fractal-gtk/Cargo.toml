@@ -55,7 +55,8 @@ path = "../fractal-matrix-api"
 package = "fractal-matrix-api"
 
 [dependencies.libhandy]
-git = "https://gitlab.gnome.org/jsparber/libhandy-rs"
+version = "0.2.0"
+features = ["v0_0_7"]
 
 [dependencies.gettext-rs]
 git = "https://github.com/danigm/gettext-rs"
