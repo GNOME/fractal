@@ -1,11 +1,16 @@
+use crate::error::Error;
 use comrak::{markdown_to_html, ComrakOptions};
+use fractal_api::util::media_url;
+use fractal_api::util::put_media;
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
-use pixbuf::Pixbuf;
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, Sender};
 use tree_magic;
 
 use crate::appop::room::Force;
@@ -13,6 +18,8 @@ use crate::appop::AppOp;
 use crate::App;
 
 use crate::backend::BKCommand;
+use crate::backend::BKResponse;
+use crate::backend::Backend;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -21,6 +28,7 @@ use crate::types::Message;
 use gdk_pixbuf::Pixbuf;
 use serde_json::json;
 use serde_json::Value as JsonValue;
+use std::fs::File;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -231,7 +239,7 @@ impl AppOp {
         }
     }
 
-    pub fn attach_message(&mut self, bk: &Backend, path: PathBuf) {
+    pub fn attach_message(&mut self, path: PathBuf) {
         if let Some(room) = self.active_room.clone() {
             if let Some(sender) = self.uid.clone() {
                 let mime = tree_magic::from_filepath(&path);
@@ -250,7 +258,7 @@ impl AppOp {
 
                 let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
                 if mtype == "m.image" {
-                    m.extra_content = get_image_media_info(&bk, path_string, mime.as_ref());
+                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
                 }
                 self.add_tmp_room_message(m);
                 self.dequeue_message();
@@ -468,24 +476,26 @@ fn create_ui_message(
 ///   "mimetype": "image/png"
 ///  }
 /// }
-fn get_image_media_info(bk: &Backend, file: &str, mimetype: &str) -> Option<JsonValue> {
+fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let (_, w, h) = Pixbuf::get_file_info(file)?;
     let size = fs::metadata(file).ok()?.len();
     // make thumbnail max 800x600
-    let thumb = new_from_file_at_scale(file, 800, 600, true)?;
-    pixbuf.savev("thumb.png", "png", &[("", "")])?;
+    let thumb = Pixbuf::new_from_file_at_scale(file, 800, 600, true).ok()?;
+    thumb.savev("thumb.png", "png", &[]).ok()?;
+    println!("it was saved!");
     let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
     // upload thumbnail
-    let thumb_url = upload_thumbnail(bk, file);
-
+    println!("trying the upload");
+    let thumbnail_url = upload_thumbnail("thumb.png").ok()?;
+    println!("URI: {}", &uri);
     let info = json!({
         "info": {
-            "thumbnail_url": thumb_url,
+            "thumbnail_url": thumbnail_url,
             "thumbnail_info": {
                 "w": thumb_w,
                 "h": thumb_h,
                 "mimetype": "image/png"
-            }
+            },
             "w": w,
             "h": h,
             "size": size,
@@ -497,13 +507,29 @@ fn get_image_media_info(bk: &Backend, file: &str, mimetype: &str) -> Option<Json
     Some(info)
 }
 
-fn upload_thumbnail(bk: &Backend, thumbname: &str) -> Result<&str, Error> {
+fn upload_thumbnail(thumbname: &str) -> Result<String, Error> {
+    let (tx, _rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
+
+    let bk = Backend::new(tx);
     let mut file = File::open(&thumbname)?;
     let mut contents: Vec<u8> = vec![];
     file.read_to_end(&mut contents)?;
-
-    let baseu = bk.get_base_url();
+    println!("finish reading the file");
+    let baseu = bk.data.lock().unwrap().server_url.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
+    // THE ERROR IS HERE -I THINK- , THE ACCESS TOKEN IS EMPTY
     let params = &[("access_token", tk.clone())];
-    media_url(&baseu, "upload", params)?
+    println!("access_token and tk: {:#?}", params);
+    let mediaurl = media_url(&baseu, &format!("/_matrix/media/r0/{}", "upload"), params)?;
+    println!("before the match");
+    match put_media(mediaurl.as_str(), contents) {
+        Err(e) => {
+            println!("match on error :(  {:?}", e);
+            Err(Error::BackendError)
+        }
+        Ok(js) => {
+            println!("is it inside the Ok?");
+            Ok(js["content_uri"].as_str().unwrap_or_default().to_string())
+        }
+    }
 }
