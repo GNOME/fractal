@@ -841,7 +841,8 @@
                   <object class="GtkHeaderBar" id="room_header_bar"> <!--right titlebar-->
                     <property name="show-close-button">True</property>
                     <property name="has-subtitle">False</property>
-                    <property name="hexpand">True</property>
+                    <property name="hexpand">true</property>
+                    <property name="width-request">360</property>
                     <child>
                       <object class="GtkRevealer">
                         <property name="reveal-child" bind-source="header_leaflet" bind-property="folded" bind-flags="sync-create"/>
