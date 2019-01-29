@@ -487,7 +487,6 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     // upload thumbnail
     println!("trying the upload");
     let thumbnail_url = upload_thumbnail("thumb.png").ok()?;
-    println!("URI: {}", &uri);
     let info = json!({
         "info": {
             "thumbnail_url": thumbnail_url,
