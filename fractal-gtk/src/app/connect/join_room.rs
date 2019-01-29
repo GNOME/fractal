@@ -11,7 +11,7 @@ impl App {
         let dialog = self
             .ui
             .builder
-            .get_object::<gtk::Dialog>("join_room_dialog")
+            .get_object::<libhandy::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
         let cancel = self
             .ui

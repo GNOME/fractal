@@ -35,7 +35,7 @@ impl App {
         let dialog = self
             .ui
             .builder
-            .get_object::<gtk::Dialog>("direct_chat_dialog")
+            .get_object::<libhandy::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
 
         if let Some(buffer) = to_chat_entry.get_buffer() {
