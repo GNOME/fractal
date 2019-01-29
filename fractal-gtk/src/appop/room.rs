@@ -371,7 +371,7 @@ impl AppOp {
         let dialog = self
             .ui
             .builder
-            .get_object::<gtk::Dialog>("new_room_dialog")
+            .get_object::<libhandy::Dialog>("new_room_dialog")
             .expect("Can't find new_room_dialog in ui file.");
         let btn = self
             .ui
@@ -386,7 +386,7 @@ impl AppOp {
         let dialog = self
             .ui
             .builder
-            .get_object::<gtk::Dialog>("join_room_dialog")
+            .get_object::<libhandy::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
         self.ui
             .builder

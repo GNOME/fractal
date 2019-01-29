@@ -499,7 +499,7 @@ dependencies = [
  "itertools 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "letter-avatar 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "libhandy 0.2.0 (git+https://gitlab.gnome.org/jsparber/libhandy-rs)",
+ "libhandy 0.2.0 (git+https://gitlab.gnome.org/World/Rust/libhandy-rs)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mdl 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "pango 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1130,7 +1130,7 @@ dependencies = [
 [[package]]
 name = "libhandy"
 version = "0.2.0"
-source = "git+https://gitlab.gnome.org/jsparber/libhandy-rs#c63cc6114f7a8ed351aedad379fcdc0313b19f8d"
+source = "git+https://gitlab.gnome.org/World/Rust/libhandy-rs#c63cc6114f7a8ed351aedad379fcdc0313b19f8d"
 dependencies = [
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1144,13 +1144,13 @@ dependencies = [
  "gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.48 (registry+https://github.com/rust-lang/crates.io-index)",
- "libhandy-sys 0.2.0 (git+https://gitlab.gnome.org/jsparber/libhandy-rs)",
+ "libhandy-sys 0.2.0 (git+https://gitlab.gnome.org/World/Rust/libhandy-rs)",
 ]
 
 [[package]]
 name = "libhandy-sys"
 version = "0.2.0"
-source = "git+https://gitlab.gnome.org/jsparber/libhandy-rs#c63cc6114f7a8ed351aedad379fcdc0313b19f8d"
+source = "git+https://gitlab.gnome.org/World/Rust/libhandy-rs#c63cc6114f7a8ed351aedad379fcdc0313b19f8d"
 dependencies = [
  "gdk 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2758,8 +2758,8 @@ dependencies = [
 "checksum libc 0.2.48 (registry+https://github.com/rust-lang/crates.io-index)" = "e962c7641008ac010fa60a7dfdc1712449f29c44ef2d4702394aea943ee75047"
 "checksum libdbus-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "18cb88963258d00f4962205dbb5933d82780d9962c8c8a064b651d2ad7189210"
 "checksum libflate 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)" = "bff3ac7d6f23730d3b533c35ed75eef638167634476a499feef16c428d74b57b"
-"checksum libhandy 0.2.0 (git+https://gitlab.gnome.org/jsparber/libhandy-rs)" = "<none>"
-"checksum libhandy-sys 0.2.0 (git+https://gitlab.gnome.org/jsparber/libhandy-rs)" = "<none>"
+"checksum libhandy 0.2.0 (git+https://gitlab.gnome.org/World/Rust/libhandy-rs)" = "<none>"
+"checksum libhandy-sys 0.2.0 (git+https://gitlab.gnome.org/World/Rust/libhandy-rs)" = "<none>"
 "checksum linkify 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9ce9439c6f4a1092dc1861272bef01034891da39f13aa1cdcf40ca3e4081de5f"
 "checksum lmdb 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5b0908efb5d6496aa977d96f91413da2635a902e5e31dbef0bfb88986c248539"
 "checksum lmdb-sys 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d5b392838cfe8858e86fac37cf97a0e8c55cc60ba0a18365cadc33092f128ce9"

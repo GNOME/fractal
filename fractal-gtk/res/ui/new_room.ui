@@ -20,7 +20,7 @@
       </row>
     </data>
   </object>
-  <object class="GtkDialog" id="new_room_dialog">
+  <object class="HdyDialog" id="new_room_dialog">
     <property name="can_focus">False</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
@@ -33,6 +33,7 @@
     <property name="transient_for">main_window</property>
     <child type="titlebar">
       <object class="GtkHeaderBar">
+        <property name="width_request">360</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="title" translatable="yes">Create new room</property>

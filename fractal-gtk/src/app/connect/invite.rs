@@ -69,7 +69,7 @@ impl App {
         let dialog = self
             .ui
             .builder
-            .get_object::<gtk::Dialog>("invite_user_dialog")
+            .get_object::<libhandy::Dialog>("invite_user_dialog")
             .expect("Can't find invite_user_dialog in ui file.");
 
         if let Some(buffer) = invite_entry.get_buffer() {
