@@ -39,7 +39,6 @@ mod user;
 
 use self::member::SearchType;
 use self::message::TmpMsg;
-pub use self::room::RoomPanel;
 
 pub struct AppOp {
     pub ui: uibuilder::UI,

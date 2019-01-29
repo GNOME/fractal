@@ -2,29 +2,48 @@ use gtk;
 use gtk::prelude::*;
 
 use crate::actions::AppState;
-use crate::appop::room::RoomPanel;
 use crate::appop::AppOp;
 
 impl AppOp {
     pub fn set_state(&mut self, state: AppState) {
         self.state = state;
+        let stack = self
+            .ui
+            .builder
+            .get_object::<gtk::Stack>("room_view_stack")
+            .expect("Can't find room_view_stack in ui file.");
+        let headerbar = self
+            .ui
+            .builder
+            .get_object::<gtk::HeaderBar>("room_header_bar")
+            .expect("Can't find room_header_bar in ui file.");
 
+        let mut view_child = None;
         let widget_name = match self.state {
             AppState::Login => {
                 self.clean_login();
                 "login"
             }
             AppState::NoRoom => {
-                self.set_state_no_room();
+                view_child = Some("noroom");
+                self.set_state_no_room(&headerbar);
                 "chat"
             }
-            AppState::Room => "chat",
+            AppState::Room => {
+                view_child = Some("room_view");
+                self.set_state_room(&headerbar);
+                "chat"
+            }
             AppState::Directory => "directory",
             AppState::Loading => "loading",
             AppState::AccountSettings => "account-settings",
             AppState::RoomSettings => "room-settings",
             AppState::MediaViewer => "media-viewer",
         };
+
+        view_child.map(|name| {
+            stack.set_visible_child_name(name);
+        });
 
         self.ui
             .builder
@@ -69,9 +88,35 @@ impl AppOp {
         }
     }
 
+    fn set_state_room(&self, headerbar: &gtk::HeaderBar) {
+        for ch in headerbar.get_children().iter() {
+            ch.show();
+        }
+
+        self.ui.sventry.view.grab_focus();
+
+        let active_room_id = self.active_room.clone().unwrap_or_default();
+        let msg = self
+            .unsent_messages
+            .get(&active_room_id)
+            .cloned()
+            .unwrap_or_default();
+        if let Some(buffer) = self.ui.sventry.view.get_buffer() {
+            buffer.set_text(&msg.0);
+
+            let iter = buffer.get_iter_at_offset(msg.1);
+            buffer.place_cursor(&iter);
+        }
+    }
+
     // WORKAROUND this is needed because NoRoom isn't a real app state
-    fn set_state_no_room(&mut self) {
-        self.room_panel(RoomPanel::NoRoom);
+    fn set_state_no_room(&mut self, headerbar: &gtk::HeaderBar) {
+        for ch in headerbar.get_children().iter() {
+            ch.hide();
+
+            // Select new active room in the sidebar
+            self.roomlist.unselect();
+        }
         self.active_room = None;
         self.clear_tmp_msgs();
     }
