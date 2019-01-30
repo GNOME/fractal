@@ -36,6 +36,7 @@ pub struct MessageBox {
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     eventbox: gtk::EventBox,
+    gesture: gtk::GestureLongPress,
     row: gtk::ListBoxRow,
     image: Option<gtk::DrawingArea>,
     header: bool,
@@ -47,14 +48,18 @@ impl MessageBox {
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
         let row = gtk::ListBoxRow::new();
+        let gesture = gtk::GestureLongPress::new(&eventbox);
 
         username.set_ellipsize(pango::EllipsizeMode::End);
+        gesture.set_propagation_phase(gtk::PropagationPhase::Capture);
+        gesture.set_touch_only(true);
 
         MessageBox {
             backend: backend,
             username: username,
             username_event_box: eb,
             eventbox,
+            gesture,
             row,
             image: None,
             header: true,
@@ -499,14 +504,25 @@ impl MessageBox {
         } else {
             self.eventbox.upcast_ref::<gtk::Widget>()
         };
+
+        let evbox = eventbox_weak.clone();
+        let i = id.clone();
         widget.connect_button_press_event(move |w, e| {
             if e.get_button() == 3 {
-                let eventbox = upgrade_weak!(eventbox_weak, gtk::Inhibit(false));
-                MessageMenu::new(id.as_str(), &mtype, &redactable, &eventbox, w);
+                let eventbox = upgrade_weak!(evbox, gtk::Inhibit(false));
+                MessageMenu::new(i.as_str(), &mtype, &redactable, &eventbox, w);
                 Inhibit(true)
             } else {
                 Inhibit(false)
             }
+        });
+
+        let widget_weak = widget.downgrade();
+        self.gesture.connect_pressed(move |_, _, _| {
+            let eventbox = upgrade_weak!(eventbox_weak);
+            let widget = upgrade_weak!(widget_weak);
+
+            MessageMenu::new(&id, &mtype, &redactable, &eventbox, &widget);
         });
         None
     }
