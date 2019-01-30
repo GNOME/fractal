@@ -25,7 +25,12 @@ use crate::app::App;
 use gio::ApplicationExt;
 use gio::ApplicationExtManual;
 
+use log::Level;
+use loggerv;
+
 fn main() -> Result<(), Box<dyn Error>> {
+    loggerv::init_with_level(Level::Error).expect("Failed to initialize logger");
+
     static_resources::init().expect("GResource initialization failed.");
 
     // Initialize GStreamer. This checks, among other things, what plugins are available
