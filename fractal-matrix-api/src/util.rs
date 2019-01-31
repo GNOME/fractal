@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use log::error;
 use serde_json::json;
 
@@ -17,7 +18,7 @@ use std::io::prelude::*;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
-use std::time::Duration as StdDuration;
+use std::time::Duration;
 
 use crate::error::Error;
 use crate::types::Message;
@@ -26,6 +27,14 @@ use crate::types::RoomEventFilter;
 use reqwest::header::CONTENT_TYPE;
 
 use crate::globals;
+
+lazy_static! {
+    static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::builder()
+        .gzip(true)
+        .timeout(Duration::from_secs(globals::TIMEOUT))
+        .build()
+        .expect("Couldn't create a http client");
+}
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
 where
@@ -223,8 +232,7 @@ pub fn get_room_media_list(
 }
 
 pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
-    let client = reqwest::Client::new();
-    let conn = client.get(url);
+    let conn = HTTP_CLIENT.get(url);
     let mut res = conn.send()?;
 
     let mut buffer = Vec::new();
@@ -234,10 +242,9 @@ pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let client = reqwest::Client::new();
     let (mime, _) = gio::content_type_guess(None, file.as_slice());
 
-    let conn = client.post(url).body(file).header(CONTENT_TYPE, mime);
+    let conn = HTTP_CLIENT.post(url).body(file).header(CONTENT_TYPE, mime);
 
     let mut res = conn.send()?;
 
@@ -345,19 +352,13 @@ pub fn json_q(
     method: &str,
     url: &Url,
     attrs: &JsonValue,
-    timeout: u64,
+    _timeout: u64,
 ) -> Result<JsonValue, Error> {
-    let clientb = reqwest::ClientBuilder::new();
-    let client = match timeout {
-        0 => clientb.timeout(None).build()?,
-        n => clientb.timeout(StdDuration::from_secs(n)).build()?,
-    };
-
     let mut conn = match method {
-        "post" => client.post(url.as_str()),
-        "put" => client.put(url.as_str()),
-        "delete" => client.delete(url.as_str()),
-        _ => client.get(url.as_str()),
+        "post" => HTTP_CLIENT.post(url.as_str()),
+        "put" => HTTP_CLIENT.put(url.as_str()),
+        "delete" => HTTP_CLIENT.delete(url.as_str()),
+        _ => HTTP_CLIENT.get(url.as_str()),
     };
 
     if !attrs.is_null() {
