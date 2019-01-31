@@ -70,7 +70,7 @@ pub enum BKCommand {
     SetRoomName(String, String),
     SetRoomTopic(String, String),
     SetRoomAvatar(String, String),
-    AttachFile(Message),
+    AttachFile(Message, Option<String>),
     NewRoom(String, RoomType, String),
     DirectChat(Member, String),
     AddToFav(String, bool),

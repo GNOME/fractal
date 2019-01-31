@@ -240,14 +240,9 @@ pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
     let conn = client.post(url).body(file).header(CONTENT_TYPE, mime);
 
     let mut res = conn.send()?;
-    println!("this is the res {:#?}", res);
-
     match res.json() {
         Ok(js) => Ok(js),
-        Err(e) => {
-            println!("error from put_media {:?}", e);
-            Err(Error::BackendError)
-        }
+        Err(e) => Err(Error::BackendError),
     }
 }
 

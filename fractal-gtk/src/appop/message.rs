@@ -1,13 +1,9 @@
-use crate::error::Error;
 use comrak::{markdown_to_html, ComrakOptions};
-use fractal_api::util::media_url;
-use fractal_api::util::put_media;
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
 use std::fs;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
@@ -19,7 +15,6 @@ use crate::App;
 
 use crate::backend::BKCommand;
 use crate::backend::BKResponse;
-use crate::backend::Backend;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -28,7 +23,6 @@ use crate::types::Message;
 use gdk_pixbuf::Pixbuf;
 use serde_json::json;
 use serde_json::Value as JsonValue;
-use std::fs::File;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -177,7 +171,7 @@ impl AppOp {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" => {
-                    self.backend.send(BKCommand::AttachFile(msg)).unwrap();
+                    self.backend.send(BKCommand::AttachFile(msg, None)).unwrap();
                 }
                 _ => {
                     self.backend.send(BKCommand::SendMsg(msg)).unwrap();
@@ -258,7 +252,8 @@ impl AppOp {
 
                 let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
                 if mtype == "m.image" {
-                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                    m.extra_content =
+                        self.get_image_media_info(m.clone(), path_string, mime.as_ref());
                 }
                 self.add_tmp_room_message(m);
                 self.dequeue_message();
@@ -432,6 +427,47 @@ impl AppOp {
             is_last_viewed,
         ))
     }
+
+    fn get_image_media_info(
+        &mut self,
+        msg: Message,
+        file: &str,
+        mimetype: &str,
+    ) -> Option<JsonValue> {
+        let (_, w, h) = Pixbuf::get_file_info(file)?;
+        let size = fs::metadata(file).ok()?.len();
+        // make thumbnail max 800x600
+        let thumb = Pixbuf::new_from_file_at_scale(file, 800, 600, true).ok()?;
+        thumb.savev("thumb.png", "png", &[]).ok()?;
+        println!("it was saved!");
+        let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
+        // upload thumbnail
+        println!("trying the upload");
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        let thumb_up = self
+            .backend
+            .send(BKCommand::AttachFile(msg, Some("thumb.png".to_string())));
+        //get thumb url back from the backend
+        println!("{:?}", thumb_up);
+        println!("{:#?}", msg);
+        let info = json!({
+            "info": {
+                //"thumbnail_url": thumbnail_url,
+                "thumbnail_info": {
+                    "w": thumb_w,
+                    "h": thumb_h,
+                    "mimetype": "image/png"
+                },
+                "w": w,
+                "h": h,
+                "size": size,
+                "mimetype": mimetype,
+                "orientation": 0
+            }
+        });
+
+        Some(info)
+    }
 }
 
 /* FIXME: don't convert msg to ui messages here, we should later get a ui message from storage */
@@ -459,76 +495,5 @@ fn create_ui_message(
         highlights: highlights,
         redactable,
         widget: None,
-    }
-}
-
-/// This function open the image and fill the info data as a Json value
-/// If something fails this will returns None
-///
-/// The output json will look like:
-///
-/// {
-///  "info": {
-///   "h": 296,
-///   "w": 296,
-///   "size": 8796,
-///   "orientation": 0,
-///   "mimetype": "image/png"
-///  }
-/// }
-fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
-    let (_, w, h) = Pixbuf::get_file_info(file)?;
-    let size = fs::metadata(file).ok()?.len();
-    // make thumbnail max 800x600
-    let thumb = Pixbuf::new_from_file_at_scale(file, 800, 600, true).ok()?;
-    thumb.savev("thumb.png", "png", &[]).ok()?;
-    println!("it was saved!");
-    let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
-    // upload thumbnail
-    println!("trying the upload");
-    let thumbnail_url = upload_thumbnail("thumb.png").ok()?;
-    let info = json!({
-        "info": {
-            "thumbnail_url": thumbnail_url,
-            "thumbnail_info": {
-                "w": thumb_w,
-                "h": thumb_h,
-                "mimetype": "image/png"
-            },
-            "w": w,
-            "h": h,
-            "size": size,
-            "mimetype": mimetype,
-            "orientation": 0
-        }
-    });
-
-    Some(info)
-}
-
-fn upload_thumbnail(thumbname: &str) -> Result<String, Error> {
-    let (tx, _rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-
-    let bk = Backend::new(tx);
-    let mut file = File::open(&thumbname)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
-    println!("finish reading the file");
-    let baseu = bk.data.lock().unwrap().server_url.clone();
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    // THE ERROR IS HERE -I THINK- , THE ACCESS TOKEN IS EMPTY
-    let params = &[("access_token", tk.clone())];
-    println!("access_token and tk: {:#?}", params);
-    let mediaurl = media_url(&baseu, &format!("/_matrix/media/r0/{}", "upload"), params)?;
-    println!("before the match");
-    match put_media(mediaurl.as_str(), contents) {
-        Err(e) => {
-            println!("match on error :(  {:?}", e);
-            Err(Error::BackendError)
-        }
-        Ok(js) => {
-            println!("is it inside the Ok?");
-            Ok(js["content_uri"].as_str().unwrap_or_default().to_string())
-        }
     }
 }

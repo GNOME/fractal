@@ -463,8 +463,13 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
     Ok(())
 }
 
-pub fn attach_file(bk: &Backend, msg: Message) -> Result<(), Error> {
+pub fn attach_file(bk: &Backend, msg: Message, thumb: Option<String>) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
+
+    let fname = match thumb {
+        Some(path) => path,
+        None => fname,
+    };
 
     if fname.starts_with("mxc://") {
         return send_msg(bk, msg);
