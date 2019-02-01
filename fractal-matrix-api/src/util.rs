@@ -29,7 +29,7 @@ use reqwest::header::CONTENT_TYPE;
 use crate::globals;
 
 lazy_static! {
-    static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::builder()
+    pub static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::builder()
         .gzip(true)
         .timeout(Duration::from_secs(globals::TIMEOUT))
         .build()
