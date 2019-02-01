@@ -4,11 +4,11 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use crate::error::Error;
 
+use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use crate::types::Event;
 use crate::types::Medium;
 use crate::types::Member;
 use crate::types::Message;
-use crate::types::ProtocolInstance;
 use crate::types::Room;
 use crate::types::Sticker;
 use crate::types::StickerGroup;
