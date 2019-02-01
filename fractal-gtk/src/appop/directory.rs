@@ -7,8 +7,8 @@ use crate::appop::AppOp;
 use crate::backend::BKCommand;
 use crate::widgets;
 
-use crate::types::ProtocolInstance;
 use crate::types::Room;
+use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 
 impl AppOp {
     pub fn init_protocols(&self) {
