@@ -6,6 +6,8 @@ pub mod globals;
 pub mod backend;
 pub mod cache;
 mod model;
+pub mod r0;
+mod ser;
 pub mod types;
 
 #[cfg(test)]
