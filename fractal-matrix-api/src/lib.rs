@@ -7,6 +7,8 @@ pub mod backend;
 pub mod cache;
 mod client;
 mod model;
+pub mod r0;
+mod ser;
 pub mod types;
 
 #[cfg(test)]

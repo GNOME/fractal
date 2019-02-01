@@ -299,9 +299,7 @@ impl Backend {
             }
 
             // Directory module
-            Ok(BKCommand::DirectoryProtocols) => {
-                directory::protocols(self);
-            }
+            Ok(BKCommand::DirectoryProtocols) => directory::protocols(self),
             Ok(BKCommand::DirectorySearch(dhs, dq, dtp, more)) => {
                 let hs = match dhs {
                     ref a if a.is_empty() => None,

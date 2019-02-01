@@ -29,7 +29,7 @@ use reqwest::header::CONTENT_TYPE;
 use crate::globals;
 
 lazy_static! {
-    static ref HTTP_CLIENT: Client = Client::new();
+    pub static ref HTTP_CLIENT: Client = Client::new();
 }
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
