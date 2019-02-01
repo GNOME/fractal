@@ -3,7 +3,6 @@ pub mod fileinfo;
 pub mod filter;
 pub mod member;
 pub mod message;
-pub mod protocol;
 pub mod register;
 pub mod room;
 pub mod stickers;

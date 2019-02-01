@@ -3,6 +3,7 @@ use serde_json::Value as JsonValue;
 use crate::model::member::Member;
 use crate::model::member::MemberList;
 use crate::model::message::Message;
+use crate::r0::directory::post_public_rooms::Chunk as PublicRoomsChunk;
 use crate::types::SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
@@ -296,61 +297,6 @@ impl PartialEq for Room {
 }
 
 pub type RoomList = HashMap<String, Room>;
-
-#[derive(Clone, Debug, Serialize)]
-pub struct PublicRoomsRequest {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub since: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<PublicRoomsFilter>,
-    #[serde(flatten)]
-    pub third_party_networks: ThirdPartyNetworks,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct PublicRoomsFilter {
-    pub generic_search_term: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(tag = "include_all_networks", content = "third_party_instance_id")]
-pub enum ThirdPartyNetworks {
-    #[serde(rename = "false")]
-    None,
-    #[serde(rename = "false")]
-    Only(String),
-    #[serde(rename = "true")]
-    All,
-}
-
-impl Default for ThirdPartyNetworks {
-    fn default() -> Self {
-        ThirdPartyNetworks::None
-    }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct PublicRoomsResponse {
-    pub chunk: Vec<PublicRoomsChunk>,
-    pub next_batch: Option<String>,
-    pub prev_batch: Option<String>,
-    pub total_room_count_estimate: Option<u64>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct PublicRoomsChunk {
-    pub aliases: Option<Vec<String>>,
-    pub avatar_url: Option<String>,
-    pub canonical_alias: Option<String>,
-    pub guest_can_join: bool,
-    pub name: Option<String>,
-    pub num_joined_members: i32,
-    pub room_id: String,
-    pub topic: Option<String>,
-    pub world_readable: bool,
-}
 
 fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
     events
