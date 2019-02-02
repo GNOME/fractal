@@ -1,6 +1,8 @@
 use log::error;
 use serde_json::json;
 
+use gdk_pixbuf::Pixbuf;
+use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::mpsc::Sender;
@@ -463,47 +465,89 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
     Ok(())
 }
 
-pub fn attach_file(bk: &Backend, msg: Message, thumb: Option<String>) -> Result<(), Error> {
+pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
+    let thumb = msg.thumb.clone().unwrap_or_default();
 
-    let fname = match thumb {
-        Some(path) => path,
-        None => fname,
-    };
+    let tx = bk.tx.clone();
+    let itx = bk.internal_tx.clone();
+    let baseu = bk.get_base_url().clone();
+    let tk = bk.data.lock().unwrap().access_token.clone();
 
-    if fname.starts_with("mxc://") {
+    if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
         return send_msg(bk, msg);
     }
 
-    let mut file = File::open(&fname)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
-
-    let baseu = bk.get_base_url();
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    let params = &[("access_token", tk.clone())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
-
-    let mut m = msg.clone();
-    let tx = bk.tx.clone();
-    let itx = bk.internal_tx.clone();
     thread::spawn(move || {
-        match put_media(mediaurl.as_str(), contents) {
+        msg = get_image_media_info(tk.clone(), baseu.clone(), msg).unwrap();
+        match upload_file(tk, baseu, &fname) {
             Err(err) => {
                 tx.send(BKResponse::AttachFileError(err)).unwrap();
             }
-            Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or_default();
-                m.url = Some(uri.to_string());
+            Ok(uri) => {
+                msg.url = Some(uri.to_string());
                 if let Some(t) = itx {
-                    t.send(BKCommand::SendMsg(m.clone())).unwrap();
+                    t.send(BKCommand::SendMsg(msg.clone())).unwrap();
                 }
-                tx.send(BKResponse::AttachedFile(m)).unwrap();
+                tx.send(BKResponse::AttachedFile(msg)).unwrap();
             }
         };
     });
 
     Ok(())
+}
+
+fn upload_file(tk: String, baseu: Url, fname: &str) -> Result<String, Error> {
+    let mut file = File::open(fname)?;
+    let mut contents: Vec<u8> = vec![];
+    file.read_to_end(&mut contents)?;
+
+    let params = &[("access_token", tk.clone())];
+    let mediaurl = media_url(&baseu, "upload", params)?;
+
+    match put_media(mediaurl.as_str(), contents) {
+        Err(err) => Err(err),
+        Ok(js) => Ok(js["content_uri"].as_str().unwrap_or_default().to_string()),
+    }
+}
+
+/// This function open the image, create a thumbnail
+///  upload it and fill the info data as a Json value
+
+fn get_image_media_info(tk: String, base: Url, mut msg: Message) -> Option<Message> {
+    let file = msg.url.clone().unwrap_or_default();
+    let mimetype = msg.mtype.clone();
+    let (_, w, h) = Pixbuf::get_file_info(&file)?;
+    let size = fs::metadata(&file).ok()?.len();
+
+    // make thumbnail max 800x600
+    let thumb = Pixbuf::new_from_file_at_scale(&file, 800, 600, true).ok()?;
+    thumb.savev("thumb.png", "png", &[]).ok()?;
+
+    // upload thumbnail
+    let thumb_url = upload_file(tk, base, "thumb.png").ok()?;
+    msg.thumb = Some(thumb_url.to_string());
+
+    let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
+
+    let info = json!({
+        "info": {
+            "thumbnail_url": thumb_url,
+            "thumbnail_info": {
+                "w": thumb_w,
+                "h": thumb_h,
+                "mimetype": "image/png"
+            },
+            "w": w,
+            "h": h,
+            "size": size,
+            "mimetype": mimetype,
+            "orientation": 0
+        }
+    });
+
+    msg.extra_content = Some(info);
+    Some(msg)
 }
 
 pub fn new_room(
