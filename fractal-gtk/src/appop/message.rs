@@ -3,10 +3,7 @@ use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
-use std::fs;
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver, Sender};
 use tree_magic;
 
 use crate::appop::room::Force;
@@ -14,15 +11,11 @@ use crate::appop::AppOp;
 use crate::App;
 
 use crate::backend::BKCommand;
-use crate::backend::BKResponse;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
 
 use crate::types::Message;
-use gdk_pixbuf::Pixbuf;
-use serde_json::json;
-use serde_json::Value as JsonValue;
 
 pub struct TmpMsg {
     pub msg: Message,
@@ -171,7 +164,7 @@ impl AppOp {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" => {
-                    self.backend.send(BKCommand::AttachFile(msg, None)).unwrap();
+                    self.backend.send(BKCommand::AttachFile(msg)).unwrap();
                 }
                 _ => {
                     self.backend.send(BKCommand::SendMsg(msg)).unwrap();
@@ -251,10 +244,8 @@ impl AppOp {
                 let path_string = path.to_str().unwrap_or_default();
 
                 let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
-                if mtype == "m.image" {
-                    m.extra_content =
-                        self.get_image_media_info(m.clone(), path_string, mime.as_ref());
-                }
+                m.url = Some(path_string.to_string());
+
                 self.add_tmp_room_message(m);
                 self.dequeue_message();
             } else {
@@ -426,47 +417,6 @@ impl AppOp {
             redactable,
             is_last_viewed,
         ))
-    }
-
-    fn get_image_media_info(
-        &mut self,
-        msg: Message,
-        file: &str,
-        mimetype: &str,
-    ) -> Option<JsonValue> {
-        let (_, w, h) = Pixbuf::get_file_info(file)?;
-        let size = fs::metadata(file).ok()?.len();
-        // make thumbnail max 800x600
-        let thumb = Pixbuf::new_from_file_at_scale(file, 800, 600, true).ok()?;
-        thumb.savev("thumb.png", "png", &[]).ok()?;
-        println!("it was saved!");
-        let (_, thumb_w, thumb_h) = Pixbuf::get_file_info("thumb.png")?;
-        // upload thumbnail
-        println!("trying the upload");
-        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-        let thumb_up = self
-            .backend
-            .send(BKCommand::AttachFile(msg, Some("thumb.png".to_string())));
-        //get thumb url back from the backend
-        println!("{:?}", thumb_up);
-        println!("{:#?}", msg);
-        let info = json!({
-            "info": {
-                //"thumbnail_url": thumbnail_url,
-                "thumbnail_info": {
-                    "w": thumb_w,
-                    "h": thumb_h,
-                    "mimetype": "image/png"
-                },
-                "w": w,
-                "h": h,
-                "size": size,
-                "mimetype": mimetype,
-                "orientation": 0
-            }
-        });
-
-        Some(info)
     }
 }
 
