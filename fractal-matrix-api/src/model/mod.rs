@@ -1,12 +1,10 @@
 pub mod event;
 pub mod fileinfo;
-pub mod filter;
 pub mod member;
 pub mod message;
 pub mod register;
 pub mod room;
 pub mod stickers;
-pub mod sync;
 pub mod user;
 
 use serde::{Deserialize, Serialize};
