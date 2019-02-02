@@ -33,9 +33,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         params.push(("since", since));
     }
 
-    let timeout = if !initial {
-        time::Duration::from_secs(30)
-    } else {
+    if initial {
         let filter = Filter {
             room: Some(RoomFilter {
                 state: Some(RoomEventFilter {
@@ -71,10 +69,9 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         let filter_str =
             serde_json::to_string(&filter).expect("Failed to serialize sync request filter");
         params.push(("filter", filter_str));
-
-        Default::default()
     };
 
+    let timeout = time::Duration::from_secs(30);
     params.push(("timeout", timeout.as_secs().to_string()));
 
     let baseu = bk.get_base_url();
@@ -192,8 +189,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             thread::sleep(time::Duration::from_secs(10));
 
             tx.send(BKResponse::SyncError(err)).unwrap();
-        },
-        timeout.as_secs()
+        }
     );
 
     Ok(())

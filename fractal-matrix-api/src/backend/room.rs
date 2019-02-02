@@ -453,8 +453,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
                     &roomurl,
                     &attrs,
                     |_| tx.send(BKResponse::SetRoomAvatar).unwrap(),
-                    |err| tx.send(BKResponse::SetRoomAvatarError(err)).unwrap(),
-                    0
+                    |err| tx.send(BKResponse::SetRoomAvatarError(err)).unwrap()
                 );
             }
         };
@@ -577,7 +576,7 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
             }
 
             let attrs = json!(directs.clone());
-            put!(&direct_url, &attrs, |_| {}, |err| error!("{:?}", err), 0);
+            put!(&direct_url, &attrs, |_| {}, |err| error!("{:?}", err));
         },
         |err| {
             tx.send(BKResponse::NewRoomError(err, internal_id)).unwrap();
