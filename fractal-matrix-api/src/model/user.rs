@@ -1,4 +1,4 @@
-use super::{AuthenticationData, Medium, ThreePIDCredentials};
+use crate::r0::account::{AuthenticationData, Medium, ThreePIDCredentials};
 use serde::{Deserialize, Serialize};
 use std::ops::Not;
 
