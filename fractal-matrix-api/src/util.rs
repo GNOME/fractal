@@ -137,9 +137,9 @@ macro_rules! put {
 
 #[macro_export]
 macro_rules! query {
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr, $timeout: expr) => {
+    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
         thread::spawn(move || {
-            let js = json_q($method, $url, $attrs, $timeout);
+            let js = json_q($method, $url, $attrs);
 
             match js {
                 Ok(r) => $okcb(r),
@@ -187,7 +187,7 @@ pub fn get_prev_batch_from(
     let path = format!("rooms/{}/context/{}", roomid, evid);
     let url = client_url(baseu, &path, params)?;
 
-    let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
+    let r = json_q("get", &url, &json!(null))?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
 
     Ok(prev_batch)
@@ -228,7 +228,7 @@ pub fn get_room_media_list(
     let path = format!("rooms/{}/messages", roomid);
     let url = client_url(baseu, &path, &params)?;
 
-    let r = json_q("get", &url, &json!(null), globals::TIMEOUT)?;
+    let r = json_q("get", &url, &json!(null))?;
     let array = r["chunk"].as_array();
     let prev_batch = r["end"].to_string().trim_matches('"').to_string();
     if array.is_none() || array.unwrap().is_empty() {
@@ -361,12 +361,7 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
     Ok(fname)
 }
 
-pub fn json_q(
-    method: &str,
-    url: &Url,
-    attrs: &JsonValue,
-    timeout: u64,
-) -> Result<JsonValue, Error> {
+pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
     let client = get_http_client();
 
     let mut conn = match method {
@@ -413,7 +408,7 @@ pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Er
     let url = client_url(baseu, &format!("profile/{}", encode_uid(userid)), &[])?;
     let attrs = json!(null);
 
-    match json_q("get", &url, &attrs, globals::TIMEOUT) {
+    match json_q("get", &url, &attrs) {
         Ok(js) => {
             let name = match js["displayname"].as_str() {
                 Some(n) if n.is_empty() => userid.to_string(),
