@@ -12,7 +12,7 @@ use std::time::Duration;
 const PROXY_DIRECT_URI: &str = "direct://";
 
 #[derive(Debug, Eq, PartialEq)]
-struct ProxySettings {
+pub struct ProxySettings {
     http_proxy: Vec<String>,
     https_proxy: Vec<String>,
 }
@@ -32,7 +32,14 @@ impl ProxySettings {
         )
     }
 
-    fn apply_to_client_builder(
+    pub fn current() -> Result<ProxySettings, Error> {
+        Ok(Self::new(
+            PROXY_RESOLVER.with(|resolver| resolver.lookup("http://", None))?,
+            PROXY_RESOLVER.with(|resolver| resolver.lookup("https://", None))?,
+        ))
+    }
+
+    pub fn apply_to_client_builder(
         &self,
         mut builder: reqwest::ClientBuilder,
     ) -> Result<reqwest::ClientBuilder, reqwest::Error> {
@@ -82,10 +89,7 @@ impl Client {
         // Lock first so we don't overwrite proxy settings with outdated information
         let mut inner = self.inner.lock().unwrap();
 
-        let http_proxy = PROXY_RESOLVER.with(|resolver| resolver.lookup("http://", None))?;
-        let https_proxy = PROXY_RESOLVER.with(|resolver| resolver.lookup("https://", None))?;
-
-        let new_proxy_settings = ProxySettings::new(http_proxy, https_proxy);
+        let new_proxy_settings = ProxySettings::current()?;
 
         if inner.proxy_settings == new_proxy_settings {
             Ok(inner.client.clone())
