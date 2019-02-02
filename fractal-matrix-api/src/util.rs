@@ -21,8 +21,8 @@ use std::thread;
 use std::time::Duration;
 
 use crate::error::Error;
+use crate::r0::filter::RoomEventFilter;
 use crate::types::Message;
-use crate::types::RoomEventFilter;
 
 use reqwest::header::CONTENT_TYPE;
 
