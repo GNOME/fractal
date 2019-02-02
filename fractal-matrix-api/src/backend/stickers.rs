@@ -8,8 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use url::Url;
 
-use crate::globals;
-//use std::thread;
 use crate::error::Error;
 
 use crate::backend::types::BKCommand;
@@ -187,12 +185,12 @@ fn get_scalar_token(data: &Arc<Mutex<BackendData>>) -> Result<String, Error> {
     let uid = data.lock().unwrap().user_id.clone();
 
     let url = url(data, &format!("user/{}/openid/request_token", uid), vec![])?;
-    let js = json_q("post", &url, &json!({}), globals::TIMEOUT)?;
+    let js = json_q("post", &url, &json!({}))?;
 
     let vurl = base
         .join("/api/register")
         .expect("Wrong URL in get_scalar_token()");
-    let js = json_q("post", &vurl, &js, globals::TIMEOUT)?;
+    let js = json_q("post", &vurl, &js)?;
 
     match js["scalar_token"].as_str() {
         Some(st) => {
