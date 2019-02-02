@@ -1,44 +1,48 @@
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
-use crate::error::Error;
 use crate::globals;
+use crate::r0::filter::EventFilter;
+use crate::r0::filter::Filter;
+use crate::r0::filter::RoomEventFilter;
+use crate::r0::filter::RoomFilter;
+use crate::r0::sync::sync_events::request as sync_events;
+use crate::r0::sync::sync_events::IncludeState;
+use crate::r0::sync::sync_events::Parameters as SyncParameters;
+use crate::r0::sync::sync_events::Response as SyncResponse;
+use crate::r0::sync::sync_events::UnreadNotificationsCount;
 use crate::types::Event;
-use crate::types::EventFilter;
-use crate::types::Filter;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
-use crate::types::RoomEventFilter;
-use crate::types::RoomFilter;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
-use crate::types::SyncResponse;
-use crate::types::UnreadNotificationsCount;
-use crate::util::json_q;
 use crate::util::parse_m_direct;
 
 use log::error;
-use serde_json::json;
+use reqwest::Client;
 use serde_json::value::from_value;
-use serde_json::Value as JsonValue;
-use std::{thread, time};
+use std::{
+    thread,
+    time::{self, Duration},
+};
 
-pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<(), Error> {
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    if tk.is_empty() {
-        return Err(Error::BackendError);
-    }
-
-    let since = bk.data.lock().unwrap().since.clone().or(new_since);
+pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
+    let tx = bk.tx.clone();
+    let data = bk.data.clone();
     let userid = bk.data.lock().unwrap().user_id.clone();
 
-    let mut params = vec![("full_state", String::from("false"))];
+    let since = bk
+        .data
+        .lock()
+        .unwrap()
+        .since
+        .clone()
+        .filter(|s| !s.is_empty())
+        .or(new_since);
 
-    if let Some(since) = since.clone() {
-        params.push(("since", since));
-    }
-
-    if initial {
+    let (timeout, filter) = if !initial {
+        (time::Duration::from_secs(30), Default::default())
+    } else {
         let filter = Filter {
             room: Some(RoomFilter {
                 state: Some(RoomEventFilter {
@@ -71,33 +75,37 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             ]),
             ..Default::default()
         };
-        let filter_str =
-            serde_json::to_string(&filter).expect("Failed to serialize sync request filter");
-        params.push(("filter", filter_str));
+
+        (Default::default(), filter)
     };
 
-    let timeout = time::Duration::from_secs(30);
-    params.push(("timeout", timeout.as_secs().to_string()));
+    let base = bk.get_base_url();
+    let params = SyncParameters {
+        access_token: data.lock().unwrap().access_token.clone(),
+        filter,
+        since: since.clone(),
+        include_state: IncludeState::Changed(timeout),
+        ..Default::default()
+    };
 
-    let baseu = bk.get_base_url();
-    let url = bk.url("sync", params)?;
+    thread::spawn(move || {
+        let query = Client::builder()
+            .timeout(Some(Duration::from_secs(globals::TIMEOUT) + timeout))
+            .build()
+            .and_then(|client| {
+                let request = sync_events(base.clone(), &params)?;
+                client.execute(request)?.json::<SyncResponse>()
+            })
+            .map_err(Into::into);
 
-    let tx = bk.tx.clone();
-    let data = bk.data.clone();
-
-    let attrs = json!(null);
-
-    get!(
-        &url,
-        &attrs,
-        |r: JsonValue| {
-            if let Ok(response) = serde_json::from_value::<SyncResponse>(r) {
+        match query {
+            Ok(response) => {
                 if since.is_some() {
                     let join = &response.rooms.join;
 
                     // New rooms
-                    let rs = Room::from_sync_response(&response, &userid, &baseu);
-                    tx.send(BKResponse::UpdateRooms(rs)).unwrap();
+                    let rs = Room::from_sync_response(&response, &userid, &base);
+                    let _ = tx.send(BKResponse::UpdateRooms(rs));
 
                     // Message events
                     let msgs = join
@@ -107,7 +115,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             Message::from_json_events_iter(&k, events).into_iter()
                         })
                         .collect();
-                    tx.send(BKResponse::RoomMessages(msgs)).unwrap();
+                    let _ = tx.send(BKResponse::RoomMessages(msgs));
 
                     // Room notifications
                     for (k, room) in join.iter() {
@@ -115,8 +123,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             highlight_count: h,
                             notification_count: n,
                         } = room.unread_notifications;
-                        tx.send(BKResponse::RoomNotifications(k.clone(), n, h))
-                            .unwrap();
+                        let _ = tx.send(BKResponse::RoomNotifications(k.clone(), n, h));
                     }
 
                     // Typing notifications
@@ -174,21 +181,20 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    tx.send(BKResponse::RoomName(ev.room.clone(), name))
-                                        .unwrap();
+                                    let _ = tx.send(BKResponse::RoomName(ev.room.clone(), name));
                                 }
                                 "m.room.topic" => {
                                     let t = ev.content["topic"]
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
+                                    let _ = tx.send(BKResponse::RoomTopic(ev.room.clone(), t));
                                 }
                                 "m.room.avatar" => {
-                                    tx.send(BKResponse::NewRoomAvatar(ev.room.clone())).unwrap();
+                                    let _ = tx.send(BKResponse::NewRoomAvatar(ev.room.clone()));
                                 }
                                 "m.room.member" => {
-                                    tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
+                                    let _ = tx.send(BKResponse::RoomMemberEvent(ev));
                                 }
                                 "m.sticker" => {
                                     // This event is managed in the room list
@@ -201,36 +207,32 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                 } else {
                     data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
 
-                    let rooms = Room::from_sync_response(&response, &userid, &baseu);
+                    let rooms = Room::from_sync_response(&response, &userid, &base);
                     let jtr = data.lock().unwrap().join_to_room.clone();
                     let def = if !jtr.is_empty() {
                         rooms.iter().find(|x| x.id == jtr).cloned()
                     } else {
                         None
                     };
-                    tx.send(BKResponse::Rooms(rooms, def)).unwrap();
+                    let _ = tx.send(BKResponse::Rooms(rooms, def));
                 }
 
                 let next_batch = response.next_batch;
-                tx.send(BKResponse::Sync(next_batch.clone())).unwrap();
-                data.lock().unwrap().since = Some(next_batch).filter(|s| !s.is_empty());
-            } else {
-                tx.send(BKResponse::SyncError(Error::BackendError)).unwrap();
+                data.lock().unwrap().since = Some(next_batch.clone()).filter(|s| !s.is_empty());
+                let _ = tx.send(BKResponse::Sync(next_batch));
             }
-        },
-        |err| {
-            // we wait if there's an error to avoid 100% CPU
-            error!("Sync Error, waiting 10 seconds to respond for the next sync");
-            thread::sleep(time::Duration::from_secs(10));
+            Err(err) => {
+                // we wait if there's an error to avoid 100% CPU
+                error!("Sync Error, waiting 10 seconds to respond for the next sync");
+                thread::sleep(time::Duration::from_secs(10));
 
-            tx.send(BKResponse::SyncError(err)).unwrap();
+                tx.send(BKResponse::SyncError(err)).unwrap();
+            }
         }
-    );
-
-    Ok(())
+    });
 }
 
-pub fn force_sync(bk: &Backend) -> Result<(), Error> {
+pub fn force_sync(bk: &Backend) {
     bk.data.lock().unwrap().since = None;
     sync(bk, None, true)
 }
