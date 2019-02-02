@@ -6,7 +6,6 @@ use std::io::prelude::*;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
-use crate::globals;
 use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::get_user_avatar_img;
@@ -482,8 +481,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
                     &url,
                     &attrs,
                     |_| tx.send(BKResponse::SetUserAvatar(avatar)).unwrap(),
-                    |err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap(),
-                    0
+                    |err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap()
                 );
             }
         };
