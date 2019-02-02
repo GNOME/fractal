@@ -5,7 +5,6 @@ use std::thread;
 use url::Url;
 
 use crate::error::Error;
-use crate::globals;
 use crate::util::json_q;
 
 use crate::types::AuthenticationData;
