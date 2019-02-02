@@ -5,6 +5,7 @@ use gdk_pixbuf::Pixbuf;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use url::Url;
 
@@ -479,7 +480,10 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
     }
 
     thread::spawn(move || {
-        msg = get_image_media_info(tk.clone(), baseu.clone(), msg).unwrap();
+        if msg.mtype == "m.image" {
+            msg = get_image_media_info(tk.clone(), baseu.clone(), msg).unwrap();
+        }
+
         match upload_file(tk, baseu, &fname) {
             Err(err) => {
                 tx.send(BKResponse::AttachFileError(err)).unwrap();
@@ -516,7 +520,7 @@ fn upload_file(tk: String, baseu: Url, fname: &str) -> Result<String, Error> {
 
 fn get_image_media_info(tk: String, base: Url, mut msg: Message) -> Option<Message> {
     let file = msg.url.clone().unwrap_or_default();
-    let mimetype = msg.mtype.clone();
+    let mimetype = tree_magic::from_filepath(&PathBuf::from(&file));
     let (_, w, h) = Pixbuf::get_file_info(&file)?;
     let size = fs::metadata(&file).ok()?.len();
 
