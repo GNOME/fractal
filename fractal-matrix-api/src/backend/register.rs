@@ -5,7 +5,6 @@ use std::thread;
 use url::Url;
 
 use crate::error::Error;
-use crate::globals;
 use crate::util::json_q;
 
 use crate::types::LoginRequest;
@@ -15,6 +14,8 @@ use crate::types::RegisterResponse;
 
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
+
+use crate::globals;
 
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
     let baseu = Url::parse(server)?;
