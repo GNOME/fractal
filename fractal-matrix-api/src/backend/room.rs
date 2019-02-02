@@ -26,10 +26,10 @@ use crate::backend::types::Backend;
 use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
+use crate::r0::filter::RoomEventFilter;
 use crate::types::ExtraContent;
 use crate::types::Member;
 use crate::types::Message;
-use crate::types::RoomEventFilter;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 use serde_json::Value as JsonValue;
