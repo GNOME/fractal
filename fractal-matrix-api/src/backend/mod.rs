@@ -90,10 +90,7 @@ impl Backend {
                 let r = register::login(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
-            Ok(BKCommand::Logout) => {
-                let r = register::logout(self);
-                bkerror!(r, tx, BKResponse::LogoutError);
-            }
+            Ok(BKCommand::Logout) => register::logout(self),
             Ok(BKCommand::Register(user, passwd, server)) => {
                 let r = register::register(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
