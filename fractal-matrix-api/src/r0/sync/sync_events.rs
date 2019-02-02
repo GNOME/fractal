@@ -1,9 +1,72 @@
-use serde::Deserialize;
+use crate::r0::filter::{serialize_filter_as_str, Filter};
+use crate::ser::serialize_duration_as_millis;
+use reqwest::Client;
+use reqwest::Error;
+use reqwest::Request;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
+use std::time::Duration;
+use url::Url;
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Parameters<'a> {
+    pub access_token: String,
+    #[serde(serialize_with = "serialize_filter_as_str")]
+    #[serde(skip_serializing_if = "Filter::is_default")]
+    pub filter: Filter<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    #[serde(flatten)]
+    pub include_state: IncludeState,
+    #[serde(skip_serializing_if = "MarkPresence::is_default")]
+    pub set_presence: MarkPresence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(tag = "full_state", content = "timeout")]
+pub enum IncludeState {
+    #[serde(rename = "false")]
+    #[serde(serialize_with = "serialize_duration_as_millis")]
+    Changed(Duration),
+    #[serde(rename = "true")]
+    Full,
+}
+
+impl Default for IncludeState {
+    fn default() -> Self {
+        IncludeState::Changed(Default::default())
+    }
+}
+
+impl IncludeState {
+    pub fn is_default(&self) -> bool {
+        *self == Default::default()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MarkPresence {
+    Offline,
+    Unavailable,
+    Online,
+}
+
+impl Default for MarkPresence {
+    fn default() -> Self {
+        MarkPresence::Online
+    }
+}
+
+impl MarkPresence {
+    pub fn is_default(&self) -> bool {
+        *self == Default::default()
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct SyncResponse {
+pub struct Response {
     pub next_batch: String,
     #[serde(default)]
     pub rooms: Rooms,
@@ -122,4 +185,12 @@ pub struct DeviceLists {
     pub changed: Vec<String>,
     #[serde(default)]
     pub left: Vec<String>,
+}
+
+pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
+    let url = base
+        .join("/_matrix/client/r0/sync")
+        .expect("Malformed URL in sync_events");
+
+    Client::new().post(url).query(params).build()
 }
