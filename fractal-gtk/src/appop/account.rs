@@ -12,7 +12,7 @@ use crate::widgets;
 use crate::widgets::AvatarExt;
 
 use crate::cache::download_to_cache;
-use fractal_api::types::Medium;
+use fractal_api::r0::account::Medium;
 use fractal_api::types::ThirdPartyIdentifier;
 
 impl AppOp {
