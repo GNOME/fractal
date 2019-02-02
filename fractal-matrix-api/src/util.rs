@@ -20,8 +20,8 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::r0::filter::RoomEventFilter;
 use crate::types::Message;
-use crate::types::RoomEventFilter;
 
 use reqwest::header::CONTENT_LENGTH;
 use reqwest::header::CONTENT_TYPE;

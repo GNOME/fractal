@@ -4,7 +4,7 @@ use crate::model::member::Member;
 use crate::model::member::MemberList;
 use crate::model::message::Message;
 use crate::r0::directory::post_public_rooms::Chunk as PublicRoomsChunk;
-use crate::types::SyncResponse;
+use crate::r0::sync::sync_events::Response as SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
 use log::{debug, info};
