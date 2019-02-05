@@ -1,17 +1,15 @@
 use cairo;
-use pango;
 use gdk;
 use gtk;
 use gtk::prelude::*;
+use pango;
 
-use types::Room;
+use crate::types::Room;
 
-use widgets;
-use widgets::AvatarExt;
-
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 const ICON_SIZE: i32 = 24;
-
 
 // Room row for the room sidebar. This widget shows the room avatar, the room name and the unread
 // messages in the room
@@ -45,22 +43,23 @@ impl RoomRow {
 
         let n = room.notifications;
         let h = room.highlight;
-        let ntext = match room.inv {
-            true => String::from("•"),
-            false => format!("{}", n),
+        let ntext = if room.membership.is_invited() {
+            String::from("•")
+        } else {
+            format!("{}", n)
         };
         let notifications = gtk::Label::new(&ntext[..]);
         if let Some(style) = notifications.get_style_context() {
             style.add_class("notify-badge");
 
-            if h > 0 || room.inv {
+            if h > 0 || room.membership.is_invited() {
                 style.add_class("notify-highlight");
             } else {
                 style.remove_class("notify-highlight");
             }
         }
 
-        if n > 0 || room.inv {
+        if n > 0 || room.membership.is_invited() {
             notifications.show();
         } else {
             notifications.hide();
@@ -86,14 +85,14 @@ impl RoomRow {
         self.room.notifications = n;
         self.room.highlight = h;
         self.notifications.set_text(&format!("{}", n));
-        if n > 0 || self.room.inv {
+        if n > 0 || self.room.membership.is_invited() {
             self.notifications.show();
         } else {
             self.notifications.hide();
         }
 
         if let Some(style) = self.notifications.get_style_context() {
-            if h > 0 || self.room.inv {
+            if h > 0 || self.room.membership.is_invited() {
                 style.add_class("notify-highlight");
             } else {
                 style.remove_class("notify-highlight");
@@ -103,16 +102,17 @@ impl RoomRow {
 
     pub fn set_bold(&self, bold: bool) {
         if let Some(style) = self.text.get_style_context() {
-            match bold {
-                false => style.remove_class("notify-bold"),
-                true => style.add_class("notify-bold"),
+            if bold {
+                style.add_class("notify-bold");
+            } else {
+                style.remove_class("notify-bold");
             }
         }
     }
 
     pub fn render_notifies(&self) {
         let n = self.room.notifications;
-        if n > 0 || self.room.inv {
+        if n > 0 || self.room.membership.is_invited() {
             self.notifications.show();
         } else {
             self.notifications.hide();
@@ -129,10 +129,11 @@ impl RoomRow {
 
         let name = self.room.name.clone().unwrap_or("...".to_string());
 
-        self.icon.circle(self.room.id.clone(), Some(name), ICON_SIZE);
+        self.icon
+            .circle(self.room.id.clone(), Some(name), ICON_SIZE);
     }
 
-    pub fn widget(&self) -> gtk::EventBox {
+    pub fn widget(&self) -> gtk::ListBoxRow {
         let b = gtk::Box::new(gtk::Orientation::Horizontal, 5);
 
         for ch in self.widget.get_children() {
@@ -158,11 +159,17 @@ impl RoomRow {
             self.notifications.hide();
         }
 
-        self.widget.clone()
+        let row = gtk::ListBoxRow::new();
+        row.add(&self.widget);
+        let data = glib::Variant::from(&self.room.id);
+        row.set_action_target_value(&data);
+        row.set_action_name("app.open-room");
+
+        row
     }
 
     pub fn connect_dnd(&self) {
-        if self.room.inv {
+        if self.room.membership.is_invited() {
             return;
         }
 
@@ -186,8 +193,9 @@ impl RoomRow {
         });
 
         let id = self.room.id.clone();
-        self.widget.connect_drag_data_get(move |_w, _, data, _x, _y| {
-            data.set_text(&id);
-        });
+        self.widget
+            .connect_drag_data_get(move |_w, _, data, _x, _y| {
+                data.set_text(&id);
+            });
     }
 }

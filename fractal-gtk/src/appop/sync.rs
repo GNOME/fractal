@@ -1,15 +1,13 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use backend::BKCommand;
-
+use crate::backend::BKCommand;
 
 impl AppOp {
     pub fn initial_sync(&self, show: bool) {
         if show {
             self.inapp_notify(&i18n("Syncing, this could take a while"));
-            self.stickers_load();
         } else {
             self.hide_inapp_notify();
         }
@@ -22,7 +20,7 @@ impl AppOp {
             // the since can be a very old value and following the spec we should
             // do the initial sync without a since:
             // https://matrix.org/docs/spec/client_server/latest.html#syncing
-            let since = match initial { true => None, _ => self.since.clone() };
+            let since = if initial { None } else { self.since.clone() };
             self.backend.send(BKCommand::Sync(since, initial)).unwrap();
         }
     }

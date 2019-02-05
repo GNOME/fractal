@@ -17,10 +17,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-
+use fractal_api::clone;
 use gst::prelude::*;
 use gst::ClockTime;
 use gst_player;
+use log::{error, warn};
 
 use gtk;
 use gtk::prelude::*;
@@ -31,15 +32,15 @@ use glib::SignalHandlerId;
 use chrono::NaiveTime;
 use fragile::Fragile;
 
+use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 trait PlayerExt {
     fn play(&self);
     fn pause(&self);
     fn stop(&self);
-    fn set_uri(&self, &str);
+    fn set_uri(&self, uri: &str);
 }
 
 #[derive(Debug, Clone)]
@@ -74,7 +75,7 @@ impl Deref for Position {
 impl PlayerTimes {
     /// Update the duration `gtk::Label` and the max range of the `gtk::SclaeBar`.
     fn on_duration_changed(&self, duration: Duration) {
-        let seconds = duration.seconds().map(|v| v as f64).unwrap_or(0.0);
+        let seconds = duration.seconds().map(|v| v as f64).unwrap_or_default();
 
         self.slider.block_signal(&self.slider_update);
         self.slider.set_range(0.0, seconds);
@@ -85,7 +86,7 @@ impl PlayerTimes {
 
     /// Update the `gtk::SclaeBar` when the pipeline position is changed.
     fn on_position_updated(&self, position: Position) {
-        let seconds = position.seconds().map(|v| v as f64).unwrap_or(0.0);
+        let seconds = position.seconds().map(|v| v as f64).unwrap_or_default();
 
         self.slider.block_signal(&self.slider_update);
         self.slider.set_value(seconds);

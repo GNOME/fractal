@@ -1,17 +1,18 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
 
-use appop::AppOp;
-use app::InternalCommand;
+use crate::actions::AppState;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
+use crate::widgets;
+use crate::App;
 use glib;
-use widgets;
-use backend::BKCommand;
 
-use types::Member;
-use types::Event;
-
+use crate::types::Event;
+use crate::types::Member;
 
 #[derive(Debug, Clone)]
 pub enum SearchType {
@@ -19,10 +20,12 @@ pub enum SearchType {
     DirectChat,
 }
 
-
 impl AppOp {
     pub fn member_level(&self, member: &Member) -> i32 {
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
+        if let Some(r) = self
+            .rooms
+            .get(&self.active_room.clone().unwrap_or_default())
+        {
             if let Some(level) = r.power_levels.get(&member.uid) {
                 return *level;
             }
@@ -41,7 +44,7 @@ impl AppOp {
         self.recalculate_room_name(roomid.clone());
 
         /* FIXME: update the current room settings insteat of creating a new one */
-        if self.room_settings.is_some() {
+        if self.room_settings.is_some() && self.state == AppState::RoomSettings {
             self.create_room_settings();
         }
     }
@@ -59,8 +62,12 @@ impl AppOp {
             }
             Some("join") => {
                 let m = Member {
-                    avatar: Some(String::from(ev.content["avatar_url"].as_str().unwrap_or(""))),
-                    alias: Some(String::from(ev.content["displayname"].as_str().unwrap_or(""))),
+                    avatar: Some(String::from(
+                        ev.content["avatar_url"].as_str().unwrap_or_default(),
+                    )),
+                    alias: Some(String::from(
+                        ev.content["displayname"].as_str().unwrap_or_default(),
+                    )),
                     uid: sender.clone(),
                 };
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
@@ -75,13 +82,19 @@ impl AppOp {
     pub fn user_search_finished(&self, users: Vec<Member>) {
         match self.search_type {
             SearchType::Invite => {
-                let entry = self.ui.builder
+                let entry = self
+                    .ui
+                    .builder
                     .get_object::<gtk::TextView>("invite_entry")
                     .expect("Can't find invite_entry in ui file.");
-                let listbox = self.ui.builder
+                let listbox = self
+                    .ui
+                    .builder
                     .get_object::<gtk::ListBox>("user_search_box")
                     .expect("Can't find user_search_box in ui file.");
-                let scroll = self.ui.builder
+                let scroll = self
+                    .ui
+                    .builder
                     .get_object::<gtk::Widget>("user_search_scroll")
                     .expect("Can't find user_search_scroll in ui file.");
 
@@ -89,17 +102,28 @@ impl AppOp {
                     let start = buffer.get_start_iter();
                     let end = buffer.get_end_iter();
 
-                    self.search_finished(users, listbox, scroll, buffer.get_text(&start, &end, false));
+                    self.search_finished(
+                        users,
+                        listbox,
+                        scroll,
+                        buffer.get_text(&start, &end, false),
+                    );
                 }
-            },
+            }
             SearchType::DirectChat => {
-                let entry = self.ui.builder
+                let entry = self
+                    .ui
+                    .builder
                     .get_object::<gtk::TextView>("to_chat_entry")
                     .expect("Can't find to_chat_entry in ui file.");
-                let listbox = self.ui.builder
+                let listbox = self
+                    .ui
+                    .builder
                     .get_object::<gtk::ListBox>("direct_chat_search_box")
                     .expect("Can't find direct_chat_search_box in ui file.");
-                let scroll = self.ui.builder
+                let scroll = self
+                    .ui
+                    .builder
                     .get_object::<gtk::Widget>("direct_chat_search_scroll")
                     .expect("Can't find direct_chat_search_scroll in ui file.");
 
@@ -107,16 +131,24 @@ impl AppOp {
                     let start = buffer.get_start_iter();
                     let end = buffer.get_end_iter();
 
-                    self.search_finished(users, listbox, scroll, buffer.get_text(&start, &end, false));
+                    self.search_finished(
+                        users,
+                        listbox,
+                        scroll,
+                        buffer.get_text(&start, &end, false),
+                    );
                 }
             }
         }
     }
 
-    pub fn search_finished(&self, mut users: Vec<Member>,
-                           listbox: gtk::ListBox,
-                           scroll: gtk::Widget,
-                           term: Option<String>) {
+    pub fn search_finished(
+        &self,
+        mut users: Vec<Member>,
+        listbox: gtk::ListBox,
+        scroll: gtk::Widget,
+        term: Option<String>,
+    ) {
         for ch in listbox.get_children().iter() {
             listbox.remove(ch);
         }
@@ -126,7 +158,11 @@ impl AppOp {
         let uid_in_term = t.contains("@") && t.contains(":");
         // Adding a new user if the user
         if uid_in_term && !users.iter().find(|u| u.uid == t).is_some() {
-            let member = Member{ avatar: None, alias: None, uid: t };
+            let member = Member {
+                avatar: None,
+                alias: None,
+                uid: t,
+            };
             users.insert(0, member);
         }
 
@@ -137,9 +173,10 @@ impl AppOp {
                 w = mb.widget(true);
             }
 
-            let tx = self.internal.clone();
             w.connect_button_press_event(clone!(u => move |_, _| {
-                tx.send(InternalCommand::ToInvite(u.clone())).unwrap();
+                /* FIXME: Create Action */
+                let u = u.clone();
+                APPOP!(add_to_invite, (u));
                 glib::signal::Inhibit(true)
             }));
 

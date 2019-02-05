@@ -15,6 +15,7 @@
       <file preprocess="xml-stripblanks">ui/join_room.ui</file>
       <file preprocess="xml-stripblanks">ui/leave_room.ui</file>
       <file preprocess="xml-stripblanks">ui/main_window.ui</file>
+      <file preprocess="xml-stripblanks">ui/scroll_widget.ui</file>
       <file preprocess="xml-stripblanks">ui/members.ui</file>
       <file preprocess="xml-stripblanks">ui/message_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/new_room.ui</file>
@@ -28,7 +29,5 @@
       <file preprocess="xml-stripblanks">ui/media_viewer_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/server_chooser_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/msg_src_window.ui</file>
-      <file preprocess="xml-stripblanks">ui/stickers_popover.ui</file>
-      <file preprocess="xml-stripblanks">ui/sticker_group.ui</file>
   </gresource>
 </gresources>

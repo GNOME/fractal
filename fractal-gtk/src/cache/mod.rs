@@ -1,32 +1,32 @@
-use std::fs::remove_dir_all;
 use gtk;
 use gtk::LabelExt;
+use serde::{Deserialize, Serialize};
+use std::fs::remove_dir_all;
 
-use types::RoomList;
-use types::Room;
-use failure::Error;
+use crate::types::Room;
+use crate::types::RoomList;
 use failure::err_msg;
+use failure::Error;
 use std::collections::HashMap;
 
+use crate::globals;
 use fractal_api::util::cache_path;
-use globals;
 
 /* includes for avatar download */
-use backend::BKCommand;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::Receiver;
+use crate::backend::BKCommand;
 use std::sync::mpsc::channel;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 use std::sync::mpsc::TryRecvError;
 
+use crate::widgets::AvatarData;
 use std::cell::RefCell;
 use std::rc::Rc;
-use widgets::AvatarData;
-
 
 mod state;
 pub use self::state::get;
-pub use self::state::FCache;
 pub use self::state::AppState;
+pub use self::state::FCache;
 
 // TODO: remove this struct
 #[derive(Serialize, Deserialize)]
@@ -38,15 +38,13 @@ pub struct CacheData {
     pub device_id: String,
 }
 
-
 pub fn store(
     rooms: &RoomList,
     since: Option<String>,
     username: String,
     uid: String,
-    device_id: String
+    device_id: String,
 ) -> Result<(), Error> {
-
     // don't store all messages in the cache
     let mut cacherooms: Vec<Room> = vec![];
     for r in rooms.values() {
@@ -62,7 +60,12 @@ pub fn store(
         cacherooms.push(r);
     }
 
-    let st = AppState { since, username, uid, device_id };
+    let st = AppState {
+        since,
+        username,
+        uid,
+        device_id,
+    };
     get().save_st(st)?;
 
     // This is slow because we iterate over all room msgs
@@ -96,16 +99,12 @@ pub fn load() -> Result<CacheData, Error> {
 }
 
 pub fn destroy() -> Result<(), Error> {
-    let fname = cache_path("cache.mdl")
-        .or(Err(err_msg("Can't remove cache file")))?;
-    remove_dir_all(fname)
-        .or_else(|_| Err(err_msg("Can't remove cache file")))
+    let fname = cache_path("cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
+    remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
 }
 
 /// this downloads a avatar and stores it in the cache folder
-pub fn download_to_cache(backend: Sender<BKCommand>,
-                         name: String,
-                         data: Rc<RefCell<AvatarData>>) {
+pub fn download_to_cache(backend: Sender<BKCommand>, name: String, data: Rc<RefCell<AvatarData>>) {
     let (tx, rx) = channel::<(String, String)>();
     let _ = backend.send(BKCommand::GetUserInfoAsync(name.clone(), Some(tx)));
 
@@ -120,12 +119,16 @@ pub fn download_to_cache(backend: Sender<BKCommand>,
 }
 
 /* Get username based on the MXID, we should cache the username */
-pub fn download_to_cache_username(backend: Sender<BKCommand>,
-                         uid: &str,
-                         label: gtk::Label,
-                         avatar: Option<Rc<RefCell<AvatarData>>>) {
+pub fn download_to_cache_username(
+    backend: Sender<BKCommand>,
+    uid: &str,
+    label: gtk::Label,
+    avatar: Option<Rc<RefCell<AvatarData>>>,
+) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend.send(BKCommand::GetUserNameAsync(uid.to_string(), tx)).unwrap();
+    backend
+        .send(BKCommand::GetUserNameAsync(uid.to_string(), tx))
+        .unwrap();
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
         Err(TryRecvError::Disconnected) => gtk::Continue(false),
@@ -143,13 +146,17 @@ pub fn download_to_cache_username(backend: Sender<BKCommand>,
 
 /* Download username for a given MXID and update a emote message
  * FIXME: We should cache this request and do it before we need to display the username in an emote*/
-pub fn download_to_cache_username_emote(backend: Sender<BKCommand>,
-                         uid: &str,
-                         text: &str,
-                         label: gtk::Label,
-                         avatar: Option<Rc<RefCell<AvatarData>>>) {
+pub fn download_to_cache_username_emote(
+    backend: Sender<BKCommand>,
+    uid: &str,
+    text: &str,
+    label: gtk::Label,
+    avatar: Option<Rc<RefCell<AvatarData>>>,
+) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend.send(BKCommand::GetUserNameAsync(uid.to_string(), tx)).unwrap();
+    backend
+        .send(BKCommand::GetUserNameAsync(uid.to_string(), tx))
+        .unwrap();
     let text = text.to_string();
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -165,5 +172,3 @@ pub fn download_to_cache_username_emote(backend: Sender<BKCommand>,
         }
     });
 }
-
-

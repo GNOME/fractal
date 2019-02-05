@@ -1,20 +1,20 @@
-use tree_magic;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
+use gdk::ContextExt;
+use gdk_pixbuf;
+use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufAnimation;
+use gdk_pixbuf::PixbufAnimationExt;
+use gdk_pixbuf::PixbufExt;
 use glib;
 use gtk;
 use gtk::prelude::*;
 use gtk::DrawingArea;
-use gdk_pixbuf;
-use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
-use gdk::ContextExt;
-use gdk_pixbuf::PixbufAnimation;
-use gdk_pixbuf::PixbufAnimationExt;
+use std::path::Path;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use tree_magic;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]
@@ -50,8 +50,6 @@ impl Image {
     /// ```
     pub fn new(backend: &Sender<BKCommand>, path: &str) -> Image {
         let da = DrawingArea::new();
-        // gdk::EventMask::BUTTON_PRESS_MASK = 256
-        da.add_events(256);
         // gdk::EventMask::ENTER_NOTIFY_MASK = 4096
         da.add_events(4096);
         // gdk::EventMask::LEAVE_NOTIFY_MASK = 8192
@@ -110,6 +108,7 @@ impl Image {
         self
     }
 
+    #[allow(dead_code)]
     pub fn thumb(mut self, t: bool) -> Image {
         self.thumb = t;
         self
@@ -150,7 +149,7 @@ impl Image {
                         da.set_size_request(1, h);
                     }
                 }
-            },
+            }
             None => {
                 da.set_hexpand(true);
                 da.set_vexpand(true);
@@ -201,10 +200,10 @@ impl Image {
                         Some(zl) => {
                             pw = (pb.get_width() as f64 * zl) as i32;
                             ph = (pb.get_height() as f64 * zl) as i32;
-                        },
+                        }
                         None if fit_to_width => {
                             *zoom_level_guard = Some(pw as f64 / pb.get_width() as f64);
-                        },
+                        }
                         _ => {}
                     }
                 }
@@ -231,7 +230,13 @@ impl Image {
                     if is_circle {
                         use std::f64::consts::PI;
 
-                        g.arc(pw as f64 / 2.0, ph as f64 / 2.0, pw.min(ph) as f64 / 2.0, 0.0, 2.0 * PI);
+                        g.arc(
+                            pw as f64 / 2.0,
+                            ph as f64 / 2.0,
+                            pw.min(ph) as f64 / 2.0,
+                            0.0,
+                            2.0 * PI,
+                        );
                         g.clip();
                     }
 
@@ -264,9 +269,10 @@ impl Image {
         if self.path.starts_with("mxc:") {
             // asyn load
             let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-            let command = match self.thumb {
-                false => BKCommand::GetMediaAsync(self.path.to_string(), tx),
-                true => BKCommand::GetThumbAsync(self.path.to_string(), tx),
+            let command = if self.thumb {
+                BKCommand::GetThumbAsync(self.path.to_string(), tx)
+            } else {
+                BKCommand::GetMediaAsync(self.path.to_string(), tx)
             };
             self.backend.send(command).unwrap();
             let local_path = self.local_path.clone();
@@ -290,12 +296,22 @@ impl Image {
                 }
             });
         } else {
-            load_pixbuf(self.pixbuf.clone(), self.scaled.clone(), self.widget.clone(), &self.path);
+            load_pixbuf(
+                self.pixbuf.clone(),
+                self.scaled.clone(),
+                self.widget.clone(),
+                &self.path,
+            );
         }
     }
 }
 
-pub fn load_pixbuf(pix: Arc<Mutex<Option<Pixbuf>>>, scaled: Arc<Mutex<Option<Pixbuf>>>, widget: DrawingArea, fname: &str) {
+pub fn load_pixbuf(
+    pix: Arc<Mutex<Option<Pixbuf>>>,
+    scaled: Arc<Mutex<Option<Pixbuf>>>,
+    widget: DrawingArea,
+    fname: &str,
+) {
     if is_gif(&fname) {
         load_animation(pix.clone(), scaled.clone(), widget, &fname);
         return;
@@ -307,20 +323,29 @@ pub fn load_pixbuf(pix: Arc<Mutex<Option<Pixbuf>>>, scaled: Arc<Mutex<Option<Pix
             *scaled.lock().unwrap() = None;
         }
         _ => {
-             let pixbuf = match gtk::IconTheme::get_default() {
-                 None => None,
-                 Some(i1) => match i1.load_icon("image-x-generic-symbolic", 80, gtk::IconLookupFlags::empty()) {
-                     Err(_) => None,
-                     Ok(i2) => i2,
-                 }
-             };
+            let pixbuf = match gtk::IconTheme::get_default() {
+                None => None,
+                Some(i1) => match i1.load_icon(
+                    "image-x-generic-symbolic",
+                    80,
+                    gtk::IconLookupFlags::empty(),
+                ) {
+                    Err(_) => None,
+                    Ok(i2) => i2,
+                },
+            };
             *pix.lock().unwrap() = pixbuf;
             *scaled.lock().unwrap() = None;
         }
     };
 }
 
-pub fn load_animation(pix: Arc<Mutex<Option<Pixbuf>>>, scaled: Arc<Mutex<Option<Pixbuf>>>, widget: DrawingArea, fname: &str) {
+pub fn load_animation(
+    pix: Arc<Mutex<Option<Pixbuf>>>,
+    scaled: Arc<Mutex<Option<Pixbuf>>>,
+    widget: DrawingArea,
+    fname: &str,
+) {
     let res = PixbufAnimation::new_from_file(fname);
     if res.is_err() {
         return;

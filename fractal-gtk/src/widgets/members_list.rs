@@ -1,14 +1,15 @@
+use fractal_api::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use glib::signal;
 use gtk;
 use gtk::prelude::*;
-use glib::signal;
 
-use i18n::i18n;
-use types::Member;
-use widgets;
-use widgets::avatar::AvatarExt;
+use crate::i18n::i18n;
+use crate::types::Member;
+use crate::widgets;
+use crate::widgets::avatar::AvatarExt;
 
 #[derive(Debug, Clone)]
 pub struct MembersList {
@@ -75,7 +76,7 @@ impl MembersList {
                 members.clone(),
                 error.clone(),
                 w.get_text(),
-                );
+            );
         });
         /* we need to remove the handler when the member list is destroyed */
         let id: Rc<RefCell<Option<signal::SignalHandlerId>>> = Rc::new(RefCell::new(Some(id)));
@@ -88,19 +89,19 @@ impl MembersList {
         });
         /* we could slowly load members when the main thread is idle */
         /*
-           let container = self.container.clone();
-           let members = self.members.clone();
-           for (index, member) in members.iter().enumerate() {
-           gtk::idle_add(clone!(index, member, container => move || {
-           if let Some(w) = container.get_row_at_index(index as i32) {
-           if w.get_child().is_none() {
-           w.add(&load_row_content(member.clone()));
-           }
-           }
-           gtk::Continue(false)
-           }));
-           }
-           */
+        let container = self.container.clone();
+        let members = self.members.clone();
+        for (index, member) in members.iter().enumerate() {
+        gtk::idle_add(clone!(index, member, container => move || {
+        if let Some(w) = container.get_row_at_index(index as i32) {
+        if w.get_child().is_none() {
+        w.add(&load_row_content(member.clone()));
+        }
+        }
+        gtk::Continue(false)
+        }));
+        }
+        */
     }
 }
 
@@ -127,6 +128,8 @@ fn load_row_content(member: Member) -> gtk::Box {
     let username = gtk::Label::new(Some(member.get_alias().as_str()));
     let uid = gtk::Label::new(Some(member.uid.as_str()));
     username.set_xalign(0.);
+    username.set_margin_end(5);
+    username.set_ellipsize(pango::EllipsizeMode::End);
     uid.set_xalign(0.);
     if let Some(style) = uid.get_style_context() {
         style.add_class("small-font");
@@ -168,7 +171,7 @@ fn filter_rows(
     let mut empty = true;
     for (index, member) in members.iter().enumerate() {
         let alias_lower = member.get_alias().to_lowercase();
-        if !alias_lower.contains(search){
+        if !alias_lower.contains(search) {
             container.get_row_at_index(index as i32)?.hide();
         } else {
             container.get_row_at_index(index as i32)?.show();

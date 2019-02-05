@@ -1,21 +1,18 @@
-use i18n::{i18n, i18n_k};
+use crate::i18n::{i18n, i18n_k};
 
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use appop::member::SearchType;
+use crate::appop::member::SearchType;
+use crate::appop::AppOp;
 
-use app::InternalCommand;
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
-use globals;
+use crate::globals;
 
-use widgets;
+use crate::widgets;
 
-use types::Member;
-use types::Room;
-
+use crate::types::Member;
 
 impl AppOp {
     pub fn add_to_invite(&mut self, u: Member) {
@@ -28,7 +25,9 @@ impl AppOp {
             SearchType::DirectChat => "to_chat_entry",
         };
 
-        let invite_entry = self.ui.builder
+        let invite_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>(textviewid)
             .expect("Can't find invite_entry in ui file.");
 
@@ -43,11 +42,13 @@ impl AppOp {
             }
         }
 
-        self.ui.builder
+        self.ui
+            .builder
             .get_object::<gtk::Button>("direct_chat_button")
             .map(|btn| btn.set_sensitive(true));
 
-        self.ui.builder
+        self.ui
+            .builder
             .get_object::<gtk::Button>("invite_button")
             .map(|btn| btn.set_sensitive(true));
 
@@ -85,50 +86,54 @@ impl AppOp {
         }
 
         if self.invite_list.is_empty() {
-            self.ui.builder
+            self.ui
+                .builder
                 .get_object::<gtk::Button>("direct_chat_button")
                 .map(|btn| btn.set_sensitive(false));
 
-            self.ui.builder
+            self.ui
+                .builder
                 .get_object::<gtk::Button>("invite_button")
                 .map(|btn| btn.set_sensitive(false));
         }
 
         let dialogid = match self.search_type {
-            SearchType::Invite => {
-                "invite_user_dialog"
-            }
-            SearchType::DirectChat => {
-                "direct_chat_dialog"
-            }
+            SearchType::Invite => "invite_user_dialog",
+            SearchType::DirectChat => "direct_chat_dialog",
         };
 
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>(dialogid)
             .expect("Can’t find invite_user_dialog in ui file.");
 
         dialog.resize(300, 200);
     }
 
-    pub fn detect_removed_invite(&self) {
-        for (member, anchor) in self.invite_list.clone() {
+    pub fn detect_removed_invite(&mut self) {
+        let invite_list = self.invite_list.clone();
+        for (member, anchor) in invite_list {
             if anchor.get_deleted() {
-                let tx = self.internal.clone();
-                let uid = member.uid.clone();
-
-                tx.send(InternalCommand::RmInvite(uid)).unwrap();
+                self.rm_from_invite(member.uid);
             }
         }
     }
 
     pub fn show_invite_user_dialog(&mut self) {
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("invite_user_dialog")
             .expect("Can't find invite_user_dialog in ui file.");
-        let scroll = self.ui.builder
+        let scroll = self
+            .ui
+            .builder
             .get_object::<gtk::Widget>("user_search_scroll")
             .expect("Can't find user_search_scroll in ui file.");
-        let headerbar = self.ui.builder
+        let headerbar = self
+            .ui
+            .builder
             .get_object::<gtk::HeaderBar>("invite_headerbar")
             .expect("Can't find invite_headerbar in ui file.");
         self.search_type = SearchType::Invite;
@@ -152,23 +157,33 @@ impl AppOp {
     pub fn invite(&mut self) {
         if let &Some(ref r) = &self.active_room {
             for user in &self.invite_list {
-                self.backend.send(BKCommand::Invite(r.clone(), user.0.uid.clone())).unwrap();
+                self.backend
+                    .send(BKCommand::Invite(r.clone(), user.0.uid.clone()))
+                    .unwrap();
             }
         }
         self.close_invite_dialog();
     }
 
     pub fn close_invite_dialog(&mut self) {
-        let listbox = self.ui.builder
+        let listbox = self
+            .ui
+            .builder
             .get_object::<gtk::ListBox>("user_search_box")
             .expect("Can't find user_search_box in ui file.");
-        let scroll = self.ui.builder
+        let scroll = self
+            .ui
+            .builder
             .get_object::<gtk::Widget>("user_search_scroll")
             .expect("Can't find user_search_scroll in ui file.");
-        let invite_entry = self.ui.builder
+        let invite_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>("invite_entry")
             .expect("Can't find invite_entry in ui file.");
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("invite_user_dialog")
             .expect("Can't find invite_user_dialog in ui file.");
 
@@ -193,38 +208,51 @@ impl AppOp {
     }
 
     pub fn accept_inv(&mut self, accept: bool) {
-        if let Some(ref rid) = self.invitation_roomid {
-            match accept {
-                true => self.backend.send(BKCommand::AcceptInv(rid.clone())).unwrap(),
-                false => self.backend.send(BKCommand::RejectInv(rid.clone())).unwrap(),
+        let rid = self.invitation_roomid.clone();
+        if let Some(rid) = rid {
+            if accept {
+                self.backend
+                    .send(BKCommand::AcceptInv(rid.clone()))
+                    .unwrap();
+            } else {
+                self.backend
+                    .send(BKCommand::RejectInv(rid.clone()))
+                    .unwrap();
             }
-            self.internal.send(InternalCommand::RemoveInv(rid.clone())).unwrap();
+            self.remove_inv(rid);
         }
         self.invitation_roomid = None;
     }
 
-    pub fn show_inv_dialog(&mut self, r: &Room) {
-        let dialog = self.ui.builder
+    /* FIXME: move to a widget */
+    pub fn show_inv_dialog(&self, sender: Option<&Member>, room_name: Option<&String>) {
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::MessageDialog>("invite_dialog")
             .expect("Can't find invite_dialog in ui file.");
 
-        let room_name = r.name.clone().unwrap_or_default();
+        let empty = String::new();
+        let room_name = room_name.unwrap_or(&empty);
         let title = i18n_k("Join {room_name}?", &[("room_name", &room_name)]);
         let secondary;
-        if let Some(ref sender) = r.inv_sender {
+        if let Some(ref sender) = sender {
             let sender_name = sender.get_alias();
-            secondary = i18n_k("You’ve been invited to join to <b>{room_name}</b> room by <b>{sender_name}</b>",
-                               &[("room_name", &room_name), ("sender_name", &sender_name)]);
+            secondary = i18n_k(
+                "You’ve been invited to join <b>{room_name}</b> room by <b>{sender_name}</b>",
+                &[("room_name", &room_name), ("sender_name", &sender_name)],
+            );
         } else {
-            secondary = i18n_k("You’ve been invited to join to <b>{room_name}</b>",
-                               &[("room_name", &room_name)]);
+            secondary = i18n_k(
+                "You’ve been invited to join <b>{room_name}</b>",
+                &[("room_name", &room_name)],
+            );
         }
 
         dialog.set_property_text(Some(&title));
         dialog.set_property_secondary_use_markup(true);
         dialog.set_property_secondary_text(Some(&secondary));
 
-        self.invitation_roomid = Some(r.id.clone());
         dialog.present();
     }
 
@@ -234,7 +262,9 @@ impl AppOp {
             SearchType::DirectChat => "to_chat_entry",
         };
 
-        let invite_entry = self.ui.builder
+        let invite_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>(textviewid)
             .expect("Can't find invite_entry in ui file.");
 
@@ -261,13 +291,15 @@ impl AppOp {
             SearchType::DirectChat => "to_chat_entry",
         };
 
-        let invite_entry = self.ui.builder
+        let invite_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>(textviewid)
             .expect("Can't find invite_entry in ui file.");
 
         if let Some(buffer) = invite_entry.get_buffer() {
-            let mut start = buffer.get_start_iter();
-            let mut end = buffer.get_end_iter();
+            let start = buffer.get_start_iter();
+            let end = buffer.get_end_iter();
 
             if let Some(text) = buffer.get_text(&start, &end, true) {
                 if text == globals::PLACEHOLDER_TEXT && self.invite_list.is_empty() {

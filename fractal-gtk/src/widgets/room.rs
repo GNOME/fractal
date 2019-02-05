@@ -1,19 +1,19 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
-use pango;
 use gtk;
 use gtk::prelude::*;
+use pango;
 
-use types::Room;
+use crate::types::Room;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
 
-use util::markup_text;
+use crate::util::markup_text;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use widgets;
-use widgets::AvatarExt;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 use gtk::WidgetExt;
 
 const AVATAR_SIZE: i32 = 60;
@@ -27,10 +27,7 @@ pub struct RoomBox<'a> {
 
 impl<'a> RoomBox<'a> {
     pub fn new(room: &'a Room, op: &'a AppOp) -> RoomBox<'a> {
-        RoomBox {
-            room: room,
-            op: op,
-        }
+        RoomBox { room: room, op: op }
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {
@@ -63,7 +60,10 @@ impl<'a> RoomBox<'a> {
         let name_label = gtk::Label::new("");
         name_label.set_line_wrap(true);
         name_label.set_line_wrap_mode(pango::WrapMode::WordChar);
-        name_label.set_markup(&format!("<b>{}</b>", markup_text(&name.unwrap_or_default())));
+        name_label.set_markup(&format!(
+            "<b>{}</b>",
+            markup_text(&name.unwrap_or_default())
+        ));
         name_label.set_justify(gtk::Justification::Left);
         name_label.set_halign(gtk::Align::Start);
         name_label.set_valign(gtk::Align::Start);
@@ -83,8 +83,10 @@ impl<'a> RoomBox<'a> {
         }
 
         let alias_label = gtk::Label::new("");
-        alias_label.set_markup(&format!("<span alpha=\"60%\">{}</span>",
-                                        room.alias.clone().unwrap_or_default()));
+        alias_label.set_markup(&format!(
+            "<span alpha=\"60%\">{}</span>",
+            room.alias.clone().unwrap_or_default()
+        ));
         alias_label.set_justify(gtk::Justification::Left);
         alias_label.set_halign(gtk::Align::Start);
         alias_label.set_valign(gtk::Align::Start);
@@ -101,11 +103,16 @@ impl<'a> RoomBox<'a> {
         let membership_grid = gtk::Grid::new();
         membership_grid.set_row_spacing(6);
 
-        let members_icon = gtk::Image::new_from_icon_name("system-users-symbolic", gtk::IconSize::Menu.into());
-        members_icon.get_style_context().map(|c| c.add_class("dim-label"));
+        let members_icon =
+            gtk::Image::new_from_icon_name("system-users-symbolic", gtk::IconSize::Menu.into());
+        members_icon
+            .get_style_context()
+            .map(|c| c.add_class("dim-label"));
 
         let members_count = gtk::Label::new(&format!("{}", room.n_members)[..]);
-        members_count.get_style_context().map(|c| c.add_class("dim-label"));
+        members_count
+            .get_style_context()
+            .map(|c| c.add_class("dim-label"));
 
         let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
         let room_id = room.id.clone();

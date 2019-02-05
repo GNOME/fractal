@@ -1,14 +1,14 @@
 use gettextrs::gettext;
 use gettextrs::ngettext;
-use gettextrs::pgettext;
 use gettextrs::npgettext;
+use gettextrs::pgettext;
 use regex::Captures;
 use regex::Regex;
 
 #[allow(dead_code)]
 fn freplace(input: String, args: &[&str]) -> String {
     let mut parts = input.split("{}");
-    let mut output = parts.next().unwrap_or("").to_string();
+    let mut output = parts.next().unwrap_or_default().to_string();
     for (p, a) in parts.zip(args.iter()) {
         output += &(a.to_string() + &p.to_string());
     }
@@ -20,7 +20,8 @@ fn kreplace(input: String, kwargs: &[(&str, &str)]) -> String {
     let mut s = input.clone();
     for (k, v) in kwargs {
         if let Ok(re) = Regex::new(&format!("\\{{{}\\}}", k)) {
-            s = re.replace_all(&s, |_: &Captures| v.to_string().clone())
+            s = re
+                .replace_all(&s, |_: &Captures<'_>| v.to_string().clone())
                 .to_string();
         }
     }
@@ -99,11 +100,16 @@ pub fn pni18n_f(ctx: &str, single: &str, multiple: &str, number: u32, args: &[&s
 }
 
 #[allow(dead_code)]
-pub fn pni18n_k(ctx: &str, single: &str, multiple: &str, number: u32, kwargs: &[(&str, &str)]) -> String {
+pub fn pni18n_k(
+    ctx: &str,
+    single: &str,
+    multiple: &str,
+    number: u32,
+    kwargs: &[(&str, &str)],
+) -> String {
     let s = npgettext(ctx, single, multiple, number);
     kreplace(s, kwargs)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -159,9 +165,19 @@ mod tests {
         let out = i18n_k("multiple {one} and {one}", &[("one", "1"), ("two", "two")]);
         assert_eq!(out, "multiple 1 and 1");
 
-        let out = ni18n_k("singular {one} and {two}", "plural {one} and {two}", 1, &[("one", "1"), ("two", "two")]);
+        let out = ni18n_k(
+            "singular {one} and {two}",
+            "plural {one} and {two}",
+            1,
+            &[("one", "1"), ("two", "two")],
+        );
         assert_eq!(out, "singular 1 and two");
-        let out = ni18n_k("singular {one} and {two}", "plural {one} and {two}", 2, &[("one", "1"), ("two", "two")]);
+        let out = ni18n_k(
+            "singular {one} and {two}",
+            "plural {one} and {two}",
+            2,
+            &[("one", "1"), ("two", "two")],
+        );
         assert_eq!(out, "plural 1 and two");
     }
 

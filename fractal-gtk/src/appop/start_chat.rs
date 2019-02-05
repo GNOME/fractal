@@ -1,16 +1,15 @@
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use appop::RoomPanel;
-use appop::SearchType;
+use crate::actions::AppState;
+use crate::appop::AppOp;
+use crate::appop::SearchType;
 
-use backend::BKCommand;
-use types::Room;
+use crate::backend::BKCommand;
+use crate::types::{Room, RoomMembership, RoomTag};
 
-use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-
+use rand::{thread_rng, Rng};
 
 impl AppOp {
     pub fn start_chat(&mut self) {
@@ -21,27 +20,34 @@ impl AppOp {
         let user = self.invite_list[0].clone();
 
         let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
-        self.backend.send(BKCommand::DirectChat(user.0.clone(), internal_id.clone())).unwrap();
+        self.backend
+            .send(BKCommand::DirectChat(user.0.clone(), internal_id.clone()))
+            .unwrap();
         self.close_direct_chat_dialog();
 
-        let mut fakeroom = Room::new(internal_id.clone(), user.0.alias.clone());
+        let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
+        fakeroom.name = user.0.alias;
         fakeroom.direct = true;
 
         self.new_room(fakeroom, None);
-        self.roomlist.set_selected(Some(internal_id.clone()));
         self.set_active_room_by_id(internal_id);
-        self.room_panel(RoomPanel::Room);
+        self.set_state(AppState::Room);
     }
 
     pub fn show_direct_chat_dialog(&mut self) {
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
-        let scroll = self.ui.builder
+        let scroll = self
+            .ui
+            .builder
             .get_object::<gtk::Widget>("direct_chat_search_scroll")
             .expect("Can't find direct_chat_search_scroll in ui file.");
         self.search_type = SearchType::DirectChat;
-        self.ui.builder
+        self.ui
+            .builder
             .get_object::<gtk::Button>("direct_chat_button")
             .map(|btn| btn.set_sensitive(false));
         dialog.present();
@@ -49,19 +55,29 @@ impl AppOp {
     }
 
     pub fn close_direct_chat_dialog(&mut self) {
-        let listbox = self.ui.builder
+        let listbox = self
+            .ui
+            .builder
             .get_object::<gtk::ListBox>("direct_chat_search_box")
             .expect("Can't find direct_chat_search_box in ui file.");
-        let scroll = self.ui.builder
+        let scroll = self
+            .ui
+            .builder
             .get_object::<gtk::Widget>("direct_chat_search_scroll")
             .expect("Can't find direct_chat_search_scroll in ui file.");
-        let to_chat_entry = self.ui.builder
+        let to_chat_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>("to_chat_entry")
             .expect("Can't find to_chat_entry in ui file.");
-        let entry = self.ui.builder
+        let entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>("to_chat_entry")
             .expect("Can't find to_chat_entry in ui file.");
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
 

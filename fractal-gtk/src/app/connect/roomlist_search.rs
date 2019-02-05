@@ -1,19 +1,26 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_roomlist_search(&self) {
         let op = &self.op;
 
-        let search_btn = self.ui.builder
+        let search_btn = self
+            .ui
+            .builder
             .get_object::<gtk::ToggleButton>("room_search_button")
             .expect("Can't find room_search_button in ui file.");
-        let search_bar = self.ui.builder
+        let search_bar = self
+            .ui
+            .builder
             .get_object::<gtk::SearchBar>("room_list_searchbar")
             .expect("Can't find room_list_searchbar in ui file.");
-        let search_entry = self.ui.builder
+        let search_entry = self
+            .ui
+            .builder
             .get_object::<gtk::SearchEntry>("room_list_search")
             .expect("Can't find room_list_search in ui file.");
 
@@ -30,11 +37,25 @@ impl App {
         }));
 
         // hidding left and right boxes to align with top buttons
-        let boxes = search_bar.get_children()[0].clone().downcast::<gtk::Revealer>().unwrap() // revealer
-                              .get_children()[0].clone().downcast::<gtk::Box>().unwrap(); // box
-        boxes.get_children()[0].clone().downcast::<gtk::Box>().unwrap().hide();
+        let boxes = search_bar.get_children()[0]
+            .clone()
+            .downcast::<gtk::Revealer>()
+            .unwrap() // revealer
+            .get_children()[0]
+            .clone()
+            .downcast::<gtk::Box>()
+            .unwrap(); // box
+        boxes.get_children()[0]
+            .clone()
+            .downcast::<gtk::Box>()
+            .unwrap()
+            .hide();
         boxes.get_children()[1].clone().set_hexpand(true);
         boxes.get_children()[1].clone().set_halign(gtk::Align::Fill);
-        boxes.get_children()[2].clone().downcast::<gtk::Box>().unwrap().hide();
+        boxes.get_children()[2]
+            .clone()
+            .downcast::<gtk::Box>()
+            .unwrap()
+            .hide();
     }
 }

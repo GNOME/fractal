@@ -1,13 +1,13 @@
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use cache::download_to_cache;
+use crate::cache::download_to_cache;
 
-use backend::BKCommand;
-use widgets;
-use widgets::AvatarExt;
+use crate::backend::BKCommand;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 impl AppOp {
     pub fn get_username(&self) {
@@ -15,22 +15,30 @@ impl AppOp {
         self.backend.send(BKCommand::GetAvatar).unwrap();
     }
 
-    pub fn show_user_info (&self) {
-        let stack = self.ui.builder
+    pub fn show_user_info(&self) {
+        let stack = self
+            .ui
+            .builder
             .get_object::<gtk::Stack>("user_info")
             .expect("Can't find user_info_avatar in ui file.");
 
         /* Show user infos inside the popover but wait for all data to arrive */
         if self.avatar.is_some() && self.username.is_some() && self.uid.is_some() {
-            let avatar = self.ui.builder
+            let avatar = self
+                .ui
+                .builder
                 .get_object::<gtk::Container>("user_info_avatar")
                 .expect("Can't find user_info_avatar in ui file.");
 
-            let name = self.ui.builder
+            let name = self
+                .ui
+                .builder
                 .get_object::<gtk::Label>("user_info_username")
                 .expect("Can't find user_info_avatar in ui file.");
 
-            let uid = self.ui.builder
+            let uid = self
+                .ui
+                .builder
                 .get_object::<gtk::Label>("user_info_uid")
                 .expect("Can't find user_info_avatar in ui file.");
 
@@ -49,8 +57,7 @@ impl AppOp {
 
             avatar.add(&w);
             stack.set_visible_child_name("info");
-        }
-        else {
+        } else {
             stack.set_visible_child_name("spinner");
         }
 
@@ -72,7 +79,7 @@ impl AppOp {
             }
         };
 
-        eb.connect_button_press_event(move |_, _| { Inhibit(false) });
+        eb.connect_button_press_event(move |_, _| Inhibit(false));
     }
 
     pub fn set_username(&mut self, username: Option<String>) {

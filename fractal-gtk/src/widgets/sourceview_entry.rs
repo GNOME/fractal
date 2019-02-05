@@ -1,6 +1,8 @@
-use gtk::{self, prelude::*};
+use gtk::prelude::*;
 use libhandy::{Column, ColumnExt};
-use sourceview::{self, ViewExt};
+use sourceview::ViewExt;
+// This alias is necessary to avoid conflict with gtk's TextViewExt
+use gspell::TextViewExt as GspellTextViewExt;
 
 #[derive(Debug, Clone)]
 pub struct SVEntry {
@@ -35,6 +37,7 @@ impl Default for SVEntry {
         attach.set_image(&attach_img);
         attach.set_valign(gtk::Align::End);
         attach.set_receives_default(true);
+        attach.set_action_name("app.send-file");
         // TODO: there was an a11y object in the xml
         /*
         <object class="AtkObject" id="attach_button-atkobject">
@@ -55,7 +58,9 @@ impl Default for SVEntry {
         */
 
         let entry_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        entry_box.get_style_context().map(|c| c.add_class("message-input"));
+        entry_box
+            .get_style_context()
+            .map(|c| c.add_class("message-input"));
 
         let scroll = gtk::ScrolledWindow::new(None, None);
 
@@ -63,6 +68,10 @@ impl Default for SVEntry {
         let view = sourceview::View::new_with_buffer(&buffer);
         view.set_wrap_mode(gtk::WrapMode::WordChar);
         view.set_indent_on_tab(false);
+
+        let textview = view.upcast_ref::<gtk::TextView>();
+        let gspell_view = gspell::TextView::get_from_gtk_text_view(&textview).unwrap();
+        gspell_view.basic_setup();
 
         scroll.add(&view);
         scroll.set_hexpand(true);

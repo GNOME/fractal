@@ -1,5 +1,4 @@
-use appop::AppOp;
-
+use crate::appop::AppOp;
 
 impl AppOp {
     pub fn clear_room_notifications(&mut self, r: String) {
@@ -11,7 +10,8 @@ impl AppOp {
         if let Some(r) = self.rooms.get_mut(&roomid) {
             r.notifications = n;
             r.highlight = h;
-            self.roomlist.set_room_notifications(roomid, r.notifications, r.highlight);
+            self.roomlist
+                .set_room_notifications(roomid, r.notifications, r.highlight);
         }
     }
 }

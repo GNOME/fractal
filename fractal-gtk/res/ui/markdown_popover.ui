@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkPopover" id="markdown_popover">
@@ -8,19 +8,14 @@
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_left">6</property>
-        <property name="margin_right">6</property>
-        <property name="margin_top">6</property>
-        <property name="margin_bottom">6</property>
+        <property name="margin">6</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">6</property>
-            <property name="margin_right">6</property>
-            <property name="margin_top">6</property>
-            <property name="margin_bottom">6</property>
+            <property name="margin">6</property>
+            <property name="spacing">42</property>
             <child>
               <object class="GtkLabel" id="markdown_label">
                 <property name="visible">True</property>
@@ -40,7 +35,6 @@
               <object class="GtkSwitch" id="markdown_switch">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="margin_left">42</property>
                 <accessibility>
                   <relation type="labelled-by" target="markdown_label"/>
                 </accessibility>
@@ -63,16 +57,13 @@
           <object class="GtkGrid" id="tutorial_text_box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">6</property>
-            <property name="margin_right">6</property>
-            <property name="margin_top">6</property>
-            <property name="margin_bottom">6</property>
+            <property name="margin">6</property>
+            <property name="row_spacing">6</property>
+            <property name="column_spacing">42</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_left">42</property>
-                <property name="margin_top">6</property>
                 <property name="label" translatable="yes">&gt; quote</property>
               </object>
               <packing>
@@ -84,7 +75,6 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_top">6</property>
                 <property name="label" translatable="yes">**bold**</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -100,7 +90,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin_left">42</property>
                 <property name="label" translatable="yes">`code`</property>
               </object>
               <packing>

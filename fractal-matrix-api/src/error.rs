@@ -1,13 +1,6 @@
-use reqwest;
-use cairo;
-use regex;
-use url;
-use glib;
 use std::io;
 use std::time::SystemTimeError;
-use std::ffi::OsString;
 
-use serde_json;
 use serde_json::Value as JsonValue;
 
 #[derive(Debug)]
@@ -29,10 +22,6 @@ impl From<reqwest::Error> for Error {
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
-derror!(cairo::Status, Error::BackendError);
-derror!(cairo::IoError, Error::BackendError);
-derror!(glib::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
-derror!(OsString, Error::CacheError);
 derror!(serde_json::Error, Error::CacheError);

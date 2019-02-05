@@ -1,66 +1,62 @@
+use serde_json::json;
 use serde_json::Value as JsonValue;
 use url::Url;
 
-use globals;
+use crate::globals;
 
+use crate::backend::types::BKResponse;
+use crate::backend::types::Backend;
+use crate::error::Error;
 use std::thread;
-use error::Error;
-use backend::types::BKResponse;
-use backend::types::Backend;
 
-use util::json_q;
-use util::cache_path;
-use util::media;
+use crate::util::cache_path;
+use crate::util::json_q;
+use crate::util::media;
 
-use types::Room;
-use types::Protocol;
+use crate::types::PublicRoomsRequest;
+use crate::types::PublicRoomsResponse;
+use crate::types::Room;
+use crate::types::SupportedProtocols;
+use crate::types::ThirdPartyNetworks;
 
-pub fn protocols(bk: &Backend) -> Result<(), Error> {
-    let baseu = bk.get_base_url()?;
+pub fn protocols(bk: &Backend) {
+    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu.join("/_matrix/client/unstable/thirdparty/protocols")?;
-    url.query_pairs_mut().clear()
+    let mut url = baseu
+        .join("/_matrix/client/r0/thirdparty/protocols")
+        .expect("Wrong URL in protocols()");
+    url.query_pairs_mut()
+        .clear()
         .append_pair("access_token", &tk);
 
     let tx = bk.tx.clone();
-    let s = bk.data.lock().unwrap().server_url.clone();
-    get!(&url,
+    get!(
+        &url,
         move |r: JsonValue| {
-            let mut protocols: Vec<Protocol> = vec![];
-
-            protocols.push(Protocol {
-                id: String::from(""),
-                desc: String::from(s.split('/').last().unwrap_or("")),
-            });
-
-            if let Some(prs) = r.as_object() {
-                for k in prs.keys() {
-                    let ins = prs[k]["instances"].as_array();
-                    for i in ins.unwrap_or(&vec![]) {
-                        let p = Protocol{
-                            id: String::from(i["instance_id"].as_str().unwrap_or_default()),
-                            desc: String::from(i["desc"].as_str().unwrap_or_default()),
-                        };
-                        protocols.push(p);
-                    }
-                }
-            }
+            let protocols = serde_json::from_value(r)
+                .map(|protocols: SupportedProtocols| {
+                    protocols
+                        .into_iter()
+                        .flat_map(|(_, protocol)| protocol.instances.into_iter())
+                        .collect()
+                })
+                .unwrap_or_default();
 
             tx.send(BKResponse::DirectoryProtocols(protocols)).unwrap();
         },
-        |err| { tx.send(BKResponse::DirectoryError(err)).unwrap(); }
+        |err| {
+            tx.send(BKResponse::DirectoryError(err)).unwrap();
+        }
     );
-
-    Ok(())
 }
 
-pub fn room_search(bk: &Backend,
-                   homeserver: Option<String>,
-                   query: Option<String>,
-                   third_party: Option<String>,
-                   more: bool)
-                   -> Result<(), Error> {
-
+pub fn room_search(
+    bk: &Backend,
+    homeserver: Option<String>,
+    filter: Option<String>,
+    third_party: Option<String>,
+    more: bool,
+) -> Result<(), Error> {
     let mut params: Vec<(&str, String)> = Vec::new();
 
     if let Some(mut hs) = homeserver {
@@ -73,56 +69,54 @@ pub fn room_search(bk: &Backend,
     }
 
     let url = bk.url("publicRooms", params)?;
-    let base = bk.get_base_url()?;
+    let base = bk.get_base_url();
 
-    let mut attrs = json!({"limit": globals::ROOM_DIRECTORY_LIMIT});
+    let since = if more {
+        Some(bk.data.lock().unwrap().rooms_since.clone())
+    } else {
+        None
+    };
 
-    if let Some(q) = query {
-        attrs["filter"] = json!({
-            "generic_search_term": q
-        });
-    }
+    let request = PublicRoomsRequest {
+        limit: Some(globals::ROOM_DIRECTORY_LIMIT),
+        filter,
+        since,
+        third_party_networks: third_party
+            .map(|tp| ThirdPartyNetworks::Only(tp))
+            .unwrap_or_default(),
+    };
 
-    if let Some(tp) = third_party {
-        attrs["third_party_instance_id"] = json!(tp);
-    }
-
-    if more {
-        let since = bk.data.lock().unwrap().rooms_since.clone();
-        attrs["since"] = json!(since);
-    }
+    let attrs = serde_json::to_value(request).expect("Failed to serialize the search request");
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-    post!(&url, &attrs,
+    post!(
+        &url,
+        &attrs,
         move |r: JsonValue| {
-            let next_branch = r["next_batch"].as_str().unwrap_or("");
-            data.lock().unwrap().rooms_since = String::from(next_branch);
+            let rooms = serde_json::from_value(r)
+                .map(|pr: PublicRoomsResponse| {
+                    data.lock().unwrap().rooms_since = pr.next_batch.unwrap_or_default();
 
-            let mut rooms: Vec<Room> = vec![];
-            for room in r["chunk"].as_array().unwrap() {
-                let alias = String::from(room["canonical_alias"].as_str().unwrap_or(""));
-                let id = String::from(room["room_id"].as_str().unwrap_or(""));
-                let name = String::from(room["name"].as_str().unwrap_or(""));
-                let mut r = Room::new(id.clone(), Some(name));
-                r.alias = Some(alias);
-                r.avatar = Some(String::from(room["avatar_url"].as_str().unwrap_or("")));
-                r.topic = Some(String::from(room["topic"].as_str().unwrap_or("")));
-                r.n_members = room["num_joined_members"].as_i64().unwrap_or(0) as i32;
-                r.world_readable = room["world_readable"].as_bool().unwrap_or(false);
-                r.guest_can_join = room["guest_can_join"].as_bool().unwrap_or(false);
-                /* download the avatar */
-                if let Some(avatar) = r.avatar.clone() {
-                    if let Ok(dest) = cache_path(&id) {
-                        media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
-                    }
-                }
-                rooms.push(r);
-            }
+                    pr.chunk
+                        .into_iter()
+                        .map(Into::into)
+                        .inspect(|r: &Room| {
+                            if let Some(avatar) = r.avatar.clone() {
+                                if let Ok(dest) = cache_path(&r.id) {
+                                    media(&base.clone(), &avatar, Some(&dest)).unwrap_or_default();
+                                }
+                            }
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
 
             tx.send(BKResponse::DirectorySearch(rooms)).unwrap();
         },
-        |err| { tx.send(BKResponse::DirectoryError(err)).unwrap(); }
+        |err| {
+            tx.send(BKResponse::DirectoryError(err)).unwrap();
+        }
     );
 
     Ok(())

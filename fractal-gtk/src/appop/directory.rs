@@ -2,21 +2,23 @@ use gtk;
 use gtk::prelude::*;
 use libhandy::Column;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use widgets;
-use backend::BKCommand;
+use crate::backend::BKCommand;
+use crate::widgets;
 
-use types::Protocol;
-use types::Room;
+use crate::types::ProtocolInstance;
+use crate::types::Room;
 
 impl AppOp {
     pub fn init_protocols(&self) {
         self.backend.send(BKCommand::DirectoryProtocols).unwrap();
     }
 
-    pub fn set_protocols(&self, protocols: Vec<Protocol>) {
-        let combo = self.ui.builder
+    pub fn set_protocols(&self, protocols: Vec<ProtocolInstance>) {
+        let combo = self
+            .ui
+            .builder
             .get_object::<gtk::ListStore>("protocol_model")
             .expect("Can't find protocol_model in ui file.");
         combo.clear();
@@ -27,65 +29,82 @@ impl AppOp {
     }
 
     pub fn search_rooms(&mut self, more: bool) {
-        let other_protocol_radio = self.ui.builder
+        let other_protocol_radio = self
+            .ui
+            .builder
             .get_object::<gtk::RadioButton>("other_protocol_radio")
             .expect("Can't find other_protocol_radio in ui file.");
 
-        let mut protocol =
-            if other_protocol_radio.get_active() {
-                let protocol_combo = self.ui.builder
-                    .get_object::<gtk::ComboBox>("protocol_combo")
-                    .expect("Can't find protocol_combo in ui file.");
+        let mut protocol = if other_protocol_radio.get_active() {
+            let protocol_combo = self
+                .ui
+                .builder
+                .get_object::<gtk::ComboBox>("protocol_combo")
+                .expect("Can't find protocol_combo in ui file.");
 
-                let protocol_model = self.ui.builder
-                    .get_object::<gtk::ListStore>("protocol_model")
-                    .expect("Can't find protocol_model in ui file.");
+            let protocol_model = self
+                .ui
+                .builder
+                .get_object::<gtk::ListStore>("protocol_model")
+                .expect("Can't find protocol_model in ui file.");
 
-                let active = protocol_combo.get_active();
-                match protocol_model.iter_nth_child(None, active) {
-                    Some(it) => {
-                        let v = protocol_model.get_value(&it, 1);
-                        v.get().unwrap()
-                    },
-                    None => String::from("")
+            let active = protocol_combo.get_active();
+            match protocol_model.iter_nth_child(None, active) {
+                Some(it) => {
+                    let v = protocol_model.get_value(&it, 1);
+                    v.get().unwrap()
                 }
-            } else {
-                String::from("")
-            };
+                None => String::new(),
+            }
+        } else {
+            String::new()
+        };
 
-        let q = self.ui.builder
+        let q = self
+            .ui
+            .builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
 
-        let other_homeserver_radio = self.ui.builder
+        let other_homeserver_radio = self
+            .ui
+            .builder
             .get_object::<gtk::RadioButton>("other_homeserver_radio")
             .expect("Can't find other_homeserver_radio in ui file.");
 
-        let other_homeserver_url = self.ui.builder
+        let other_homeserver_url = self
+            .ui
+            .builder
             .get_object::<gtk::EntryBuffer>("other_homeserver_url")
             .expect("Can't find other_homeserver_url in ui file.");
 
         let homeserver = if other_homeserver_radio.get_active() {
             other_homeserver_url.get_text()
         } else if protocol == "matrix.org" {
-            protocol = String::from("");
+            protocol = String::new();
             String::from("matrix.org")
         } else {
-            String::from("")
+            String::new()
         };
 
         if !more {
-            let directory = self.ui.builder
+            let directory = self
+                .ui
+                .builder
                 .get_object::<gtk::ListBox>("directory_room_list")
                 .expect("Can't find directory_room_list in ui file.");
             for ch in directory.get_children() {
                 directory.remove(&ch);
             }
 
-            let directory_stack = self.ui.builder
+            let directory_stack = self
+                .ui
+                .builder
                 .get_object::<gtk::Stack>("directory_stack")
                 .expect("Can't find directory_stack in ui file.");
-            let directory_spinner = self.ui.builder
+            let directory_spinner = self
+                .ui
+                .builder
                 .get_object::<gtk::Box>("directory_spinner")
                 .expect("Can't find directory_spinner in ui file.");
             directory_stack.set_visible_child(&directory_spinner);
@@ -96,7 +115,12 @@ impl AppOp {
         }
 
         self.backend
-            .send(BKCommand::DirectorySearch(homeserver, q.get_text().unwrap(), protocol, more))
+            .send(BKCommand::DirectorySearch(
+                homeserver,
+                q.get_text().unwrap(),
+                protocol,
+                more,
+            ))
             .unwrap();
     }
 
@@ -114,15 +138,23 @@ impl AppOp {
 
         self.directory.sort_by_key(|a| -a.n_members);
 
-        let directory = self.ui.builder
+        let directory = self
+            .ui
+            .builder
             .get_object::<gtk::ListBox>("directory_room_list")
             .expect("Can't find directory_room_list in ui file.");
-        directory.get_style_context().map(|c| c.add_class("room-directory"));
+        directory
+            .get_style_context()
+            .map(|c| c.add_class("room-directory"));
 
-        let directory_stack = self.ui.builder
+        let directory_stack = self
+            .ui
+            .builder
             .get_object::<gtk::Stack>("directory_stack")
             .expect("Can't find directory_stack in ui file.");
-        let directory_column = self.ui.builder
+        let directory_column = self
+            .ui
+            .builder
             .get_object::<Column>("directory_column")
             .expect("Can't find directory_column in ui file.");
         directory_stack.set_visible_child(&directory_column);
@@ -133,22 +165,30 @@ impl AppOp {
             directory.add(&room_widget);
         }
 
-        let q = self.ui.builder
+        let q = self
+            .ui
+            .builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
         q.set_sensitive(true);
     }
 
     pub fn reset_directory_state(&self) {
-        let q = self.ui.builder
+        let q = self
+            .ui
+            .builder
             .get_object::<gtk::Entry>("directory_search_entry")
             .expect("Can't find directory_search_entry in ui file.");
         q.set_sensitive(true);
 
-        let directory_stack = self.ui.builder
+        let directory_stack = self
+            .ui
+            .builder
             .get_object::<gtk::Stack>("directory_stack")
             .expect("Can't find directory_stack in ui file.");
-        let directory_column = self.ui.builder
+        let directory_column = self
+            .ui
+            .builder
             .get_object::<Column>("directory_column")
             .expect("Can't find directory_column in ui file.");
         directory_stack.set_visible_child(&directory_column);

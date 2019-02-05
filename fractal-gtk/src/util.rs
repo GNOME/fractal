@@ -1,20 +1,20 @@
 use cairo;
-use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
+use failure::format_err;
 use failure::Error;
 use gdk::ContextExt;
-use gio::{SettingsExt, Settings, SettingsSchemaSource};
+use gdk_pixbuf::Pixbuf;
+use gdk_pixbuf::PixbufExt;
+use gio::{Settings, SettingsExt, SettingsSchemaSource};
 
 use html2pango::{html_escape, markup_links};
 
 pub mod glib_thread_prelude {
-    pub use std::thread;
+    pub use crate::error::Error;
     pub use std::sync::mpsc::channel;
-    pub use std::sync::mpsc::{Sender, Receiver};
     pub use std::sync::mpsc::TryRecvError;
-    pub use error::Error;
+    pub use std::sync::mpsc::{Receiver, Sender};
+    pub use std::thread;
 }
-
 
 #[macro_export]
 macro_rules! glib_thread {
@@ -28,7 +28,7 @@ macro_rules! glib_thread {
         gtk::timeout_add(50, move || match rx.try_recv() {
             Err(TryRecvError::Empty) => gtk::Continue(true),
             Err(TryRecvError::Disconnected) => {
-                eprintln!("glib_thread error");
+                error!("glib_thread error");
                 gtk::Continue(false)
             }
             Ok(output) => {
@@ -36,13 +36,11 @@ macro_rules! glib_thread {
                 gtk::Continue(false)
             }
         });
-    }}
+    }};
 }
 
 pub fn get_pixbuf_data(pb: &Pixbuf) -> Result<Vec<u8>, Error> {
-    let image = cairo::ImageSurface::create(cairo::Format::ARgb32,
-                                            pb.get_width(),
-                                            pb.get_height())
+    let image = cairo::ImageSurface::create(cairo::Format::ARgb32, pb.get_width(), pb.get_height())
         .or(Err(format_err!("Cairo Error")))?;
 
     let g = cairo::Context::new(&image);
@@ -58,7 +56,6 @@ pub fn markup_text(s: &str) -> String {
     markup_links(&html_escape(s))
 }
 
-
 pub fn get_markdown_schema() -> bool {
     SettingsSchemaSource::get_default()
         .and_then(|s| s.lookup("org.gnome.Fractal", true))
@@ -66,7 +63,7 @@ pub fn get_markdown_schema() -> bool {
             let settings: Settings = Settings::new("org.gnome.Fractal");
             Some(settings.get_boolean("markdown-active"))
         })
-        .unwrap_or(false)
+        .unwrap_or_default()
 }
 
 pub fn set_markdown_schema(md: bool) {
@@ -76,4 +73,19 @@ pub fn set_markdown_schema(md: bool) {
             let settings: Settings = Settings::new("org.gnome.Fractal");
             settings.set_boolean("markdown-active", md);
         });
+}
+
+/* Macro for upgrading a weak reference or returning the given value
+ *
+ * This works for glib/gtk objects as well as anything else providing an upgrade method */
+macro_rules! upgrade_weak {
+    ($x:expr, $r:expr) => {{
+        match $x.upgrade() {
+            Some(o) => o,
+            None => return $r,
+        }
+    }};
+    ($x:expr) => {
+        upgrade_weak!($x, ())
+    };
 }

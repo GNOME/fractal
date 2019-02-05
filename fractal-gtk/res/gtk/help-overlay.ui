@@ -41,6 +41,19 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="visible">true</property>
+            <property name="title" translatable="yes" context="shortcut message">Composing a new message</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Shift&gt;Return</property>
+                <property name="title" translatable="yes" context="shortcut message">Write on a new line</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
   </object>

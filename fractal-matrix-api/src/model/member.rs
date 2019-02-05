@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,10 +15,12 @@ pub struct Member {
 
 impl Member {
     pub fn get_alias(&self) -> String {
-        match self.alias {
-            ref a if a.is_none() || a.clone().unwrap().is_empty() => self.uid.clone(),
-            ref a => a.as_ref().unwrap().clone(),
+        if let Some(ref alias) = self.alias {
+            if !alias.is_empty() {
+                return alias.clone();
+            }
         }
+        self.uid.clone()
     }
 }
 

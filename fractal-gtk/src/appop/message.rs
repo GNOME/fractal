@@ -1,182 +1,74 @@
-use tree_magic;
-use std::fs;
-use std::path::Path;
-use std::collections::HashMap;
+use comrak::{markdown_to_html, ComrakOptions};
 use gtk;
 use gtk::prelude::*;
-use chrono::prelude::*;
-use comrak::{markdown_to_html, ComrakOptions};
+use lazy_static::lazy_static;
+use log::error;
+use std::fs;
+use std::path::PathBuf;
+use tree_magic;
 
-use app::InternalCommand;
-use appop::AppOp;
-use app::App;
-use appop::room::Force;
+use crate::appop::room::Force;
+use crate::appop::AppOp;
+use crate::App;
 
-use glib;
-use globals;
-use widgets;
-use uitypes::MessageContent;
-use uitypes::RowType;
-use backend::BKCommand;
+use crate::backend::BKCommand;
+use crate::uitypes::MessageContent;
+use crate::uitypes::RowType;
+use crate::widgets;
 
-use types::Message;
-use serde_json::Value as JsonValue;
+use crate::types::Message;
 use gdk_pixbuf::Pixbuf;
-
-#[derive(Debug, Clone)]
-pub enum MsgPos {
-    Top,
-    Bottom,
-}
+use serde_json::json;
+use serde_json::Value as JsonValue;
 
 pub struct TmpMsg {
     pub msg: Message,
     pub widget: Option<gtk::Widget>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LastViewed {
-    Inline,
-    Last,
-    No,
-}
-
 impl AppOp {
+    pub fn get_message_by_id(&self, room_id: &str, id: &str) -> Option<Message> {
+        let room = self.rooms.get(room_id)?;
+        room.messages
+            .iter()
+            .find(|m| m.id == id.to_string())
+            .cloned()
+    }
+
     /// This function is used to mark as read the last message of a room when the focus comes in,
     /// so we need to force the mark_as_read because the window isn't active yet
     pub fn mark_active_room_messages(&mut self) {
-        let mut msg: Option<Message> = None;
+        self.mark_last_message_as_read(Force(true));
+    }
 
-        if let Some(ref active_room_id) = self.active_room {
-            if let Some(ref r) = self.rooms.get(active_room_id) {
-                if let Some(m) = r.messages.last() {
-                    msg = Some(m.clone());
-                }
+    pub fn add_room_message(&mut self, msg: &Message) -> Option<()> {
+        if let Some(ui_msg) = self.create_new_room_message(msg) {
+            if let Some(ref mut history) = self.history {
+                history.add_new_message(ui_msg);
             }
         }
-
-        // this is done here because in the above we've a reference to self and mark as read needs
-        // a mutable reference to self so we can't do it inside
-        if let Some(m) = msg {
-            self.mark_as_read(&m, Force(true));
-        }
+        None
     }
 
-    pub fn is_last_viewed(&self, msg: &Message) -> LastViewed {
-        match self.last_viewed_messages.get(&msg.room) {
-            Some(lvm_id) if msg.id.clone().map_or(false, |id| *lvm_id == id) => {
-                match self.rooms.get(&msg.room) {
-                    Some(r) => {
-                        match r.messages.last() {
-                            Some(m) if m == msg => LastViewed::Last,
-                            _ => LastViewed::Inline,
-                        }
-                    },
-                    _ => LastViewed::Inline,
-                }
-            },
-            _ => LastViewed::No,
-        }
-    }
-
-    pub fn get_first_new_from_last(&self, last_msg: &Message) -> Option<Message> {
-        match self.is_last_viewed(last_msg) {
-            LastViewed::Last | LastViewed::No => None,
-            LastViewed::Inline => {
-                self.rooms.get(&last_msg.room).and_then(|r| {
-                    r.messages.clone().into_iter()
-                              .filter(|msg| *msg > *last_msg && msg.sender !=
-                                      self.uid.clone().unwrap_or_default()).next()
-                })
-            }
-        }
-    }
-
-    pub fn get_msg_from_id(&self, roomid: &str, msg_id: &str) -> Option<Message> {
-        let room = self.rooms.get(roomid);
-
-        room.and_then(|r| r.messages.clone().into_iter()
-                                    .filter(|msg| msg.id.clone().unwrap_or_default() == msg_id)
-                                    .next())
-    }
-
-    pub fn is_first_new(&self, msg: &Message) -> bool {
-        match self.first_new_messages.get(&msg.room) {
-            None => false,
-            Some(new_msg) => {
-                match new_msg {
-                    None => false,
-                    Some(new_msg) => new_msg == msg,
-                }
-            }
-        }
-    }
-
-    pub fn add_room_message(&mut self,
-                            msg: Message,
-                            msgpos: MsgPos,
-                            first_new: bool) {
-        if msg.room == self.active_room.clone().unwrap_or_default() && !msg.redacted {
-            if let Some(ui_msg) = self.create_new_room_message(&msg) {
-                if let Some(ref mut history) = self.history {
-                    match msgpos {
-                        MsgPos::Bottom => {
-                            if first_new {
-                                history.add_divider();
-                            }
-                            history.add_new_message(ui_msg);
-                        },
-                        MsgPos::Top => {
-                            history.add_old_message(ui_msg);
-                        }
-                    }
-
-                }
-            }
-            self.shown_messages += 1;
-        }
-    }
-
-    pub fn add_tmp_room_message(&mut self, msg: Message) {
+    pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
+        let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
-            let messages = self.ui.builder
-                .get_object::<gtk::ListBox>("message_list")
-                .expect("Can't find message_list in ui file.");
-
-            if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-                let m;
-                {
-                    let backend = self.backend.clone();
-                    let ui = self.ui.clone();
-                    let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
-                    m = mb.tmpwidget();
-                    if let Some(ref image) = mb.image {
-                        let msg = msg.clone();
-                        let room = r.clone();
-                        image.connect_button_press_event(move |_, btn| {
-                            if btn.get_button() != 3 {
-                                let msg = msg.clone();
-                                let room = room.clone();
-                                APPOP!(create_media_viewer, (msg, room));
-
-                                Inhibit(true)
-                            } else {
-                                Inhibit(false)
-                            }
-                        });
-                    }
-                }
-
-                messages.add(&m);
-            }
+            let backend = self.backend.clone();
+            let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
+            let m = mb.get_listbox_row()?;
+            messages.add(m);
 
             if let Some(w) = messages.get_children().iter().last() {
-                self.msg_queue.insert(0, TmpMsg {
-                    msg: msg.clone(),
-                    widget: Some(w.clone()),
-                });
+                self.msg_queue.insert(
+                    0,
+                    TmpMsg {
+                        msg: msg.clone(),
+                        widget: Some(w.clone()),
+                    },
+                );
             };
         }
+        None
     }
 
     pub fn clear_tmp_msgs(&mut self) {
@@ -188,73 +80,57 @@ impl AppOp {
         }
     }
 
-    pub fn append_tmp_msgs(&mut self) {
-        let messages = self.message_box.clone();
+    pub fn append_tmp_msgs(&mut self) -> Option<()> {
+        let messages = self.history.as_ref()?.get_listbox();
 
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            let mut widgets = vec![];
-            for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
-                if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
-                    let m;
-                    {
-                        let backend = self.backend.clone();
-                        let ui = self.ui.clone();
-                        let mut mb = widgets::MessageBox::new(ui_msg, backend, ui);
-                        m = mb.tmpwidget();
-                        if let Some(ref image) = mb.image {
-                            println!("i have a image");
-                            let msg = t.msg.clone();
-                            let room = r.clone();
-                            image.connect_button_press_event(move |_, btn| {
-                                if btn.get_button() != 3 {
-                                    let msg = msg.clone();
-                                    let room = room.clone();
-                                    APPOP!(create_media_viewer, (msg, room));
+        let r = self.rooms.get(self.active_room.as_ref()?)?;
+        let mut widgets = vec![];
+        for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
+            if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
+                let backend = self.backend.clone();
+                let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
+                let m = mb.get_listbox_row()?;
+                messages.add(m);
 
-                                    Inhibit(true)
-                                } else {
-                                    Inhibit(false)
-                                }
-                            });
-                        }
-                    }
-
-                    messages.add(&m);
-                    if let Some(w) = messages.get_children().iter().last() {
-                        widgets.push(w.clone());
-                    }
-                }
-            }
-
-            for (t, w) in self.msg_queue.iter_mut().rev().zip(widgets.iter()) {
-                t.widget = Some(w.clone());
-            }
-        }
-    }
-
-    pub fn set_last_viewed_messages(&mut self) {
-        if let Some(uid) = self.uid.clone() {
-            for room in self.rooms.values() {
-                let roomid = room.id.clone();
-
-                if !self.last_viewed_messages.contains_key(&roomid) {
-                    if let Some(lvm) = room.messages.iter().filter(|msg| msg.receipt.contains_key(&uid) && msg.id.is_some()).next() {
-                        self.last_viewed_messages.insert(roomid, lvm.id.clone().unwrap_or_default());
-                    }
+                if let Some(w) = messages.get_children().iter().last() {
+                    widgets.push(w.clone());
                 }
             }
         }
+
+        for (t, w) in self.msg_queue.iter_mut().rev().zip(widgets.iter()) {
+            t.widget = Some(w.clone());
+        }
+        None
     }
 
-    pub fn mark_as_read(&mut self, msg: &Message, Force(force): Force) {
-        let window: gtk::Window = self.ui.builder
+    pub fn mark_last_message_as_read(&mut self, Force(force): Force) -> Option<()> {
+        let window: gtk::Window = self
+            .ui
+            .builder
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
         if window.is_active() || force {
-            self.last_viewed_messages.insert(msg.room.clone(), msg.id.clone().unwrap_or_default());
-            self.backend.send(BKCommand::MarkAsRead(msg.room.clone(),
-                                                    msg.id.clone().unwrap_or_default())).unwrap();
+            /* Move the last viewed mark to the last message */
+            let active_room_id = self.active_room.as_ref()?;
+            let room = self.rooms.get_mut(active_room_id)?;
+            let uid = self.uid.clone()?;
+            room.messages.iter_mut().for_each(|msg| {
+                if msg.receipt.contains_key(&uid) {
+                    msg.receipt.remove(&uid);
+                }
+            });
+            let last_message = room.messages.last_mut()?;
+            last_message.receipt.insert(self.uid.clone()?, 0);
+
+            self.backend
+                .send(BKCommand::MarkAsRead(
+                    last_message.room.clone(),
+                    last_message.id.clone(),
+                ))
+                .unwrap();
         }
+        None
     }
 
     pub fn msg_sent(&mut self, _txid: String, evid: String) {
@@ -263,16 +139,16 @@ impl AppOp {
                 w.destroy();
             }
             m.widget = None;
-            m.msg.id = Some(evid);
+            m.msg.id = evid;
             self.show_room_messages(vec![m.msg.clone()]);
         }
         self.force_dequeue_message();
     }
 
     pub fn retry_send(&mut self) {
-        let tx = self.internal.clone();
         gtk::timeout_add(5000, move || {
-            tx.send(InternalCommand::ForceDequeueMessage).unwrap();
+            /* This will be removed once tmp messages are refactored */
+            APPOP!(force_dequeue_message);
             gtk::Continue(false)
         });
     }
@@ -309,109 +185,80 @@ impl AppOp {
             return;
         }
 
-        let room = self.active_room.clone();
-        let now = Local::now();
+        if let Some(room) = self.active_room.clone() {
+            if let Some(sender) = self.uid.clone() {
+                let body = msg.clone();
+                let mtype = String::from("m.text");
+                let mut m = Message::new(room, sender, body, mtype);
 
-        let mtype = String::from("m.text");
+                if msg.starts_with("/me ") {
+                    m.body = msg.trim_left_matches("/me ").to_owned();
+                    m.mtype = String::from("m.emote");
+                }
 
-        let mut m = Message {
-            sender: self.uid.clone().unwrap_or_default(),
-            mtype: mtype,
-            body: msg.clone(),
-            room: room.clone().unwrap_or_default(),
-            date: now,
-            thumb: None,
-            url: None,
-            id: None,
-            formatted_body: None,
-            format: None,
-            source: None,
-            receipt: HashMap::new(),
-            redacted: false,
-            in_reply_to: None,
-            extra_content: None,
-        };
+                // Riot does not properly show emotes with Markdown;
+                // Emotes with markdown have a newline after the username
+                if m.mtype != "m.emote" && self.md_enabled {
+                    let mut md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
 
-        if msg.starts_with("/me ") {
-            m.body = msg.trim_left_matches("/me ").to_owned();
-            m.mtype = String::from("m.emote");
-        }
+                    // Removing wrap tag: <p>..</p>\n
+                    let limit = md_parsed_msg.len() - 5;
+                    let trim = match (md_parsed_msg.get(0..3), md_parsed_msg.get(limit..)) {
+                        (Some(open), Some(close)) if open == "<p>" && close == "</p>\n" => true,
+                        _ => false,
+                    };
+                    if trim {
+                        md_parsed_msg = md_parsed_msg
+                            .get(3..limit)
+                            .unwrap_or(&md_parsed_msg)
+                            .to_string();
+                    }
 
-        /* reenable autoscroll to jump to new message in history */
-        self.autoscroll = true;
+                    if md_parsed_msg != msg {
+                        m.formatted_body = Some(md_parsed_msg);
+                        m.format = Some(String::from("org.matrix.custom.html"));
+                    }
+                }
 
-        // Riot does not properly show emotes with Markdown;
-        // Emotes with markdown have a newline after the username
-        if m.mtype != "m.emote" && self.md_enabled {
-            let mut md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
-
-            // Removing wrap tag: <p>..</p>\n
-            let limit = md_parsed_msg.len() - 5;
-            let trim = match (md_parsed_msg.get(0..3), md_parsed_msg.get(limit..)) {
-                (Some(open), Some(close)) if open == "<p>" && close == "</p>\n" => { true }
-                _ => { false }
-            };
-            if trim {
-                md_parsed_msg = md_parsed_msg.get(3..limit).unwrap_or(&md_parsed_msg).to_string();
+                self.add_tmp_room_message(m);
+                self.dequeue_message();
+            } else {
+                error!("Can't send message: No user is logged in");
             }
-
-            if md_parsed_msg != msg {
-                m.formatted_body = Some(md_parsed_msg);
-                m.format = Some(String::from("org.matrix.custom.html"));
-            }
+        } else {
+            error!("Can't send message: No active room");
         }
-
-        m.id = Some(m.get_txn_id());
-        self.add_tmp_room_message(m.clone());
-        self.dequeue_message();
     }
 
-    pub fn attach_message(&mut self, file: String) -> Message {
-        /* reenable autoscroll to jump to new message in history */
-        self.autoscroll = true;
+    pub fn attach_message(&mut self, path: PathBuf) {
+        if let Some(room) = self.active_room.clone() {
+            if let Some(sender) = self.uid.clone() {
+                let mime = tree_magic::from_filepath(&path);
+                let mtype = match mime.as_ref() {
+                    "image/gif" => "m.image",
+                    "image/png" => "m.image",
+                    "image/jpeg" => "m.image",
+                    "image/jpg" => "m.image",
+                    _ => "m.file",
+                };
+                let body = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or_default();
+                let path_string = path.to_str().unwrap_or_default();
 
-        let now = Local::now();
-        let room = self.active_room.clone();
-        let f = file.clone();
-        let p: &Path = Path::new(&f);
-        let mime = tree_magic::from_filepath(p);
-        let mtype = match mime.as_ref() {
-            "image/gif" => "m.image",
-            "image/png" => "m.image",
-            "image/jpeg" => "m.image",
-            "image/jpg" => "m.image",
-            _ => "m.file"
-        };
-        let body = String::from(file.split("/").last().unwrap_or(&file));
-
-        let info = match mtype {
-            "m.image" => get_image_media_info(&file, mime.as_ref()),
-            _ => None,
-        };
-
-        let mut m = Message {
-            sender: self.uid.clone().unwrap_or_default(),
-            mtype: mtype.to_string(),
-            body: body,
-            room: room.unwrap_or_default(),
-            date: now,
-            thumb: None,
-            url: Some(file),
-            id: None,
-            formatted_body: None,
-            format: None,
-            source: None,
-            receipt: HashMap::new(),
-            redacted: false,
-            in_reply_to: None,
-            extra_content: info,
-        };
-
-        m.id = Some(m.get_txn_id());
-        self.add_tmp_room_message(m.clone());
-        self.dequeue_message();
-
-        m
+                let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
+                if mtype == "m.image" {
+                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                }
+                self.add_tmp_room_message(m);
+                self.dequeue_message();
+            } else {
+                error!("Can't send message: No user is logged in");
+            }
+        } else {
+            error!("Can't send message: No active room");
+        }
     }
 
     /// This method is called when a tmp message with an attach is sent correctly
@@ -426,75 +273,7 @@ impl AppOp {
         self.add_tmp_room_message(msg);
     }
 
-    pub fn attach_file(&mut self) {
-        let window: gtk::ApplicationWindow = self.ui.builder
-            .get_object("main_window")
-            .expect("Can't find main_window in ui file.");
-
-        let file_chooser = gtk::FileChooserNative::new(
-            None,
-            Some(&window),
-            gtk::FileChooserAction::Open,
-            None,
-            None,
-        );
-
-        let internal = self.internal.clone();
-        // Running in a *thread* to free self lock
-        gtk::idle_add(move || {
-            let result = file_chooser.run();
-            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
-                if let Some(fname) = file_chooser.get_filename() {
-                    let f = String::from(fname.to_str().unwrap_or(""));
-                    internal.send(InternalCommand::AttachMessage(f)).unwrap();
-                }
-            }
-            gtk::Continue(false)
-        });
-    }
-
-    pub fn load_more_messages(&mut self) {
-        if self.loading_more {
-            return;
-        }
-
-        self.loading_more = true;
-        self.load_more_spn.start();
-
-        if let Some(r) = self.rooms.get(&self.active_room.clone().unwrap_or_default()) {
-            let msgs = r.messages.iter().filter(|x| !x.redacted).cloned().collect::<Vec<Message>>();
-            if self.shown_messages < msgs.len() {
-                let msgs = msgs.iter().rev()
-                               .skip(self.shown_messages)
-                               .take(globals::INITIAL_MESSAGES)
-                               .collect::<Vec<&Message>>();
-                for msg in msgs.iter() {
-                    let command = InternalCommand::AddRoomMessage((*msg).clone(),
-                                                                  MsgPos::Top,
-                                                                  self.is_first_new(&msg));
-                    self.internal.send(command).unwrap();
-                }
-                self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
-            } else if let Some(prev_batch) = r.prev_batch.clone() {
-                self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), prev_batch)).unwrap();
-            } else if let Some(msg) = r.messages.iter().next() {
-                // no prev_batch so we use the last message to calculate that in the backend
-                self.backend.send(BKCommand::GetRoomMessagesFromMsg(r.id.clone(), msg.clone())).unwrap();
-            } else if let Some(from) = self.since.clone() {
-                // no messages and no prev_batch so we use the last since
-                self.backend.send(BKCommand::GetRoomMessages(r.id.clone(), from)).unwrap();
-            } else {
-                self.load_more_spn.stop();
-                self.loading_more = false;
-            }
-        }
-    }
-
-    pub fn load_more_normal(&mut self) {
-        self.load_more_spn.stop();
-        self.loading_more = false;
-    }
-
+    /* TODO: find a better name for this function */
     pub fn show_room_messages(&mut self, newmsgs: Vec<Message>) -> Option<()> {
         let mut msgs = vec![];
 
@@ -507,68 +286,85 @@ impl AppOp {
             }
         }
 
+        let mut msg_in_active = false;
         let uid = self.uid.clone()?;
         for msg in msgs.iter() {
-            let should_notify = msg.sender != uid &&
-                                (msg.body.contains(&self.username.clone()?) ||
-                                self.rooms.get(&msg.room).map_or(false, |r| r.direct));
+            let should_notify = msg.sender != uid
+                && (msg.body.contains(&self.username.clone()?)
+                    || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
 
             if should_notify {
-                self.notify(msg);
+                let window: gtk::Window = self
+                    .ui
+                    .builder
+                    .get_object("main_window")
+                    .expect("Can't find main_window in ui file.");
+                if let Some(app) = window.get_application() {
+                    self.notify(app, &msg.room, &msg.id);
+                }
             }
 
-            let command = InternalCommand::AddRoomMessage(msg.clone(),
-                                                          MsgPos::Bottom,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
+            if !msg.redacted && self.active_room.as_ref().map_or(false, |x| x == &msg.room) {
+                self.add_room_message(&msg);
+                msg_in_active = true;
+            }
 
             self.roomlist.moveup(msg.room.clone());
             self.roomlist.set_bold(msg.room.clone(), true);
         }
 
-        if !msgs.is_empty() {
-            let active_room = self.active_room.clone().unwrap_or_default();
-            let fs = msgs.iter().filter(|x| x.room == active_room);
-            if let Some(msg) = fs.last() {
-                self.mark_as_read(msg, Force(false));
-            }
+        if msg_in_active {
+            self.mark_last_message_as_read(Force(false));
         }
 
-        Some(())
+        None
     }
 
-    pub fn show_room_messages_top(&mut self, msgs: Vec<Message>, roomid: String, prev_batch: Option<String>) {
+    /* TODO: find a better name for this function */
+    pub fn show_room_messages_top(
+        &mut self,
+        msgs: Vec<Message>,
+        roomid: String,
+        prev_batch: Option<String>,
+    ) {
         if let Some(r) = self.rooms.get_mut(&roomid) {
             r.prev_batch = prev_batch;
         }
 
-        if msgs.is_empty() {
-            self.load_more_normal();
-            return;
-        }
+        let active_room = self.active_room.clone().unwrap_or_default();
+        let mut list = vec![];
+        for item in msgs.iter().rev() {
+            /* create a list of new messages to load to the history */
+            if item.room == active_room && !item.redacted {
+                if let Some(ui_msg) = self.create_new_room_message(item) {
+                    list.push(ui_msg);
+                }
+            }
 
-        for msg in msgs.iter().rev() {
-            if let Some(r) = self.rooms.get_mut(&msg.room) {
-                r.messages.insert(0, msg.clone());
+            if let Some(r) = self.rooms.get_mut(&item.room) {
+                r.messages.insert(0, item.clone());
             }
         }
 
-        let size = msgs.len() - 1;
-        for i in 0..size+1 {
-            let msg = &msgs[size - i];
-
-            let command = InternalCommand::AddRoomMessage(msg.clone(),
-                                                          MsgPos::Top,
-                                                          self.is_first_new(&msg));
-            self.internal.send(command).unwrap();
-
+        if let Some(ref mut history) = self.history {
+            history.add_old_messages_in_batch(list);
         }
-        self.internal.send(InternalCommand::LoadMoreNormal).unwrap();
     }
 
     /* parese a backend Message into a Message for the UI */
     pub fn create_new_room_message(&self, msg: &Message) -> Option<MessageContent> {
         let mut highlights = vec![];
+        lazy_static! {
+            static ref emoji_regex: regex::Regex = regex::Regex::new(r"(?x)
+                ^
+                [\p{White_Space}\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Emoji_Component}]*
+                [\p{Emoji}]+
+                [\p{White_Space}\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Emoji_Component}]*
+                $
+                # That string is made of at least one emoji, possibly more, possibly with modifiers, possibly with spaces, but nothing else
+                ").unwrap();
+        }
+
         let t = match msg.mtype.as_ref() {
             "m.emote" => RowType::Emote,
             "m.image" => RowType::Image,
@@ -595,6 +391,8 @@ impl AppOp {
                     highlights.push(String::from("message_menu"));
 
                     RowType::Mention
+                } else if emoji_regex.is_match(&msg.body) {
+                    RowType::Emoji
                 } else {
                     RowType::Message
                 }
@@ -615,15 +413,30 @@ impl AppOp {
         };
         let redactable = power_level != 0 || uid == msg.sender;
 
-        Some(create_ui_message(msg.clone(), name, t, highlights, redactable))
+        let is_last_viewed = msg.receipt.contains_key(&uid);
+        Some(create_ui_message(
+            msg.clone(),
+            name,
+            t,
+            highlights,
+            redactable,
+            is_last_viewed,
+        ))
     }
 }
 
 /* FIXME: don't convert msg to ui messages here, we should later get a ui message from storage */
-fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights: Vec<String>, redactable: bool) -> MessageContent {
-        MessageContent {
+fn create_ui_message(
+    msg: Message,
+    name: Option<String>,
+    t: RowType,
+    highlights: Vec<String>,
+    redactable: bool,
+    last_viewed: bool,
+) -> MessageContent {
+    MessageContent {
         msg: msg.clone(),
-        id: msg.id.unwrap_or(String::from("")),
+        id: msg.id,
         sender: msg.sender,
         sender_name: name,
         mtype: t,
@@ -633,10 +446,11 @@ fn create_ui_message (msg: Message, name: Option<String>, t: RowType, highlights
         url: msg.url,
         formatted_body: msg.formatted_body,
         format: msg.format,
+        last_viewed: last_viewed,
         highlights: highlights,
         redactable,
         widget: None,
-        }
+    }
 }
 
 /// This function open the image and fill the info data as a Json value

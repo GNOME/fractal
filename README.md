@@ -3,19 +3,49 @@
 Fractal is a Matrix messaging app for GNOME written in Rust. Its interface is optimized for collaboration in large groups, such as free software projects.
 
 * Come to talk to us on Matrix: <https://matrix.to/#/#fractal-gtk:matrix.org>
-* Main repository: <https://gitlab.gnome.org/World/fractal/>
+* Main repository: <https://gitlab.gnome.org/GNOME/fractal/>
 
-![screenshot](https://gitlab.gnome.org/World/fractal/raw/master/screenshots/fractal.png)
+![screenshot](https://gitlab.gnome.org/GNOME/fractal/raw/master/screenshots/fractal.png)
 
 ## Installation instructions
 
-You can find Fractal installation instructions through packages on the [GNOME wiki](https://wiki.gnome.org/Apps/Fractal).
+Flatpak is the recommended installation method. You can get the official
+Fractal Flatpak on Flathub.
+
+<a href="https://flathub.org/apps/details/org.gnome.Fractal">
+<img src="https://flathub.org/assets/badges/flathub-badge-i-en.png" width="190px" />
+</a>
 
 ## Build Instructions
 
-You need Meson and Ninja (as well as Rust and Cargo) to build Fractal.
+### Flatpak
+
+Flatpak is the recommended way of building and installing Fractal.
+
+First you need to make sure you have the GNOME SDK and Rust toolchain installed.
+
+```
+# Add Flathub and the gnome-nightly repo
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak remote-add --user --if-not-exists gnome-nightly https://sdk.gnome.org/gnome-nightly.flatpakrepo
+
+# Install the gnome-nightly Sdk and Platform runtime
+flatpak install --user gnome-nightly org.gnome.Sdk org.gnome.Platform
+
+# Install the required rust-stable extension from Flathub
+flatpak install --user flathub org.freedesktop.Sdk.Extension.rust-stable//18.08
+```
+
+Then you go ahead and build Fractal.
+
+```
+flatpak-builder --user --install fractal org.gnome.Fractal.json
+```
 
 ### GNU/Linux
+
+If you decide to ignore our recommendation and build on your host system,
+outside of Flatpak, you will need Meson and Ninja (as well as Rust and Cargo).
 
 ```sh
 meson . _build --prefix=/usr/local
@@ -36,49 +66,22 @@ sudo ninja -C _build install
 
 ### Translations
 
-If you want to add a new language you should update the file
-`fractal-gtk/po/LINUGAS` and add the new lang to the list.
+Fractal is translated by the GNOME translation team on
+[Damned lies](https://l10n.gnome.org/).
 
-To generate .pot files you should run:
+If you want to add *a new language* you should update the file
+`fractal-gtk/po/LINGUAS` and add the code for that language
+to the list.
 
-```
-ninja -C _build fractal-pot
-```
-
-To generate .po files you should run:
-
-```
-ninja -C _build fractal-update-po
-```
+Get the pot file from [the Fractal module page on Damned lies](https://l10n.gnome.org/module/fractal/).
 
 ### Password Storage
 
-Fractal uses Secret Service to store the password so you should have
-running some daemon that give that service. If you're using GNOME or KDE
+Fractal uses [Secret Service](https://www.freedesktop.org/wiki/Specifications/secret-storage-spec/)
+to store the password so you should have something providing 
+that service on your system. If you're using GNOME or KDE
 this should work for you out of the box with gnome-keyring or
 ksecretservice.
-
-There's a way to avoid the need of secret service and store the password in
-a unsecure way, in a plain json file. We don't recommend to use this form,
-but if you want, it's possible to configure using gsettings:
-
-```
-$ gsettings set org.gnome.Fractal password-storage 'Plain text'
-```
-
-Or if you're using flatpak
-
-```
-$ flatpak run --command="bash" org.gnome.Fractal
-$ gsettings set org.gnome.Fractal password-storage 'Plain text'
-$ exit
-```
-
-To go back to use Secret service:
-
-```
-$ gsettings set org.gnome.Fractal password-storage 'Secret Service'
-```
 
 ## Supported m.room.message (msgtypes)
 
@@ -113,7 +116,7 @@ Code and further information for this module can be found at [World/metaolm](htt
 
 Currently Fractal does not support this. Fractal is a
 GNOME application, and accordingly adheres GNOME
-guidlines and paradigms. This will be revisited if or
+guidelines and paradigms. This will be revisited if or
 when GNOME gets a "Do Not Disturb" feature.
 
 ## The origin of Fractal

@@ -1,19 +1,23 @@
-use i18n::i18n;
+use crate::i18n::i18n;
 
 use gtk;
 use gtk::prelude::*;
 
-use appop::AppOp;
-use globals;
-
+use crate::appop::AppOp;
+use crate::globals;
 
 impl AppOp {
     pub fn about_dialog(&self) {
-        let window: gtk::ApplicationWindow = self.ui.builder
+        let window: gtk::ApplicationWindow = self
+            .ui
+            .builder
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
 
-        let program_name = format!("Fractal{}", globals::NAME_SUFFIX.unwrap_or(" (Development)"));
+        let program_name = format!(
+            "Fractal{}",
+            globals::NAME_SUFFIX.unwrap_or(" (Development)")
+        );
 
         let dialog = gtk::AboutDialog::new();
         dialog.set_logo_icon_name(globals::APP_ID.unwrap_or("org.gnome.FractalDevel"));
@@ -28,9 +32,7 @@ impl AppOp {
         dialog.set_translator_credits(i18n("translator-credits").as_str());
         dialog.set_transient_for(&window);
 
-        dialog.set_artists(&[
-            "Tobias Bernard",
-        ]);
+        dialog.set_artists(&["Tobias Bernard"]);
 
         dialog.set_authors(&[
             "Daniel García Moreno",
@@ -39,11 +41,13 @@ impl AppOp {
             "Saurav Sachidanand",
             "Julian Sparber",
             "Eisha Chen-yen-su",
-            "Christopher Davis"
+            "Christopher Davis",
         ]);
 
         dialog.add_credit_section(i18n("Name by").as_str(), &["Regina Bíró"]);
-        dialog.connect_response(move |d, _| { d.destroy(); });
+        dialog.connect_response(move |d, _| {
+            d.destroy();
+        });
 
         dialog.show();
     }

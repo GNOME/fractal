@@ -1,10 +1,11 @@
+use crate::appop::attach;
+use fractal_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
 use sourceview::BufferExt;
-use appop::attach;
 
-use app::App;
+use crate::app::App;
 
 const MAX_INPUT_HEIGHT: i32 = 100;
 
@@ -26,33 +27,32 @@ impl App {
             }));
         }
 
-
-        let autocomplete_popover = self.ui.builder
+        let autocomplete_popover = self
+            .ui
+            .builder
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
 
         let mut op = self.op.clone();
-        msg_entry.connect_key_press_event(move |entry, key| {
-            match key.get_keyval() {
-                gdk::enums::key::Return | gdk::enums::key::KP_Enter
-                if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK) &&
-                   !autocomplete_popover.is_visible() => {
-                    if let Some(buffer) = entry.get_buffer() {
-                        let start = buffer.get_start_iter();
-                        let end = buffer.get_end_iter();
+        msg_entry.connect_key_press_event(move |entry, key| match key.get_keyval() {
+            gdk::enums::key::Return | gdk::enums::key::KP_Enter
+                if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK)
+                    && !autocomplete_popover.is_visible() =>
+            {
+                if let Some(buffer) = entry.get_buffer() {
+                    let start = buffer.get_start_iter();
+                    let end = buffer.get_end_iter();
 
-                        if let Some(text) = buffer.get_text(&start, &end, false) {
-                            let mut mut_text = text;
-                            op.lock().unwrap().send_message(mut_text);
-                        }
-
-                        buffer.set_text("");
+                    if let Some(text) = buffer.get_text(&start, &end, false) {
+                        op.lock().unwrap().send_message(text);
                     }
 
-                    Inhibit(true)
-                },
-                _ => Inhibit(false)
+                    buffer.set_text("");
+                }
+
+                Inhibit(true)
             }
+            _ => Inhibit(false),
         });
 
         op = self.op.clone();

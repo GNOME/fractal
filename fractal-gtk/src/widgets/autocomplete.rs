@@ -1,21 +1,21 @@
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use fractal_api::clone;
+use log::info;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
-use sourceview;
-use glib;
 use gdk;
+use glib;
 use gtk;
 use gtk::prelude::*;
 use gtk::TextTag;
+use sourceview;
 
-use types::Member;
-//use types::Room;
-//use types::RoomList;
+use crate::types::Member;
 
-use widgets;
-use appop::AppOp;
+use crate::appop::AppOp;
+use crate::widgets;
 
 pub struct Autocomplete {
     entry: sourceview::View,
@@ -30,7 +30,13 @@ pub struct Autocomplete {
 }
 
 impl Autocomplete {
-    pub fn new(op: Arc<Mutex<AppOp>>, window: gtk::Window, msg_entry: sourceview::View, popover: gtk::Popover, listbox: gtk::ListBox) -> Autocomplete {
+    pub fn new(
+        op: Arc<Mutex<AppOp>>,
+        window: gtk::Window,
+        msg_entry: sourceview::View,
+        popover: gtk::Popover,
+        listbox: gtk::ListBox,
+    ) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
             listbox: listbox,
@@ -47,7 +53,9 @@ impl Autocomplete {
     pub fn connect(self) {
         let this: Rc<RefCell<Autocomplete>> = Rc::new(RefCell::new(self));
 
-        if let Some(context) = gtk::Widget::get_style_context(&this.borrow().entry.clone().upcast::<gtk::Widget>()) {
+        if let Some(context) =
+            gtk::Widget::get_style_context(&this.borrow().entry.clone().upcast::<gtk::Widget>())
+        {
             if let Some(fg) = gtk::StyleContext::lookup_color(&context, "theme_selected_bg_color") {
                 let color = gdk::RGBA {
                     red: fg.red,
@@ -67,16 +75,26 @@ impl Autocomplete {
             }
         }
 
-        let own = this.clone();
-        this.borrow().window.connect_button_press_event(move |_, _| {
-            if own.borrow().popover_position.is_some() {
-                own.borrow_mut().autocomplete_enter();
-                return Inhibit(true)
-            }
-            else {
-                return Inhibit(false);
+        let window_weak = this.borrow().window.downgrade();
+        this.borrow().popover.connect_closed(move |_| {
+            let window = upgrade_weak!(window_weak);
+            // Reenable Escape to change state
+            if let Some(app) = window.get_application() {
+                app.set_accels_for_action("app.back", &["Escape"]);
             }
         });
+
+        let own = this.clone();
+        this.borrow()
+            .window
+            .connect_button_press_event(move |_, _| {
+                if own.borrow().popover_position.is_some() {
+                    own.borrow_mut().autocomplete_enter();
+                    return Inhibit(true);
+                } else {
+                    return Inhibit(false);
+                }
+            });
 
         let own = this.clone();
         if let Some(buffer) = this.borrow().entry.get_buffer() {
@@ -114,7 +132,7 @@ impl Autocomplete {
 
                 if let Ok(mut item) = own.try_borrow_mut() {
                     if let Some(pos) = item.popover_position {
-                        if end <= pos + 1 || (start <= pos && end > pos){
+                        if end <= pos + 1 || (start <= pos && end > pos) {
                             item.autocomplete_enter();
                         }
                     }
@@ -128,7 +146,7 @@ impl Autocomplete {
                 gdk::enums::key::Escape => {
                     if own.borrow().popover_position.is_some() {
                         own.borrow_mut().autocomplete_enter();
-                        return Inhibit(true)
+                        return Inhibit(true);
                     }
                 }
                 _ => {}
@@ -145,14 +163,18 @@ impl Autocomplete {
                         let end = buffer.get_end_iter();
 
                         match buffer.get_text(&start, &end, false) {
-                            Some(ref t) if t == "" => { own.borrow_mut().autocomplete_enter(); }
-                            None => { own.borrow_mut().autocomplete_enter(); }
-                            _ => { }
+                            Some(ref t) if t == "" => {
+                                own.borrow_mut().autocomplete_enter();
+                            }
+                            None => {
+                                own.borrow_mut().autocomplete_enter();
+                            }
+                            _ => {}
                         }
                     }
 
                     return glib::signal::Inhibit(false);
-                },
+                }
                 /* Tab and Enter key */
                 gdk::enums::key::Tab | gdk::enums::key::Return => {
                     if own.borrow().popover_position.is_some() {
@@ -164,36 +186,31 @@ impl Autocomplete {
                             let ev: &gdk::Event = ev;
                             let _ = w.emit("button-press-event", &[ev]);
                         }
-                    }
-                    else {
+                    } else {
                         if ev.get_keyval() != gdk::enums::key::Tab {
                             return glib::signal::Inhibit(false);
                         }
                     }
-                },
+                }
                 /* Arrow key */
                 gdk::enums::key::Up => {
                     if own.borrow().popover_position.is_none() {
                         return glib::signal::Inhibit(false);
                     }
 
-                    let widget = {
-                        own.borrow_mut().autocomplete_arrow(-1)
-                    };
+                    let widget = { own.borrow_mut().autocomplete_arrow(-1) };
                     if let Some(w) = widget {
                         let ev: &gdk::Event = ev;
                         let _ = w.emit("button-press-event", &[ev]);
                     }
-                },
+                }
                 /* Arrow key */
                 gdk::enums::key::Down => {
                     if own.borrow().popover_position.is_none() {
                         return glib::signal::Inhibit(false);
                     }
 
-                    let widget = {
-                        own.borrow_mut().autocomplete_arrow(1)
-                    };
+                    let widget = { own.borrow_mut().autocomplete_arrow(1) };
 
                     if let Some(w) = widget {
                         let ev: &gdk::Event = ev;
@@ -343,7 +360,6 @@ impl Autocomplete {
         self.popover_search = None;
         let visible = self.popover.is_visible();
         self.popover.popdown();
-        self.op.lock().unwrap().inhibit_escape = false;
 
         visible
     }
@@ -356,7 +372,11 @@ impl Autocomplete {
             let end_iter = buffer.get_end_iter();
             buffer.remove_tag_by_name("alias-highlight", &start_iter, &end_iter);
 
-            for alias in self.highlighted_entry.iter().map(|alias| alias.to_lowercase()) {
+            for alias in self
+                .highlighted_entry
+                .iter()
+                .map(|alias| alias.to_lowercase())
+            {
                 for (index, text) in input.match_indices(&alias) {
                     let start_iter = buffer.get_iter_at_offset(index as i32);
                     let end_iter = buffer.get_iter_at_offset((index + text.len()) as i32);
@@ -385,8 +405,7 @@ impl Autocomplete {
                         result = Some(row.get_children().first()?.clone());
                     }
                 };
-            }
-            else {
+            } else {
                 if let Some(row) = self.listbox.get_children().last() {
                     if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
                         self.listbox.select_row(&row);
@@ -394,8 +413,7 @@ impl Autocomplete {
                     }
                 }
             }
-        }
-        else {
+        } else {
             if let Some(row) = self.listbox.get_row_at_index(0) {
                 self.listbox.select_row(&row);
                 result = Some(row.get_children().first()?.clone());
@@ -404,16 +422,24 @@ impl Autocomplete {
         return result;
     }
 
-    pub fn autocomplete_show_popover(&mut self, list: Vec<Member>) -> HashMap<String, gtk::EventBox> {
+    pub fn autocomplete_show_popover(
+        &mut self,
+        list: Vec<Member>,
+    ) -> HashMap<String, gtk::EventBox> {
         for ch in self.listbox.get_children().iter() {
             self.listbox.remove(ch);
         }
 
-        let mut widget_list : HashMap<String, gtk::EventBox> = HashMap::new();
+        let mut widget_list: HashMap<String, gtk::EventBox> = HashMap::new();
 
         if list.len() > 0 {
             for m in list.iter() {
-                let alias = &m.alias.clone().unwrap_or_default().trim_right_matches(" (IRC)").to_owned();
+                let alias = &m
+                    .alias
+                    .clone()
+                    .unwrap_or_default()
+                    .trim_right_matches(" (IRC)")
+                    .to_owned();
                 let widget;
                 {
                     let guard = self.op.lock().unwrap();
@@ -428,7 +454,8 @@ impl Autocomplete {
             }
 
             self.popover.set_relative_to(Some(&self.entry));
-            self.popover.set_pointing_to(&self.entry.get_cursor_locations(None).0);
+            self.popover
+                .set_pointing_to(&self.entry.get_cursor_locations(None).0);
             self.popover.set_modal(false);
 
             if let Some(row) = self.listbox.get_row_at_index(0) {
@@ -436,21 +463,23 @@ impl Autocomplete {
             }
 
             self.popover.popup();
-            self.op.lock().unwrap().inhibit_escape = true;
-        }
-        else {
+            // Don't change app state on Escape while the popover is open
+            if let Some(app) = self.window.get_application() {
+                app.set_accels_for_action("app.back", &[]);
+            }
+        } else {
             self.autocomplete_enter();
         }
 
         return widget_list;
     }
 
-    pub fn autocomplete(&self, text: Option<String>, pos : i32) -> Vec<Member> {
+    pub fn autocomplete(&self, text: Option<String>, pos: i32) -> Vec<Member> {
         let mut list: Vec<Member> = vec![];
         let guard = self.op.lock().unwrap();
         let rooms = &guard.rooms;
         match text {
-            None => {},
+            None => {}
             Some(txt) => {
                 if let Some(at_pos) = self.popover_position {
                     let last = {
@@ -459,12 +488,11 @@ impl Autocomplete {
                         txt.get(start..end)
                     };
                     if let Some(last) = last {
-                        println!("Matching string '{}'", last);
+                        info!("Matching string '{}'", last);
                         /*remove @ from string*/
                         let w = if last.starts_with("@") {
                             last[1..].to_lowercase()
-                        }
-                        else {
+                        } else {
                             last.to_lowercase()
                         };
 

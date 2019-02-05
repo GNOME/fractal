@@ -1,7 +1,10 @@
-pub mod member;
-pub mod room;
-pub mod protocol;
 pub mod event;
+pub mod filter;
+pub mod member;
 pub mod message;
+pub mod protocol;
+pub mod register;
+pub mod room;
 pub mod stickers;
+pub mod sync;
 pub mod userinfo;

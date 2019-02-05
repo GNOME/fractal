@@ -1,29 +1,31 @@
+use fractal_api::clone;
 use gdk;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use gtk;
-use gtk::prelude::*;
-use gtk::ResponseType;
+use crate::i18n::i18n;
+use dirs;
 use gdk::*;
 use glib;
 use glib::signal;
-use i18n::i18n;
-use dirs;
+use gtk;
+use gtk::prelude::*;
+use gtk::ResponseType;
 
-use types::Message;
-use types::Room;
+use crate::types::Message;
+use crate::types::Room;
 
 use std::fs;
 
-use backend::BKCommand;
+use crate::backend::BKCommand;
+use crate::widgets::image;
+use crate::widgets::ErrorDialog;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
-use widgets::image;
 
 const FLOATING_POINT_ERROR: f64 = 0.01;
 const ZOOM_LEVELS: [f64; 7] = [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
@@ -181,9 +183,11 @@ impl Data {
                 .parse::<f64>()
             {
                 Ok(zlvl) => self.set_zoom_level(zlvl / 100.0),
-                Err(_) => if let Some(zlvl) = *image.zoom_level.lock().unwrap() {
-                    update_zoom_entry(&self.builder, zlvl)
-                },
+                Err(_) => {
+                    if let Some(zlvl) = *image.zoom_level.lock().unwrap() {
+                        update_zoom_entry(&self.builder, zlvl)
+                    }
+                }
             }
         }
     }
@@ -347,14 +351,7 @@ impl MediaViewer {
 
         let current_media_index = media_list
             .iter()
-            .position(|media| {
-                media.id.clone().map_or(false, |media_id| {
-                    current_media_msg
-                        .id
-                        .clone()
-                        .map_or(false, |current_media_id| media_id == current_media_id)
-                })
-            })
+            .position(|media| media.id == current_media_msg.id)
             .unwrap_or_default();
 
         MediaViewer {
@@ -428,22 +425,6 @@ impl MediaViewer {
         self.data.borrow_mut().set_nav_btn_visibility();
     }
 
-    pub fn get_back_button(&self) -> Option<gtk::Button> {
-        let back = self
-            .builder
-            .get_object::<gtk::Button>("media_viewer_back_button")
-            .expect("Can't find media_viewer_back_button in ui file.");
-        Some(back)
-    }
-
-    /* we need to remove handler from main_window */
-    pub fn remove_handler(&mut self) {
-        let id = self.data.borrow_mut().signal_id.take();
-        if let Some(id) = id {
-            signal::signal_handler_disconnect(&self.data.borrow().main_window, id);
-        }
-    }
-
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
         let zoom_entry = self
@@ -509,46 +490,46 @@ impl MediaViewer {
             .expect("Can't find headerbar_revealer in ui file.");
 
         headerbar_revealer.connect_enter_notify_event(clone!(header_hovered => move |_, _| {
-			*(header_hovered.lock().unwrap()) = true;
+            *(header_hovered.lock().unwrap()) = true;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
 
         headerbar_revealer.connect_leave_notify_event(clone!(header_hovered => move |_, _| {
-			*(header_hovered.lock().unwrap()) = false;
+            *(header_hovered.lock().unwrap()) = false;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
 
         let previous_media_button = ui
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
 
         previous_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-			*(nav_hovered.lock().unwrap()) = true;
+            *(nav_hovered.lock().unwrap()) = true;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
         previous_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-			*(nav_hovered.lock().unwrap()) = false;
+            *(nav_hovered.lock().unwrap()) = false;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
 
         let next_media_button = ui
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
 
         next_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-			*(nav_hovered.lock().unwrap()) = true;
+            *(nav_hovered.lock().unwrap()) = true;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
         next_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-			*(nav_hovered.lock().unwrap()) = false;
+            *(nav_hovered.lock().unwrap()) = false;
 
-			Inhibit(false)
-		}));
+            Inhibit(false)
+        }));
 
         let media_viewer_box = ui
             .get_object::<gtk::Box>("media_viewer_box")
@@ -589,28 +570,28 @@ impl MediaViewer {
             let sid = gtk::timeout_add(
                 1000,
                 clone!(ui, header_hovered, nav_hovered, source_id => move || {
-				if !*header_hovered.lock().unwrap() {
-					let headerbar_revealer = ui
-						.get_object::<gtk::Revealer>("headerbar_revealer")
-						.expect("Can't find headerbar_revealer in ui file.");
-					headerbar_revealer.set_reveal_child(false);
-				}
+                    if !*header_hovered.lock().unwrap() {
+                        let headerbar_revealer = ui
+                            .get_object::<gtk::Revealer>("headerbar_revealer")
+                            .expect("Can't find headerbar_revealer in ui file.");
+                        headerbar_revealer.set_reveal_child(false);
+                    }
 
-				if !*nav_hovered.lock().unwrap() {
-					let previous_media_revealer = ui
-						.get_object::<gtk::Revealer>("previous_media_revealer")
-						.expect("Cant find previous_media_revealer in ui file.");
-					previous_media_revealer.set_reveal_child(false);
+                    if !*nav_hovered.lock().unwrap() {
+                        let previous_media_revealer = ui
+                            .get_object::<gtk::Revealer>("previous_media_revealer")
+                            .expect("Cant find previous_media_revealer in ui file.");
+                        previous_media_revealer.set_reveal_child(false);
 
-					let next_media_revealer = ui
-						.get_object::<gtk::Revealer>("next_media_revealer")
-						.expect("Cant find next_media_revealer in ui file.");
-					next_media_revealer.set_reveal_child(false);
-				}
+                        let next_media_revealer = ui
+                            .get_object::<gtk::Revealer>("next_media_revealer")
+                            .expect("Cant find next_media_revealer in ui file.");
+                        next_media_revealer.set_reveal_child(false);
+                    }
 
-				*(source_id.lock().unwrap()) = None;
-				gtk::Continue(false)
-			}),
+                    *(source_id.lock().unwrap()) = None;
+                    gtk::Continue(false)
+                }),
             );
 
             *(source_id.lock().unwrap()) = Some(sid);
@@ -638,18 +619,6 @@ impl MediaViewer {
         next_media_button.connect_clicked(move |_| {
             own.borrow_mut().next_media();
         });
-        let back = self
-            .builder
-            .get_object::<gtk::Button>("media_viewer_back_button")
-            .expect("Can't find media_viewer_back_button in ui file.");
-        let previous_media_button = self
-            .builder
-            .get_object::<gtk::Button>("previous_media_button")
-            .expect("Cant find previous_media_button in ui file.");
-        let next_media_button = self
-            .builder
-            .get_object::<gtk::Button>("next_media_button")
-            .expect("Cant find next_media_button in ui file.");
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
@@ -670,8 +639,7 @@ impl MediaViewer {
                             }
                         }
 
-                        back.clicked();
-                        Inhibit(true)
+                        Inhibit(false)
                     }
                     gdk::enums::key::Left => {
                         previous_media_button.clicked();
@@ -685,6 +653,16 @@ impl MediaViewer {
                 }
             });
         self.data.borrow_mut().signal_id = Some(id);
+
+        // Remove the keyboard signal management on hide
+        let data = self.data.clone();
+        media_viewer_box.connect_unmap(move |_| {
+            let id = data.borrow_mut().signal_id.take();
+            let main_window = &data.borrow().main_window;
+            if let Some(id) = id {
+                signal::signal_handler_disconnect(main_window, id);
+            }
+        });
     }
 }
 
@@ -743,7 +721,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
     let roomid = msg.room.clone();
-    let first_media_id = msg.id.clone();
+    let first_media_id = Some(msg.id.clone());
     let prev_batch = data.borrow().prev_batch.clone();
 
     let (tx, rx): (
@@ -766,7 +744,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
         Err(TryRecvError::Disconnected) => {
             data.borrow_mut().loading_error = true;
             let err = i18n("Error while loading previous media");
-            show_error(&data.borrow().main_window, err);
+            ErrorDialog::new(false, &err);
 
             gtk::Continue(false)
         }
@@ -809,36 +787,20 @@ fn save_file_as(main_window: &gtk::Window, src: String, name: String) {
         Some(main_window),
         gtk::FileChooserAction::Save,
         Some(i18n("_Save").as_str()),
-        Some(i18n("_Cancel").as_str())
+        Some(i18n("_Cancel").as_str()),
     );
 
     file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(&name);
 
-    let main_window = main_window.clone();
     file_chooser.connect_response(move |fcd, res| {
-        let main_window = main_window.clone();
         if ResponseType::from(res) == ResponseType::Accept {
             if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
                 let err = i18n("Could not save the file");
-                show_error(&main_window, err);
+                ErrorDialog::new(false, &err);
             }
         }
     });
 
     file_chooser.run();
-}
-
-fn show_error(window: &gtk::Window, msg: String) {
-    let dialog = gtk::MessageDialog::new(
-        Some(window),
-        gtk::DialogFlags::MODAL,
-        gtk::MessageType::Warning,
-        gtk::ButtonsType::Ok,
-        &msg,
-    );
-    dialog.show();
-    dialog.connect_response(move |d, _| {
-        d.destroy();
-    });
 }

@@ -23,6 +23,7 @@
         "--socket=x11",
         "--socket=wayland",
         "--socket=pulseaudio",
+        "--device=dri",
         "--talk-name=org.freedesktop.secrets",
         "--talk-name=org.freedesktop.Notifications",
         "--filesystem=home"
@@ -43,17 +44,17 @@
             "buildsystem" : "meson",
             "config-opts" : [
                 "-Dprofiling=false",
-                "-Dintrospection=true",
+                "-Dintrospection=enabled",
                 "-Dgtk_doc=false",
                 "-Dtests=false",
                 "-Dexamples=false",
                 "-Dvapi=false",
-                "-Dglade_catalog=false"
+                "-Dglade_catalog=disabled"
             ],
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://source.puri.sm/Librem5/libhandy"
+                    "url" : "https://source.puri.sm/Librem5/libhandy.git"
                 }
             ]
         },
@@ -71,6 +72,15 @@
             ]
         },
         {
+            "name": "gspell",
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://gitlab.gnome.org/GNOME/gspell.git"
+                }
+            ]
+        },
+        {
             "name" : "fractal",
             "buildsystem" : "meson",
             "config-opts" : [
@@ -79,7 +89,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://gitlab.gnome.org/World/fractal.git"
+                    "url" : "https://gitlab.gnome.org/GNOME/fractal.git"
                 }
             ]
         }

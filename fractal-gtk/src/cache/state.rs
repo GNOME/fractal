@@ -1,14 +1,16 @@
+use lazy_static::lazy_static;
+use mdl::Cache;
 use mdl::Model;
 use mdl::Store;
-use mdl::Cache;
+use serde::{Deserialize, Serialize};
 
 use failure::Error;
 
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use types::Room;
-use types::Message;
+use crate::types::Message;
+use crate::types::Room;
 use fractal_api::util::cache_path;
 
 // Models
@@ -39,9 +41,10 @@ pub struct AppMsg {
     pub msg: Message,
 }
 
-
 impl Model for AppState {
-    fn key(&self) -> String { "state".to_string() }
+    fn key(&self) -> String {
+        "state".to_string()
+    }
 }
 
 impl AppRoom {
@@ -58,8 +61,10 @@ impl AppRoom {
     #[allow(dead_code)]
     fn load_msgs<S: Store>(&mut self, store: &S) -> Result<(), Error> {
         let key = format!("msg:{}", self.room.borrow().id);
-        let msgs: Vec<Message> = AppMsg::all(store, &key)?.iter()
-            .map(|m| m.msg.clone()).collect();
+        let msgs: Vec<Message> = AppMsg::all(store, &key)?
+            .iter()
+            .map(|m| m.msg.clone())
+            .collect();
         self.room.borrow_mut().messages = msgs;
 
         Ok(())
@@ -79,10 +84,7 @@ impl Model for AppRoom {
 
 impl Model for AppMsg {
     fn key(&self) -> String {
-        // messages should have always an ID to be stored in the cache
-        // in other case we'll store with the "msg:room:" key.
-        let id = self.msg.id.clone().unwrap_or_default();
-        format!("msg:{}:{}", self.msg.room, id)
+        format!("msg:{}:{}", self.msg.room, self.msg.id)
     }
 }
 
@@ -94,7 +96,7 @@ pub struct FCache {
 }
 
 impl FCache {
-    pub fn get_store(&self) -> MutexGuard<Cache> {
+    pub fn get_store(&self) -> MutexGuard<'_, Cache> {
         self.cache.lock().unwrap()
     }
 
@@ -108,7 +110,9 @@ impl FCache {
     pub fn get_rooms(&self) -> Result<Vec<Room>, Error> {
         let cache = &*self.get_store();
         let rooms = AppRoom::all(cache, "room")?
-            .iter().map(|r| r.room.borrow().clone()).collect();
+            .iter()
+            .map(|r| r.room.borrow().clone())
+            .collect();
         Ok(rooms)
     }
 
@@ -121,7 +125,9 @@ impl FCache {
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
         let cache = &*self.get_store();
-        let approom = AppRoom { room: RefCell::new(room) };
+        let approom = AppRoom {
+            room: RefCell::new(room),
+        };
         approom.store(cache)?;
 
         Ok(())
@@ -143,10 +149,8 @@ impl FCache {
 // The cache object, it's the same for the whole process
 lazy_static! {
     static ref CACHE: FCache = {
-        let db: String = cache_path("cache.mdl")
-            .expect("Fatal error: Can't start the cache");
-        let mdl_cache = Cache::new(&db)
-            .expect("Fatal error: Can't start the cache");
+        let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
+        let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
         let cache = Arc::new(Mutex::new(mdl_cache));
         FCache { cache }
     };
@@ -155,4 +159,3 @@ lazy_static! {
 pub fn get() -> FCache {
     return CACHE.clone();
 }
-

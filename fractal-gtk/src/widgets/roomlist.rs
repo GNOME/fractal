@@ -1,38 +1,34 @@
-use i18n::i18n;
+use crate::i18n::i18n;
+use fractal_api::clone;
 
-use pango;
-use glib;
 use gdk;
 use gdk::DragContextExtManual;
+use glib;
+use pango;
 
-use url::Url;
-use std::collections::HashMap;
 use gtk;
 use gtk::prelude::*;
+use std::collections::HashMap;
+use url::Url;
 
-use globals;
-use widgets::roomrow::RoomRow;
-use types::Room;
-use types::Message;
+use crate::globals;
+use crate::types::{Room, RoomTag};
+use crate::widgets::roomrow::RoomRow;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use chrono::prelude::*;
-
 
 fn get_url(url: Option<String>) -> Url {
     let defurl = Url::parse(globals::DEFAULT_HOMESERVER).unwrap();
 
     match url {
-        Some(u) => {
-            match Url::parse(&u) {
-                Ok(url) => url,
-                Err(_) => defurl,
-            }
-        }
+        Some(u) => match Url::parse(&u) {
+            Ok(url) => url,
+            Err(_) => defurl,
+        },
         None => defurl,
     }
 }
-
 
 pub struct RoomUpdated {
     pub room: Room,
@@ -43,13 +39,10 @@ impl RoomUpdated {
     pub fn new(room: Room) -> RoomUpdated {
         let updated = match room.messages.last() {
             Some(l) => l.date,
-            None => Message::default().date,
+            None => Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
         };
 
-        RoomUpdated {
-            room,
-            updated,
-        }
+        RoomUpdated { room, updated }
     }
 
     pub fn up(&mut self) {
@@ -106,22 +99,19 @@ impl RoomListGroup {
         let title_eb = gtk::EventBox::new();
 
         title_eb.connect_button_press_event(clone!(list, arrow, rev, expanded => move |_, _| {
-            match *expanded.lock().unwrap() {
-                true => {
-                    arrow.set_from_icon_name("pan-end-symbolic", 2);
-                    rev.set_reveal_child(false);
-                    if let Some(style) = list.get_style_context() {
-                        style.add_class("collapsed");
-                    }
+            if *expanded.lock().unwrap() {
+                arrow.set_from_icon_name("pan-end-symbolic", 2);
+                rev.set_reveal_child(false);
+                if let Some(style) = list.get_style_context() {
+                    style.add_class("collapsed");
                 }
-                false => {
-                    arrow.set_from_icon_name("pan-down-symbolic", 2);
-                    rev.set_reveal_child(true);
-                    if let Some(style) = list.get_style_context() {
-                        style.remove_class("collapsed");
-                    }
+            } else {
+                arrow.set_from_icon_name("pan-down-symbolic", 2);
+                rev.set_reveal_child(true);
+                if let Some(style) = list.get_style_context() {
+                    style.remove_class("collapsed");
                 }
-            };
+            }
             let exp = !(*expanded.lock().unwrap());
             *expanded.lock().unwrap() = exp;
             glib::signal::Inhibit(true)
@@ -131,7 +121,7 @@ impl RoomListGroup {
         let wbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.add(&wbox);
 
-        let filter= None;
+        let filter = None;
 
         RoomListGroup {
             list,
@@ -157,7 +147,10 @@ impl RoomListGroup {
         }
 
         let rid = r.id.clone();
-        self.roomvec.lock().unwrap().push(RoomUpdated::new(r.clone()));
+        self.roomvec
+            .lock()
+            .unwrap()
+            .push(RoomUpdated::new(r.clone()));
 
         let row = RoomRow::new(r);
         self.list.add(&row.widget());
@@ -211,7 +204,7 @@ impl RoomListGroup {
     pub fn remove_room(&mut self, room: String) -> Option<RoomUpdated> {
         self.rooms.remove(&room);
         let mut rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| { x.room.id == room}) {
+        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
             if let Some(row) = self.list.get_row_at_index(idx as i32) {
                 self.list.remove(&row);
             }
@@ -227,7 +220,9 @@ impl RoomListGroup {
             r.set_name(n);
         }
 
-        self.edit_room(&room, move |rv| { rv.room.name = newname.clone(); });
+        self.edit_room(&room, move |rv| {
+            rv.room.name = newname.clone();
+        });
     }
 
     pub fn set_room_avatar(&mut self, room: String, av: Option<String>) {
@@ -235,10 +230,12 @@ impl RoomListGroup {
             r.set_avatar(av.clone());
         }
 
-        self.edit_room(&room, move |rv| { rv.room.avatar = av.clone(); });
+        self.edit_room(&room, move |rv| {
+            rv.room.avatar = av.clone();
+        });
     }
 
-    pub fn widget(&self) -> gtk::EventBox {
+    pub fn widget(&self) -> &gtk::EventBox {
         let b = self.wbox.clone();
         if let Some(style) = b.get_style_context() {
             style.add_class("room-list");
@@ -270,7 +267,7 @@ impl RoomListGroup {
 
         self.show();
 
-        self.widget.clone()
+        &self.widget
     }
 
     pub fn show(&self) {
@@ -287,14 +284,6 @@ impl RoomListGroup {
 
     pub fn hide(&self) {
         self.widget.hide();
-    }
-
-    pub fn connect<F: Fn(Room) + 'static>(&self, cb: F) {
-        let rs = self.roomvec.clone();
-        self.list.connect_row_activated(move |_, row| {
-            let idx = row.get_index();
-            cb(rs.lock().unwrap()[idx as usize].room.clone());
-        });
     }
 
     pub fn get_selected(&self) -> Option<String> {
@@ -315,7 +304,7 @@ impl RoomListGroup {
         let room = room.unwrap();
 
         let rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| { x.room.id == room}) {
+        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
             if let Some(ref row) = self.list.get_row_at_index(idx as i32) {
                 self.list.select_row(row);
             }
@@ -323,11 +312,9 @@ impl RoomListGroup {
     }
 
     pub fn add_rooms(&mut self, mut array: Vec<Room>) {
-        array.sort_by_key(|ref x| {
-            match x.messages.last() {
-                Some(l) => l.date,
-                None => Message::default().date,
-            }
+        array.sort_by_key(|ref x| match x.messages.last() {
+            Some(l) => l.date,
+            None => Local.ymd(1970, 1, 1).and_hms(0, 0, 0),
         });
 
         for r in array.iter().rev() {
@@ -338,7 +325,9 @@ impl RoomListGroup {
     pub fn moveup(&mut self, room: String) {
         let s = self.get_selected();
 
-        self.edit_room(&room, move |rv| { rv.up(); });
+        self.edit_room(&room, move |rv| {
+            rv.up();
+        });
         if let Some(r) = self.remove_room(room) {
             self.add_room_up(r);
         }
@@ -356,7 +345,7 @@ impl RoomListGroup {
 
     fn edit_room<F: Fn(&mut RoomUpdated) + 'static>(&mut self, room: &str, cb: F) {
         let mut rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| { x.room.id == room}) {
+        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
             if let Some(ref mut m) = rv.get_mut(idx) {
                 cb(m);
             }
@@ -370,16 +359,16 @@ impl RoomListGroup {
             if let Some(row) = self.list.get_row_at_index(i as i32) {
                 match term {
                     &Some(ref t) if !t.is_empty() => {
-                        let rname = r.room.name.clone()
-                                     .unwrap_or("".to_string())
-                                     .to_lowercase();
+                        let rname = r.room.name.clone().unwrap_or_default().to_lowercase();
                         if rname.contains(&t.to_lowercase()) {
                             row.show();
                         } else {
                             row.hide();
                         }
                     }
-                    _ => { row.show(); }
+                    _ => {
+                        row.show();
+                    }
                 };
             }
         }
@@ -394,10 +383,12 @@ struct RGroup {
 impl RGroup {
     pub fn new(url: &Url, name: &str, empty_text: &str) -> RGroup {
         let r = RoomListGroup::new(url, name, empty_text);
-        RGroup{ g: Arc::new(Mutex::new(r)) }
+        RGroup {
+            g: Arc::new(Mutex::new(r)),
+        }
     }
 
-    pub fn get(&self) -> MutexGuard<RoomListGroup> {
+    pub fn get(&self) -> MutexGuard<'_, RoomListGroup> {
         self.g.lock().unwrap()
     }
 }
@@ -428,12 +419,21 @@ impl RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
         let baseu = get_url(url);
 
-        let inv = RGroup::new(&baseu, i18n("Invites").as_str(),
-                              i18n("You don’t have any invitations").as_str());
-        let fav = RGroup::new(&baseu, i18n("Favorites").as_str(),
-                              i18n("Drag and drop rooms here to add them to your favorites").as_str());
-        let rooms = RGroup::new(&baseu, i18n("Rooms").as_str(),
-                                i18n("You don’t have any rooms yet").as_str());
+        let inv = RGroup::new(
+            &baseu,
+            i18n("Invites").as_str(),
+            i18n("You don’t have any invitations").as_str(),
+        );
+        let fav = RGroup::new(
+            &baseu,
+            i18n("Favorites").as_str(),
+            i18n("Drag and drop rooms here to add them to your favorites").as_str(),
+        );
+        let rooms = RGroup::new(
+            &baseu,
+            i18n("Rooms").as_str(),
+            i18n("You don’t have any rooms yet").as_str(),
+        );
 
         let rl = RoomList {
             baseu,
@@ -446,41 +446,40 @@ impl RoomList {
         rl
     }
 
-    pub fn set_selected(&self, room: Option<String>) {
+    pub fn select(&self, r: &str) {
+        //FIXME don't use to_string(), pass &str
+        run_in_group!(self, &r.to_string(), set_selected, Some(r.to_string()));
+    }
+
+    pub fn unselect(&self) {
         self.inv.get().set_selected(None);
         self.fav.get().set_selected(None);
         self.rooms.get().set_selected(None);
-
-        if let Some(r) = room {
-            run_in_group!(self, &r, set_selected, Some(r.clone()));
-        }
-    }
-
-    pub fn get_selected(&self) -> Option<String> {
-        for i in [&self.inv, &self.fav, &self.rooms].iter() {
-            if let Some(s) = i.get().get_selected() {
-                return Some(s.clone());
-            }
-        }
-        None
     }
 
     pub fn add_rooms(&mut self, array: Vec<Room>) {
-        self.inv.get().add_rooms(array.iter().filter(|r| r.inv).cloned().collect::<Vec<Room>>());
-        self.fav.get().add_rooms(array.iter().filter(|r| r.fav).cloned().collect::<Vec<Room>>());
-        self.rooms.get().add_rooms(array.iter().filter(|r| !r.fav && !r.inv).cloned().collect::<Vec<Room>>());
+        self.inv.get().add_rooms(
+            array
+                .iter()
+                .filter(|r| r.membership.is_invited())
+                .cloned()
+                .collect::<Vec<Room>>(),
+        );
+        self.fav.get().add_rooms(
+            array
+                .iter()
+                .filter(|r| r.membership.match_joined_tag(RoomTag::Favourite))
+                .cloned()
+                .collect::<Vec<Room>>(),
+        );
+        self.rooms.get().add_rooms(
+            array
+                .iter()
+                .filter(|r| !r.membership.match_joined_tag(RoomTag::Favourite))
+                .cloned()
+                .collect::<Vec<Room>>(),
+        );
         self.show_and_hide();
-    }
-
-    pub fn connect<F: Fn(Room) + 'static>(&self, cb: F) {
-        let acb = Arc::new(cb);
-
-        let cb = acb.clone();
-        self.inv.get().connect(move |room| cb(room));
-        let cb = acb.clone();
-        self.fav.get().connect(move |room| cb(room));
-        let cb = acb.clone();
-        self.rooms.get().connect(move |room| cb(room));
     }
 
     pub fn connect_fav<F: Fn(Room, bool) + 'static>(&self, cb: F) {
@@ -528,11 +527,13 @@ impl RoomList {
     }
 
     pub fn add_room(&mut self, r: Room) {
-        if r.inv {
+        if r.membership.is_invited() {
             self.inv.get().add_room(r);
-        } else if r.fav {
+        } else if r.membership.match_joined_tag(RoomTag::Favourite) {
+            println!("We have fav rooms");
             self.fav.get().add_room(r);
         } else {
+            println!("We have non fav rooms");
             self.rooms.get().add_room(r);
         }
         self.show_and_hide();
@@ -546,19 +547,19 @@ impl RoomList {
         run_in_group!(self, &room, moveup, room);
     }
 
-    pub fn widget(&self) -> gtk::Box {
-        self.connect_select();
-
+    // Roomlist widget
+    pub fn widget(&self) -> &gtk::Box {
         for ch in self.widget.get_children() {
             self.widget.remove(&ch);
         }
-        self.widget.add(&self.inv.get().widget());
-        self.widget.add(&self.fav.get().widget());
-        self.widget.add(&self.rooms.get().widget());
+        self.widget.add(self.inv.get().widget());
+        self.widget.add(self.fav.get().widget());
+        self.widget.add(self.rooms.get().widget());
+        self.connect_select();
 
         self.show_and_hide();
 
-        self.widget.clone()
+        &self.widget
     }
 
     pub fn show_and_hide(&self) {
@@ -574,19 +575,33 @@ impl RoomList {
         self.rooms.get().show();
     }
 
+    // Connect handlers for unselecting rooms from other categories when a room is selected
     pub fn connect_select(&self) {
-        let inv = self.inv.clone();
-        let rooms = self.rooms.clone();
-        self.fav.get().list.connect_row_activated(move |_, _| {
-            inv.get().set_selected(None);
-            rooms.get().set_selected(None);
+        let fav = self.fav.get().list.downgrade();
+        let rooms = self.rooms.get().list.downgrade();
+        self.inv.get().list.connect_row_selected(move |_, row| {
+            if row.is_some() {
+                upgrade_weak!(fav).unselect_all();
+                upgrade_weak!(rooms).unselect_all();
+            }
         });
 
-        let inv = self.inv.clone();
-        let fav = self.fav.clone();
-        self.rooms.get().list.connect_row_activated(move |_, _| {
-            inv.get().set_selected(None);
-            fav.get().set_selected(None);
+        let inv = self.inv.get().list.downgrade();
+        let rooms = self.rooms.get().list.downgrade();
+        self.fav.get().list.connect_row_selected(move |_, row| {
+            if row.is_some() {
+                upgrade_weak!(inv).unselect_all();
+                upgrade_weak!(rooms).unselect_all();
+            }
+        });
+
+        let inv = self.inv.get().list.downgrade();
+        let fav = self.fav.get().list.downgrade();
+        self.rooms.get().list.connect_row_selected(move |_, row| {
+            if row.is_some() {
+                upgrade_weak!(inv).unselect_all();
+                upgrade_weak!(fav).unselect_all();
+            }
         });
     }
 

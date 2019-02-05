@@ -1,15 +1,15 @@
-use pango;
 use gtk;
 use gtk::prelude::*;
+use pango;
 
-use types::Member;
+use crate::types::Member;
 
-use appop::AppOp;
+use crate::appop::AppOp;
 
-use globals;
-use cache::download_to_cache;
-use widgets;
-use widgets::AvatarExt;
+use crate::cache::download_to_cache;
+use crate::globals;
+use crate::widgets;
+use crate::widgets::AvatarExt;
 
 // Room Search item
 pub struct MemberBox<'a> {
@@ -54,7 +54,11 @@ impl<'a> MemberBox<'a> {
         }
 
         let avatar = widgets::Avatar::avatar_new(Some(globals::USERLIST_ICON_SIZE));
-        let data = avatar.circle(self.member.uid.clone(), Some(alias.clone()), globals::USERLIST_ICON_SIZE);
+        let data = avatar.circle(
+            self.member.uid.clone(),
+            Some(alias.clone()),
+            globals::USERLIST_ICON_SIZE,
+        );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());
 
@@ -104,11 +108,12 @@ impl<'a> MemberBox<'a> {
             style.add_class("msg-highlighted");
         }
 
-        let avatar =
-            widgets::Avatar::avatar_new(Some(globals::PILL_ICON_SIZE));
-        let data = avatar.circle(self.member.uid.clone(),
-                                 Some(self.member.get_alias()),
-                                 globals::PILL_ICON_SIZE);
+        let avatar = widgets::Avatar::avatar_new(Some(globals::PILL_ICON_SIZE));
+        let data = avatar.circle(
+            self.member.uid.clone(),
+            Some(self.member.get_alias()),
+            globals::PILL_ICON_SIZE,
+        );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());
 

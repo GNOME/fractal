@@ -1,8 +1,34 @@
 project(
   'fractal', 'rust',
-  version: '3.30.0',
+  version: '4.0.0',
   license: 'GPLv3',
 )
+
+dependency('openssl', version: '>= 1.0')
+dependency('dbus-1')
+
+dependency('glib-2.0', version: '>= 2.56')
+dependency('gio-2.0', version: '>= 2.56')
+dependency('cairo', version: '>= 1.16')
+dependency('gdk-pixbuf-2.0')
+dependency('gtk+-3.0', version: '>= 3.22')
+dependency('libhandy-0.0', version: '>= 0.0.5')
+dependency('gtksourceview-3.0', version: '>= 3.22')
+dependency('gspell-1', version: '>= 1.8')
+
+dependency('gstreamer-1.0', version: '>= 1.12')
+dependency('gstreamer-base-1.0', version: '>= 1.12')
+dependency('gstreamer-audio-1.0', version: '>= 1.12')
+dependency('gstreamer-video-1.0', version: '>= 1.12')
+dependency('gstreamer-player-1.0', version: '>= 1.12')
+dependency('gstreamer-plugins-base-1.0', version: '>= 1.12')
+dependency('gstreamer-plugins-bad-1.0', version: '>= 1.12')
+dependency('gstreamer-bad-audio-1.0', version: '>= 1.12')
+
+cargo = find_program('cargo', required: true)
+gresource = find_program('glib-compile-resources', required: true)
+gschemas = find_program('glib-compile-schemas', required: true)
+cargo_vendor = find_program('cargo-vendor', required: false)
 
 if get_option('profile') == 'development'
   profile = 'Devel'
@@ -70,5 +96,11 @@ cargo_release = custom_target('cargo-build',
 run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version
                                ])
+
+if get_option('profile') == 'development'
+    # Setup pre-commit hook for ensuring coding style is always consistent
+    message('Setting up git pre-commit hook..')
+    run_command('cp', '-f', 'hooks/pre-commit.hook', '.git/hooks/pre-commit')
+endif
 
 meson.add_install_script('scripts/meson_post_install.py')

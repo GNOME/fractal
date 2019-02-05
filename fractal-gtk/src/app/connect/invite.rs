@@ -1,22 +1,29 @@
+use fractal_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
 
-use std::sync::{Arc, Mutex};
 use glib;
+use std::sync::{Arc, Mutex};
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_invite_dialog(&self) {
         let op = self.op.clone();
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::MessageDialog>("invite_dialog")
             .expect("Can't find invite_dialog in ui file.");
-        let accept = self.ui.builder
+        let accept = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("invite_accept")
             .expect("Can't find invite_accept in ui file.");
-        let reject = self.ui.builder
+        let reject = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("invite_reject")
             .expect("Can't find invite_reject in ui file.");
 
@@ -39,19 +46,29 @@ impl App {
     pub fn connect_invite_user(&self) {
         let op = &self.op;
 
-        let cancel = self.ui.builder
+        let cancel = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("cancel_invite")
             .expect("Can't find cancel_invite in ui file.");
-        let invite = self.ui.builder
+        let invite = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("invite_button")
             .expect("Can't find invite_button in ui file.");
-        let invite_entry_box = self.ui.builder
+        let invite_entry_box = self
+            .ui
+            .builder
             .get_object::<gtk::Box>("invite_entry_box")
             .expect("Can't find invite_entry_box in ui file.");
-        let invite_entry = self.ui.builder
+        let invite_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>("invite_entry")
             .expect("Can't find invite_entry in ui file.");
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("invite_user_dialog")
             .expect("Can't find invite_user_dialog in ui file.");
 

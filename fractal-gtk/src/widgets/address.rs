@@ -1,12 +1,12 @@
+use glib::signal;
 use gtk;
 use gtk::prelude::*;
-use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-use glib::signal;
+use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
 
-use appop::AppOp;
-use backend::BKCommand;
+use crate::appop::AppOp;
+use crate::backend::BKCommand;
 
 #[derive(Debug, Clone)]
 pub enum AddressType {

@@ -1,4 +1,5 @@
 stages:
+  - check
   - test
   - review
   - deploy
@@ -19,6 +20,13 @@ variables:
           - target_docs/
           - target_test/
 
+check:
+    image: "registry.gitlab.com/alatiera/rustfmt-oci-image/rustfmt:nightly"
+    stage: "check"
+    script:
+        - rustc -Vv && cargo -Vv
+        - cargo +nightly --version
+        - cargo +nightly fmt --all -- --check
 
 flatpak:
     image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
@@ -68,7 +76,7 @@ review:
         url: "https://gitlab.gnome.org/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/raw/${BUNDLE}"
         on_stop: stop_review
     except:
-        - master@World/fractal
+        - master@GNOME/fractal
         - tags
 
 stop_review:
@@ -80,7 +88,7 @@ stop_review:
         name: "review/${CI_COMMIT_REF_NAME}"
         action: stop
     except:
-        - master@World/fractal
+        - master@GNOME/fractal
         - tags
 
 

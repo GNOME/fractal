@@ -1,3 +1,4 @@
+use fractal_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
@@ -5,25 +6,35 @@ use gtk::prelude::*;
 use glib;
 use std::sync::{Arc, Mutex};
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_direct_chat(&self) {
         let op = &self.op;
 
-        let cancel = self.ui.builder
+        let cancel = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("cancel_direct_chat")
             .expect("Can't find cancel_direct_chat in ui file.");
-        let invite = self.ui.builder
+        let invite = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("direct_chat_button")
             .expect("Can't find direct_chat_button in ui file.");
-        let to_chat_entry_box = self.ui.builder
+        let to_chat_entry_box = self
+            .ui
+            .builder
             .get_object::<gtk::Box>("to_chat_entry_box")
             .expect("Can't find to_chat_entry_box in ui file.");
-        let to_chat_entry = self.ui.builder
+        let to_chat_entry = self
+            .ui
+            .builder
             .get_object::<gtk::TextView>("to_chat_entry")
             .expect("Can't find to_chat_entry in ui file.");
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("direct_chat_dialog")
             .expect("Can't find direct_chat_dialog in ui file.");
 

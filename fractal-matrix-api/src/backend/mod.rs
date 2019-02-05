@@ -1,72 +1,70 @@
-use std::sync::{Arc, Mutex, Condvar};
-use std::thread;
-use url::Url;
-use std::sync::mpsc::{Sender, Receiver};
+use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::RecvError;
-use std::collections::HashMap;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread;
+use url::Url;
 
-use util::client_url;
+use crate::util::client_url;
 
-use error::Error;
+use crate::error::Error;
 
-use cache::CacheMap;
+use crate::cache::CacheMap;
 
-mod types;
-mod register;
-mod user;
-mod room;
-mod sync;
-mod media;
 mod directory;
+mod media;
+mod register;
+mod room;
 mod stickers;
+mod sync;
+mod types;
+mod user;
 
-pub use self::types::BKResponse;
 pub use self::types::BKCommand;
+pub use self::types::BKResponse;
 
 pub use self::types::Backend;
 pub use self::types::BackendData;
 
 pub use self::types::RoomType;
 
-
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
             user_id: String::from("Guest"),
-            access_token: String::from(""),
-            server_url: String::from("https://matrix.org"),
+            access_token: String::new(),
+            server_url: Url::parse("https://matrix.org")
+                .expect("Wrong server_url value in BackendData"),
             scalar_token: None,
-            scalar_url: String::from("https://scalar.vector.im"),
+            scalar_url: Url::parse("https://scalar.vector.im")
+                .expect("Wrong scalar_url value in BackendData"),
             sticker_widget: None,
             since: None,
-            rooms_since: String::from(""),
-            join_to_room: String::from(""),
+            rooms_since: String::new(),
+            join_to_room: String::new(),
             m_direct: HashMap::new(),
         };
         Backend {
-            tx: tx,
+            tx,
             internal_tx: None,
             data: Arc::new(Mutex::new(data)),
-            user_info_cache: CacheMap::new().timeout(60*60),
+            user_info_cache: CacheMap::new().timeout(60 * 60),
             limit_threads: Arc::new((Mutex::new(0u8), Condvar::new())),
         }
     }
 
-    fn get_base_url(&self) -> Result<Url, Error> {
-        let s = self.data.lock().unwrap().server_url.clone();
-        let url = Url::parse(&s)?;
-        Ok(url)
+    fn get_base_url(&self) -> Url {
+        self.data.lock().unwrap().server_url.clone()
     }
 
-    fn url(&self, path: &str, params: Vec<(&str, String)>) -> Result<Url, Error> {
-        let base = self.get_base_url()?;
+    fn url(&self, path: &str, mut params: Vec<(&str, String)>) -> Result<Url, Error> {
+        let base = self.get_base_url();
         let tk = self.data.lock().unwrap().access_token.clone();
 
-        let mut params2 = params.to_vec();
-        params2.push(("access_token", tk.clone()));
+        params.push(("access_token", tk));
 
-        client_url(&base, path, params2)
+        client_url(&base, path, &params)
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {
@@ -88,9 +86,8 @@ impl Backend {
 
         match cmd {
             // Register module
-
             Ok(BKCommand::Login(user, passwd, server)) => {
-                let r = register::login(self, user, passwd, server);
+                let r = register::login(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
             Ok(BKCommand::Logout) => {
@@ -98,20 +95,19 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::LogoutError);
             }
             Ok(BKCommand::Register(user, passwd, server)) => {
-                let r = register::register(self, user, passwd, server);
+                let r = register::register(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
             Ok(BKCommand::Guest(server)) => {
-                let r = register::guest(self, server);
+                let r = register::guest(self, &server);
                 bkerror!(r, tx, BKResponse::GuestLoginError);
             }
             Ok(BKCommand::SetToken(token, uid, server)) => {
-                let r = register::set_token(self, token, uid, server);
+                let r = register::set_token(self, token, uid, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
 
             // User module
-
             Ok(BKCommand::GetUsername) => {
                 let r = user::get_username(self);
                 bkerror!(r, tx, BKResponse::UserNameError);
@@ -125,31 +121,30 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::GetThreePIDError);
             }
             Ok(BKCommand::GetTokenEmail(identity, email, client_secret)) => {
-                let r = user::get_email_token(self, identity, email, client_secret);
+                let r = user::get_email_token(self, &identity, &email, client_secret);
                 bkerror!(r, tx, BKResponse::GetTokenEmailError);
             }
             Ok(BKCommand::GetTokenPhone(identity, phone, client_secret)) => {
-                let r = user::get_phone_token(self, identity, phone, client_secret);
+                let r = user::get_phone_token(self, &identity, &phone, client_secret);
                 bkerror!(r, tx, BKResponse::GetTokenEmailError);
             }
             Ok(BKCommand::SubmitPhoneToken(identity, client_secret, sid, token)) => {
-                let r = user::submit_phone_token(self, identity, client_secret, sid, token);
+                let r = user::submit_phone_token(self, &identity, client_secret, sid, token);
                 bkerror!(r, tx, BKResponse::SubmitPhoneTokenError);
             }
             Ok(BKCommand::AddThreePID(identity, client_secret, sid)) => {
-                let r = user::add_threepid(self, identity, client_secret, sid);
+                let r = user::add_threepid(self, &identity, &client_secret, sid);
                 bkerror!(r, tx, BKResponse::AddThreePIDError);
             }
             Ok(BKCommand::DeleteThreePID(medium, address)) => {
-                let r = user::delete_three_pid(self, medium, address);
-                bkerror!(r, tx, BKResponse::DeleteThreePIDError);
+                user::delete_three_pid(self, &medium, &address);
             }
             Ok(BKCommand::ChangePassword(username, old_password, new_password)) => {
-                let r = user::change_password(self, username, old_password, new_password);
+                let r = user::change_password(self, &username, &old_password, &new_password);
                 bkerror!(r, tx, BKResponse::ChangePasswordError);
             }
             Ok(BKCommand::AccountDestruction(username, password, flag)) => {
-                let r = user::account_destruction(self, username, password, flag);
+                let r = user::account_destruction(self, &username, &password, flag);
                 bkerror!(r, tx, BKResponse::AccountDestructionError);
             }
             Ok(BKCommand::GetAvatar) => {
@@ -173,12 +168,11 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::CommandError);
             }
             Ok(BKCommand::UserSearch(term)) => {
-                let r = user::search(self, term);
+                let r = user::search(self, &term);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
 
             // Sync module
-
             Ok(BKCommand::Sync(since, initial)) => {
                 let r = sync::sync(self, since, initial);
                 bkerror!(r, tx, BKResponse::SyncError);
@@ -189,7 +183,6 @@ impl Backend {
             }
 
             // Room module
-
             Ok(BKCommand::GetRoomMembers(room)) => {
                 let r = room::get_room_members(self, room);
                 bkerror!(r, tx, BKResponse::RoomMembersError);
@@ -211,11 +204,11 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::SendMsgError);
             }
             Ok(BKCommand::SendMsgRedaction(msg)) => {
-                let r = room::redact_msg(self, msg);
+                let r = room::redact_msg(self, &msg);
                 bkerror!(r, tx, BKResponse::SendMsgRedactionError);
             }
-            Ok(BKCommand::SetRoom(room)) => {
-                let r = room::set_room(self, room);
+            Ok(BKCommand::SetRoom(id)) => {
+                let r = room::set_room(self, id);
                 bkerror!(r, tx, BKResponse::SetRoomError);
             }
             Ok(BKCommand::GetRoomAvatar(room)) => {
@@ -227,23 +220,23 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::JoinRoomError);
             }
             Ok(BKCommand::LeaveRoom(roomid)) => {
-                let r = room::leave_room(self, roomid);
+                let r = room::leave_room(self, &roomid);
                 bkerror!(r, tx, BKResponse::LeaveRoomError);
             }
             Ok(BKCommand::MarkAsRead(roomid, evid)) => {
-                let r = room::mark_as_read(self, roomid, evid);
+                let r = room::mark_as_read(self, &roomid, &evid);
                 bkerror!(r, tx, BKResponse::MarkAsReadError);
             }
             Ok(BKCommand::SetRoomName(roomid, name)) => {
-                let r = room::set_room_name(self, roomid, name);
+                let r = room::set_room_name(self, &roomid, &name);
                 bkerror!(r, tx, BKResponse::SetRoomNameError);
             }
             Ok(BKCommand::SetRoomTopic(roomid, topic)) => {
-                let r = room::set_room_topic(self, roomid, topic);
+                let r = room::set_room_topic(self, &roomid, &topic);
                 bkerror!(r, tx, BKResponse::SetRoomTopicError);
             }
             Ok(BKCommand::SetRoomAvatar(roomid, fname)) => {
-                let r = room::set_room_avatar(self, roomid, fname);
+                let r = room::set_room_avatar(self, &roomid, &fname);
                 bkerror!(r, tx, BKResponse::SetRoomAvatarError);
             }
             Ok(BKCommand::AttachFile(msg)) => {
@@ -251,13 +244,13 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::AttachFileError);
             }
             Ok(BKCommand::NewRoom(name, privacy, internalid)) => {
-                let r = room::new_room(self, name, privacy, internalid.clone());
+                let r = room::new_room(self, &name, privacy, internalid.clone());
                 if let Err(e) = r {
                     tx.send(BKResponse::NewRoomError(e, internalid)).unwrap();
                 }
             }
             Ok(BKCommand::DirectChat(user, internalid)) => {
-                let r = room::direct_chat(self, user, internalid.clone());
+                let r = room::direct_chat(self, &user, internalid.clone());
                 if let Err(e) = r {
                     tx.send(BKResponse::NewRoomError(e, internalid)).unwrap();
                 }
@@ -271,16 +264,15 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::AcceptInvError);
             }
             Ok(BKCommand::RejectInv(roomid)) => {
-                let r = room::leave_room(self, roomid);
+                let r = room::leave_room(self, &roomid);
                 bkerror!(r, tx, BKResponse::RejectInvError);
             }
             Ok(BKCommand::Invite(room, userid)) => {
-                let r = room::invite(self, room, userid);
+                let r = room::invite(self, &room, &userid);
                 bkerror!(r, tx, BKResponse::InviteError);
             }
 
             // Media module
-
             Ok(BKCommand::GetThumbAsync(media, ctx)) => {
                 let r = media::get_thumb_async(self, media, ctx);
                 bkerror!(r, tx, BKResponse::CommandError);
@@ -290,7 +282,7 @@ impl Backend {
                 bkerror!(r, tx, BKResponse::CommandError);
             }
             Ok(BKCommand::GetMediaListAsync(roomid, first_media_id, prev_batch, ctx)) => {
-                let r = media::get_media_list_async(self, roomid, first_media_id, prev_batch, ctx);
+                let r = media::get_media_list_async(self, &roomid, first_media_id, prev_batch, ctx);
                 bkerror!(r, tx, BKResponse::CommandError);
             }
             Ok(BKCommand::GetMedia(media)) => {
@@ -307,10 +299,8 @@ impl Backend {
             }
 
             // Directory module
-
             Ok(BKCommand::DirectoryProtocols) => {
-                let r = directory::protocols(self);
-                bkerror!(r, tx, BKResponse::DirectoryError);
+                directory::protocols(self);
             }
             Ok(BKCommand::DirectorySearch(dhs, dq, dtp, more)) => {
                 let hs = match dhs {
@@ -333,13 +323,12 @@ impl Backend {
             }
 
             // Stickers module
-
             Ok(BKCommand::ListStickers) => {
                 let r = stickers::list(self);
                 bkerror!(r, tx, BKResponse::StickersError);
             }
             Ok(BKCommand::SendSticker(room, sticker)) => {
-                let r = stickers::send(self, room, &sticker);
+                let r = stickers::send(self, &room, &sticker);
                 bkerror!(r, tx, BKResponse::StickersError);
             }
             Ok(BKCommand::PurchaseSticker(group)) => {

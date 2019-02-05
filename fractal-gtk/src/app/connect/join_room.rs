@@ -1,22 +1,31 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use glib;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_join_room_dialog(&self) {
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
-        let cancel = self.ui.builder
+        let cancel = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("cancel_join_room")
             .expect("Can't find cancel_join_room in ui file.");
-        let confirm = self.ui.builder
+        let confirm = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("join_room_button")
             .expect("Can't find join_room_button in ui file.");
-        let entry = self.ui.builder
+        let entry = self
+            .ui
+            .builder
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.");
 

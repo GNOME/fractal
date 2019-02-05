@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-
 pub struct CacheMap<T: Clone> {
     map: HashMap<String, (Instant, T)>,
     timeout: u64,
@@ -9,7 +8,10 @@ pub struct CacheMap<T: Clone> {
 
 impl<T: Clone> CacheMap<T> {
     pub fn new() -> CacheMap<T> {
-        CacheMap { map: HashMap::new(), timeout: 10 }
+        CacheMap {
+            map: HashMap::new(),
+            timeout: 10,
+        }
     }
 
     pub fn timeout(mut self, timeout: u64) -> CacheMap<T> {
@@ -25,7 +27,7 @@ impl<T: Clone> CacheMap<T> {
                 }
                 Some(&t.1)
             }
-            None => None
+            None => None,
         }
     }
 
@@ -37,7 +39,7 @@ impl<T: Clone> CacheMap<T> {
 
 impl<T: Clone> Clone for CacheMap<T> {
     fn clone(&self) -> CacheMap<T> {
-         let mut map: CacheMap<T> = CacheMap{
+        let mut map: CacheMap<T> = CacheMap {
             map: HashMap::new(),
             timeout: self.timeout,
         };

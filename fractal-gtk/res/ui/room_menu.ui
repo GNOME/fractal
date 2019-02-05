@@ -18,7 +18,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="action_name">app.room_details</property>
+            <property name="action_name">app.open-room-settings</property>
             <property name="text" translatable="yes">Room Details</property>
           </object>
           <packing>

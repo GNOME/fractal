@@ -1,11 +1,11 @@
-use gtk;
+use crate::types::Message;
+use crate::widgets;
 use chrono::prelude::DateTime;
 use chrono::prelude::Local;
-use types::Message;
 /* MessageContent contains all data needed to display one row
  * therefore it should contain only one Message body with one format
  * To-Do: this should be moved to a file collecting all structs used in the UI */
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct MessageContent {
     pub id: String,
     pub sender: String,
@@ -21,7 +21,8 @@ pub struct MessageContent {
     pub msg: Message,
     pub highlights: Vec<String>,
     pub redactable: bool,
-    pub widget: Option<gtk::ListBoxRow>,
+    pub last_viewed: bool,
+    pub widget: Option<widgets::MessageBox>,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */
@@ -37,4 +38,5 @@ pub enum RowType {
     Audio,
     Video,
     File,
+    Emoji,
 }

@@ -1,77 +1,26 @@
-use gtk::prelude::*;
-use gtk;
-use gdk;
-
-mod attach;
-mod autocomplete;
-mod column;
-mod direct;
 mod account;
+mod autocomplete;
+mod direct;
 mod directory;
 mod headerbar;
 mod invite;
 mod join_room;
 mod leave_room;
-mod load_more;
 mod login;
 mod markdown;
 mod new_room;
 mod roomlist_search;
-mod scroll;
 mod send;
-mod stickers;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_gtk(&self) {
-        // Set up shutdown callback
-        let window: gtk::Window = self.ui.builder
-            .get_object("main_window")
-            .expect("Couldn't find main_window in ui file.");
-
-        window.set_title("Fractal");
-        window.show_all();
-
-        let op = self.op.clone();
-        window.connect_delete_event(move |_, _| {
-            op.lock().unwrap().quit();
-            Inhibit(false)
-        });
-
-        let op = self.op.clone();
-        let main_window = self.ui.builder
-            .get_object::<gtk::ApplicationWindow>("main_window")
-            .expect("Cant find main_window in ui file.");
-        main_window.connect_key_press_event(move |w, k| {
-            match k.get_keyval() {
-                gdk::enums::key::Escape => {
-                    Inhibit(op.lock().unwrap().escape(w))
-                },
-                _ => Inhibit(false)
-            }
-        });
-
-        let op = self.op.clone();
-        window.connect_property_has_toplevel_focus_notify(move |w| {
-            if !w.is_active() {
-                op.lock().unwrap().mark_active_room_messages();
-            }
-        });
-
-        self.create_message_column();
-        self.create_load_more_spn();
-        self.create_actions();
-
         self.connect_headerbars();
         self.connect_login_view();
 
-        self.connect_msg_scroll();
-
         self.connect_send();
-        self.connect_attach();
         self.connect_markdown();
-        //self.connect_stickers();
         self.connect_autocomplete();
 
         self.connect_directory();

@@ -1,14 +1,18 @@
 use gtk;
 use gtk::prelude::*;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_login_view(&self) {
-        let advbtn: gtk::Button = self.ui.builder
+        let advbtn: gtk::Button = self
+            .ui
+            .builder
             .get_object("login_advanced_button")
             .expect("Couldn't find login_advanced_button in ui file.");
-        let adv: gtk::Revealer = self.ui.builder
+        let adv: gtk::Revealer = self
+            .ui
+            .builder
             .get_object("login_advanced")
             .expect("Couldn't find login_advanced in ui file.");
         advbtn.connect_clicked(move |_| {
@@ -34,7 +38,9 @@ impl App {
             v.push(w);
         }
 
-        let grid: gtk::Grid = self.ui.builder
+        let grid: gtk::Grid = self
+            .ui
+            .builder
             .get_object("login_grid")
             .expect("Couldn't find login_grid widget");
         grid.set_focus_chain(&v);
@@ -42,13 +48,19 @@ impl App {
 
     pub fn connect_login_button(&self) {
         // Login click
-        let btn: gtk::Button = self.ui.builder
+        let btn: gtk::Button = self
+            .ui
+            .builder
             .get_object("login_button")
             .expect("Couldn't find login_button in ui file.");
-        let username: gtk::Entry = self.ui.builder
+        let username: gtk::Entry = self
+            .ui
+            .builder
             .get_object("login_username")
             .expect("Couldn't find login_username in ui file.");
-        let password: gtk::Entry = self.ui.builder
+        let password: gtk::Entry = self
+            .ui
+            .builder
             .get_object("login_password")
             .expect("Couldn't find login_password in ui file.");
 
@@ -59,8 +71,10 @@ impl App {
         let op = self.op.clone();
         password.connect_activate(move |_| op.lock().unwrap().login());
 
-        self.ui.builder
+        self.ui
+            .builder
             .get_object::<gtk::Label>("login_error_msg")
-            .expect("Can't find login_error_msg in ui file.").hide();
+            .expect("Can't find login_error_msg in ui file.")
+            .hide();
     }
 }

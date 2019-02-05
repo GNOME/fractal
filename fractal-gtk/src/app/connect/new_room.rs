@@ -1,25 +1,36 @@
+use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 
 use glib;
 
-use app::App;
+use crate::app::App;
 
 impl App {
     pub fn connect_new_room_dialog(&self) {
-        let dialog = self.ui.builder
+        let dialog = self
+            .ui
+            .builder
             .get_object::<gtk::Dialog>("new_room_dialog")
             .expect("Can't find new_room_dialog in ui file.");
-        let cancel = self.ui.builder
+        let cancel = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("cancel_new_room")
             .expect("Can't find cancel_new_room in ui file.");
-        let confirm = self.ui.builder
+        let confirm = self
+            .ui
+            .builder
             .get_object::<gtk::Button>("new_room_button")
             .expect("Can't find new_room_button in ui file.");
-        let entry = self.ui.builder
+        let entry = self
+            .ui
+            .builder
             .get_object::<gtk::Entry>("new_room_name")
             .expect("Can't find new_room_name in ui file.");
-        let private = self.ui.builder
+        let private = self
+            .ui
+            .builder
             .get_object::<gtk::ToggleButton>("private_visibility_button")
             .expect("Can't find private_visibility_button in ui file.");
 

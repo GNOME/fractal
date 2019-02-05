@@ -1,19 +1,19 @@
-use std::sync::{Arc, Mutex, Condvar};
-use std::sync::mpsc::Sender;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Condvar, Mutex};
 
-use error::Error;
+use crate::error::Error;
 
-use types::Message;
-use types::Member;
-use types::Protocol;
-use types::Room;
-use types::Event;
-use types::StickerGroup;
-use types::Sticker;
-use types::UserInfo;
+use crate::types::Event;
+use crate::types::Member;
+use crate::types::Message;
+use crate::types::ProtocolInstance;
+use crate::types::Room;
+use crate::types::Sticker;
+use crate::types::StickerGroup;
+use crate::types::UserInfo;
 
-use cache::CacheMap;
+use crate::cache::CacheMap;
 use url::Url;
 
 #[derive(Debug)]
@@ -46,7 +46,12 @@ pub enum BKCommand {
     GetRoomAvatar(String),
     GetThumbAsync(String, Sender<String>),
     GetMediaAsync(String, Sender<String>),
-    GetMediaListAsync(String, Option<String>, Option<String>, Sender<(Vec<Message>, String)>),
+    GetMediaListAsync(
+        String,
+        Option<String>,
+        Option<String>,
+        Sender<(Vec<Message>, String)>,
+    ),
     GetFileAsync(String, Sender<String>),
     GetAvatarAsync(Option<Member>, Sender<String>),
     GetMedia(String),
@@ -55,7 +60,7 @@ pub enum BKCommand {
     GetUserNameAsync(String, Sender<String>),
     SendMsg(Message),
     SendMsgRedaction(Message),
-    SetRoom(Room),
+    SetRoom(String),
     ShutDown,
     DirectoryProtocols,
     DirectorySearch(String, String, String, bool),
@@ -101,7 +106,7 @@ pub enum BKResponse {
     Rooms(Vec<Room>, Option<Room>),
     NewRooms(Vec<Room>),
     RoomDetail(String, String, String),
-    RoomAvatar(String, String),
+    RoomAvatar(String, Option<Url>),
     NewRoomAvatar(String),
     RoomMemberEvent(Event),
     RoomMessages(Vec<Message>),
@@ -110,7 +115,7 @@ pub enum BKResponse {
     RoomMembers(String, Vec<Member>),
     SentMsg(String, String),
     SentMsgRedaction(String, String),
-    DirectoryProtocols(Vec<Protocol>),
+    DirectoryProtocols(Vec<ProtocolInstance>),
     DirectorySearch(Vec<Room>),
     JoinRoom,
     LeaveRoom,
@@ -173,7 +178,7 @@ pub enum BKResponse {
     StickersError(Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum RoomType {
     Public,
     Private,
@@ -182,9 +187,9 @@ pub enum RoomType {
 pub struct BackendData {
     pub user_id: String,
     pub access_token: String,
-    pub server_url: String,
+    pub server_url: Url,
     pub scalar_token: Option<String>,
-    pub scalar_url: String,
+    pub scalar_url: Url,
     pub sticker_widget: Option<String>,
     pub since: Option<String>,
     pub rooms_since: String,

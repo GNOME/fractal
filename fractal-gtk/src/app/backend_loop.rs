@@ -1,19 +1,18 @@
-use i18n::i18n;
-use app::App;
+use crate::app::App;
+use crate::i18n::i18n;
+use log::{error, info};
 
-use appop::RoomPanel;
-use appop::AppState;
+use crate::actions::AppState;
 
-use std::thread;
-use std::sync::mpsc::Receiver;
-use std::process::Command;
 use glib;
+use std::process::Command;
+use std::sync::mpsc::Receiver;
+use std::thread;
 
-use backend::BKResponse;
+use crate::backend::BKResponse;
 use fractal_api::error::Error;
 
 use std::sync::mpsc::RecvError;
-
 
 pub fn backend_loop(rx: Receiver<BKResponse>) {
     thread::spawn(move || {
@@ -32,8 +31,12 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
             }
 
             match recv {
-                Err(RecvError) => { break; }
-                Ok(BKResponse::ShutDown) => { shutting_down = true; }
+                Err(RecvError) => {
+                    break;
+                }
+                Ok(BKResponse::ShutDown) => {
+                    shutting_down = true;
+                }
                 Ok(BKResponse::Token(uid, tk, dev)) => {
                     APPOP!(bk_login, (uid, tk, dev));
                 }
@@ -58,19 +61,19 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let secret = Some(secret);
                     APPOP!(get_token_phone, (sid, secret));
                 }
-                Ok(BKResponse:: GetTokenEmailUsed) => {
+                Ok(BKResponse::GetTokenEmailUsed) => {
                     let error = i18n("Email is already in use");
                     APPOP!(show_three_pid_error_dialog, (error));
                 }
-                Ok(BKResponse:: GetTokenPhoneUsed) => {
+                Ok(BKResponse::GetTokenPhoneUsed) => {
                     let error = i18n("Phone number is already in use");
                     APPOP!(show_three_pid_error_dialog, (error));
                 }
-                Ok(BKResponse:: SubmitPhoneToken(sid, secret)) => {
+                Ok(BKResponse::SubmitPhoneToken(sid, secret)) => {
                     let secret = Some(secret);
                     APPOP!(valid_phone_token, (sid, secret));
                 }
-                Ok(BKResponse:: AddThreePID(list)) => {
+                Ok(BKResponse::AddThreePID(list)) => {
                     let l = Some(list);
                     APPOP!(added_three_pid, (l));
                 }
@@ -96,23 +99,29 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_new_avatar, (av));
                 }
                 Ok(BKResponse::Sync(since)) => {
-                    println!("SYNC");
+                    info!("SYNC");
                     let s = Some(since);
                     APPOP!(synced, (s));
                 }
                 Ok(BKResponse::Rooms(rooms, default)) => {
-                    APPOP!(update_rooms, (rooms, default));
+                    let clear_room_list = true;
+                    APPOP!(set_rooms, (rooms, clear_room_list));
+                    // Open the newly joined room
+                    if let Some(room) = default {
+                        let room_id = room.id;
+                        APPOP!(set_active_room_by_id, (room_id));
+                    }
                 }
                 Ok(BKResponse::NewRooms(rooms)) => {
-                    APPOP!(new_rooms, (rooms));
+                    let clear_room_list = false;
+                    APPOP!(set_rooms, (rooms, clear_room_list));
                 }
                 Ok(BKResponse::RoomDetail(room, key, value)) => {
                     let v = Some(value);
                     APPOP!(set_room_detail, (room, key, v));
                 }
                 Ok(BKResponse::RoomAvatar(room, avatar)) => {
-                    let a = Some(avatar);
-                    APPOP!(set_room_avatar, (room, a));
+                    APPOP!(set_room_avatar, (room, avatar));
                 }
                 Ok(BKResponse::RoomMembers(room, members)) => {
                     APPOP!(set_room_members, (room, members));
@@ -138,7 +147,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::JoinRoom) => {
                     APPOP!(reload_rooms);
                 }
-                Ok(BKResponse::LeaveRoom) => { }
+                Ok(BKResponse::LeaveRoom) => {}
                 Ok(BKResponse::SetRoomName) => {
                     APPOP!(show_new_room_name);
                 }
@@ -171,9 +180,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::Media(fname)) => {
                     Command::new("xdg-open")
-                                .arg(&fname)
-                                .spawn()
-                                .expect("failed to execute process");
+                        .arg(&fname)
+                        .spawn()
+                        .expect("failed to execute process");
                 }
                 Ok(BKResponse::AttachedFile(msg)) => {
                     APPOP!(attached_file, (msg));
@@ -188,9 +197,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::UserSearch(users)) => {
                     APPOP!(user_search_finished, (users));
                 }
-                Ok(BKResponse::Stickers(stickers)) => {
-                    APPOP!(stickers_loaded, (stickers));
-                }
                 Ok(BKResponse::Typing(rooms)) => {
                     APPOP!(typing_notification, (rooms));
                 }
@@ -198,62 +204,60 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 // errors
                 Ok(BKResponse::AccountDestructionError(err)) => {
                     let error = i18n("Couldn’t delete the account");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_error_dialog, (error));
-                },
+                }
                 Ok(BKResponse::ChangePasswordError(err)) => {
                     let error = i18n("Couldn’t change the password");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_password_error_dialog, (error));
-                },
+                }
                 Ok(BKResponse::GetTokenEmailError(err)) => {
                     let error = i18n("Couldn’t add the email address.");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
-                },
+                }
                 Ok(BKResponse::GetTokenPhoneError(err)) => {
                     let error = i18n("Couldn’t add the phone number.");
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
-                },
+                }
                 Ok(BKResponse::NewRoomError(err, internal_id)) => {
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
 
                     let error = i18n("Can’t create the room, try again");
-                    let panel = RoomPanel::NoRoom;
+                    let state = AppState::NoRoom;
                     APPOP!(remove_room, (internal_id));
                     APPOP!(show_error, (error));
-                    APPOP!(room_panel, (panel));
-                },
+                    APPOP!(set_state, (state));
+                }
                 Ok(BKResponse::JoinRoomError(err)) => {
-                    println!("ERROR: {:?}", err);
+                    error!("{:?}", err);
                     let error = format!("{}", i18n("Can’t join the room, try again."));
-                    let panel = RoomPanel::NoRoom;
+                    let state = AppState::NoRoom;
                     APPOP!(show_error, (error));
-                    APPOP!(room_panel, (panel));
-                },
+                    APPOP!(set_state, (state));
+                }
                 Ok(BKResponse::LoginError(_)) => {
                     let error = i18n("Can’t login, try again");
                     let st = AppState::Login;
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (st));
-                },
+                }
                 Ok(BKResponse::AttachFileError(err)) => {
-                    println!("ERROR attaching {:?}: retrying send", err);
+                    error!("attaching {:?}: retrying send", err);
                     APPOP!(retry_send);
                 }
-                Ok(BKResponse::SendMsgError(err)) => {
-                    match err {
-                        Error::SendMsgError(txid) => {
-                            println!("ERROR sending {}: retrying send", txid);
-                            APPOP!(retry_send);
-                        },
-                        _ => {
-                            let error = i18n("Error sending message");
-                            APPOP!(show_error, (error));
-                        }
+                Ok(BKResponse::SendMsgError(err)) => match err {
+                    Error::SendMsgError(txid) => {
+                        error!("sending {}: retrying send", txid);
+                        APPOP!(retry_send);
                     }
-                }
+                    _ => {
+                        let error = i18n("Error sending message");
+                        APPOP!(show_error, (error));
+                    }
+                },
                 Ok(BKResponse::SendMsgRedactionError(_)) => {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));
@@ -264,11 +268,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                 }
                 Ok(BKResponse::SyncError(err)) => {
-                    println!("SYNC Error: {:?}", err);
+                    error!("SYNC Error: {:?}", err);
                     APPOP!(sync_error);
                 }
                 Ok(err) => {
-                    println!("Query error: {:?}", err);
+                    error!("Query error: {:?}", err);
                 }
             };
         }

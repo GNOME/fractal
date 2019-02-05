@@ -8,8 +8,8 @@
   font-weight: bold;
   font-size: 0.8em;
   border-radius: 10px;
-  min-width: 10px;
-  padding: 2px 5px 1px;
+  min-width: 0.7em;
+  padding: 2px 5px;
 }
 
 .notify-highlight {
@@ -260,6 +260,7 @@ row .timestamp {
 }
 
 .messages-scroll {
+  background-color: @theme_base_color;
   border-bottom: 1px solid @borders;
 }
 
@@ -299,4 +300,13 @@ stack.titlebar:not(headerbar) > box > separator {
 
 .small-font {
     font-size: small;
+}
+
+.msg-emoji {
+  font-size: 3em;
+}
+
+/* the border above the search results in the invite user/new direct message dialogs */
+.scrollarea-top-border {
+  border-top: 1px solid @borders;
 }

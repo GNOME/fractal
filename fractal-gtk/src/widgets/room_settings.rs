@@ -1,23 +1,27 @@
+use fractal_api::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::mpsc::Sender;
 
+use crate::i18n::ni18n_f;
+use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use i18n::i18n;
-use i18n::ni18n_f;
 
-use backend::BKCommand;
-use cache::download_to_cache;
+use crate::actions;
+use crate::actions::{ButtonState, StateExt};
+use crate::backend::BKCommand;
+use crate::cache::download_to_cache;
+use crate::types::Member;
+use crate::util::markup_text;
+use crate::widgets;
+use crate::widgets::avatar::AvatarExt;
+use crate::widgets::members_list::MembersList;
 use fractal_api::types::Room;
-use std::sync::mpsc::Sender;
-use types::Member;
-use widgets;
-use widgets::avatar::AvatarExt;
-use widgets::members_list::MembersList;
-use util::markup_text;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {
+    actions: gio::SimpleActionGroup,
     room: Room,
     uid: Option<String>,
     builder: gtk::Builder,
@@ -26,14 +30,27 @@ pub struct RoomSettings {
 }
 
 impl RoomSettings {
-    pub fn new(backend: Sender<BKCommand>, uid: Option<String>, room: Room) -> RoomSettings {
+    pub fn new(
+        window: &gtk::Window,
+        backend: Sender<BKCommand>,
+        uid: Option<String>,
+        room: Room,
+    ) -> RoomSettings {
         let builder = gtk::Builder::new();
 
         builder
             .add_from_resource("/org/gnome/Fractal/ui/room_settings.ui")
             .expect("Can't load ui file: room_settings.ui");
 
+        let stack = builder
+            .get_object::<gtk::Stack>("room_settings_stack")
+            .expect("Can't find room_settings_stack in ui file.");
+
+        let actions = actions::RoomSettings::new(&window, &backend);
+        stack.insert_action_group("room-settings", Some(&actions));
+
         RoomSettings {
+            actions,
             room: room,
             uid: uid,
             builder: builder,
@@ -45,13 +62,16 @@ impl RoomSettings {
     /* creates a empty list with members.len() rows, the content will be loaded when the row is
      * drawn */
     pub fn create(&mut self) -> Option<(gtk::Box, gtk::Box)> {
-        let body = self.builder
+        let body = self
+            .builder
             .get_object::<gtk::Box>("room_settings_box")
             .expect("Can't find room_settings_box in ui file.");
-        let header = self.builder
+        let header = self
+            .builder
             .get_object::<gtk::Box>("room_settings_headerbar")
             .expect("Can't find room_settings_headerbar in ui file.");
-        let stack = self.builder
+        let stack = self
+            .builder
             .get_object::<gtk::Stack>("room_settings_stack")
             .expect("Can't find room_settings_stack in ui file.");
 
@@ -74,27 +94,25 @@ impl RoomSettings {
         None
     }
 
-    pub fn get_back_button(&self) -> Option<gtk::Button> {
-        let back = self.builder
-            .get_object::<gtk::Button>("room_settings_back_button")
-            .expect("Can't find room_settings_back_button in ui file.");
-        Some(back)
-    }
-
     pub fn connect(&self) {
-        let name_btn = self.builder
+        let name_btn = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_room_name_button in ui file.");
-        let name_entry = self.builder
+        let name_entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_name_entry")
             .expect("Can't find room_settings_room_name_entry in ui file.");
-        let topic_btn = self.builder
+        let topic_btn = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_topic_button")
             .expect("Can't find room_settings_room_topic_button in ui file.");
-        let topic_entry = self.builder
+        let topic_entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_topic_entry")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let avatar_btn = self.builder
+        let avatar_btn = self
+            .builder
             .get_object::<gtk::Button>("room_settings_avatar_button")
             .expect("Can't find room_settings_avatar_button in ui file.");
 
@@ -112,6 +130,7 @@ impl RoomSettings {
             button.set_visible(result.is_some());
         }));
 
+        // TODO: create actions for all button
         let button = name_btn.clone();
         name_entry.connect_activate(move |_w| {
             let _ = button.emit("clicked", &[]);
@@ -130,33 +149,27 @@ impl RoomSettings {
             this.borrow_mut().update_room_topic();
         }));
 
-        /* Connect avatar button */
-        avatar_btn.connect_clicked(clone!(this => move |w| {
-            this.borrow_mut().create_file_chooser(w);
-        }));
-    }
-
-    fn create_file_chooser(&mut self, w: &gtk::Button) -> Option<()> {
-        let window = w.get_toplevel()?;
-        if let Ok(window) = window.downcast::<gtk::Window>() {
-            /* http://gtk-rs.org/docs/gtk/struct.FileChooser.html */
-            let file_chooser = gtk::FileChooserNative::new(
-                i18n("Pick a new room avatar").as_str(),
-                Some(&window),
-                gtk::FileChooserAction::Open,
-                Some(i18n("Select").as_str()),
-                None,
-            );
-            let result = file_chooser.run();
-            if gtk::ResponseType::from(result) == gtk::ResponseType::Accept {
-                if let Some(file) = file_chooser.get_filename() {
-                    if let Some(path) = file.to_str() {
-                        self.update_room_avatar(String::from(path));
-                    }
+        if let Some(action) = self.actions.lookup_action("change-avatar") {
+            action.bind_button_state(&avatar_btn);
+            let data = glib::Variant::from(&self.room.id);
+            avatar_btn.set_action_target_value(&data);
+            avatar_btn.set_action_name("room-settings.change-avatar");
+            let avatar_spinner = self
+                .builder
+                .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
+                .expect("Can't find room_settings_avatar_spinner in ui file.");
+            let spinner = avatar_spinner.downgrade();
+            avatar_btn.connect_property_sensitive_notify(move |w| {
+                let spinner = upgrade_weak!(spinner);
+                if !w.get_sensitive() {
+                    spinner.start();
+                    spinner.show();
+                } else {
+                    spinner.hide();
+                    spinner.stop();
                 }
-            }
+            });
         }
-        None
     }
 
     fn init_room_settings(&mut self) -> Option<()> {
@@ -175,13 +188,16 @@ impl RoomSettings {
             self.get_direct_partner_uid(members.clone())
         } else {
             /* we don't have private groups yet
-               let description = Some(format!("Private Group · {} members", members.len()));
-               */
+            let description = Some(format!("Private Group · {} members", members.len()));
+            */
             //Some(format!("Public Room · {} members", members.len()))
 
-            Some(ni18n_f("Room · {} member", "Room · {} members",
-                         members.len() as u32,
-                         &[&members.len().to_string()]))
+            Some(ni18n_f(
+                "Room · {} member",
+                "Room · {} members",
+                members.len() as u32,
+                &[&members.len().to_string()],
+            ))
         };
 
         self.room_settings_show_avatar(edit);
@@ -212,16 +228,20 @@ impl RoomSettings {
     }
 
     pub fn room_settings_show_room_name(&self, text: Option<String>, edit: bool) -> Option<()> {
-        let label = self.builder
+        let label = self
+            .builder
             .get_object::<gtk::Label>("room_settings_room_name")
             .expect("Can't find room_settings_room_name in ui file.");
-        let b = self.builder
+        let b = self
+            .builder
             .get_object::<gtk::Box>("room_settings_room_name_box")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_name_entry")
             .expect("Can't find room_settings_room_name_entry in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_room_name_button in ui file.");
 
@@ -259,16 +279,20 @@ impl RoomSettings {
         is_room: bool,
         edit: bool,
     ) -> Option<()> {
-        let label = self.builder
+        let label = self
+            .builder
             .get_object::<gtk::Label>("room_settings_room_topic")
             .expect("Can't find room_settings_room_topic in ui file.");
-        let b = self.builder
+        let b = self
+            .builder
             .get_object::<gtk::Box>("room_settings_room_topic_box")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_topic_entry")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_topic_button")
             .expect("Can't find room_settings_room_topic_button in ui file.");
 
@@ -302,10 +326,12 @@ impl RoomSettings {
     }
 
     pub fn room_settings_show_group_room(&self, show: bool) -> Option<()> {
-        let notify = self.builder
+        let notify = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_notification_sounds")
             .expect("Can't find room_settings_notification_sounds in ui file.");
-        let invite = self.builder
+        let invite = self
+            .builder
             .get_object::<gtk::Button>("room_settings_invite")
             .expect("Can't find room_settings_invite in ui file.");
 
@@ -321,7 +347,8 @@ impl RoomSettings {
     }
 
     pub fn room_settings_show_admin_groupe(&self, show: bool) -> Option<()> {
-        let history = self.builder
+        let history = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_history_visibility")
             .expect("Can't find room_settings_history_visibility in ui file.");
 
@@ -335,10 +362,12 @@ impl RoomSettings {
     }
 
     pub fn room_settings_show_admin_room(&self, show: bool) -> Option<()> {
-        let room = self.builder
+        let room = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_room_visibility")
             .expect("Can't find room_settings_room_visibility in ui file.");
-        let join = self.builder
+        let join = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_join")
             .expect("Can't find room_settings_join in ui file.");
 
@@ -354,7 +383,8 @@ impl RoomSettings {
     }
 
     pub fn room_settings_show_room_type(&self, text: Option<String>) -> Option<()> {
-        let label = self.builder
+        let label = self
+            .builder
             .get_object::<gtk::Label>("room_settings_room_description")
             .expect("Can't find room_settings_room_name in ui file.");
         label.set_selectable(true);
@@ -369,10 +399,12 @@ impl RoomSettings {
     }
 
     fn room_settings_show_avatar(&self, edit: bool) -> Option<()> {
-        let container = self.builder
+        let container = self
+            .builder
             .get_object::<gtk::Box>("room_settings_avatar_box")
             .expect("Can't find room_settings_avatar_box in ui file.");
-        let avatar_btn = self.builder
+        let avatar_btn = self
+            .builder
             .get_object::<gtk::Button>("room_settings_avatar_button")
             .expect("Can't find room_settings_avatar_button in ui file.");
 
@@ -387,13 +419,16 @@ impl RoomSettings {
         download_to_cache(self.backend.clone(), self.room.id.clone(), data);
 
         if edit {
-            let overlay = self.builder
+            let overlay = self
+                .builder
                 .get_object::<gtk::Overlay>("room_settings_avatar_overlay")
                 .expect("Can't find room_settings_avatar_overlay in ui file.");
-            let overlay_box = self.builder
+            let overlay_box = self
+                .builder
                 .get_object::<gtk::Box>("room_settings_avatar")
                 .expect("Can't find room_settings_avatar in ui file.");
-            let avatar_spinner = self.builder
+            let avatar_spinner = self
+                .builder
                 .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
                 .expect("Can't find room_settings_avatar_spinner in ui file.");
             /* remove all old avatar */
@@ -415,27 +450,13 @@ impl RoomSettings {
         return None;
     }
 
-    pub fn update_room_avatar(&mut self, file: String) -> Option<()> {
-        let avatar_spinner = self.builder
-            .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
-            .expect("Can't find room_settings_avatar_spinner in ui file.");
-        let avatar_btn = self.builder
-            .get_object::<gtk::Button>("room_settings_avatar_button")
-            .expect("Can't find room_settings_avatar_button in ui file.");
-        let room = &self.room;
-        let command = BKCommand::SetRoomAvatar(room.id.clone(), file.clone());
-        self.backend.send(command).unwrap();
-        self.room_settings_show_avatar(true);
-        avatar_btn.set_sensitive(false);
-        avatar_spinner.show();
-        None
-    }
-
     pub fn update_room_name(&mut self) -> Option<()> {
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_name_entry")
             .expect("Can't find room_settings_name_entry in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_name_button in ui file.");
 
@@ -477,10 +498,12 @@ impl RoomSettings {
     }
 
     pub fn update_room_topic(&mut self) -> Option<()> {
-        let name = self.builder
+        let name = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_topic_entry")
             .expect("Can't find room_settings_topic in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_topic_button")
             .expect("Can't find room_settings_topic_button in ui file.");
         let topic = name.get_text()?;
@@ -500,24 +523,18 @@ impl RoomSettings {
     }
 
     pub fn show_new_room_avatar(&self) {
-        let avatar_spinner = self.builder
-            .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
-            .expect("Can't find room_settings_avatar_spinner in ui file.");
-        let avatar_btn = self.builder
-            .get_object::<gtk::Button>("room_settings_avatar_button")
-            .expect("Can't find room_settings_avatar_button in ui file.");
-
-        /* We could update the avatar for this room,
-         * but we are waiting for the new avatar event */
-        avatar_spinner.hide();
-        avatar_btn.set_sensitive(true);
+        if let Some(action) = self.actions.lookup_action("change-avatar") {
+            action.change_state(&ButtonState::Sensitive.into());
+        }
     }
 
     pub fn show_new_room_name(&self) {
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_name_entry")
             .expect("Can't find room_settings_room_name_entry in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_name_button in ui file.");
         button.hide();
@@ -526,10 +543,12 @@ impl RoomSettings {
     }
 
     pub fn show_new_room_topic(&self) {
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::Entry>("room_settings_room_topic_entry")
             .expect("Can't find room_settings_room_topic_entry in ui file.");
-        let button = self.builder
+        let button = self
+            .builder
             .get_object::<gtk::Button>("room_settings_room_topic_button")
             .expect("Can't find room_settings_topic_button in ui file.");
         button.hide();
@@ -538,22 +557,28 @@ impl RoomSettings {
     }
 
     fn room_settings_hide_not_implemented_widgets(&self) -> Option<()> {
-        let notification = self.builder
+        let notification = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_notification_sounds")
             .expect("Can't find room_settings_notification_sounds in ui file.");
-        let media = self.builder
+        let media = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_media")
             .expect("Can't find room_settings_media in ui file.");
-        let switch = self.builder
+        let switch = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_notification_switch")
             .expect("Can't find room_settings_notification_switch in ui file.");
-        let history = self.builder
+        let history = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_history_visibility")
             .expect("Can't find room_settings_history_visibility in ui file.");
-        let join = self.builder
+        let join = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_join")
             .expect("Can't find room_settings_join in ui file.");
-        let room = self.builder
+        let room = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_room_visibility")
             .expect("Can't find room_settings_room_visibility in ui file.");
         notification.hide();
@@ -567,19 +592,30 @@ impl RoomSettings {
     }
 
     fn room_settings_show_members(&mut self, members: Vec<Member>) -> Option<()> {
-        let entry = self.builder
+        let entry = self
+            .builder
             .get_object::<gtk::SearchEntry>("room_settings_members_search")
             .expect("Can't find room_settings_members_search in ui file.");
-        let b = self.builder
+        let b = self
+            .builder
             .get_object::<gtk::Frame>("room_settings_members_list")
             .expect("Can't find room_settings_members_list in ui file.");
-        let label = self.builder
+        let label = self
+            .builder
             .get_object::<gtk::Label>("room_settings_member_list_title")
             .expect("Can't find room_settings_member_list_title in ui file.");
         for w in b.get_children().iter() {
             b.remove(w);
         }
-        label.set_text(ni18n_f("{} member", "{} members", members.len() as u32, &[&members.len().to_string()]).as_str());
+        label.set_text(
+            ni18n_f(
+                "{} member",
+                "{} members",
+                members.len() as u32,
+                &[&members.len().to_string()],
+            )
+            .as_str(),
+        );
         let list = widgets::MembersList::new(members.clone(), entry);
         let w = list.create()?;
         b.add(&w);
