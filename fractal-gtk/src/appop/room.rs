@@ -1,4 +1,4 @@
-use crate::i18n::{i18n, i18n_k};
+use crate::i18n::{i18n, i18n_k, ni18n_f};
 use log::{error, warn};
 use std::fs::remove_file;
 use std::os::unix::fs;
@@ -24,6 +24,8 @@ use crate::util::markup_text;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+
+use std::collections::HashMap;
 
 pub struct Force(pub bool);
 
@@ -174,6 +176,14 @@ impl AppOp {
         let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         history.create(messages);
         self.history = Some(history);
+
+        // Hide the typing label, so typing notifications from other rooms won't show after
+        // changing rooms
+        self.ui
+            .builder
+            .get_object::<gtk::Label>("typing_label")
+            .expect("Can't find typing_label in ui file.")
+            .hide();
 
         self.active_room = Some(active_room);
         /* Mark the new active room as read */
@@ -513,5 +523,62 @@ impl AppOp {
         }
 
         self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
+    }
+
+    pub fn typing_notification(&mut self, rooms: HashMap<String, Vec<String>>) {
+        let active_room = self.active_room.clone().unwrap_or_default();
+
+        if rooms.contains_key(&active_room) {
+            let typing_label = self
+                .ui
+                .builder
+                .get_object::<gtk::Label>("typing_label")
+                .expect("Can't find typing_label in ui file.");
+
+            let mut typing_string: String;
+            let cur_room = rooms.get(&active_room).unwrap();
+            if cur_room.len() == 0 {
+                typing_label.hide();
+            } else if cur_room.len() > 2 {
+                typing_label.show();
+                typing_label.set_text(&i18n("Several users are typing"));
+            } else {
+                // So first, we create an array of typing usernames. After this, we create another
+                // array, which is full of references to the first one. Sorry, this is the best way
+                // I could figure out to do it.
+                let mut typing_users = ["".to_string(), "".to_string()];
+                let mut typing_strs = ["", ""];
+                let mut i = 0;
+
+                while i < cur_room.len() {
+                    typing_users[i] = self
+                        .rooms
+                        .get(&active_room)
+                        .unwrap()
+                        .members
+                        .get(&cur_room[i])
+                        .unwrap()
+                        .get_alias()
+                        .to_owned();
+                    i = i + 1;
+                }
+
+                i = 0;
+                while i < typing_users.len() {
+                    typing_strs[i] = typing_users[i].as_str();
+                    i = i + 1;
+                }
+
+                let typing_string = ni18n_f(
+                    "{} is typing",
+                    "{} and {} are typing",
+                    cur_room.len() as u32,
+                    &typing_strs[..],
+                );
+
+                typing_label.show();
+                typing_label.set_text(&typing_string);
+            }
+        }
     }
 }

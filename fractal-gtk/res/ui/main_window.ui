@@ -129,6 +129,17 @@
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkLabel" id="typing_label">
+                                <property name="visible">False</property>
+                                <property name="no_show_all">True</property>
+                                <property name="label">If you are a user, you shouldn't be able to see this</property>
+                                <property name="margin-top">5</property>
+                                <property name="margin-left">5</property>
+                                <property name="margin-bottom">5</property>
+                                <property name="xalign">0</property>
+                              </object>
+                            </child>
+                            <child>
                               <object class="GtkBox" id="room_parent">
                                 <property name="visible">True</property>
                                 <style>

@@ -1,6 +1,7 @@
 use log::error;
 use serde_json::json;
 
+use serde_json::from_value;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
@@ -22,6 +23,7 @@ use std::time::Duration as StdDuration;
 use crate::error::Error;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
+use crate::types::SyncResponse;
 
 use reqwest::header::CONTENT_TYPE;
 
@@ -475,6 +477,34 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
 
     let dest = cache_path(&userid)?;
     thumb(baseu, &avatar, Some(&dest))
+}
+
+pub fn parse_typing_notifications(r: &SyncResponse) -> Result<HashMap<String, Vec<String>>, Error> {
+    let join = &r.rooms.join;
+    let mut room_notifications = HashMap::new();
+
+    for k in join.keys() {
+        let room = join.get(k).ok_or(Error::BackendError)?;
+        let ephemerals = &room.ephemeral.events;
+        for event in ephemerals.iter() {
+            let typing_users = event
+                .get("content")
+                .and_then(|x| x.get("user_ids"))
+                .and_then(|x| x.as_array());
+            if typing_users.is_none() {
+                continue;
+            }
+            let typing_users = typing_users.unwrap();
+
+            let mut typing = Vec::new();
+            for user in typing_users {
+                let user: String = from_value(user.to_owned()).unwrap();
+                typing.push(user);
+            }
+            room_notifications.insert(k.to_owned(), typing);
+        }
+    }
+    Ok(room_notifications)
 }
 
 pub fn encode_uid(userid: &str) -> String {
