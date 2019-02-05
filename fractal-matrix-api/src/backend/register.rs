@@ -55,7 +55,12 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
     bk.data.lock().unwrap().server_url = Url::parse(server)?;
     let url = bk.url("login", vec![])?;
 
-    let attrs = LoginRequest::new(user.clone(), password, Some(String::from("Fractal")), None);
+    let attrs = LoginRequest::new(
+        user.clone(),
+        password,
+        Some(globals::DEVICE_NAME.into()),
+        None,
+    );
     let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize login request");
     let data = bk.data.clone();
 

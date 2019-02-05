@@ -5,6 +5,7 @@ pub static TIMEOUT: u64 = 80;
 pub static PAGE_LIMIT: i32 = 40;
 pub static ROOM_DIRECTORY_LIMIT: i32 = 20;
 pub static THUMBNAIL_SIZE: i32 = 128;
+pub static DEVICE_NAME: &str = "Fractal";
 
 lazy_static! {
     pub static ref MATRIX_RE: Regex = Regex::new(r"mxc://(?P<server>[^/]+)/(?P<media>.+)").unwrap();
