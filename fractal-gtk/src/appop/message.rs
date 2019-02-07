@@ -1,11 +1,11 @@
 use comrak::{markdown_to_html, ComrakOptions};
+use gio::prelude::{FileExt, FileInfoExt};
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
 use std::fs;
 use std::path::PathBuf;
-use tree_magic;
 
 use crate::appop::room::Force;
 use crate::appop::AppOp;
@@ -233,26 +233,35 @@ impl AppOp {
     pub fn attach_message(&mut self, path: PathBuf) {
         if let Some(room) = self.active_room.clone() {
             if let Some(sender) = self.uid.clone() {
-                let mime = tree_magic::from_filepath(&path);
-                let mtype = match mime.as_ref() {
-                    "image/gif" => "m.image",
-                    "image/png" => "m.image",
-                    "image/jpeg" => "m.image",
-                    "image/jpg" => "m.image",
-                    _ => "m.file",
-                };
-                let body = path
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or_default();
-                let path_string = path.to_str().unwrap_or_default();
+                if let Ok(info) = gio::File::new_for_path(&path).query_info(
+                    &gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                    gio::FileQueryInfoFlags::NONE,
+                    None,
+                ) {
+                    // This should always return a type
+                    let mime = info.get_content_type().unwrap();
+                    let mtype = match mime.as_ref() {
+                        "image/gif" => "m.image",
+                        "image/png" => "m.image",
+                        "image/jpeg" => "m.image",
+                        "image/jpg" => "m.image",
+                        _ => "m.file",
+                    };
+                    let body = path
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or_default();
+                    let path_string = path.to_str().unwrap_or_default();
 
-                let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
-                if mtype == "m.image" {
-                    m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                    let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
+                    if mtype == "m.image" {
+                        m.extra_content = get_image_media_info(path_string, mime.as_ref());
+                    }
+                    self.add_tmp_room_message(m);
+                    self.dequeue_message();
+                } else {
+                    error!("Can't send message: Could not query info");
                 }
-                self.add_tmp_room_message(m);
-                self.dequeue_message();
             } else {
                 error!("Can't send message: No user is logged in");
             }
