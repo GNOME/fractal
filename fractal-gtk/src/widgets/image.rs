@@ -4,6 +4,7 @@ use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
 use gdk_pixbuf::PixbufExt;
+use gio::prelude::{FileExt, FileInfoExt};
 use glib;
 use gtk;
 use gtk::prelude::*;
@@ -12,7 +13,6 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use tree_magic;
 
 use crate::backend::BKCommand;
 use std::sync::mpsc::TryRecvError;
@@ -373,8 +373,16 @@ pub fn is_gif(fname: &str) -> bool {
     if !p.is_file() {
         return false;
     }
-    let result = tree_magic::from_filepath(p);
-    result == "image/gif"
+
+    if let Ok(info) = gio::File::new_for_path(&p).query_info(
+        &gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+        gio::FileQueryInfoFlags::NONE,
+        None,
+    ) {
+        info.get_content_type() == Some("image/gif".to_string())
+    } else {
+        false
+    }
 }
 
 /// Adjust the `w` x `h` to `maxw` x `maxh` keeping the Aspect ratio
