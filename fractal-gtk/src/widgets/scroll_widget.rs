@@ -35,6 +35,7 @@ pub struct Widgets {
     btn_revealer: gtk::Revealer,
     listbox: gtk::ListBox,
     spinner: gtk::Spinner,
+    typing_label: gtk::Label,
 }
 
 impl Widgets {
@@ -67,7 +68,22 @@ impl Widgets {
         let column = column.downcast::<gtk::Container>().unwrap();
         column.set_hexpand(true);
         column.set_vexpand(true);
-        column.add(&messages);
+
+        let typing_label = gtk::Label::new(None);
+        typing_label.show();
+        typing_label
+            .get_style_context()
+            .unwrap()
+            .add_class("typing_label");
+        typing_label.set_xalign(0.0);
+        //typing_label.property_set("margin-start", 72);
+        typing_label.set_visible(false);
+
+        let column_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        column_box.add(&messages);
+        column_box.add(&typing_label);
+        column_box.show();
+        column.add(&column_box);
         column.show();
 
         messages
@@ -93,6 +109,7 @@ impl Widgets {
             btn_revealer,
             listbox: messages,
             spinner,
+            typing_label,
         }
     }
 }
@@ -245,6 +262,15 @@ impl ScrollWidget {
     pub fn reset_request_sent(&self) {
         self.request_sent.set(false);
         self.widgets.spinner.stop();
+    }
+
+    pub fn typing_notification(&self, typing_str: &str) {
+        if typing_str.len() == 0 {
+            self.widgets.typing_label.set_visible(false);
+        } else {
+            self.widgets.typing_label.set_visible(true);
+            self.widgets.typing_label.set_text(typing_str);
+        }
     }
 }
 
