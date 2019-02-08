@@ -133,6 +133,7 @@ pub enum BKResponse {
     RoomNotifications(String, i32, i32),
     UserSearch(Vec<Member>),
     Stickers(Vec<StickerGroup>),
+    Typing(HashMap<String, Vec<String>>),
 
     //errors
     UserNameError(Error),
