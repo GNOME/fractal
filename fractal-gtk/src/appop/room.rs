@@ -1,4 +1,4 @@
-use crate::i18n::{i18n, i18n_k};
+use crate::i18n::{i18n, i18n_k, ni18n_f};
 use log::{error, warn};
 use std::fs::remove_file;
 use std::os::unix::fs;
@@ -24,6 +24,8 @@ use crate::util::markup_text;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+
+use std::collections::HashMap;
 
 pub struct Force(pub bool);
 
@@ -513,5 +515,55 @@ impl AppOp {
         }
 
         self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
+    }
+
+    pub fn typing_notification(&mut self, rooms: HashMap<String, Vec<String>>) {
+        let active_room = self.active_room.clone().unwrap_or_default();
+        if let Some(ref mut history) = self.history {
+            if rooms.contains_key(&active_room) {
+                let cur_room = rooms.get(&active_room).unwrap();
+                if cur_room.len() == 0 {
+                    history.typing_notification("");
+                } else if cur_room.len() > 2 {
+                    history.typing_notification(&i18n("Several users are typing…"));
+                } else {
+                    // So first, we create an array of typing usernames. After this, we create another
+                    // array, which is full of references to the first one. Sorry, this is the best way
+                    // I could figure out to do it.
+                    let mut typing_users = Vec::new();
+
+                    for r in cur_room {
+                        typing_users.push(
+                            self.rooms
+                                .get(&active_room)
+                                .unwrap()
+                                .members
+                                .get(r.as_str())
+                                .unwrap()
+                                .get_alias()
+                                .to_owned(),
+                        );
+                    }
+                    /*
+                    let typing_strs: Vec<&str> = Vec::new();
+                    for user in typing_users.iter() {
+                        typing_strs.push(user.cloned().as_str());
+                    }*/
+
+                    let typing_string = ni18n_f(
+                        "{} is typing…",
+                        "{} and {} are typing…",
+                        cur_room.len() as u32,
+                        typing_users
+                            .iter()
+                            .map(std::ops::Deref::deref)
+                            .collect::<Vec<&str>>()
+                            .as_slice(),
+                    );
+
+                    history.typing_notification(&typing_string);
+                }
+            }
+        }
     }
 }
