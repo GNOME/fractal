@@ -271,6 +271,10 @@ impl RoomHistory {
 
         None
     }
+
+    pub fn typing_notification(&mut self, typing_str: &str) {
+        self.rows.borrow().view.typing_notification(typing_str);
+    }
 }
 
 /* This function creates the content for a Row based on the conntent of msg */
