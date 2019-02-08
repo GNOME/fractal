@@ -197,6 +197,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::UserSearch(users)) => {
                     APPOP!(user_search_finished, (users));
                 }
+                Ok(BKResponse::Typing(rooms)) => {
+                    APPOP!(typing_notification, (rooms));
+                }
 
                 // errors
                 Ok(BKResponse::AccountDestructionError(err)) => {
