@@ -525,7 +525,7 @@ impl AppOp {
                 if cur_room.len() == 0 {
                     history.typing_notification("");
                 } else if cur_room.len() > 2 {
-                    history.typing_notification(&i18n("Several users are typing"));
+                    history.typing_notification(&i18n("Several users are typing…"));
                 } else {
                     // So first, we create an array of typing usernames. After this, we create another
                     // array, which is full of references to the first one. Sorry, this is the best way
@@ -551,8 +551,8 @@ impl AppOp {
                     }*/
 
                     let typing_string = ni18n_f(
-                        "{} is typing",
-                        "{} and {} are typing",
+                        "{} is typing…",
+                        "{} and {} are typing…",
                         cur_room.len() as u32,
                         typing_users
                             .iter()
