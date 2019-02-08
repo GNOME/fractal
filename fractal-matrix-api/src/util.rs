@@ -484,24 +484,25 @@ pub fn parse_typing_notifications(r: &SyncResponse) -> Result<HashMap<String, Ve
     let mut room_notifications = HashMap::new();
 
     for k in join.keys() {
-        let room = join.get(k).ok_or(Error::BackendError)?;
-        let ephemerals = &room.ephemeral.events;
-        for event in ephemerals.iter() {
-            let typing_users = event
-                .get("content")
-                .and_then(|x| x.get("user_ids"))
-                .and_then(|x| x.as_array());
-            if typing_users.is_none() {
-                continue;
-            }
-            let typing_users = typing_users.unwrap();
+        if let Some(room) = join.get(k) {
+            let ephemerals = &room.ephemeral.events;
+            for event in ephemerals.iter() {
+                let typing_users = event
+                    .get("content")
+                    .and_then(|x| x.get("user_ids"))
+                    .and_then(|x| x.as_array());
+                if typing_users.is_none() {
+                    continue;
+                }
+                let typing_users = typing_users.unwrap();
 
-            let mut typing = Vec::new();
-            for user in typing_users {
-                let user: String = from_value(user.to_owned()).unwrap();
-                typing.push(user);
+                let mut typing = Vec::new();
+                for user in typing_users {
+                    let user: String = from_value(user.to_owned()).unwrap();
+                    typing.push(user);
+                }
+                room_notifications.insert(k.to_owned(), typing);
             }
-            room_notifications.insert(k.to_owned(), typing);
         }
     }
     Ok(room_notifications)
