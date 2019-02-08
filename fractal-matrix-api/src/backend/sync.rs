@@ -13,6 +13,7 @@ use crate::types::SyncResponse;
 use crate::types::UnreadNotificationsCount;
 use crate::util::json_q;
 use crate::util::parse_m_direct;
+use crate::util::parse_typing_notifications;
 use log::error;
 use serde_json::json;
 use serde_json::Value as JsonValue;
@@ -112,6 +113,11 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                         } = room.unread_notifications;
                         tx.send(BKResponse::RoomNotifications(k.clone(), n, h))
                             .unwrap();
+                    }
+
+                    match parse_typing_notifications(&response) {
+                        Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
+                        Ok(rooms) => tx.send(BKResponse::Typing(rooms)).unwrap(),
                     }
 
                     // Other events
