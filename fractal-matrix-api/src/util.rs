@@ -235,7 +235,7 @@ pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
 
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
     let client = reqwest::Client::new();
-    let mime = tree_magic::from_u8(&file);
+    let (mime, _) = gio::content_type_guess(None, file.as_slice());
 
     let conn = client.post(url).body(file).header(CONTENT_TYPE, mime);
 
