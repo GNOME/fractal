@@ -22,6 +22,7 @@ use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::backend::types::RoomType;
 
+use crate::types::Info;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
