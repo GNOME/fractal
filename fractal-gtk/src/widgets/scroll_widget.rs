@@ -6,6 +6,7 @@ use gio::Action;
 use gio::ActionExt;
 use gtk;
 use gtk::prelude::*;
+use pango;
 
 use libhandy;
 use libhandy::ColumnExt;
@@ -76,7 +77,7 @@ impl Widgets {
             .unwrap()
             .add_class("typing_label");
         typing_label.set_xalign(0.0);
-        //typing_label.property_set("margin-start", 72);
+        typing_label.set_ellipsize(pango::EllipsizeMode::End);
         typing_label.set_visible(false);
 
         let column_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
