@@ -76,7 +76,8 @@ impl Widgets {
             .unwrap()
             .add_class("typing_label");
         typing_label.set_xalign(0.0);
-        //typing_label.property_set("margin-start", 72);
+        typing_label.set_property_wrap(true);
+        typing_label.set_property_wrap_mode(pango::WrapMode::WordChar);
         typing_label.set_visible(false);
 
         let column_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
