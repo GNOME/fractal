@@ -314,4 +314,6 @@ stack.titlebar:not(headerbar) > box > separator {
 .typing_label {
 	margin: 6px;
 	margin-left: 78px;
+	margin-bottom: 8px;
+    color: @theme_selected_bg_color;
 }

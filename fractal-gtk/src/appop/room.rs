@@ -533,16 +533,16 @@ impl AppOp {
                     let mut typing_users = Vec::new();
 
                     for r in cur_room {
-                        typing_users.push(
-                            self.rooms
-                                .get(&active_room)
-                                .unwrap()
-                                .members
-                                .get(r.as_str())
-                                .unwrap()
-                                .get_alias()
-                                .to_owned(),
-                        );
+                        let user = self.rooms.get(&active_room);
+                        if user.is_none() {
+                            continue;
+                        }
+                        let user = user.unwrap().members.get(r.as_str());
+                        if user.is_none() {
+                            continue;
+                        }
+                        let user = user.unwrap().get_alias().to_owned();
+                        typing_users.push(user);
                     }
                     /*
                     let typing_strs: Vec<&str> = Vec::new();
