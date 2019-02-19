@@ -199,22 +199,6 @@ impl Data {
         }
     }
 
-    pub fn zoom_out(&self) {
-        if let Some(ref image) = self.image {
-            let zoom_level = *image.zoom_level.lock().unwrap();
-            if zoom_level.is_none() || zoom_level.unwrap() <= ZOOM_LEVELS[0] {
-                return;
-            }
-            if let Some(new_zlvl) = ZOOM_LEVELS
-                .iter()
-                .filter(|zlvl| **zlvl < zoom_level.unwrap())
-                .last()
-            {
-                self.set_zoom_level(*new_zlvl);
-            }
-        }
-    }
-
     pub fn zoom_in(&self) {
         if let Some(ref image) = self.image {
             let zoom_level = *image.zoom_level.lock().unwrap();
@@ -229,6 +213,13 @@ impl Data {
             {
                 self.set_zoom_level(*new_zlvl);
             }
+        }
+    }
+
+    pub fn zoom_best_fit(&self) {
+        if let Some(ref image) = self.image {
+            *image.zoom_level.lock().unwrap() = None;
+            image.widget.queue_draw();
         }
     }
 
@@ -370,7 +361,6 @@ impl MediaViewer {
 
         let image = image::Image::new(&self.backend, &media_msg.url.clone().unwrap_or_default())
             .fit_to_width(true)
-            .fixed(true)
             .center(true)
             .build();
 
@@ -383,24 +373,6 @@ impl MediaViewer {
 
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
-        let own = self.data.clone();
-        let zoom_out_button = self
-            .builder
-            .get_object::<gtk::Button>("media_zoom_out_button")
-            .expect("Cant find media_zoom_out_button in ui file.");
-        zoom_out_button.connect_clicked(move |_| {
-            own.borrow().zoom_out();
-        });
-
-        let own = self.data.clone();
-        let zoom_in_button = self
-            .builder
-            .get_object::<gtk::Button>("media_zoom_in_button")
-            .expect("Cant find media_zoom_in_button in ui file.");
-        zoom_in_button.connect_clicked(move |_| {
-            own.borrow().zoom_in();
-        });
-
         let own = self.data.clone();
         let full_screen_button = self
             .builder
@@ -477,6 +449,54 @@ impl MediaViewer {
 
             Inhibit(false)
         }));
+
+        let zoom_best_fit_revealer = self
+            .builder
+            .get_object::<gtk::Revealer>("media_zoom_best_fit_revealer")
+            .expect("Cant find media_zoom_best_fit_button in ui file.");
+        let weak_best_fit_revealer = zoom_best_fit_revealer.downgrade();
+
+        let zoom_in_revealer = self
+            .builder
+            .get_object::<gtk::Revealer>("media_zoom_in_revealer")
+            .expect("cant find media_zoom_in_revealer in ui file.");
+        let weak_zoom_in_revealer = zoom_in_revealer.downgrade();
+
+        let own = self.data.clone();
+        let zoom_in_button = self
+            .builder
+            .get_object::<gtk::Button>("media_zoom_in_button")
+            .expect("cant find media_zoom_in_button in ui file.");
+        let weak_fit_rev = weak_best_fit_revealer.clone();
+        let weak_in_rev = weak_zoom_in_revealer.clone();
+        zoom_in_button.connect_clicked(move |_| {
+            own.borrow().zoom_in();
+            let fit_rev = upgrade_weak!(weak_fit_rev, ());
+            let in_rev = upgrade_weak!(weak_in_rev, ());
+
+            fit_rev.set_reveal_child(true);
+
+            if let Some(ref image) = own.borrow().image {
+                if image.zoom_level.lock().unwrap().unwrap() == ZOOM_LEVELS[ZOOM_LEVELS.len() - 1] {
+                    in_rev.set_reveal_child(false);
+                }
+            }
+        });
+
+        let own = self.data.clone();
+        let zoom_best_fit_button = self
+            .builder
+            .get_object::<gtk::Button>("media_zoom_best_fit_button")
+            .expect("Cant find media_zoom_best_fit_button in ui file.");
+        let weak_in_rev = weak_zoom_in_revealer.clone();
+        zoom_best_fit_button.connect_clicked(move |_| {
+            own.borrow().zoom_best_fit();
+            let in_rev = upgrade_weak!(weak_in_rev, ());
+            let fit_rev = upgrade_weak!(weak_best_fit_revealer, ());
+
+            in_rev.set_reveal_child(true);
+            fit_rev.set_reveal_child(false);
+        });
 
         let media_viewer_box = ui
             .get_object::<gtk::Box>("media_viewer_box")

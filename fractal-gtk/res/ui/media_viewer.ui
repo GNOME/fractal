@@ -163,64 +163,47 @@
                     <property name="orientation">vertical</property>
                     <property name="spacing">6</property>
                     <child>
-                      <object class="GtkRevealer" id="media_zoom_controls_revealer">
+                      <object class="GtkRevealer" id="media_zoom_in_revealer">
                         <property name="visible">True</property>
-                        <property name="can_focus">false</property>
-                        <property name="reveal_child" bind-source="media_zoom_toggle_button" bind-property="active" bind-flags="sync-create"/>
+                        <property name="can_focus">False</property>
+                        <property name="reveal_child">True</property>
                         <child>
-                          <object class="GtkBox">
+                          <object class="GtkButton" id="media_zoom_in_button">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkButton" id="media_zoom_in_button">
+                              <object class="GtkImage">
                                 <property name="visible">True</property>
-                                <child>
-                                  <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="icon_name">zoom-in-symbolic</property>
-                                  </object>
-                                </child>
-                                <style>
-                                  <class name="osd"/>
-                                </style>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="media_zoom_out_button">
-                                <property name="visible">True</property>
-                                <child>
-                                  <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="icon_name">zoom-out-symbolic</property>
-                                  </object>
-                                </child>
-                                <style>
-                                  <class name="osd"/>
-                                </style>
+                                <property name="icon_name">zoom-in-symbolic</property>
                               </object>
                             </child>
                             <style>
-                              <class name="linked"/>
+                              <class name="osd"/>
                             </style>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkToggleButton" id="media_zoom_toggle_button">
+                      <object class="GtkRevealer" id="media_zoom_best_fit_revealer">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="reveal_child">False</property>
                         <child>
-                          <object class="GtkImage">
+                          <object class="GtkButton" id="media_zoom_best_fit_button">
                             <property name="visible">True</property>
-                            <property name="icon_name">zoom-fit-best-symbolic</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="icon_name">zoom-fit-best-symbolic</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="osd"/>
+                            </style>
                           </object>
                         </child>
-                        <style>
-                          <class name="osd"/>
-                        </style>
                       </object>
                     </child>
                   </object>
