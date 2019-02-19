@@ -8,8 +8,10 @@ use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
+use rand::Rng;
 use serde_json::json;
 use serde_json::Value as JsonValue;
+use std::env::temp_dir;
 use std::fs;
 use std::path::PathBuf;
 
@@ -494,11 +496,18 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 
     // make thumbnail max 800x600
     let thumb = Pixbuf::new_from_file_at_scale(&file, 800, 600, true).ok()?;
-    thumb.savev("/tmp/fractal_thumb.png", "png", &[]).ok()?;
+    let mut rng = rand::thread_rng();
+    let x: u64 = rng.gen_range(1, 9223372036854775807);
+    let thumb_path = format!(
+        "{}/fractal_{}.png",
+        temp_dir().to_str().unwrap_or_default(),
+        x.to_string()
+    );
+    thumb.savev(&thumb_path, "png", &[]).ok()?;
 
     let info = json!({
         "info": {
-            "thumbnail_url": "",
+            "thumbnail_url": thumb_path,
             "thumbnail_info": {
                 "w": thumb.get_width(),
                 "h": thumb.get_height(),
