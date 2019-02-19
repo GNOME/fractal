@@ -97,6 +97,7 @@ impl Image {
         self
     }
 
+    #[allow(dead_code)]
     pub fn fixed(mut self, f: bool) -> Image {
         self.fixed_size = f;
         self
