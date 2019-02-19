@@ -490,6 +490,9 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
                     msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
                 }
             }
+            if let Err(_e) = std::fs::remove_file(&thumb) {
+                error!("Can't remove thumbnail: {}", thumb);
+            }
         }
 
         match upload_file(&tk, &baseu, &fname) {
