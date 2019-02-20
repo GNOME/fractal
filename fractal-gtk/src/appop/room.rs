@@ -47,6 +47,11 @@ impl AppOp {
                 } else {
                     self.remove_room(room.id);
                 }
+            } else if room.membership.is_kicked() {
+                if let RoomMembership::Kicked(reason) = room.membership {
+                    self.kicked_room(room.id.clone(), reason);
+                }
+                self.remove_room(room.id);
             } else if self.rooms.contains_key(&room.id) {
                 // TODO: update the existing rooms
             } else {
@@ -209,6 +214,25 @@ impl AppOp {
             dialog.set_property_text(Some(&text));
             dialog.present();
         }
+    }
+
+    pub fn kicked_room(&self, roomid: String, reason: String) {
+        let dialog = self
+            .ui
+            .builder
+            .get_object::<gtk::MessageDialog>("kicked_room_dialog")
+            .expect("Can't find kicked_room_dialog in ui file.");
+
+        if let Some(r) = self.rooms.get(&roomid) {
+            let text = i18n_k(
+                "You have been kicked from {room_name}",
+                &[("room_name", &r.name.clone().unwrap_or_default())],
+            );
+            dialog.set_property_text(Some(&text));
+        }
+        let secondary_text = i18n_k("Reason: {reason}", &[("reason", &reason)]);
+        dialog.set_property_secondary_text(Some(&secondary_text));
+        dialog.present();
     }
 
     pub fn create_new_room(&mut self) {

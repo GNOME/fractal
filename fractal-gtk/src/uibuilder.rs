@@ -64,6 +64,9 @@ impl UI {
             .add_from_resource("/org/gnome/Fractal/ui/leave_room.ui")
             .expect("Can't load ui file: leave_room.ui");
         builder
+            .add_from_resource("/org/gnome/Fractal/ui/kicked_room.ui")
+            .expect("Can't load ui file: kicked_room.ui");
+        builder
             .add_from_resource("/org/gnome/Fractal/ui/new_room.ui")
             .expect("Can't load ui file: new_room.ui");
         builder

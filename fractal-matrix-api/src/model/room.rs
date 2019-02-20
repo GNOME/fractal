@@ -18,6 +18,7 @@ pub enum RoomMembership {
     // An invite is send by some other user
     Invited(Member),
     Left,
+    Kicked(String), // TODO: Change String -> Reason (create Reason)
 }
 
 impl RoomMembership {
@@ -39,6 +40,14 @@ impl RoomMembership {
 
     pub fn is_left(&self) -> bool {
         self == &RoomMembership::Left
+    }
+
+    pub fn is_kicked(&self) -> bool {
+        if let RoomMembership::Kicked(_) = self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn match_joined_tag(&self, tag: RoomTag) -> bool {
@@ -135,42 +144,48 @@ impl Room {
                     .filter_map(parse_room_member)
                     .map(|m| (m.uid.clone(), m))
                     .collect(),
-                ..Self::new(k.clone(), RoomMembership::Joined(room_tag))
+                    ..Self::new(k.clone(), RoomMembership::Joined(room_tag))
             };
 
             r.add_receipt_from_json(
                 ephemeral
-                    .events
-                    .iter()
-                    .filter(|ev| ev["type"] == "m.receipt")
-                    .collect(),
-            );
+                .events
+                .iter()
+                .filter(|ev| ev["type"] == "m.receipt")
+                .collect(),
+                );
             // Adding fully read to the receipts events
             if let Some(ev) = dataevs
                 .into_iter()
-                .find(|x| x["type"] == "m.fully_read")
-                .and_then(|fread| fread["content"]["event_id"].as_str())
-            {
-                r.add_receipt_from_fully_read(userid, ev);
-            }
+                    .find(|x| x["type"] == "m.fully_read")
+                    .and_then(|fread| fread["content"]["event_id"].as_str())
+                    {
+                        r.add_receipt_from_fully_read(userid, ev);
+                    }
 
             r
         });
 
-        let left_rooms = response
-            .rooms
-            .leave
-            .keys()
-            .map(|k| Self::new(k.clone(), RoomMembership::Left));
+        let left_rooms = response.rooms.leave.iter().map(|(k, room)| {
+            let leave_id = &room.timeline.events.last().unwrap()["sender"];
+            if leave_id != userid {
+                let kick_reason = &room.timeline.events.last().unwrap()["content"]["reason"];
+                println!("You have been kicked by: {}", leave_id);
+                println!("Reason: {}", kick_reason);
+                Self::new(k.clone(), RoomMembership::Kicked(String::from(kick_reason.as_str().unwrap_or_default())))
+            } else {
+                Self::new(k.clone(), RoomMembership::Left)
+            }
+        });
 
         let invited_rooms = response.rooms.invite.iter().filter_map(|(k, room)| {
             let stevents = &room.invite_state.events;
             if let Some((alias, avatar)) = stevents
                 .iter()
-                .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
-                .and_then(|ev| {
-                    get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok()
-                })
+                    .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
+                    .and_then(|ev| {
+                        get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok()
+                    })
             {
                 let inv_sender = Member {
                     alias: Some(alias),
@@ -212,7 +227,7 @@ impl Room {
 
                 Some((mid.to_string(), receipts))
             })
-            .collect();
+        .collect();
 
         if !receipts.is_empty() {
             for msg in self.messages.iter_mut() {
@@ -329,38 +344,38 @@ fn calculate_room_name(events: &Vec<JsonValue>, userid: &str) -> Option<String> 
     // looking for "m.room.name" event
     if let Some(name) = events
         .iter()
-        .find(|x| x["type"] == "m.room.name")
-        .and_then(|name| name["content"]["name"].as_str())
-        .filter(|name| !name.is_empty())
-        .map(Into::into)
-    {
-        return Some(name);
-    }
+            .find(|x| x["type"] == "m.room.name")
+            .and_then(|name| name["content"]["name"].as_str())
+            .filter(|name| !name.is_empty())
+            .map(Into::into)
+            {
+                return Some(name);
+            }
 
     // looking for "m.room.canonical_alias" event
     if let Some(name) = events
         .iter()
-        .find(|x| x["type"] == "m.room.canonical_alias")
-        .and_then(|name| name["content"]["alias"].as_str())
-        .map(Into::into)
-    {
-        return Some(name);
-    }
+            .find(|x| x["type"] == "m.room.canonical_alias")
+            .and_then(|name| name["content"]["alias"].as_str())
+            .map(Into::into)
+            {
+                return Some(name);
+            }
 
     // we look for members that aren't me
     let members: Vec<&str> = events
         .iter()
         .filter(|x| {
             (x["type"] == "m.room.member"
-                && ((x["content"]["membership"] == "join" && x["sender"] != userid)
-                    || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
+             && ((x["content"]["membership"] == "join" && x["sender"] != userid)
+                 || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
         })
-        .take(3)
+    .take(3)
         .map(|m| {
             let sender = m["sender"].as_str().unwrap_or("NONAMED");
             m["content"]["displayname"].as_str().unwrap_or(sender)
         })
-        .collect();
+    .collect();
 
     match members.len() {
         // we don't have information to calculate the name
