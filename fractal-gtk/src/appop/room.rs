@@ -48,8 +48,8 @@ impl AppOp {
                     self.remove_room(room.id);
                 }
             } else if room.membership.is_kicked() {
-                if let RoomMembership::Kicked(reason) = room.membership {
-                    self.kicked_room(room.id.clone(), reason);
+                if let RoomMembership::Kicked(reason, kicker) = room.membership.clone() {
+                    self.kicked_room(room.id.clone(), reason, kicker);
                 }
                 self.remove_room(room.id);
             } else if self.rooms.contains_key(&room.id) {
@@ -216,7 +216,7 @@ impl AppOp {
         }
     }
 
-    pub fn kicked_room(&self, roomid: String, reason: String) {
+    pub fn kicked_room(&self, roomid: String, reason: String, kicker: String) {
         let dialog = self
             .ui
             .builder
@@ -229,9 +229,13 @@ impl AppOp {
                 &[("room_name", &r.name.clone().unwrap_or_default())],
             );
             dialog.set_property_text(Some(&text));
+
+            let secondary_text = i18n_k(
+                "Kicked by: {kicker}\n \"{reason}\"",
+                &[("kicker", &kicker), ("reason", &reason)],
+            );
+            dialog.set_property_secondary_text(Some(&secondary_text));
         }
-        let secondary_text = i18n_k("Reason: {reason}", &[("reason", &reason)]);
-        dialog.set_property_secondary_text(Some(&secondary_text));
         dialog.present();
     }
 

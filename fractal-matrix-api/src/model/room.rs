@@ -18,7 +18,7 @@ pub enum RoomMembership {
     // An invite is send by some other user
     Invited(Member),
     Left,
-    Kicked(String), // TODO: Change String -> Reason (create Reason)
+    Kicked(String, String), // TODO: Change String -> Reason (create Reason)
 }
 
 impl RoomMembership {
@@ -43,7 +43,7 @@ impl RoomMembership {
     }
 
     pub fn is_kicked(&self) -> bool {
-        if let RoomMembership::Kicked(_) = self {
+        if let RoomMembership::Kicked(_, _) = self {
             true
         } else {
             false
@@ -170,11 +170,12 @@ impl Room {
             let leave_id = &room.timeline.events.last().unwrap()["sender"];
             if leave_id != userid {
                 let kick_reason = &room.timeline.events.last().unwrap()["content"]["reason"];
-                println!("You have been kicked by: {}", leave_id);
-                println!("Reason: {}", kick_reason);
                 Self::new(
                     k.clone(),
-                    RoomMembership::Kicked(String::from(kick_reason.as_str().unwrap_or_default())),
+                    RoomMembership::Kicked(
+                        String::from(kick_reason.as_str().unwrap_or_default()),
+                        String::from(leave_id.as_str().unwrap_or_default()),
+                    ),
                 )
             } else {
                 Self::new(k.clone(), RoomMembership::Left)
