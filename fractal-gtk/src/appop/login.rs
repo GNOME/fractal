@@ -49,7 +49,7 @@ impl AppOp {
 
     pub fn bk_logout(&mut self) {
         self.set_rooms(vec![], true);
-        if let Err(_) = cache::destroy() {
+        if let Err(_) = cache::get().destroy() {
             error!("Error removing cache file");
         }
 

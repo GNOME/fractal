@@ -1,16 +1,13 @@
 use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
-use std::fs::remove_dir_all;
 
 use crate::types::Room;
 use crate::types::RoomList;
-use failure::err_msg;
 use failure::Error;
 use std::collections::HashMap;
 
 use crate::globals;
-use fractal_api::util::cache_path;
 
 /* includes for avatar download */
 use crate::backend::BKCommand;
@@ -96,11 +93,6 @@ pub fn load() -> Result<CacheData, Error> {
     };
 
     Ok(data)
-}
-
-pub fn destroy() -> Result<(), Error> {
-    let fname = cache_path("cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
-    remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
 }
 
 /// this downloads a avatar and stores it in the cache folder
