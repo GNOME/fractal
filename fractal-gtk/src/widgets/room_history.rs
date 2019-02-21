@@ -155,7 +155,20 @@ impl RoomHistory {
                 let mut data = queue.borrow_mut();
                 if let Some(mut item) = data.pop_front() {
                     let last = data.front();
+                    let mut prev_day_divider = None;
                     let mut day_divider = None;
+
+                    if let Some(first) = rows.borrow().list.back() {
+                        match first {
+                            Element::Message(ref message) => {
+                                if item.date.day() != message.date.day() {
+                                    prev_day_divider =
+                                        Some(Element::DayDivider(create_day_divider(message.date)));
+                                }
+                            }
+                            _ => (),
+                        }
+                    };
                     let has_header = {
                         if let Some(last) = last {
                             if item.date.day() != last.date.day() {
@@ -168,6 +181,9 @@ impl RoomHistory {
                         }
                     };
 
+                    if let Some(prev_day_divider) = prev_day_divider {
+                        rows.borrow_mut().add_top(prev_day_divider);
+                    }
                     if item.last_viewed && !rows.borrow().list.is_empty() {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
