@@ -4,9 +4,11 @@ use mdl::Model;
 use mdl::Store;
 use serde::{Deserialize, Serialize};
 
+use failure::err_msg;
 use failure::Error;
 
 use std::cell::RefCell;
+use std::fs::remove_dir_all;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::types::Message;
@@ -148,14 +150,26 @@ impl FCache {
 
 // The cache object, it's the same for the whole process
 lazy_static! {
-    static ref CACHE: FCache = {
-        let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
-        let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
-        let cache = Arc::new(Mutex::new(mdl_cache));
-        FCache { cache }
-    };
+    static ref CACHE: Mutex<Option<FCache>> = Mutex::new(None);
 }
 
 pub fn get() -> FCache {
-    return CACHE.clone();
+    let mut lock = CACHE.lock().unwrap();
+
+    if lock.is_none() {
+        let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
+        let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
+        let cache = Arc::new(Mutex::new(mdl_cache));
+        *lock = Some(FCache { cache });
+    }
+
+    lock.as_ref().unwrap().clone()
+}
+
+pub fn destroy() -> Result<(), Error> {
+    let mut lock = CACHE.lock().unwrap();
+    *lock = None;
+
+    let fname = cache_path("cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
+    remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
 }
