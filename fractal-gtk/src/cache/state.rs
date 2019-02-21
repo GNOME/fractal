@@ -4,9 +4,11 @@ use mdl::Model;
 use mdl::Store;
 use serde::{Deserialize, Serialize};
 
+use failure::err_msg;
 use failure::Error;
 
 use std::cell::RefCell;
+use std::fs::remove_dir_all;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::types::Message;
@@ -92,24 +94,37 @@ impl Model for AppMsg {
 
 #[derive(Clone)]
 pub struct FCache {
-    cache: Arc<Mutex<Cache>>,
+    cache: Arc<Mutex<Option<Cache>>>,
 }
 
 impl FCache {
-    pub fn get_store(&self) -> MutexGuard<'_, Cache> {
-        self.cache.lock().unwrap()
+    fn get_store<'a>(&'a self) -> MutexGuard<'a, Option<Cache>> {
+        let mut guard = self.cache.lock().unwrap();
+        if guard.is_none() {
+            let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
+            let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
+            *guard = Some(mdl_cache);
+        }
+        guard
+    }
+
+    pub fn destroy(&self) -> Result<(), Error> {
+        let mut guard = self.cache.lock().unwrap().take();
+
+        let fname = cache_path("cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
+        remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
     }
 
     #[allow(dead_code)]
     pub fn get_room(&self, id: &str) -> Result<Room, Error> {
-        let cache = &*self.get_store();
-        let r = AppRoom::get(cache, id)?;
+        let cache = self.get_store();
+        let r = AppRoom::get(cache.as_ref().unwrap(), id)?;
         Ok(r.room.into_inner())
     }
 
     pub fn get_rooms(&self) -> Result<Vec<Room>, Error> {
-        let cache = &*self.get_store();
-        let rooms = AppRoom::all(cache, "room")?
+        let cache = self.get_store();
+        let rooms = AppRoom::all(cache.as_ref().unwrap(), "room")?
             .iter()
             .map(|r| r.room.borrow().clone())
             .collect();
@@ -124,23 +139,23 @@ impl FCache {
     }
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
-        let cache = &*self.get_store();
+        let cache = self.get_store();
         let approom = AppRoom {
             room: RefCell::new(room),
         };
-        approom.store(cache)?;
+        approom.store(cache.as_ref().unwrap())?;
 
         Ok(())
     }
 
     pub fn get_st(&self) -> Result<AppState, Error> {
-        let cache = &*self.get_store();
-        AppState::get(cache, "state")
+        let cache = self.get_store();
+        AppState::get(cache.as_ref().unwrap(), "state")
     }
 
     pub fn save_st(&self, st: AppState) -> Result<(), Error> {
-        let cache = &*self.get_store();
-        st.store(cache)?;
+        let cache = self.get_store();
+        st.store(cache.as_ref().unwrap())?;
 
         Ok(())
     }
@@ -148,14 +163,11 @@ impl FCache {
 
 // The cache object, it's the same for the whole process
 lazy_static! {
-    static ref CACHE: FCache = {
-        let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
-        let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
-        let cache = Arc::new(Mutex::new(mdl_cache));
-        FCache { cache }
+    static ref CACHE: FCache = FCache {
+        cache: Arc::new(Mutex::new(None))
     };
 }
 
 pub fn get() -> FCache {
-    return CACHE.clone();
+    CACHE.clone()
 }
