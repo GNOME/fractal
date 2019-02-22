@@ -89,7 +89,7 @@
                 {
                     "type" : "git",
                     "url" : "https://gitlab.freedesktop.org/gstreamer/gst-editing-services.git",
-                    "branch" : "1.12"
+                    "branch" : "1.14"
                 }
             ]
         },
