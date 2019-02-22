@@ -27,8 +27,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-const ZOOM_LEVELS: [f64; 7] = [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
-
 #[derive(Debug, Clone)]
 pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
@@ -43,7 +41,7 @@ struct Data {
     main_window: gtk::Window,
     backend: Sender<BKCommand>,
 
-    image: Option<image::Image>,
+    pub image: Option<image::Image>,
     media_list: Vec<Message>,
     current_media_index: usize,
 
@@ -168,13 +166,6 @@ impl Data {
         self.redraw_image_in_viewport();
     }
 
-    pub fn set_zoom_level(&self, zlvl: f64) {
-        if let Some(ref image) = self.image {
-            *image.zoom_level.lock().unwrap() = Some(zlvl);
-            image.widget.queue_draw();
-        }
-    }
-
     pub fn set_nav_btn_visibility(&self) {
         let previous_media_button = self
             .builder
@@ -201,18 +192,9 @@ impl Data {
 
     pub fn zoom_in(&self) {
         if let Some(ref image) = self.image {
-            let zoom_level = *image.zoom_level.lock().unwrap();
-            if zoom_level.is_none() || zoom_level.unwrap() >= ZOOM_LEVELS[ZOOM_LEVELS.len() - 1] {
-                return;
-            }
-
-            if let Some(new_zlvl) = ZOOM_LEVELS
-                .iter()
-                .filter(|zlvl| **zlvl > zoom_level.unwrap())
-                .nth(0)
-            {
-                self.set_zoom_level(*new_zlvl);
-            }
+            // Zooms to 100%
+            *image.zoom_level.lock().unwrap() = Some(1.0);
+            image.widget.queue_draw();
         }
     }
 
@@ -450,37 +432,21 @@ impl MediaViewer {
             Inhibit(false)
         }));
 
-        let zoom_best_fit_revealer = self
+        let zoom_stack = self
             .builder
-            .get_object::<gtk::Revealer>("media_zoom_best_fit_revealer")
-            .expect("Cant find media_zoom_best_fit_button in ui file.");
-        let weak_best_fit_revealer = zoom_best_fit_revealer.downgrade();
-
-        let zoom_in_revealer = self
-            .builder
-            .get_object::<gtk::Revealer>("media_zoom_in_revealer")
-            .expect("cant find media_zoom_in_revealer in ui file.");
-        let weak_zoom_in_revealer = zoom_in_revealer.downgrade();
+            .get_object::<gtk::Stack>("media_zoom_stack")
+            .expect("Cant find media_zoom_stack in ui file");
 
         let own = self.data.clone();
         let zoom_in_button = self
             .builder
             .get_object::<gtk::Button>("media_zoom_in_button")
             .expect("cant find media_zoom_in_button in ui file.");
-        let weak_fit_rev = weak_best_fit_revealer.clone();
-        let weak_in_rev = weak_zoom_in_revealer.clone();
+        let weak_stack = zoom_stack.downgrade();
         zoom_in_button.connect_clicked(move |_| {
+            let stack = upgrade_weak!(weak_stack, ());
             own.borrow().zoom_in();
-            let fit_rev = upgrade_weak!(weak_fit_rev, ());
-            let in_rev = upgrade_weak!(weak_in_rev, ());
-
-            fit_rev.set_reveal_child(true);
-
-            if let Some(ref image) = own.borrow().image {
-                if image.zoom_level.lock().unwrap().unwrap() == ZOOM_LEVELS[ZOOM_LEVELS.len() - 1] {
-                    in_rev.set_reveal_child(false);
-                }
-            }
+            stack.set_visible_child_name("fit");
         });
 
         let own = self.data.clone();
@@ -488,14 +454,11 @@ impl MediaViewer {
             .builder
             .get_object::<gtk::Button>("media_zoom_best_fit_button")
             .expect("Cant find media_zoom_best_fit_button in ui file.");
-        let weak_in_rev = weak_zoom_in_revealer.clone();
+        let weak_stack = zoom_stack.downgrade();
         zoom_best_fit_button.connect_clicked(move |_| {
+            let stack = upgrade_weak!(weak_stack, ());
             own.borrow().zoom_best_fit();
-            let in_rev = upgrade_weak!(weak_in_rev, ());
-            let fit_rev = upgrade_weak!(weak_best_fit_revealer, ());
-
-            in_rev.set_reveal_child(true);
-            fit_rev.set_reveal_child(false);
+            stack.set_visible_child_name("zoom");
         });
 
         let media_viewer_box = ui

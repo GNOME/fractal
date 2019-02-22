@@ -157,54 +157,44 @@
                 <property name="bottom_padding">18</property>
                 <property name="right_padding">18</property>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkStack" id="media_zoom_stack">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">6</property>
                     <child>
-                      <object class="GtkRevealer" id="media_zoom_in_revealer">
+                      <object class="GtkButton" id="media_zoom_in_button">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="reveal_child">True</property>
                         <child>
-                          <object class="GtkButton" id="media_zoom_in_button">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="icon_name">zoom-in-symbolic</property>
-                              </object>
-                            </child>
-                            <style>
-                              <class name="osd"/>
-                            </style>
+                            <property name="icon_name">zoom-in-symbolic</property>
                           </object>
                         </child>
+                        <style>
+                          <class name="osd"/>
+                        </style>
                       </object>
+                      <packing>
+                        <property name="name">zoom</property>
+                      </packing>
                     </child>
                     <child>
-                      <object class="GtkRevealer" id="media_zoom_best_fit_revealer">
+                      <object class="GtkButton" id="media_zoom_best_fit_button">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="reveal_child">False</property>
                         <child>
-                          <object class="GtkButton" id="media_zoom_best_fit_button">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="icon_name">zoom-fit-best-symbolic</property>
-                                <property name="halign">center</property>
-                                <property name="valign">center</property>
-                              </object>
-                            </child>
-                            <style>
-                              <class name="osd"/>
-                            </style>
+                            <property name="icon_name">zoom-fit-best-symbolic</property>
+                            <property name="halign">center</property>
+                            <property name="valign">center</property>
                           </object>
                         </child>
+                        <style>
+                          <class name="osd"/>
+                        </style>
                       </object>
+                      <packing>
+                        <property name="name">fit</property>
+                      </packing>
                     </child>
                   </object>
                 </child>
