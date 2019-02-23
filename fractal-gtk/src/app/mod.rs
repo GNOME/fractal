@@ -18,6 +18,9 @@ use crate::globals;
 use crate::uibuilder;
 
 mod connect;
+mod windowstate;
+
+use windowstate::WindowState;
 
 static mut OP: Option<SyncWeak<Mutex<AppOp>>> = None;
 #[macro_export]
@@ -104,6 +107,15 @@ impl App {
         window.set_application(gtk_app);
 
         window.set_title("Fractal");
+
+        let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
+        let window_state = WindowState::load_from_gsettings(&settings);
+        window.set_default_size(window_state.width, window_state.height);
+        if window_state.is_maximized {
+            window.maximize();
+        } else if window_state.x > 0 && window_state.y > 0 {
+            window.move_(window_state.x, window_state.y);
+        }
         window.show_all();
 
         if gtk_app
@@ -176,6 +188,16 @@ impl App {
                 let app = upgrade_weak!(app_weak);
                 app.op.lock().unwrap().mark_active_room_messages();
             });
+
+        let app_weak = app.downgrade();
+        app.main_window.connect_delete_event(move |window, _| {
+            let app = upgrade_weak!(app_weak, Inhibit(false));
+            let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
+            let window_state = WindowState::from_window(window);
+            window_state.save_in_gsettings(&settings);
+            app.op.lock().unwrap().quit();
+            Inhibit(false)
+        });
 
         app.op.lock().unwrap().init();
 
