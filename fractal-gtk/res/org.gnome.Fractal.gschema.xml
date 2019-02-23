@@ -24,6 +24,31 @@
       </description>
     </key>
 
+    <key name="main-window-state-x" type="i">
+      <default>-1</default>
+      <summary>X position of the main window on start up</summary>
+    </key>
+
+    <key name="main-window-state-y" type="i">
+      <default>-1</default>
+      <summary>Y position of the main window on start up</summary>
+    </key>
+
+    <key name="main-window-state-width" type="i">
+      <default>860</default>
+      <summary>Width of the main window on start up</summary>
+    </key>
+
+    <key name="main-window-state-height" type="i">
+      <default>640</default>
+      <summary>Height of the main window on start up</summary>
+    </key>
+
+    <key name="main-window-state-maximized" type="b">
+      <default>false</default>
+      <summary>Whether the main window is maximized on start up</summary>
+    </key>
+
   </schema>
 
 </schemalist>
