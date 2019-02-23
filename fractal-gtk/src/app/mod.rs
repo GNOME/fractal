@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak as SyncWeak};
+use gio::{Settings, SettingsExt, SettingsSchemaSource};
 
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
@@ -51,6 +52,58 @@ pub struct AppInner {
 
     // TODO: Remove op needed in connect, but since it is global we could remove it form here
     op: Arc<Mutex<AppOp>>,
+}
+
+pub struct WindowState {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    is_maximized: bool
+}
+
+impl WindowState {
+    pub fn load_from_gsettings(settings: &gio::Settings) -> WindowState {
+        let x = settings.get_int("main-window-state-x");
+        let y = settings.get_int("main-window-state-y");
+        let width = settings.get_int("main-window-state-width");
+        let height = settings.get_int("main-window-state-height");
+        let is_maximized = settings.get_boolean("main-window-state-maximized");
+
+        WindowState {
+            x,
+            y,
+            width,
+            height,
+            is_maximized
+        }
+    }
+
+    pub fn from_window(window: &gtk::ApplicationWindow) -> WindowState {
+        let position = window.get_position();
+        let size = window.get_size();
+        let x = position.0;
+        let y = position.1;
+        let width = size.0;
+        let height = size.1;
+        let is_maximized = window.is_maximized();
+
+        WindowState {
+            x,
+            y,
+            width,
+            height,
+            is_maximized
+        }
+    }
+
+    pub fn save_in_gsettings(&self, settings: &gio::Settings) {
+        settings.set_int("main-window-state-x", self.x);
+        settings.set_int("main-window-state-y", self.y);
+        settings.set_int("main-window-state-width", self.width);
+        settings.set_int("main-window-state-height", self.height);
+        settings.set_boolean("main-window-state-maximized", self.is_maximized);
+    }
 }
 
 // Deref into the contained struct to make usage a bit more ergonomic
@@ -104,6 +157,21 @@ impl App {
         window.set_application(gtk_app);
 
         window.set_title("Fractal");
+
+        let settings: Settings = Settings::new("org.gnome.Fractal");
+        let window_state = WindowState::load_from_gsettings(&settings);
+        window.set_default_size(window_state.width, window_state.height);
+        if window_state.is_maximized == true {
+            window.maximize();
+        }
+        else if window_state.x > 0 && window_state.y > 0 {
+            let window_clone = window.clone();
+            window
+                .connect_draw(move |_, _| {
+                    window_clone.move_(0, 0);
+                    Inhibit(false)
+                });
+        }
         window.show_all();
 
         if gtk_app
@@ -177,6 +245,17 @@ impl App {
                 app.op.lock().unwrap().mark_active_room_messages();
             });
 
+        let app_clone = gtk_app.clone();
+        let window_clone = app.main_window.clone();
+        app.main_window
+            .connect_delete_event(move |_, _| {
+                let settings: Settings = Settings::new("org.gnome.Fractal");
+                let window_state = WindowState::from_window(&window_clone);
+                window_state.save_in_gsettings(&settings);
+                app_clone.quit();
+                Inhibit(false)
+            });
+
         app.op.lock().unwrap().init();
 
         // When the application is shut down we drop our app struct
@@ -197,6 +276,10 @@ impl App {
         self.main_window
             .present_with_time((glib::get_monotonic_time() / 1000) as u32)
     }
+
+    /*fn on_main_window_destroy(&self) {
+        let window_state = WindowState::from_window(&window);
+    }*/
 
     fn on_shutdown(self) {
         self.op.lock().unwrap().quit();
