@@ -8,7 +8,7 @@ use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak as SyncWeak};
-use gio::{Settings, SettingsExt, SettingsSchemaSource};
+use gio::{Settings, SettingsExt};
 
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
