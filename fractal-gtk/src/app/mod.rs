@@ -277,10 +277,6 @@ impl App {
             .present_with_time((glib::get_monotonic_time() / 1000) as u32)
     }
 
-    /*fn on_main_window_destroy(&self) {
-        let window_state = WindowState::from_window(&window);
-    }*/
-
     fn on_shutdown(self) {
         self.op.lock().unwrap().quit();
     }
