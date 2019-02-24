@@ -111,7 +111,7 @@ impl App {
         let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
         let window_state = WindowState::load_from_gsettings(&settings);
         window.set_default_size(window_state.width, window_state.height);
-        if window_state.is_maximized == true {
+        if window_state.is_maximized {
             window.maximize();
         }
         else if window_state.x > 0 && window_state.y > 0 {
