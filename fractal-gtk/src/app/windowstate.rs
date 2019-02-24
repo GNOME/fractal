@@ -1,13 +1,13 @@
+use gio::SettingsExt;
 use gtk;
 use gtk::prelude::*;
-use gio::SettingsExt;
 
 pub struct WindowState {
     pub x: i32,
     pub y: i32,
     pub width: i32,
     pub height: i32,
-    pub is_maximized: bool
+    pub is_maximized: bool,
 }
 
 impl WindowState {
@@ -23,7 +23,7 @@ impl WindowState {
             y,
             width,
             height,
-            is_maximized
+            is_maximized,
         }
     }
 
@@ -41,7 +41,7 @@ impl WindowState {
             y,
             width,
             height,
-            is_maximized
+            is_maximized,
         }
     }
 
