@@ -79,6 +79,7 @@ impl Widgets {
         typing_label.set_xalign(0.0);
         typing_label.set_ellipsize(pango::EllipsizeMode::End);
         typing_label.set_visible(false);
+        typing_label.set_use_markup(true);
 
         let column_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
         column_box.add(&messages);
@@ -270,7 +271,7 @@ impl ScrollWidget {
             self.widgets.typing_label.set_visible(false);
         } else {
             self.widgets.typing_label.set_visible(true);
-            self.widgets.typing_label.set_text(typing_str);
+            self.widgets.typing_label.set_markup(typing_str);
         }
     }
 }

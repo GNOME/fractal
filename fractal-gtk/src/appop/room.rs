@@ -4,6 +4,7 @@ use std::fs::remove_file;
 use std::os::unix::fs;
 use url::Url;
 
+use glib::functions::markup_escape_text;
 use gtk;
 use gtk::prelude::*;
 
@@ -527,9 +528,6 @@ impl AppOp {
                 } else if cur_room.len() > 2 {
                     history.typing_notification(&i18n("Several users are typing…"));
                 } else {
-                    // So first, we create an array of typing usernames. After this, we create another
-                    // array, which is full of references to the first one. Sorry, this is the best way
-                    // I could figure out to do it.
                     let mut typing_users = Vec::new();
 
                     for r in cur_room {
@@ -542,17 +540,12 @@ impl AppOp {
                             continue;
                         }
                         let user = user.unwrap().get_alias().to_owned();
-                        typing_users.push(user);
+                        typing_users.push(markup_escape_text(&user));
                     }
-                    /*
-                    let typing_strs: Vec<&str> = Vec::new();
-                    for user in typing_users.iter() {
-                        typing_strs.push(user.cloned().as_str());
-                    }*/
 
                     let typing_string = ni18n_f(
-                        "{} is typing…",
-                        "{} and {} are typing…",
+                        "<b>{}</b> is typing…",
+                        "<b>{}</b> and {} are typing…",
                         cur_room.len() as u32,
                         typing_users
                             .iter()
