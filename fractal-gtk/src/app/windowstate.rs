@@ -1,6 +1,6 @@
 use gtk;
 use gtk::prelude::*;
-use gio::{SettingsExt};
+use gio::SettingsExt;
 
 pub struct WindowState {
     pub x: i32,

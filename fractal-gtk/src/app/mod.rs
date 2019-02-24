@@ -8,7 +8,6 @@ use std::rc::{Rc, Weak};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak as SyncWeak};
-use gio::{Settings};
 
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
@@ -191,13 +190,14 @@ impl App {
                 app.op.lock().unwrap().mark_active_room_messages();
             });
 
-        let app_clone = gtk_app.clone();
+        let app_weak = app.downgrade();
         app.main_window
             .connect_delete_event(move |window, _| {
-                let settings: Settings = Settings::new("org.gnome.Fractal");
+                let app = upgrade_weak!(app_weak, Inhibit(false));
+                let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
                 let window_state = WindowState::from_window(window);
                 window_state.save_in_gsettings(&settings);
-                app_clone.quit();
+                app.op.lock().unwrap().quit();
                 Inhibit(false)
             });
 
