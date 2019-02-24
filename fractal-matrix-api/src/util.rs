@@ -18,8 +18,7 @@ use std::io::prelude::*;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
-use std::time::Duration;
-
+use crate::client::Client;
 use crate::error::Error;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
@@ -29,11 +28,7 @@ use reqwest::header::CONTENT_TYPE;
 use crate::globals;
 
 lazy_static! {
-    static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::builder()
-        .gzip(true)
-        .timeout(Duration::from_secs(globals::TIMEOUT))
-        .build()
-        .expect("Couldn't create a http client");
+    static ref HTTP_CLIENT: Client = Client::new();
 }
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
@@ -232,7 +227,7 @@ pub fn get_room_media_list(
 }
 
 pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
-    let conn = HTTP_CLIENT.get(url);
+    let conn = HTTP_CLIENT.get_client()?.get(url);
     let mut res = conn.send()?;
 
     let mut buffer = Vec::new();
@@ -244,7 +239,11 @@ pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
     let (mime, _) = gio::content_type_guess(None, file.as_slice());
 
-    let conn = HTTP_CLIENT.post(url).body(file).header(CONTENT_TYPE, mime);
+    let conn = HTTP_CLIENT
+        .get_client()?
+        .post(url)
+        .body(file)
+        .header(CONTENT_TYPE, mime);
 
     let mut res = conn.send()?;
 
@@ -350,10 +349,10 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
     let mut conn = match method {
-        "post" => HTTP_CLIENT.post(url.as_str()),
-        "put" => HTTP_CLIENT.put(url.as_str()),
-        "delete" => HTTP_CLIENT.delete(url.as_str()),
-        _ => HTTP_CLIENT.get(url.as_str()),
+        "post" => HTTP_CLIENT.get_client()?.post(url.as_str()),
+        "put" => HTTP_CLIENT.get_client()?.put(url.as_str()),
+        "delete" => HTTP_CLIENT.get_client()?.delete(url.as_str()),
+        _ => HTTP_CLIENT.get_client()?.get(url.as_str()),
     };
 
     if !attrs.is_null() {
