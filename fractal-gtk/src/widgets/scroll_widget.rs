@@ -6,7 +6,6 @@ use gio::Action;
 use gio::ActionExt;
 use gtk;
 use gtk::prelude::*;
-use pango;
 
 use libhandy;
 use libhandy::ColumnExt;
@@ -77,7 +76,7 @@ impl Widgets {
             .unwrap()
             .add_class("typing_label");
         typing_label.set_xalign(0.0);
-        typing_label.set_ellipsize(pango::EllipsizeMode::End);
+        typing_label.set_line_wrap(true);
         typing_label.set_visible(false);
         typing_label.set_use_markup(true);
 
