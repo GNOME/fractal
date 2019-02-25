@@ -76,7 +76,8 @@ impl Widgets {
             .unwrap()
             .add_class("typing_label");
         typing_label.set_xalign(0.0);
-        typing_label.set_line_wrap(true);
+        typing_label.set_property_wrap(true);
+        typing_label.set_property_wrap_mode(pango::WrapMode::WordChar);
         typing_label.set_visible(false);
         typing_label.set_use_markup(true);
 
@@ -270,7 +271,11 @@ impl ScrollWidget {
             self.widgets.typing_label.set_visible(false);
         } else {
             self.widgets.typing_label.set_visible(true);
+<<<<<<< HEAD
             self.widgets.typing_label.set_markup(typing_str);
+=======
+            self.widgets.typing_label.set_text(typing_str);
+>>>>>>> bf6c059... Changed typing notifications to a style more consistent with the appop loop
         }
     }
 }
