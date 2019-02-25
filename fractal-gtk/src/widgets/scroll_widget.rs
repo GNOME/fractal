@@ -76,7 +76,8 @@ impl Widgets {
             .unwrap()
             .add_class("typing_label");
         typing_label.set_xalign(0.0);
-        typing_label.set_line_wrap(true);
+        typing_label.set_property_wrap(true);
+        typing_label.set_property_wrap_mode(pango::WrapMode::WordChar);
         typing_label.set_visible(false);
         typing_label.set_use_markup(true);
 
