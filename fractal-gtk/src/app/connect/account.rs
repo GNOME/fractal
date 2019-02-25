@@ -291,16 +291,22 @@ impl App {
         let scroll = builder
             .get_object::<gtk::ScrolledWindow>("account_settings_scroll")
             .expect("Can't find account_settings_scroll in ui file.");
-        delete_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
-            if let Some(adj) = scroll.get_vadjustment() {
-                let bottom = adj.get_upper() - adj.get_page_size();
-                adj.set_value(bottom);
+        delete_revealer.connect_size_allocate(clone!(scroll => move |this, _| {
+            if this.get_reveal_child() && !this.get_child_revealed() {
+                // The revealer is revealing
+                if let Some(adj) = scroll.get_vadjustment() {
+                    let bottom = adj.get_upper() - adj.get_page_size();
+                    adj.set_value(bottom);
+                }
             }
         }));
-        advanced_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
-            if let Some(adj) = scroll.get_vadjustment() {
-                let bottom = adj.get_upper() - adj.get_page_size();
-                adj.set_value(bottom);
+        advanced_revealer.connect_size_allocate(clone!(scroll => move |this, _| {
+            if this.get_reveal_child() && !this.get_child_revealed() {
+                // The revealer is revealing
+                if let Some(adj) = scroll.get_vadjustment() {
+                    let bottom = adj.get_upper() - adj.get_page_size();
+                    adj.set_value(bottom);
+                }
             }
         }));
     }
