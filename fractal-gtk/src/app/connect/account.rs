@@ -288,22 +288,23 @@ impl App {
             op.lock().unwrap().account_destruction();
         }));
 
-        let scroll = builder
+        let scroll_weak = builder
             .get_object::<gtk::ScrolledWindow>("account_settings_scroll")
-            .expect("Can't find account_settings_scroll in ui file.");
-        delete_revealer.connect_size_allocate(clone!(scroll => move |this, _| {
+            .expect("Can't find account_settings_scroll in ui file.")
+            .downgrade();
+        delete_revealer.connect_size_allocate(clone!(scroll_weak => move |this, _| {
             if this.get_reveal_child() && !this.get_child_revealed() {
                 // The revealer is revealing
-                if let Some(adj) = scroll.get_vadjustment() {
+                if let Some(adj) = upgrade_weak!(scroll_weak).get_vadjustment() {
                     let bottom = adj.get_upper() - adj.get_page_size();
                     adj.set_value(bottom);
                 }
             }
         }));
-        advanced_revealer.connect_size_allocate(clone!(scroll => move |this, _| {
+        advanced_revealer.connect_size_allocate(clone!(scroll_weak => move |this, _| {
             if this.get_reveal_child() && !this.get_child_revealed() {
                 // The revealer is revealing
-                if let Some(adj) = scroll.get_vadjustment() {
+                if let Some(adj) = upgrade_weak!(scroll_weak).get_vadjustment() {
                     let bottom = adj.get_upper() - adj.get_page_size();
                     adj.set_value(bottom);
                 }
