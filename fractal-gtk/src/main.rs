@@ -29,7 +29,27 @@ use log::Level;
 use loggerv;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    loggerv::init_with_level(Level::Error).expect("Failed to initialize logger");
+    #[cfg(not(debug_assertions))]
+    {
+        let clap_args = clap::App::new("app")
+            .arg(
+                clap::Arg::with_name("v")
+                    .short("v")
+                    .help("Sets the level of verbosity"),
+            )
+            .get_matches();
+
+        let level = if clap_args.is_present("v") {
+            Level::Info
+        } else {
+            Level::Error
+        };
+
+        loggerv::init_with_level(level).expect("Failed to initialize logger");
+    }
+
+    #[cfg(debug_assertions)]
+    loggerv::init_with_level(Level::Info).expect("Failed to initialize logger");
 
     static_resources::init().expect("GResource initialization failed.");
 
