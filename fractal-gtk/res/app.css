@@ -224,24 +224,6 @@ row .timestamp {
   background-color: @theme_bg_color;
 }
 
-.advanced_revealer {
-  border-radius: 3px;
-	border: 1px solid @borders;
-  background-color: @theme_base_color;
-}
-
-.advanced_revealer_header {
-  padding: 18px;
-}
-
-.advanced_revealer_divider {
-  border-radius: 0px;
-  border-bottom: 1px solid @borders;
-}
-.advanced_revealer_body {
-  padding: 18px;
-}
-
 .no_member_search {
   padding: 12px;
   background: @theme_base_color;
