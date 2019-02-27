@@ -12,7 +12,7 @@ dependency('gio-2.0', version: '>= 2.56')
 dependency('cairo', version: '>= 1.16')
 dependency('gdk-pixbuf-2.0')
 dependency('gtk+-3.0', version: '>= 3.22')
-dependency('libhandy-0.0', version: '>= 0.0.7')
+dependency('libhandy-0.0', version: '>= 0.0.8')
 dependency('gtksourceview-3.0', version: '>= 3.22')
 dependency('gspell-1', version: '>= 1.8')
 
