@@ -466,7 +466,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
 pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
     let mut extra_content: ExtraContent =
-        serde_json::from_value(msg.clone().extra_content.unwrap()).unwrap();
+        serde_json::from_value(msg.clone().extra_content.unwrap_or_default()).unwrap_or_default();
     let thumb = extra_content.info.thumbnail_url.clone().unwrap_or_default();
 
     let tx = bk.tx.clone();
@@ -487,7 +487,8 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
                 Ok(thumb_uri) => {
                     msg.thumb = Some(thumb_uri.to_string());
                     extra_content.info.thumbnail_url = Some(thumb_uri);
-                    msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
+                    msg.extra_content =
+                        Some(serde_json::to_value(&extra_content).unwrap_or_default());
                 }
             }
             if let Err(_e) = std::fs::remove_file(&thumb) {
