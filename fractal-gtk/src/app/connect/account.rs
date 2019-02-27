@@ -27,26 +27,6 @@ impl App {
             .builder
             .get_object::<gtk::Dialog>("password_dialog")
             .expect("Can't find password_dialog in ui file.");
-        let advanced_toggle = self
-            .ui
-            .builder
-            .get_object::<gtk::EventBox>("account_settings_advanced_toggle")
-            .expect("Can't find account_settings_advanced_toggle in ui file.");
-        let delete_toggle = self
-            .ui
-            .builder
-            .get_object::<gtk::EventBox>("account_settings_delete_toggle")
-            .expect("Can't find account_settings_delete_toggle in ui file.");
-        let delete_revealer = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_delete")
-            .expect("Can't find account_settings_delete in ui file.");
-        let advanced_revealer = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_advanced")
-            .expect("Can't find account_settings_advanced in ui file.");
         let avatar_btn = self
             .ui
             .builder
@@ -244,36 +224,6 @@ impl App {
             validate_password_input(&builder)
         }));
 
-        advanced_toggle.connect_button_press_event(clone!(builder => move |this, _| {
-            let widget = builder
-                .get_object::<gtk::Revealer>("account_settings_advanced")
-                .expect("Can't find account_settings_advanced in ui file.");
-            if widget.get_reveal_child() {
-                this.get_style_context().unwrap().remove_class("advanced_revealer_divider");
-                widget.set_reveal_child(false);
-            }
-            else {
-                this.get_style_context().unwrap().add_class("advanced_revealer_divider");
-                widget.set_reveal_child(true);
-            }
-            glib::signal::Inhibit(false)
-        }));
-
-        delete_toggle.connect_button_press_event(clone!(builder => move |this, _| {
-            let widget = builder
-                .get_object::<gtk::Revealer>("account_settings_delete")
-                .expect("Can't find account_settings_delete in ui file.");
-            if widget.get_reveal_child() {
-                this.get_style_context().unwrap().remove_class("advanced_revealer_divider");
-                widget.set_reveal_child(false);
-            }
-            else {
-                this.get_style_context().unwrap().add_class("advanced_revealer_divider");
-                widget.set_reveal_child(true);
-            }
-            glib::signal::Inhibit(false)
-        }));
-
         destruction_entry.connect_property_text_notify(clone!(destruction_btn => move |w| {
             if let Some(text) = w.get_text() {
                 if text != "" {
@@ -286,22 +236,6 @@ impl App {
 
         destruction_btn.connect_clicked(clone!(op => move |_| {
             op.lock().unwrap().account_destruction();
-        }));
-
-        let scroll = builder
-            .get_object::<gtk::ScrolledWindow>("account_settings_scroll")
-            .expect("Can't find account_settings_scroll in ui file.");
-        delete_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
-            if let Some(adj) = scroll.get_vadjustment() {
-                let bottom = adj.get_upper() - adj.get_page_size();
-                adj.set_value(bottom);
-            }
-        }));
-        advanced_revealer.connect_size_allocate(clone!(scroll => move |_, _| {
-            if let Some(adj) = scroll.get_vadjustment() {
-                let bottom = adj.get_upper() - adj.get_page_size();
-                adj.set_value(bottom);
-            }
         }));
     }
 }

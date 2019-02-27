@@ -243,16 +243,6 @@ impl AppOp {
             .builder
             .get_object::<gtk::Stack>("account_settings_stack")
             .expect("Can't find account_settings_delete_box in ui file.");
-        let advanced = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_advanced")
-            .expect("Can't find account_settings_advanced in ui file.");
-        let delete = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_delete")
-            .expect("Can't find account_settings_delete in ui file.");
         let destruction_btn = self
             .ui
             .builder
@@ -302,8 +292,6 @@ impl AppOp {
         password_btn_stack.set_visible_child_name("label");
         password_btn.set_sensitive(true);
 
-        advanced.set_reveal_child(false);
-        delete.set_reveal_child(false);
         destruction_flag.set_active(false);
         destruction_btn.set_sensitive(false);
         destruction_entry.set_text("");
@@ -529,26 +517,6 @@ impl AppOp {
     }
 
     pub fn close_account_settings_dialog(&self) {
-        let advanced = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_advanced")
-            .expect("Can't find account_settings_advanced in ui file.");
-        let delete = self
-            .ui
-            .builder
-            .get_object::<gtk::Revealer>("account_settings_delete")
-            .expect("Can't find account_settings_delete in ui file.");
-        let advanced_toggle = self
-            .ui
-            .builder
-            .get_object::<gtk::EventBox>("account_settings_advanced_toggle")
-            .expect("Can't find account_settings_advanced_toggle in ui file.");
-        let delete_toggle = self
-            .ui
-            .builder
-            .get_object::<gtk::EventBox>("account_settings_delete_toggle")
-            .expect("Can't find account_settings_delete_toggle in ui file.");
         let advanced_box = self
             .ui
             .builder
@@ -565,16 +533,6 @@ impl AppOp {
             .get_object::<gtk::Box>("account_settings_box")
             .expect("Can't find account_settings_delete_box in ui file.");
 
-        advanced_toggle
-            .get_style_context()
-            .unwrap()
-            .remove_class("advanced_revealer_divider");
-        delete_toggle
-            .get_style_context()
-            .unwrap()
-            .remove_class("advanced_revealer_divider");
-        advanced.set_reveal_child(false);
-        delete.set_reveal_child(false);
         advanced_box.queue_draw();
         delete_box.queue_draw();
         b.queue_draw();
