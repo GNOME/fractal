@@ -276,6 +276,7 @@ impl AppOp {
                     let info = match mtype {
                         "m.image" => get_image_media_info(path_string, mime.as_ref()),
                         "m.audio" => get_audio_media_info(path_string, mime.as_ref()),
+                        "m.file" => get_file_media_info(path_string, mime.as_ref()),
                         _ => None,
                     };
 
@@ -535,6 +536,19 @@ fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
             "size": size,
             "mimetype": mimetype,
             "duration": duration,
+        }
+    });
+
+    Some(info)
+}
+
+fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+    let size = fs::metadata(file).ok()?.len();
+
+    let info = json!({
+        "info": {
+            "size": size,
+            "mimetype": mimetype,
         }
     });
 

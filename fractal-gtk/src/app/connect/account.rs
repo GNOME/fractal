@@ -41,12 +41,12 @@ impl App {
             .ui
             .builder
             .get_object::<gtk::Revealer>("account_settings_delete")
-            .expect("Can't find account_settings_advanced_delete in ui file.");
+            .expect("Can't find account_settings_delete in ui file.");
         let advanced_revealer = self
             .ui
             .builder
             .get_object::<gtk::Revealer>("account_settings_advanced")
-            .expect("Can't find account_settings_advanced_advanced in ui file.");
+            .expect("Can't find account_settings_advanced in ui file.");
         let avatar_btn = self
             .ui
             .builder
