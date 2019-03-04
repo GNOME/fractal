@@ -198,7 +198,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(user_search_finished, (users));
                 }
                 Ok(BKResponse::Typing(rooms)) => {
-                    APPOP!(typing_notification, (rooms));
+                    let clear_room_list = false;
+                    APPOP!(set_rooms, (rooms, clear_room_list));
                 }
 
                 // errors
