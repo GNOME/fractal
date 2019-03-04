@@ -4,7 +4,6 @@ use std::fs::remove_file;
 use std::os::unix::fs;
 use url::Url;
 
-use glib::functions::markup_escape_text;
 use gtk;
 use gtk::prelude::*;
 
@@ -26,7 +25,7 @@ use crate::util::markup_text;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use std::collections::HashMap;
+use glib::functions::markup_escape_text;
 
 pub struct Force(pub bool);
 
@@ -52,6 +51,8 @@ impl AppOp {
                 }
             } else if self.rooms.contains_key(&room.id) {
                 // TODO: update the existing rooms
+                self.rooms.get_mut(&room.id).unwrap().typing_users = room.typing_users.clone();
+                self.update_typing_notification();
             } else {
                 // Request all joined members for each new room
                 self.backend
@@ -181,6 +182,7 @@ impl AppOp {
         self.active_room = Some(active_room);
         /* Mark the new active room as read */
         self.mark_last_message_as_read(Force(false));
+        self.update_typing_notification();
     }
 
     pub fn really_leave_active_room(&mut self) {
@@ -518,42 +520,37 @@ impl AppOp {
         self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
     }
 
-    pub fn typing_notification(&mut self, rooms: HashMap<String, Vec<String>>) {
-        let active_room = self.active_room.clone().unwrap_or_default();
-        if let Some(ref mut history) = self.history {
-            if rooms.contains_key(&active_room) {
-                let cur_room = rooms.get(&active_room).unwrap();
-                if cur_room.len() == 0 {
+    pub fn update_typing_notification(&mut self) {
+        if let Some(active_room) = &self
+            .rooms
+            .get(&self.active_room.clone().unwrap_or_default())
+        {
+            if let Some(ref mut history) = self.history {
+                let typing_users: &Vec<String> = &active_room.typing_users;
+                if typing_users.len() == 0 {
                     history.typing_notification("");
-                } else if cur_room.len() > 2 {
+                } else if typing_users.len() > 2 {
                     history.typing_notification(&i18n("Several users are typing…"));
                 } else {
-                    let mut typing_users = Vec::new();
-
-                    for r in cur_room {
-                        let user = self.rooms.get(&active_room);
-                        if user.is_none() {
-                            continue;
-                        }
-                        let user = user.unwrap().members.get(r.as_str());
-                        if user.is_none() {
-                            continue;
-                        }
-                        let user = user.unwrap().get_alias().to_owned();
-                        typing_users.push(markup_escape_text(&user));
-                    }
+                    let typing_users: Vec<String> = typing_users
+                        .into_iter()
+                        .map(|user| {
+                            markup_escape_text(
+                                &active_room.members.get(user.as_str()).unwrap().get_alias(),
+                            )
+                        })
+                        .collect();
 
                     let typing_string = ni18n_f(
                         "<b>{}</b> is typing…",
                         "<b>{}</b> and {} are typing…",
-                        cur_room.len() as u32,
+                        typing_users.len() as u32,
                         typing_users
                             .iter()
                             .map(std::ops::Deref::deref)
                             .collect::<Vec<&str>>()
                             .as_slice(),
                     );
-
                     history.typing_notification(&typing_string);
                 }
             }
