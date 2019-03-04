@@ -9,13 +9,16 @@ use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomEventFilter;
 use crate::types::RoomFilter;
+use crate::types::RoomMembership;
+use crate::types::RoomTag;
 use crate::types::SyncResponse;
 use crate::types::UnreadNotificationsCount;
 use crate::util::json_q;
 use crate::util::parse_m_direct;
-use crate::util::parse_typing_notifications;
+
 use log::error;
 use serde_json::json;
+use serde_json::value::from_value;
 use serde_json::Value as JsonValue;
 use std::{thread, time};
 
@@ -115,10 +118,31 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             .unwrap();
                     }
 
-                    match parse_typing_notifications(&response) {
-                        Err(err) => tx.send(BKResponse::SyncError(err)).unwrap(),
-                        Ok(rooms) => tx.send(BKResponse::Typing(rooms)).unwrap(),
-                    }
+                    // Typing notifications
+                    let rooms: Vec<Room> = join
+                        .iter()
+                        .map(|(k, room)| {
+                            let ephemerals = &room.ephemeral.events;
+                            let mut typing_room: Room =
+                                Room::new(k.clone(), RoomMembership::Joined(RoomTag::None));
+                            let mut typing = Vec::new();
+                            for event in ephemerals.iter() {
+                                if let Some(typing_users) = event
+                                    .get("content")
+                                    .and_then(|x| x.get("user_ids"))
+                                    .and_then(|x| x.as_array())
+                                {
+                                    for user in typing_users {
+                                        let user: String = from_value(user.to_owned()).unwrap();
+                                        typing.push(user);
+                                    }
+                                }
+                            }
+                            typing_room.typing_users = typing;
+                            typing_room
+                        })
+                        .collect();
+                    tx.send(BKResponse::Typing(rooms)).unwrap();
 
                     // Other events
                     join.iter()
