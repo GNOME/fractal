@@ -5,6 +5,7 @@ use crate::globals;
 use crate::types::Event;
 use crate::types::EventFilter;
 use crate::types::Filter;
+use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomEventFilter;
@@ -96,7 +97,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
 
                     // New rooms
                     let rs = Room::from_sync_response(&response, &userid, &baseu);
-                    tx.send(BKResponse::NewRooms(rs)).unwrap();
+                    tx.send(BKResponse::UpdateRooms(rs)).unwrap();
 
                     // Message events
                     let msgs = join
@@ -125,7 +126,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             let ephemerals = &room.ephemeral.events;
                             let mut typing_room: Room =
                                 Room::new(k.clone(), RoomMembership::Joined(RoomTag::None));
-                            let mut typing = Vec::new();
+                            let mut typing: Vec<Member> = Vec::new();
                             for event in ephemerals.iter() {
                                 if let Some(typing_users) = event
                                     .get("content")
@@ -134,7 +135,11 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                                 {
                                     for user in typing_users {
                                         let user: String = from_value(user.to_owned()).unwrap();
-                                        typing.push(user);
+                                        typing.push(Member {
+                                            uid: user,
+                                            alias: None,
+                                            avatar: None,
+                                        });
                                     }
                                 }
                             }
@@ -142,7 +147,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::Typing(rooms)).unwrap();
+                    tx.send(BKResponse::UpdateRooms(rooms)).unwrap();
 
                     // Other events
                     join.iter()

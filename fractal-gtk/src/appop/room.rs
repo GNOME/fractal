@@ -18,7 +18,7 @@ use crate::actions::AppState;
 use crate::cache;
 use crate::widgets;
 
-use crate::types::{Room, RoomMembership, RoomTag};
+use crate::types::{Member, Room, RoomMembership, RoomTag};
 
 use crate::util::markup_text;
 
@@ -51,7 +51,14 @@ impl AppOp {
                 }
             } else if self.rooms.contains_key(&room.id) {
                 // TODO: update the existing rooms
-                self.rooms.get_mut(&room.id).unwrap().typing_users = room.typing_users.clone();
+                let update_room = self.rooms.get_mut(&room.id).unwrap();
+                let typing_users: Vec<Member> = room
+                    .typing_users
+                    .clone()
+                    .iter()
+                    .map(|u| update_room.members.get(&u.uid).unwrap_or(&u).to_owned())
+                    .collect();
+                update_room.typing_users = typing_users;
                 self.update_typing_notification();
             } else {
                 // Request all joined members for each new room
@@ -526,7 +533,7 @@ impl AppOp {
             .get(&self.active_room.clone().unwrap_or_default())
         {
             if let Some(ref mut history) = self.history {
-                let typing_users: &Vec<String> = &active_room.typing_users;
+                let typing_users = &active_room.typing_users;
                 if typing_users.len() == 0 {
                     history.typing_notification("");
                 } else if typing_users.len() > 2 {
@@ -534,11 +541,7 @@ impl AppOp {
                 } else {
                     let typing_users: Vec<String> = typing_users
                         .into_iter()
-                        .map(|user| {
-                            markup_escape_text(
-                                &active_room.members.get(user.as_str()).unwrap().get_alias(),
-                            )
-                        })
+                        .map(|user| markup_escape_text(&user.get_alias()))
                         .collect();
 
                     let typing_string = ni18n_f(
