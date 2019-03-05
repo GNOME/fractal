@@ -81,7 +81,7 @@ pub struct Room {
     pub membership: RoomMembership,
     pub direct: bool,
     pub prev_batch: Option<String>,
-    pub typing_users: Vec<String>,
+    pub typing_users: Vec<Member>,
 
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level

@@ -105,7 +105,7 @@ pub enum BKResponse {
     SetUserAvatar(String),
     Sync(String),
     Rooms(Vec<Room>, Option<Room>),
-    NewRooms(Vec<Room>),
+    UpdateRooms(Vec<Room>),
     RoomDetail(String, String, String),
     RoomAvatar(String, Option<Url>),
     NewRoomAvatar(String),
@@ -134,7 +134,6 @@ pub enum BKResponse {
     RoomNotifications(String, i32, i32),
     UserSearch(Vec<Member>),
     Stickers(Vec<StickerGroup>),
-    Typing(Vec<Room>),
 
     //errors
     UserNameError(Error),
