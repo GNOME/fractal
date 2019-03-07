@@ -190,21 +190,6 @@ impl Data {
         }
     }
 
-    pub fn zoom_in(&self) {
-        if let Some(ref image) = self.image {
-            // Zooms to 100%
-            *image.zoom_level.lock().unwrap() = Some(1.0);
-            image.widget.queue_draw();
-        }
-    }
-
-    pub fn zoom_best_fit(&self) {
-        if let Some(ref image) = self.image {
-            *image.zoom_level.lock().unwrap() = None;
-            image.widget.queue_draw();
-        }
-    }
-
     pub fn previous_media(&mut self) -> bool {
         if self.no_more_media {
             return true;
@@ -431,35 +416,6 @@ impl MediaViewer {
 
             Inhibit(false)
         }));
-
-        let zoom_stack = self
-            .builder
-            .get_object::<gtk::Stack>("media_zoom_stack")
-            .expect("Cant find media_zoom_stack in ui file");
-
-        let own = self.data.clone();
-        let zoom_in_button = self
-            .builder
-            .get_object::<gtk::Button>("media_zoom_in_button")
-            .expect("cant find media_zoom_in_button in ui file.");
-        let weak_stack = zoom_stack.downgrade();
-        zoom_in_button.connect_clicked(move |_| {
-            let stack = upgrade_weak!(weak_stack, ());
-            own.borrow().zoom_in();
-            stack.set_visible_child_name("fit");
-        });
-
-        let own = self.data.clone();
-        let zoom_best_fit_button = self
-            .builder
-            .get_object::<gtk::Button>("media_zoom_best_fit_button")
-            .expect("Cant find media_zoom_best_fit_button in ui file.");
-        let weak_stack = zoom_stack.downgrade();
-        zoom_best_fit_button.connect_clicked(move |_| {
-            let stack = upgrade_weak!(weak_stack, ());
-            own.borrow().zoom_best_fit();
-            stack.set_visible_child_name("zoom");
-        });
 
         let media_viewer_box = ui
             .get_object::<gtk::Box>("media_viewer_box")
