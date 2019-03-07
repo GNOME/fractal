@@ -27,9 +27,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-const FLOATING_POINT_ERROR: f64 = 0.01;
-const ZOOM_LEVELS: [f64; 7] = [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
-
 #[derive(Debug, Clone)]
 pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
@@ -44,7 +41,7 @@ struct Data {
     main_window: gtk::Window,
     backend: Sender<BKCommand>,
 
-    image: Option<image::Image>,
+    pub image: Option<image::Image>,
     media_list: Vec<Message>,
     current_media_index: usize,
 
@@ -169,36 +166,6 @@ impl Data {
         self.redraw_image_in_viewport();
     }
 
-    pub fn change_zoom_level(&self) {
-        let zoom_entry = self
-            .builder
-            .get_object::<gtk::EntryBuffer>("zoom_level")
-            .expect("Cant find zoom_level in ui file.");
-
-        if let Some(ref image) = self.image {
-            match zoom_entry
-                .get_text()
-                .trim()
-                .trim_right_matches('%')
-                .parse::<f64>()
-            {
-                Ok(zlvl) => self.set_zoom_level(zlvl / 100.0),
-                Err(_) => {
-                    if let Some(zlvl) = *image.zoom_level.lock().unwrap() {
-                        update_zoom_entry(&self.builder, zlvl)
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn set_zoom_level(&self, zlvl: f64) {
-        if let Some(ref image) = self.image {
-            *image.zoom_level.lock().unwrap() = Some(zlvl);
-            image.widget.queue_draw();
-        }
-    }
-
     pub fn set_nav_btn_visibility(&self) {
         let previous_media_button = self
             .builder
@@ -220,39 +187,6 @@ impl Data {
             next_media_button.set_visible(false);
         } else {
             next_media_button.set_visible(true);
-        }
-    }
-
-    pub fn zoom_out(&self) {
-        if let Some(ref image) = self.image {
-            let zoom_level = *image.zoom_level.lock().unwrap();
-            if zoom_level.is_none() || zoom_level.unwrap() <= ZOOM_LEVELS[0] {
-                return;
-            }
-            if let Some(new_zlvl) = ZOOM_LEVELS
-                .iter()
-                .filter(|zlvl| **zlvl < zoom_level.unwrap())
-                .last()
-            {
-                self.set_zoom_level(*new_zlvl);
-            }
-        }
-    }
-
-    pub fn zoom_in(&self) {
-        if let Some(ref image) = self.image {
-            let zoom_level = *image.zoom_level.lock().unwrap();
-            if zoom_level.is_none() || zoom_level.unwrap() >= ZOOM_LEVELS[ZOOM_LEVELS.len() - 1] {
-                return;
-            }
-
-            if let Some(new_zlvl) = ZOOM_LEVELS
-                .iter()
-                .filter(|zlvl| **zlvl > zoom_level.unwrap())
-                .nth(0)
-            {
-                self.set_zoom_level(*new_zlvl);
-            }
         }
     }
 
@@ -310,16 +244,6 @@ impl Data {
 
         media_viewport.add(&image.widget);
         image.widget.show();
-
-        let ui = self.builder.clone();
-        let zoom_level = image.zoom_level.clone();
-        image.widget.connect_draw(move |_, _| {
-            if let Some(zlvl) = *zoom_level.lock().unwrap() {
-                update_zoom_entry(&ui, zlvl);
-            }
-
-            Inhibit(false)
-        });
 
         self.set_nav_btn_visibility();
 
@@ -404,22 +328,11 @@ impl MediaViewer {
 
         let image = image::Image::new(&self.backend, &media_msg.url.clone().unwrap_or_default())
             .fit_to_width(true)
-            .fixed(true)
             .center(true)
             .build();
 
         media_viewport.add(&image.widget);
         media_viewport.show_all();
-
-        let ui = self.builder.clone();
-        let zoom_level = image.zoom_level.clone();
-        image.widget.connect_draw(move |_, _| {
-            if let Some(zlvl) = *zoom_level.lock().unwrap() {
-                update_zoom_entry(&ui, zlvl);
-            }
-
-            Inhibit(false)
-        });
 
         self.data.borrow_mut().image = Some(image);
         self.data.borrow_mut().set_nav_btn_visibility();
@@ -427,33 +340,6 @@ impl MediaViewer {
 
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
-        let zoom_entry = self
-            .builder
-            .get_object::<gtk::Entry>("zoom_entry")
-            .expect("Cant find zoom_entry in ui file.");
-        let own = self.data.clone();
-        zoom_entry.connect_activate(move |_| {
-            own.borrow().change_zoom_level();
-        });
-
-        let own = self.data.clone();
-        let zoom_out_button = self
-            .builder
-            .get_object::<gtk::Button>("zoom_out_button")
-            .expect("Cant find zoom_out_button in ui file.");
-        zoom_out_button.connect_clicked(move |_| {
-            own.borrow().zoom_out();
-        });
-
-        let own = self.data.clone();
-        let zoom_in_button = self
-            .builder
-            .get_object::<gtk::Button>("zoom_in_button")
-            .expect("Cant find zoom_in_button in ui file.");
-        zoom_in_button.connect_clicked(move |_| {
-            own.borrow().zoom_in();
-        });
-
         let own = self.data.clone();
         let full_screen_button = self
             .builder
@@ -664,30 +550,6 @@ impl MediaViewer {
             }
         });
     }
-}
-
-fn update_zoom_entry(ui: &gtk::Builder, zoom_level: f64) {
-    let zoom_entry = ui
-        .get_object::<gtk::EntryBuffer>("zoom_level")
-        .expect("Cant find zoom_level in ui file.");
-    zoom_entry.set_text(&format!("{:.0}%", zoom_level * 100.0));
-    set_zoom_btn_sensitivity(ui, zoom_level);
-}
-
-fn set_zoom_btn_sensitivity(builder: &gtk::Builder, zlvl: f64) -> Option<()> {
-    let zoom_out_button = builder
-        .get_object::<gtk::Button>("zoom_out_button")
-        .expect("Cant find zoom_out_button in ui file.");
-
-    let zoom_in_button = builder
-        .get_object::<gtk::Button>("zoom_in_button")
-        .expect("Cant find zoom_in_button in ui file.");
-
-    let min_lvl = ZOOM_LEVELS.first()?.clone();
-    let max_lvl = ZOOM_LEVELS.last()?.clone();
-    zoom_out_button.set_sensitive(!(zlvl <= min_lvl + FLOATING_POINT_ERROR));
-    zoom_in_button.set_sensitive(!(zlvl >= max_lvl - FLOATING_POINT_ERROR));
-    None
 }
 
 fn set_header_title(ui: &gtk::Builder, title: &str) {
