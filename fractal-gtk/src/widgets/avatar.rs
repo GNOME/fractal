@@ -42,7 +42,13 @@ pub trait AvatarExt {
     fn avatar_new(size: Option<i32>) -> gtk::Overlay;
     fn clean(&self);
     fn create_da(&self, size: Option<i32>) -> DrawingArea;
-    fn circle(&self, uid: String, username: Option<String>, badge: Option<BadgeColor>, size: i32) -> Rc<RefCell<AvatarData>>;
+    fn circle(
+        &self,
+        uid: String,
+        username: Option<String>,
+        badge: Option<BadgeColor>,
+        size: i32,
+    ) -> Rc<RefCell<AvatarData>>;
 }
 
 impl AvatarExt for gtk::Overlay {
@@ -74,7 +80,13 @@ impl AvatarExt for gtk::Overlay {
         b
     }
 
-    fn circle(&self, uid: String, username: Option<String>, badge: Option<BadgeColor>, size: i32) -> Rc<RefCell<AvatarData>> {
+    fn circle(
+        &self,
+        uid: String,
+        username: Option<String>,
+        badge: Option<BadgeColor>,
+        size: i32,
+    ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
         let path = cache_path(&uid).unwrap_or_default();
