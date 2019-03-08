@@ -166,7 +166,7 @@ impl MessageBox {
         let alias = msg.sender_name.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
-        let data = avatar.circle(uid.clone(), alias.clone(), globals::MSG_ICON_SIZE);
+        let data = avatar.circle(uid.clone(), alias.clone(), None, globals::MSG_ICON_SIZE);
         if let Some(name) = alias {
             self.username.set_text(&name);
         } else {
