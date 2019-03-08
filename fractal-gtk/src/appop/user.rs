@@ -52,7 +52,7 @@ impl AppOp {
 
             let w = widgets::Avatar::avatar_new(Some(40));
             let uid = self.uid.clone().unwrap_or_default();
-            let data = w.circle(uid.clone(), self.username.clone(), 40);
+            let data = w.circle(uid.clone(), self.username.clone(), None, 40);
             download_to_cache(self.backend.clone(), uid.clone(), data.clone());
 
             avatar.add(&w);
@@ -66,7 +66,7 @@ impl AppOp {
             Some(_) => {
                 let w = widgets::Avatar::avatar_new(Some(24));
                 let uid = self.uid.clone().unwrap_or_default();
-                let data = w.circle(uid.clone(), self.username.clone(), 24);
+                let data = w.circle(uid.clone(), self.username.clone(), None, 24);
                 download_to_cache(self.backend.clone(), uid.clone(), data.clone());
 
                 eb.add(&w);

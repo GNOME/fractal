@@ -415,7 +415,7 @@ impl RoomSettings {
         }
 
         let image = widgets::Avatar::avatar_new(Some(100));
-        let data = image.circle(self.room.id.clone(), self.room.name.clone(), 100);
+        let data = image.circle(self.room.id.clone(), self.room.name.clone(), None, 100);
         download_to_cache(self.backend.clone(), self.room.id.clone(), data);
 
         if edit {
@@ -616,7 +616,7 @@ impl RoomSettings {
             )
             .as_str(),
         );
-        let list = widgets::MembersList::new(members.clone(), entry);
+        let list = widgets::MembersList::new(members.clone(), self.room.power_levels.clone(), entry);
         let w = list.create()?;
         b.add(&w);
         self.members_list = Some(list);
