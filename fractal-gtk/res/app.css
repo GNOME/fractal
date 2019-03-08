@@ -299,3 +299,22 @@ stack.titlebar:not(headerbar) > box > separator {
   margin-bottom: 8px;
   color: @theme_selected_bg_color;
 }
+
+
+.badge {
+  border-radius: 5px;
+  padding: 0 5px;
+  font-size: 0.8em;
+}
+.badge-circle {
+  border-radius: 99999px;
+}
+.badge-gold {
+  background-color: #E5A50A;
+}
+.badge-silver {
+  background-color: #99A8B0;
+}
+.badge-grey {
+  background-color: #D9D9D9;
+}

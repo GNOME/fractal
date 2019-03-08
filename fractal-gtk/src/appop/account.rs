@@ -456,7 +456,7 @@ impl AppOp {
         avatar.add(&w);
 
         let uid = self.uid.clone().unwrap_or_default();
-        let data = w.circle(uid.clone(), self.username.clone(), 100);
+        let data = w.circle(uid.clone(), self.username.clone(), 100, None, None);
         download_to_cache(self.backend.clone(), uid.clone(), data.clone());
 
         /* FIXME: hack to make the avatar drawing area clickable*/
