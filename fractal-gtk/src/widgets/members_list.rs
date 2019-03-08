@@ -1,7 +1,7 @@
 use fractal_api::clone;
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::collections::hash_map::HashMap;
+use std::rc::Rc;
 
 use glib::signal;
 use gtk;
@@ -18,11 +18,15 @@ pub struct MembersList {
     search_entry: gtk::SearchEntry,
     error: gtk::Label,
     members: Vec<Member>,
-    power_levels: HashMap<String, i32>
+    power_levels: HashMap<String, i32>,
 }
 
 impl MembersList {
-    pub fn new(m: Vec<Member>, power_levels: HashMap<String, i32>, entry: gtk::SearchEntry) -> MembersList {
+    pub fn new(
+        m: Vec<Member>,
+        power_levels: HashMap<String, i32>,
+        entry: gtk::SearchEntry,
+    ) -> MembersList {
         MembersList {
             container: gtk::ListBox::new(),
             error: gtk::Label::new(None),
@@ -38,7 +42,11 @@ impl MembersList {
         let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
         b.set_hexpand(true);
         b.pack_start(&self.container, true, true, 0);
-        add_rows(self.container.clone(), self.members.clone(), self.power_levels.clone());
+        add_rows(
+            self.container.clone(),
+            self.members.clone(),
+            self.power_levels.clone(),
+        );
         self.error
             .get_style_context()?
             .add_class("no_member_search");
@@ -129,7 +137,7 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     // Power level badge colour
     let badge = match power_level.unwrap_or_default() {
         100 => Some(BadgeColor::Gold),
-        50 ... 99 => Some(BadgeColor::Silver),
+        50...99 => Some(BadgeColor::Silver),
         _ => None,
     };
 
@@ -162,7 +170,11 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     b
 }
 
-fn add_rows(container: gtk::ListBox, members: Vec<Member>, power_levels: HashMap<String, i32>) -> Option<usize> {
+fn add_rows(
+    container: gtk::ListBox,
+    members: Vec<Member>,
+    power_levels: HashMap<String, i32>,
+) -> Option<usize> {
     /* Load just enough members to fill atleast the visible list */
     for member in members.iter() {
         let power_level = match power_levels.get(&member.uid) {

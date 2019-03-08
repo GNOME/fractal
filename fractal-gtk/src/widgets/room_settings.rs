@@ -616,7 +616,8 @@ impl RoomSettings {
             )
             .as_str(),
         );
-        let list = widgets::MembersList::new(members.clone(), self.room.power_levels.clone(), entry);
+        let list =
+            widgets::MembersList::new(members.clone(), self.room.power_levels.clone(), entry);
         let w = list.create()?;
         b.add(&w);
         self.members_list = Some(list);
