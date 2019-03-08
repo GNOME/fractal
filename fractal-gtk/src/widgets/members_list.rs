@@ -1,6 +1,7 @@
 use fractal_api::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::collections::hash_map::HashMap;
 
 use glib::signal;
 use gtk;
@@ -9,7 +10,7 @@ use gtk::prelude::*;
 use crate::i18n::i18n;
 use crate::types::Member;
 use crate::widgets;
-use crate::widgets::avatar::AvatarExt;
+use crate::widgets::avatar::{AvatarExt, BadgeColor};
 
 #[derive(Debug, Clone)]
 pub struct MembersList {
@@ -17,15 +18,17 @@ pub struct MembersList {
     search_entry: gtk::SearchEntry,
     error: gtk::Label,
     members: Vec<Member>,
+    power_levels: HashMap<String, i32>
 }
 
 impl MembersList {
-    pub fn new(m: Vec<Member>, entry: gtk::SearchEntry) -> MembersList {
+    pub fn new(m: Vec<Member>, power_levels: HashMap<String, i32>, entry: gtk::SearchEntry) -> MembersList {
         MembersList {
             container: gtk::ListBox::new(),
             error: gtk::Label::new(None),
             members: m,
             search_entry: entry,
+            power_levels: power_levels,
         }
     }
 
@@ -35,7 +38,7 @@ impl MembersList {
         let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
         b.set_hexpand(true);
         b.pack_start(&self.container, true, true, 0);
-        add_rows(self.container.clone(), self.members.clone());
+        add_rows(self.container.clone(), self.members.clone(), self.power_levels.clone());
         self.error
             .get_style_context()?
             .add_class("no_member_search");
@@ -105,11 +108,11 @@ impl MembersList {
     }
 }
 
-fn create_row(member: Member) -> Option<gtk::ListBoxRow> {
+fn create_row(member: Member, power_level: Option<i32>) -> Option<gtk::ListBoxRow> {
     let row = gtk::ListBoxRow::new();
     row.connect_draw(clone!(member => move |w, _| {
         if w.get_child().is_none() {
-            w.add(&load_row_content(member.clone()));
+            w.add(&load_row_content(member.clone(), power_level));
         }
         gtk::Inhibit(false)
     }));
@@ -120,10 +123,19 @@ fn create_row(member: Member) -> Option<gtk::ListBoxRow> {
 }
 
 /* creating the row is quite slow, therefore we have a small delay when scrolling the members list */
-fn load_row_content(member: Member) -> gtk::Box {
+fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     let b = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+
+    // Power level badge colour
+    let badge = match power_level.unwrap_or_default() {
+        100 => Some(BadgeColor::Gold),
+        50 ... 99 => Some(BadgeColor::Silver),
+        _ => None,
+    };
+
     let avatar = widgets::Avatar::avatar_new(Some(40));
-    avatar.circle(member.uid.clone(), member.alias.clone(), 40);
+    avatar.circle(member.uid.clone(), member.alias.clone(), badge, 40);
+
     let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let username = gtk::Label::new(Some(member.get_alias().as_str()));
     let uid = gtk::Label::new(Some(member.uid.as_str()));
@@ -150,10 +162,14 @@ fn load_row_content(member: Member) -> gtk::Box {
     b
 }
 
-fn add_rows(container: gtk::ListBox, members: Vec<Member>) -> Option<usize> {
+fn add_rows(container: gtk::ListBox, members: Vec<Member>, power_levels: HashMap<String, i32>) -> Option<usize> {
     /* Load just enough members to fill atleast the visible list */
     for member in members.iter() {
-        container.insert(&create_row(member.clone())?, -1);
+        let power_level = match power_levels.get(&member.uid) {
+            Some(pl) => Some(*pl),
+            None => None,
+        };
+        container.insert(&create_row(member.clone(), power_level)?, -1);
     }
     None
 }
