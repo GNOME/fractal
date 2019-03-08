@@ -54,10 +54,17 @@ impl<'a> MemberBox<'a> {
         }
 
         let avatar = widgets::Avatar::avatar_new(Some(globals::USERLIST_ICON_SIZE));
+        let badge = match self.op.member_level(self.member) {
+            100 => Some(widgets::BadgeColor::Gold),
+            50...100 => Some(widgets::BadgeColor::Silver),
+            _ => None,
+        };
         let data = avatar.circle(
             self.member.uid.clone(),
             Some(alias.clone()),
             globals::USERLIST_ICON_SIZE,
+            badge,
+            None,
         );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());
@@ -71,24 +78,7 @@ impl<'a> MemberBox<'a> {
             v.pack_start(&uid, true, true, 0);
         }
 
-        match self.op.member_level(self.member) {
-            100 => {
-                let overlay = gtk::Overlay::new();
-                overlay.add(&avatar);
-                overlay.add_overlay(&widgets::admin_badge(widgets::AdminColor::Gold, None));
-                w.add(&overlay);
-            }
-            50 => {
-                let overlay = gtk::Overlay::new();
-                overlay.add(&avatar);
-                overlay.add_overlay(&widgets::admin_badge(widgets::AdminColor::Silver, None));
-                w.add(&overlay);
-            }
-            _ => {
-                w.add(&avatar);
-            }
-        }
-
+        w.add(&avatar);
         w.add(&v);
 
         event_box.add(&w);
@@ -113,6 +103,8 @@ impl<'a> MemberBox<'a> {
             self.member.uid.clone(),
             Some(self.member.get_alias()),
             globals::PILL_ICON_SIZE,
+            None,
+            None,
         );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());

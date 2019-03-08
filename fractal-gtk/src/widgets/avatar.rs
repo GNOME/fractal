@@ -11,7 +11,7 @@ use gtk;
 use gtk::prelude::*;
 pub use gtk::DrawingArea;
 
-pub type Avatar = gtk::Box;
+pub type Avatar = gtk::Overlay;
 
 pub struct AvatarData {
     uid: String,
@@ -39,13 +39,20 @@ impl AvatarData {
 }
 
 pub trait AvatarExt {
-    fn avatar_new(size: Option<i32>) -> gtk::Box;
+    fn avatar_new(size: Option<i32>) -> gtk::Overlay;
     fn clean(&self);
     fn create_da(&self, size: Option<i32>) -> DrawingArea;
-    fn circle(&self, uid: String, username: Option<String>, size: i32) -> Rc<RefCell<AvatarData>>;
+    fn circle(
+        &self,
+        uid: String,
+        username: Option<String>,
+        size: i32,
+        badge: Option<BadgeColor>,
+        badge_size: Option<i32>,
+    ) -> Rc<RefCell<AvatarData>>;
 }
 
-impl AvatarExt for gtk::Box {
+impl AvatarExt for gtk::Overlay {
     fn clean(&self) {
         for ch in self.get_children().iter() {
             self.remove(ch);
@@ -57,14 +64,14 @@ impl AvatarExt for gtk::Box {
 
         let s = size.unwrap_or(40);
         da.set_size_request(s, s);
-        self.pack_start(&da, true, true, 0);
+        self.add(&da);
         self.show_all();
 
         da
     }
 
-    fn avatar_new(size: Option<i32>) -> gtk::Box {
-        let b = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    fn avatar_new(size: Option<i32>) -> gtk::Overlay {
+        let b = gtk::Overlay::new();
         b.create_da(size);
         b.show_all();
         if let Some(style) = b.get_style_context() {
@@ -73,8 +80,20 @@ impl AvatarExt for gtk::Box {
 
         b
     }
-
-    fn circle(&self, uid: String, username: Option<String>, size: i32) -> Rc<RefCell<AvatarData>> {
+    /// # Arguments
+    /// * `uid` - Matrix ID
+    /// * `username` - Full name
+    /// * `size` - Size of the avatar
+    /// * `badge_color` - Badge color. None for no badge
+    /// * `badge_size` - Badge size. None for size / 3
+    fn circle(
+        &self,
+        uid: String,
+        username: Option<String>,
+        size: i32,
+        badge_color: Option<BadgeColor>,
+        badge_size: Option<i32>,
+    ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
         let path = cache_path(&uid).unwrap_or_default();
@@ -89,6 +108,16 @@ impl AvatarExt for gtk::Box {
         /* This function should never fail */
         let fallback = letter_avatar::generate::new(uid.clone(), username, size as f64)
             .expect("this function should never fail");
+
+        // Power level badge setup
+        let has_badge = badge_color.is_some();
+        let badge_size = badge_size.unwrap_or(size / 3);
+        if let Some(color) = badge_color {
+            let pl_badge = avatar_badge(color, Some(badge_size));
+            pl_badge.set_valign(gtk::Align::Start);
+            pl_badge.set_halign(gtk::Align::End);
+            self.add_overlay(&pl_badge);
+        }
 
         let data = AvatarData {
             uid: uid.clone(),
@@ -109,19 +138,32 @@ impl AvatarExt for gtk::Box {
             g.set_antialias(cairo::Antialias::Best);
 
             {
+                g.set_fill_rule(cairo::FillRule::EvenOdd);
+                g.arc(
+                    width / 2.0,
+                    height / 2.0,
+                    width.min(height) / 2.0,
+                    0.0,
+                    2.0 * PI,
+                );
+                if has_badge {
+                    g.clip_preserve();
+                    g.new_sub_path();
+                    let badge_radius = badge_size as f64 / 2.0;
+                    g.arc(
+                        width - badge_radius,
+                        badge_radius,
+                        badge_radius * 1.4,
+                        0.0,
+                        2.0 * PI,
+                    );
+                }
+                g.clip();
+
                 let data = user_cache.borrow();
                 if let Some(ref pb) = data.cache {
                     let context = da.get_style_context().unwrap();
                     gtk::render_background(&context, g, 0.0, 0.0, width, height);
-
-                    g.arc(
-                        width / 2.0,
-                        height / 2.0,
-                        width.min(height) / 2.0,
-                        0.0,
-                        2.0 * PI,
-                    );
-                    g.clip();
 
                     let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
                     g.set_source_pixbuf(&pb, 0.0, hpos);
@@ -156,25 +198,22 @@ fn load_pixbuf(path: &str, size: i32) -> Option<Pixbuf> {
     }
 }
 
-pub enum AdminColor {
+pub enum BadgeColor {
     Gold,
     Silver,
+    Gray,
 }
 
-pub fn admin_badge(kind: AdminColor, size: Option<i32>) -> gtk::DrawingArea {
-    let s = size.unwrap_or(10);
+pub fn avatar_badge(kind: BadgeColor, size: Option<i32>) -> gtk::DrawingArea {
+    let s = size.unwrap_or(12);
 
     let da = DrawingArea::new();
     da.set_size_request(s, s);
 
     let color = match kind {
-        AdminColor::Gold => (237.0, 212.0, 0.0),
-        AdminColor::Silver => (186.0, 186.0, 186.0),
-    };
-
-    let border = match kind {
-        AdminColor::Gold => (107.0, 114.0, 0.0),
-        AdminColor::Silver => (137.0, 137.0, 137.0),
+        BadgeColor::Gold => (229.0, 165.0, 10.0),
+        BadgeColor::Silver => (153.0, 168.0, 176.0),
+        BadgeColor::Gray => (217.0, 217.0, 217.0),
     };
 
     da.connect_draw(move |da, g| {
@@ -187,25 +226,15 @@ pub fn admin_badge(kind: AdminColor, size: Option<i32>) -> gtk::DrawingArea {
         let context = da.get_style_context().unwrap();
         gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-        g.set_source_rgba(color.0 / 256.0, color.1 / 256.0, color.2 / 256.0, 1.);
+        g.set_source_rgba(color.0 / 255.0, color.1 / 255.0, color.2 / 255.0, 1.);
         g.arc(
             width / 2.0,
             height / 2.0,
-            width.min(height) / 2.5,
+            width.min(height) / 2.0,
             0.0,
             2.0 * PI,
         );
         g.fill();
-
-        g.set_source_rgba(border.0 / 256.0, border.1 / 256.0, border.2 / 256.0, 0.5);
-        g.arc(
-            width / 2.0,
-            height / 2.0,
-            width.min(height) / 2.5,
-            0.0,
-            2.0 * PI,
-        );
-        g.stroke();
 
         Inhibit(false)
     });
