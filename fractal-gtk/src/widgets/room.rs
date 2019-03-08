@@ -47,7 +47,7 @@ impl<'a> RoomBox<'a> {
         let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let avatar = widgets::Avatar::avatar_new(Some(AVATAR_SIZE));
-        avatar.circle(room.id.clone(), room.name.clone(), AVATAR_SIZE);
+        avatar.circle(room.id.clone(), room.name.clone(), None, AVATAR_SIZE);
         widget_box.pack_start(&avatar, false, false, 18);
 
         let details_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
