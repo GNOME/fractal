@@ -18,7 +18,7 @@ use crate::actions::AppState;
 use crate::cache;
 use crate::widgets;
 
-use crate::types::{Member, Room, RoomMembership, RoomTag};
+use crate::types::{Member, Reason, Room, RoomMembership, RoomTag};
 
 use crate::util::markup_text;
 
@@ -44,6 +44,14 @@ impl AppOp {
         while let Some(room) = rooms.pop() {
             if room.membership.is_left() {
                 // removing left rooms
+                if let RoomMembership::Left(kicked) = room.membership.clone() {
+                    if let Reason::Kicked(reason, kicker) = kicked {
+                        if let Some(r) = self.rooms.get(&room.id) {
+                            let room_name = r.name.clone().unwrap_or_default();
+                            self.kicked_room(room_name, reason, kicker.alias.unwrap_or_default());
+                        }
+                    }
+                }
                 if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
                     self.really_leave_active_room();
                 } else {
@@ -220,6 +228,19 @@ impl AppOp {
             dialog.set_property_text(Some(&text));
             dialog.present();
         }
+    }
+
+    pub fn kicked_room(&self, roomid: String, reason: String, kicker: String) {
+        let parent: gtk::Window = self
+            .ui
+            .builder
+            .get_object("main_window")
+            .expect("Can't find main_window in ui file.");
+        let parent_weak = parent.downgrade();
+        let parent = upgrade_weak!(parent_weak);
+        let viewer = widgets::KickedDialog::new();
+        viewer.set_parent_window(&parent);
+        viewer.show(&roomid, &reason, &kicker);
     }
 
     pub fn create_new_room(&mut self) {

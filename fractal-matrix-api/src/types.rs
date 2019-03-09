@@ -14,6 +14,7 @@ pub use crate::model::register::*;
 pub use crate::model::room::PublicRoomsFilter;
 pub use crate::model::room::PublicRoomsRequest;
 pub use crate::model::room::PublicRoomsResponse;
+pub use crate::model::room::Reason;
 pub use crate::model::room::Room;
 pub use crate::model::room::RoomList;
 pub use crate::model::room::RoomMembership;

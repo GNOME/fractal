@@ -18,7 +18,7 @@ pub enum RoomMembership {
     Joined(RoomTag),
     // An invite is send by some other user
     Invited(Member),
-    Left,
+    Left(Reason),
 }
 
 impl RoomMembership {
@@ -39,7 +39,11 @@ impl RoomMembership {
     }
 
     pub fn is_left(&self) -> bool {
-        self == &RoomMembership::Left
+        if let RoomMembership::Left(_) = self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn match_joined_tag(&self, tag: RoomTag) -> bool {
@@ -55,6 +59,12 @@ impl Default for RoomMembership {
     fn default() -> Self {
         RoomMembership::None
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum Reason {
+    None,
+    Kicked(String, Member),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -159,11 +169,30 @@ impl Room {
             r
         });
 
-        let left_rooms = response
-            .rooms
-            .leave
-            .keys()
-            .map(|k| Self::new(k.clone(), RoomMembership::Left));
+        let left_rooms = response.rooms.leave.iter().map(|(k, room)| {
+            let leave_id = &room.timeline.events.last().unwrap()["sender"];
+            if leave_id != userid {
+                let kick_reason = &room.timeline.events.last().unwrap()["content"]["reason"];
+                if let Some((kicker_alias, kicker_avatar)) =
+                    get_user_avatar(baseu, leave_id.as_str().unwrap_or_default()).ok()
+                {
+                    let kicker = Member {
+                        alias: Some(kicker_alias),
+                        avatar: Some(kicker_avatar),
+                        uid: String::from(leave_id.as_str().unwrap_or_default()),
+                    };
+                    let reason = Reason::Kicked(
+                        String::from(kick_reason.as_str().unwrap_or_default()),
+                        kicker,
+                    );
+                    Self::new(k.clone(), RoomMembership::Left(reason))
+                } else {
+                    Self::new(k.clone(), RoomMembership::Left(Reason::None))
+                }
+            } else {
+                Self::new(k.clone(), RoomMembership::Left(Reason::None))
+            }
+        });
 
         let invited_rooms = response.rooms.invite.iter().filter_map(|(k, room)| {
             let stevents = &room.invite_state.events;
