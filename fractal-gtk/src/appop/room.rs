@@ -540,7 +540,7 @@ impl AppOp {
                 } else {
                     let typing_string = ni18n_f(
                         "<b>{}</b> is typing…",
-                        "<b>{}</b> and {} are typing…",
+                        "<b>{}</b> and <b>{}</b> are typing…",
                         typing_users.len() as u32,
                         typing_users
                             .iter()

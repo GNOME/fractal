@@ -71,10 +71,10 @@ impl Widgets {
 
         let typing_label = gtk::Label::new(None);
         typing_label.show();
-        typing_label
-            .get_style_context()
-            .unwrap()
-            .add_class("typing_label");
+        typing_label.get_style_context().map(|ctx| {
+            ctx.add_class("typing_label");
+            ctx.add_class("small-font");
+        });
         typing_label.set_xalign(0.0);
         typing_label.set_property_wrap(true);
         typing_label.set_property_wrap_mode(pango::WrapMode::WordChar);
