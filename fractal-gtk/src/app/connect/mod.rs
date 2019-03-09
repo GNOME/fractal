@@ -5,7 +5,6 @@ mod directory;
 mod headerbar;
 mod invite;
 mod join_room;
-mod kicked_room;
 mod leave_room;
 mod login;
 mod markdown;
@@ -26,7 +25,6 @@ impl App {
 
         self.connect_directory();
         self.connect_leave_room_dialog();
-        self.connect_kicked_room_dialog();
         self.connect_new_room_dialog();
         self.connect_join_room_dialog();
         self.connect_account_settings();
