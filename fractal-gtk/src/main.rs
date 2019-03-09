@@ -25,7 +25,9 @@ use crate::app::App;
 use gio::ApplicationExt;
 use gio::ApplicationExtManual;
 
+#[cfg(debug_assertions)]
 use log::Level;
+
 use loggerv;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -35,12 +37,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .arg(
                 clap::Arg::with_name("v")
                     .short("v")
-                    .multiple("true")
+                    .multiple(true)
                     .help("Sets the level of verbosity"),
             )
             .get_matches();
 
-        loggerv::init_with_level(clap_args.occurrences_of("v"))
+        loggerv::init_with_verbosity(clap_args.occurrences_of("v"))
             .expect("Failed to initialize logger");
     }
 
