@@ -255,6 +255,11 @@ impl ScrollWidget {
         self.widgets.view.set_kinetic_scrolling(false);
         self.balance.set(Some(Position::Top));
     }
+
+    pub fn set_kinetic_scrolling(&self, enabled: bool) {
+        self.widgets.view.set_kinetic_scrolling(enabled);
+    }
+
     pub fn get_listbox(&self) -> gtk::ListBox {
         self.widgets.listbox.clone()
     }

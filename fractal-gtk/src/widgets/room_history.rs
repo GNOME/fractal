@@ -52,6 +52,7 @@ impl List {
             }
         }
         self.list.push_back(element);
+        self.view.set_kinetic_scrolling(true);
         /* TODO: update the previous message:
          * we need to update the previous row because it could be that we have to remove the header */
         None
