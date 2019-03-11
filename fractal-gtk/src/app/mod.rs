@@ -26,16 +26,16 @@ static mut OP: Option<SyncWeak<Mutex<AppOp>>> = None;
 #[macro_export]
 macro_rules! APPOP {
     ($fn: ident, ($($x:ident),*) ) => {{
-	let ctx = glib::MainContext::default();
-	ctx.invoke(move || {
-	    $( let $x = $x.clone(); )*
-		if let Some(op) = App::get_op() {
-		    op.lock().unwrap().$fn($($x),*);
-		}
-	});
+        let ctx = glib::MainContext::default();
+        ctx.invoke(move || {
+            $( let $x = $x.clone(); )*
+            if let Some(op) = App::get_op() {
+                op.lock().unwrap().$fn($($x),*);
+            }
+        });
     }};
     ($fn: ident) => {{
-	APPOP!($fn, ( ) );
+        APPOP!($fn, ( ) );
     }}
 }
 
