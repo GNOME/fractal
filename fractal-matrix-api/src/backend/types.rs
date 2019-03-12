@@ -4,15 +4,15 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use crate::error::Error;
 
-use crate::r0::account::Medium;
+use crate::r0::contact::get_identifiers::ThirdPartyIdentifier;
 use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
+use crate::r0::Medium;
 use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
 use crate::types::Sticker;
 use crate::types::StickerGroup;
-use crate::types::ThirdPartyIdentifier;
 
 use crate::cache::CacheMap;
 use url::Url;
