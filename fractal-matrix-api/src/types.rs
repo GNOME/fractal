@@ -10,4 +10,3 @@ pub use crate::model::room::RoomMembership;
 pub use crate::model::room::RoomTag;
 pub use crate::model::stickers::Sticker;
 pub use crate::model::stickers::StickerGroup;
-pub use crate::model::user::*;
