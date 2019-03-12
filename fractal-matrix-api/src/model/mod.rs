@@ -4,4 +4,3 @@ pub mod member;
 pub mod message;
 pub mod room;
 pub mod stickers;
-pub mod user;
