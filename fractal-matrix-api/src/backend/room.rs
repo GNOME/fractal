@@ -574,6 +574,12 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
         "visibility": "private",
         "preset": "private_chat",
         "is_direct": true,
+        "state_event": {
+            "type": "m.room.history_visibility",
+            "content": {
+                "history_visibility": "invited"
+            }
+        }
     });
 
     let userid = bk.data.lock().unwrap().user_id.clone();
