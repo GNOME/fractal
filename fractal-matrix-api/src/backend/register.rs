@@ -16,10 +16,10 @@ use crate::r0::account::register::Parameters as RegisterParameters;
 use crate::r0::account::register::RegistrationKind;
 use crate::r0::account::register::Response as RegisterResponse;
 use crate::r0::account::Identifier;
-use crate::r0::account::Medium;
 use crate::r0::account::UserIdentifier;
 use crate::r0::server::domain_info::request as domain_info;
 use crate::r0::server::domain_info::Response as DomainInfoResponse;
+use crate::r0::Medium;
 use crate::util::HTTP_CLIENT;
 
 use crate::backend::types::BKResponse;

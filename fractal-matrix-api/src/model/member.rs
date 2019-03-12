@@ -1,4 +1,4 @@
-use crate::types::User;
+use crate::r0::search::user::User;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

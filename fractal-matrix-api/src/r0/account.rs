@@ -1,16 +1,11 @@
+pub mod change_password;
+pub mod deactivate;
 pub mod login;
 pub mod logout;
 pub mod register;
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum Medium {
-    #[serde(rename = "email")]
-    Email,
-    #[serde(rename = "msisdn")]
-    MsIsdn,
-}
+use crate::r0::{Medium, ThreePIDCredentials};
+use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
@@ -64,13 +59,6 @@ impl Identifier {
             },
         }
     }
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct ThreePIDCredentials {
-    pub client_secret: String,
-    pub id_server: String,
-    pub sid: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
