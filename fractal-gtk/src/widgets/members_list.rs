@@ -154,16 +154,18 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     username.set_ellipsize(pango::EllipsizeMode::End);
 
     // matrix ID + power level
-    let adv_info_box = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+    let adv_info_fbox = gtk::FlowBox::new();
     let uid = gtk::Label::new(Some(member.uid.as_str()));
     uid.set_xalign(0.);
-    adv_info_box.pack_start(&uid, false, false, 0);
+    uid.set_line_wrap(true);
+    uid.set_line_wrap_mode(pango::WrapMode::Char);
+    adv_info_fbox.add(&uid);
     if pl > 0 {
         let power = gtk::Label::new(Some(format!("(power {})", pl).as_str()));
         power.set_xalign(0.);
-        adv_info_box.pack_start(&power, false, false, 0);
+        adv_info_fbox.add(&power);
     }
-    if let Some(style) = adv_info_box.get_style_context() {
+    if let Some(style) = adv_info_fbox.get_style_context() {
         style.add_class("small-font");
         style.add_class("dim-label");
     }
@@ -173,12 +175,12 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     b.set_margin_top(6);
     b.set_margin_bottom(6);
     user_box.pack_start(&username, true, true, 0);
-    user_box.pack_start(&adv_info_box, false, false, 0);
+    user_box.pack_start(&adv_info_fbox, true, true, 0);
     /* we don't have this state yet
      * let state = gtk::Label::new();
      * user_box.pack_end(&state, true, true, 0); */
     b.pack_start(&avatar, false, true, 0);
-    b.pack_start(&user_box, false, true, 0);
+    b.pack_start(&user_box, true, true, 0);
     b.show_all();
     b
 }
