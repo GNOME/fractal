@@ -6,7 +6,6 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
 
-use crate::appop::AppOp;
 use crate::backend::BKCommand;
 
 #[derive(Debug, Clone)]
@@ -21,8 +20,9 @@ pub enum AddressAction {
     Add,
 }
 
-pub struct Address<'a> {
-    op: &'a AppOp,
+pub struct Address {
+    identity_url: String,
+    backend: Sender<BKCommand>,
     entry: gtk::Entry,
     button: gtk::Button,
     action: Option<AddressAction>,
@@ -31,12 +31,13 @@ pub struct Address<'a> {
     signal_id: Option<signal::SignalHandlerId>,
 }
 
-impl<'a> Address<'a> {
-    pub fn new(t: AddressType, op: &'a AppOp) -> Address<'a> {
+impl Address {
+    pub fn new(t: AddressType, identity_url: String, backend: Sender<BKCommand>) -> Address {
         let entry = gtk::Entry::new();
         let button = gtk::Button::new();
         Address {
-            op: op,
+            identity_url,
+            backend,
             entry: entry,
             button: button,
             action: None,
@@ -157,8 +158,8 @@ impl<'a> Address<'a> {
         let action = self.action.clone();
         let entry = self.entry.clone();
         let address = self.address.clone();
-        let id_server = self.op.identity_url.clone();
-        let backend = self.op.backend.clone();
+        let id_server = self.identity_url.clone();
+        let backend = self.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
             if !w.get_sensitive() || !w.is_visible() {
                 return;

@@ -21,6 +21,7 @@
       <file preprocess="xml-stripblanks">ui/new_room.ui</file>
       <file preprocess="xml-stripblanks">ui/room_menu.ui</file>
       <file preprocess="xml-stripblanks">ui/main_menu.ui</file>
+      <file preprocess="xml-stripblanks">ui/account.ui</file>
       <file preprocess="xml-stripblanks">ui/account_settings.ui</file>
       <file preprocess="xml-stripblanks">ui/room_settings.ui</file>
       <file preprocess="xml-stripblanks">ui/password_dialog.ui</file>
