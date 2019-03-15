@@ -1,4 +1,3 @@
-mod account;
 mod autocomplete;
 mod direct;
 mod directory;
@@ -27,7 +26,6 @@ impl App {
         self.connect_leave_room_dialog();
         self.connect_new_room_dialog();
         self.connect_join_room_dialog();
-        self.connect_account_settings();
 
         self.connect_invite_dialog();
         self.connect_invite_user();

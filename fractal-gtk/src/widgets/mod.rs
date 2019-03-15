@@ -1,3 +1,4 @@
+pub mod account;
 mod address;
 mod autocomplete;
 pub mod avatar;
@@ -20,6 +21,7 @@ mod scroll_widget;
 mod source_dialog;
 mod sourceview_entry;
 
+pub use self::account::Account;
 pub use self::address::Address;
 pub use self::address::AddressType;
 pub use self::autocomplete::Autocomplete;
