@@ -136,36 +136,51 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
 
     // Power level badge colour
     let pl = power_level.unwrap_or_default();
-    let badge = match pl {
+    let badge_color = match pl {
         100 => Some(BadgeColor::Gold),
         50...99 => Some(BadgeColor::Silver),
+        1...49 => Some(BadgeColor::Gray),
         _ => None,
     };
 
     // Avatar
     let avatar = widgets::Avatar::avatar_new(Some(40));
-    avatar.circle(member.uid.clone(), member.alias.clone(), badge, 40);
+    avatar.circle(member.uid.clone(), member.alias.clone(), badge_color, 40);
 
-    // Name
-    let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0); // Name & badge + Matrix ID
+    let username_box = gtk::Box::new(gtk::Orientation::Horizontal, 0); // Name + badge
+
     let username = gtk::Label::new(Some(member.get_alias().as_str()));
     username.set_xalign(0.);
     username.set_margin_end(5);
     username.set_ellipsize(pango::EllipsizeMode::End);
+    username_box.pack_start(&username, false, false, 0);
+
+    // Power level badge colour
+    let pl = power_level.unwrap_or_default();
+    if pl > 0 && pl <= 100 {
+        let badge_data = match pl {
+            100 => ("Admin", "badge-gold"), //TODO: translate
+            50...99 => ("Moderator", "badge-silver"),
+            1...49 => ("Privileged", "badge-grey"),
+            _ => panic!(),
+        };
+
+        let badge_wid = gtk::Label::new(Some(format!("{} ({})", badge_data.0, pl).as_str()));
+        if let Some(style) = badge_wid.get_style_context() {
+            style.add_class("badge");
+            style.add_class(badge_data.1);
+        }
+        username_box.pack_start(&badge_wid, false, false, 0);
+    }
 
     // matrix ID + power level
-    let adv_info_fbox = gtk::FlowBox::new();
-    let uid = gtk::Label::new(Some(member.uid.as_str()));
+    let uid = gtk::Label::new(Some(format!("{} power={}", member.uid, pl).as_str()));
+    // let uid = gtk::Label::new(Some(member.uid.as_str()));
     uid.set_xalign(0.);
     uid.set_line_wrap(true);
     uid.set_line_wrap_mode(pango::WrapMode::Char);
-    adv_info_fbox.add(&uid);
-    if pl > 0 {
-        let power = gtk::Label::new(Some(format!("(power {})", pl).as_str()));
-        power.set_xalign(0.);
-        adv_info_fbox.add(&power);
-    }
-    if let Some(style) = adv_info_fbox.get_style_context() {
+    if let Some(style) = uid.get_style_context() {
         style.add_class("small-font");
         style.add_class("dim-label");
     }
@@ -174,8 +189,8 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     b.set_margin_end(12);
     b.set_margin_top(6);
     b.set_margin_bottom(6);
-    user_box.pack_start(&username, true, true, 0);
-    user_box.pack_start(&adv_info_fbox, true, true, 0);
+    user_box.pack_start(&username_box, true, true, 0);
+    user_box.pack_start(&uid, true, true, 0);
     /* we don't have this state yet
      * let state = gtk::Label::new();
      * user_box.pack_end(&state, true, true, 0); */

@@ -176,25 +176,23 @@ fn load_pixbuf(path: &str, size: i32) -> Option<Pixbuf> {
     }
 }
 
+#[derive(Debug)]
 pub enum BadgeColor {
     Gold,
     Silver,
+    Gray,
 }
 
 pub fn avatar_badge(kind: BadgeColor, size: Option<i32>) -> gtk::DrawingArea {
-    let s = size.unwrap_or(10);
+    let s = size.unwrap_or(12);
 
     let da = DrawingArea::new();
     da.set_size_request(s, s);
 
     let color = match kind {
-        BadgeColor::Gold => (237.0, 212.0, 0.0),
-        BadgeColor::Silver => (186.0, 186.0, 186.0),
-    };
-
-    let border = match kind {
-        BadgeColor::Gold => (107.0, 114.0, 0.0),
-        BadgeColor::Silver => (137.0, 137.0, 137.0),
+        BadgeColor::Gold => (229.0, 165.0, 10.0),
+        BadgeColor::Silver => (192.0, 191.0, 188.0),
+        BadgeColor::Gray => (244.0, 244.0, 244.0),
     };
 
     da.connect_draw(move |da, g| {
@@ -207,25 +205,15 @@ pub fn avatar_badge(kind: BadgeColor, size: Option<i32>) -> gtk::DrawingArea {
         let context = da.get_style_context().unwrap();
         gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-        g.set_source_rgba(color.0 / 256.0, color.1 / 256.0, color.2 / 256.0, 1.);
+        g.set_source_rgba(color.0 / 255.0, color.1 / 255.0, color.2 / 255.0, 1.);
         g.arc(
             width / 2.0,
             height / 2.0,
-            width.min(height) / 2.5,
+            width.min(height) / 2.0,
             0.0,
             2.0 * PI,
         );
         g.fill();
-
-        g.set_source_rgba(border.0 / 256.0, border.1 / 256.0, border.2 / 256.0, 0.5);
-        g.arc(
-            width / 2.0,
-            height / 2.0,
-            width.min(height) / 2.5,
-            0.0,
-            2.0 * PI,
-        );
-        g.stroke();
 
         Inhibit(false)
     });
