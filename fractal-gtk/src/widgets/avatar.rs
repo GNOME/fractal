@@ -153,7 +153,7 @@ impl AvatarExt for gtk::Overlay {
                     g.arc(
                         width - badge_radius,
                         badge_radius,
-                        badge_radius * 1.3,
+                        badge_radius * 1.4,
                         0.0,
                         2.0 * PI,
                     );

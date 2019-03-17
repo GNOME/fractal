@@ -166,9 +166,9 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     let pl = power_level.unwrap_or_default();
     if pl > 0 && pl <= 100 {
         let badge_data = match pl {
-            100 => ("Admin", "badge-gold"), //TODO: translate
-            50...99 => ("Moderator", "badge-silver"),
-            1...49 => ("Privileged", "badge-grey"),
+            100 => (i18n("Admin"), "badge-gold"),
+            50...99 => (i18n("Moderator"), "badge-silver"),
+            1...49 => (i18n("Privileged"), "badge-grey"),
             _ => panic!(),
         };
 
