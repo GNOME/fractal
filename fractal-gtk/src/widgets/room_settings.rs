@@ -415,7 +415,13 @@ impl RoomSettings {
         }
 
         let image = widgets::Avatar::avatar_new(Some(100));
-        let data = image.circle(self.room.id.clone(), self.room.name.clone(), None, 100);
+        let data = image.circle(
+            self.room.id.clone(),
+            self.room.name.clone(),
+            100,
+            None,
+            None,
+        );
         download_to_cache(self.backend.clone(), self.room.id.clone(), data);
 
         if edit {

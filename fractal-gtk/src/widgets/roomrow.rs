@@ -65,7 +65,7 @@ impl RoomRow {
             notifications.hide();
         }
 
-        icon.circle(room.id.clone(), Some(name), None, ICON_SIZE);
+        icon.circle(room.id.clone(), Some(name), ICON_SIZE, None, None);
 
         let rr = RoomRow {
             room,
@@ -130,7 +130,7 @@ impl RoomRow {
         let name = self.room.name.clone().unwrap_or("...".to_string());
 
         self.icon
-            .circle(self.room.id.clone(), Some(name), None, ICON_SIZE);
+            .circle(self.room.id.clone(), Some(name), ICON_SIZE, None, None);
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {

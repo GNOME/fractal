@@ -62,8 +62,9 @@ impl<'a> MemberBox<'a> {
         let data = avatar.circle(
             self.member.uid.clone(),
             Some(alias.clone()),
-            badge,
             globals::USERLIST_ICON_SIZE,
+            badge,
+            None,
         );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());
@@ -101,8 +102,9 @@ impl<'a> MemberBox<'a> {
         let data = avatar.circle(
             self.member.uid.clone(),
             Some(self.member.get_alias()),
-            None,
             globals::PILL_ICON_SIZE,
+            None,
+            None,
         );
         let member_id = self.member.uid.clone();
         download_to_cache(backend.clone(), member_id.clone(), data.clone());

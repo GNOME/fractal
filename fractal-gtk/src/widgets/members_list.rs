@@ -145,7 +145,13 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
 
     // Avatar
     let avatar = widgets::Avatar::avatar_new(Some(40));
-    avatar.circle(member.uid.clone(), member.alias.clone(), badge_color, 40);
+    avatar.circle(
+        member.uid.clone(),
+        member.alias.clone(),
+        40,
+        badge_color,
+        None,
+    );
 
     let user_box = gtk::Box::new(gtk::Orientation::Vertical, 0); // Name & badge + Matrix ID
     let username_box = gtk::Box::new(gtk::Orientation::Horizontal, 0); // Name + badge
@@ -175,8 +181,7 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     }
 
     // matrix ID + power level
-    let uid = gtk::Label::new(Some(format!("{} power={}", member.uid, pl).as_str()));
-    // let uid = gtk::Label::new(Some(member.uid.as_str()));
+    let uid = gtk::Label::new(Some(member.uid.as_str()));
     uid.set_xalign(0.);
     uid.set_line_wrap(true);
     uid.set_line_wrap_mode(pango::WrapMode::Char);

@@ -46,8 +46,9 @@ pub trait AvatarExt {
         &self,
         uid: String,
         username: Option<String>,
-        badge: Option<BadgeColor>,
         size: i32,
+        badge: Option<BadgeColor>,
+        badge_size: Option<i32>,
     ) -> Rc<RefCell<AvatarData>>;
 }
 
@@ -79,13 +80,19 @@ impl AvatarExt for gtk::Overlay {
 
         b
     }
-
+    /// # Arguments
+    /// * `uid` - Matrix ID
+    /// * `username` - Full name
+    /// * `size` - Size of the avatar
+    /// * `badge_color` - Badge color. None for no badge
+    /// * `badge_size` - Badge size. None for size / 3
     fn circle(
         &self,
         uid: String,
         username: Option<String>,
-        badge: Option<BadgeColor>,
         size: i32,
+        badge_color: Option<BadgeColor>,
+        badge_size: Option<i32>,
     ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
@@ -103,8 +110,10 @@ impl AvatarExt for gtk::Overlay {
             .expect("this function should never fail");
 
         // Power level badge setup
-        if let Some(color) = badge {
-            let pl_badge = avatar_badge(color, None);
+        let has_badge = badge_color.is_some();
+        let badge_size = badge_size.unwrap_or(size / 3);
+        if let Some(color) = badge_color {
+            let pl_badge = avatar_badge(color, Some(badge_size));
             pl_badge.set_valign(gtk::Align::Start);
             pl_badge.set_halign(gtk::Align::End);
             self.add_overlay(&pl_badge);
@@ -129,19 +138,32 @@ impl AvatarExt for gtk::Overlay {
             g.set_antialias(cairo::Antialias::Best);
 
             {
+                g.set_fill_rule(cairo::FillRule::EvenOdd);
+                g.arc(
+                    width / 2.0,
+                    height / 2.0,
+                    width.min(height) / 2.0,
+                    0.0,
+                    2.0 * PI,
+                );
+                if has_badge {
+                    g.clip_preserve();
+                    g.new_sub_path();
+                    let badge_radius = badge_size as f64 / 2.0;
+                    g.arc(
+                        width - badge_radius,
+                        badge_radius,
+                        badge_radius * 1.3,
+                        0.0,
+                        2.0 * PI,
+                    );
+                }
+                g.clip();
+
                 let data = user_cache.borrow();
                 if let Some(ref pb) = data.cache {
                     let context = da.get_style_context().unwrap();
                     gtk::render_background(&context, g, 0.0, 0.0, width, height);
-
-                    g.arc(
-                        width / 2.0,
-                        height / 2.0,
-                        width.min(height) / 2.0,
-                        0.0,
-                        2.0 * PI,
-                    );
-                    g.clip();
 
                     let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
                     g.set_source_pixbuf(&pb, 0.0, hpos);
@@ -176,7 +198,6 @@ fn load_pixbuf(path: &str, size: i32) -> Option<Pixbuf> {
     }
 }
 
-#[derive(Debug)]
 pub enum BadgeColor {
     Gold,
     Silver,
@@ -191,8 +212,8 @@ pub fn avatar_badge(kind: BadgeColor, size: Option<i32>) -> gtk::DrawingArea {
 
     let color = match kind {
         BadgeColor::Gold => (229.0, 165.0, 10.0),
-        BadgeColor::Silver => (192.0, 191.0, 188.0),
-        BadgeColor::Gray => (244.0, 244.0, 244.0),
+        BadgeColor::Silver => (153.0, 168.0, 176.0),
+        BadgeColor::Gray => (217.0, 217.0, 217.0),
     };
 
     da.connect_draw(move |da, g| {
