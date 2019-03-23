@@ -40,9 +40,6 @@ package = "gstreamer"
 version = "0.12.2"
 package = "gstreamer-player"
 
-[dependencies.html2pango]
-git = "https://gitlab.gnome.org/World/html2pango"
-
 [dependencies.cairo-rs]
 version = "0.5.0"
 features = ["png"]
@@ -63,6 +60,10 @@ features = ["v0_0_7"]
 git = "https://github.com/danigm/gettext-rs"
 branch = "no-gettext"
 features = ["gettext-system"]
+
+[dependencies.html2pango]
+git = "https://gitlab.gnome.org/danigm/html2pango.git"
+branch = "blocks"
 
 [dependencies.gtk]
 version = "0.5.0"
