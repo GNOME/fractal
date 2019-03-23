@@ -33,6 +33,7 @@ secret-service = "0.4.0"
 serde_json = "1.0.33"
 sourceview = "0.5.0"
 url = "1.7.2"
+html2pango = "0.3.1"
 
 [dependencies.gst]
 version = "0.12.2"
@@ -41,9 +42,6 @@ package = "gstreamer"
 [dependencies.gst_player]
 version = "0.12.2"
 package = "gstreamer-player"
-
-[dependencies.html2pango]
-git = "https://gitlab.gnome.org/World/html2pango"
 
 [dependencies.cairo-rs]
 version = "0.5.0"

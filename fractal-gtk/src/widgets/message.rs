@@ -1,5 +1,6 @@
 use crate::app::App;
 use crate::i18n::i18n;
+use failure::Error;
 use fractal_api::clone;
 use itertools::Itertools;
 use log::info;
@@ -9,6 +10,7 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use pango;
+use sourceview;
 
 use crate::backend::BKCommand;
 
@@ -17,6 +19,9 @@ use crate::util::markup_text;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
+
+use html2pango::block::markup_html;
+use html2pango::block::HtmlBlock;
 
 use crate::cache::download_to_cache;
 use crate::cache::download_to_cache_username;
@@ -226,8 +231,94 @@ impl MessageBox {
     }
 
     fn build_room_msg_body(&self, msg: &Message) -> gtk::Box {
-        let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+        match msg.format {
+            Some(ref f) if f == "org.matrix.custom.html" => self
+                .build_room_msg_body_html(&msg)
+                .unwrap_or_else(|_err| self.build_room_msg_body_text(&msg)),
+            _ => self.build_room_msg_body_text(&msg),
+        }
+    }
 
+    fn build_room_msg_body_html(&self, msg: &Message) -> Result<gtk::Box, Error> {
+        let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+        let raw = msg.formatted_body.clone().unwrap_or_default();
+
+        let blocks = markup_html(&raw)?;
+        for b in blocks {
+            let widget = self.render_html_block(&b);
+            bx.add(&widget);
+        }
+
+        Ok(bx)
+    }
+
+    fn render_html_block(&self, block: &HtmlBlock) -> gtk::Widget {
+        match block {
+            HtmlBlock::Heading(n, s) => {
+                let w = gtk::Label::new(None);
+                self.set_label_styles(&w);
+                w.set_markup(&s);
+                w.get_style_context()
+                    .map(|s| s.add_class(&format!("h{}", n)));
+                w.upcast::<gtk::Widget>()
+            }
+            HtmlBlock::UList(elements) => {
+                let w = gtk::Label::new(None);
+                self.set_label_styles(&w);
+
+                let text = elements
+                    .iter()
+                    .map(|li| format!(" • {}", li))
+                    .collect::<Vec<String>>()
+                    .join("\n");
+
+                w.set_markup(&text);
+
+                w.upcast::<gtk::Widget>()
+            }
+            HtmlBlock::OList(elements) => {
+                let w = gtk::Label::new(None);
+                self.set_label_styles(&w);
+
+                let text = elements
+                    .iter()
+                    .enumerate()
+                    .map(|(i, li)| format!(" {}. {}", i + 1, li))
+                    .collect::<Vec<String>>()
+                    .join("\n");
+
+                w.set_markup(&text);
+
+                w.upcast::<gtk::Widget>()
+            }
+            HtmlBlock::Code(s) => {
+                let buffer = sourceview::Buffer::new(None);
+                buffer.set_text(&s);
+                let view = sourceview::View::new_with_buffer(&buffer);
+                view.set_editable(false);
+                view.get_style_context().map(|s| s.add_class("codeview"));
+                view.upcast::<gtk::Widget>()
+            }
+            HtmlBlock::Quote(blocks) => {
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+                bx.get_style_context().map(|s| s.add_class("quote"));
+                for b in blocks.iter() {
+                    let w = self.render_html_block(&b);
+                    bx.add(&w);
+                }
+                bx.upcast::<gtk::Widget>()
+            }
+            HtmlBlock::Text(s) => {
+                let w = gtk::Label::new(None);
+                self.set_label_styles(&w);
+                w.set_markup(&s);
+                w.upcast::<gtk::Widget>()
+            }
+        }
+    }
+
+    fn build_room_msg_body_text(&self, msg: &Message) -> gtk::Box {
+        let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
         let msg_parts = self.create_msg_parts(&msg.body);
 
         if msg.mtype == RowType::Mention {

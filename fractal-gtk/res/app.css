@@ -318,3 +318,19 @@ stack.titlebar:not(headerbar) > box > separator {
 .badge-grey {
   background-color: #D9D9D9;
 }
+
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: bold;
+}
+
+.h1 {
+  font-size: xx-large;
+}
+
+.h2 {
+  font-size: x-large;
+}
+
+.h3 {
+  font-size: large;
+}
