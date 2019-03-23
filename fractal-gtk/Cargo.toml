@@ -62,6 +62,10 @@ git = "https://github.com/danigm/gettext-rs"
 branch = "no-gettext"
 features = ["gettext-system"]
 
+[dependencies.html2pango]
+git = "https://gitlab.gnome.org/danigm/html2pango.git"
+branch = "blocks"
+
 [dependencies.gtk]
 version = "0.7.0"
 features = ["v3_22"]
