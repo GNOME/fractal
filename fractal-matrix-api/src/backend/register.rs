@@ -11,6 +11,7 @@ use crate::types::LoginRequest;
 use crate::types::LoginResponse;
 use crate::types::RegisterRequest;
 use crate::types::RegisterResponse;
+use crate::types::WellKnownResponse;
 
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
@@ -157,4 +158,21 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
     );
 
     Ok(())
+}
+
+pub fn get_well_known(domain: &str) -> Result<WellKnownResponse, Error> {
+    let well_known = Url::parse(domain)?.join(".well-known/matrix/client")?;
+
+    // NOTE: The query! macro doesn't like what we're
+    // trying to do, so this implements what we need
+
+    let handle = thread::spawn(move || json_q("get", &well_known, &json!(null)));
+
+    match handle.join() {
+        Ok(r) => match r {
+            Ok(val) => serde_json::from_value(val).map_err(|_| Error::BackendError),
+            Err(e) => Err(e.into()),
+        },
+        _ => Err(Error::BackendError),
+    }
 }
