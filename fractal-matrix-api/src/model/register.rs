@@ -1,6 +1,6 @@
 use super::{AuthenticationData, Identifier, Medium, UserIdentifier};
 use crate::globals;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use std::ops::Not;
 
 #[derive(Clone, Debug, Serialize)]
@@ -82,4 +82,50 @@ pub struct RegisterResponse {
     pub user_id: String,
     pub access_token: Option<String>,
     pub device_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default, tag = "type")]
+pub struct WellKnownResponse {
+    #[serde(deserialize_with = "extract_base_url", rename = "m.homeserver")]
+    pub homeserver: Option<String>,
+    #[serde(deserialize_with = "extract_base_url", rename = "m.identity_server")]
+    pub identity_server: Option<String>,
+}
+
+impl Default for WellKnownResponse {
+    fn default() -> Self {
+        // Identity server is usually vector.im if not specified
+        Self {
+            homeserver: None,
+            identity_server: Some("https://vector.im".to_owned()),
+        }
+    }
+}
+
+fn extract_base_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct BaseUrlVisitor;
+
+    impl<'de> de::Visitor<'de> for BaseUrlVisitor {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("an object with a base_url key")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::MapAccess<'de>,
+        {
+            let res = map
+                .next_entry::<String, String>()?
+                .and_then(|(key, value)| if key == "base_url" { Some(value) } else { None });
+            Ok(res)
+        }
+    }
+
+    deserializer.deserialize_any(BaseUrlVisitor)
 }

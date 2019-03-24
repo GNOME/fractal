@@ -14,7 +14,7 @@ use crate::cache::CacheMap;
 
 mod directory;
 mod media;
-mod register;
+pub mod register;
 mod room;
 mod stickers;
 mod sync;
