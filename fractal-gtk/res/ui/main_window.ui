@@ -608,7 +608,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkBox"> <!--login titlebar-->
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
@@ -621,8 +621,8 @@
                 </child>
               </object>
               <packing>
-                <property name="name">login</property>
-                <property name="title">login</property>
+                <property name="name">loading</property>
+                <property name="title">loading</property>
                 <property name="position">1</property>
               </packing>
             </child>

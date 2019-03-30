@@ -16,6 +16,7 @@ use crate::backend::Backend;
 use crate::actions;
 use crate::globals;
 use crate::uibuilder;
+use crate::widgets;
 
 mod connect;
 mod windowstate;
@@ -147,6 +148,11 @@ impl App {
         stack_header.add_named(&child_header, "account-settings");
 
         let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), apptx)));
+
+        // Add login view to the main stack
+        let login = widgets::LoginWidget::new(&op);
+        stack.add_named(&login.container, "login");
+        stack_header.add_named(&login.headers, "login");
 
         unsafe {
             OP = Some(Arc::downgrade(&op));
