@@ -239,6 +239,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = i18n("Can’t login, try again");
                     let st = AppState::Login;
                     APPOP!(show_error, (error));
+                    APPOP!(logout);
                     APPOP!(set_state, (st));
                 }
                 Ok(BKResponse::AttachFileError(err)) => {

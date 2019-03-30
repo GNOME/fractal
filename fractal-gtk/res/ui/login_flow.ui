@@ -5,6 +5,7 @@
   <object class="GtkStack" id="login_flow_stack">
     <property name="can_focus">False</property>
     <property name="hhomogeneous">True</property>
+    <property name="transition_type">GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT</property>
     <child>
       <object class="GtkBox" id="login_greeter">
         <property name="visible">True</property>
@@ -22,10 +23,7 @@
             <property name="margin_end">18</property>
             <property name="margin_top">18</property>
             <property name="pixel_size">128</property>
-            <property name="icon_name">user-available-symbolic</property>
-            <style>
-              <class name="dim-label"/>
-            </style>
+            <property name="icon_name">chat-icon</property>
           </object>
         </child>
         <child>
@@ -44,6 +42,7 @@
           <object class="GtkButton" id="login_button">
             <property name="visible">True</property>
             <property name="label" translatable="true">Log In</property>
+            <property name="action_name">login.server_chooser</property>
             <property name="height-request">48</property>
             <style>
               <class name="suggested-action"/>
@@ -55,6 +54,7 @@
             <property name="visible">True</property>
             <property name="label" translatable="yes">Create Account</property>
             <property name="height-request">48</property>
+            <property name="action_name">login.create-account</property>
           </object>
         </child>
       </object>
@@ -108,6 +108,7 @@
                 <property name="visible">True</property>
                 <property name="max_width_chars">-1</property>
                 <property name="width_request">312</property>
+                <property name="input_purpose">GTK_INPUT_PURPOSE_URL</property>
               </object>
             </child>
             <child>
@@ -121,6 +122,17 @@
                 </style>
               </object>
             </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="server_err_label">
+            <property name="visible">False</property>
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="label" translatable="yes">The domain may not be empty.</property>
+            <style>
+              <class name="error-label"/>
+            </style>
           </object>
         </child>
       </object>
@@ -201,10 +213,143 @@
             <property name="max_width_chars">-1</property>
             <property name="width_request">232</property>
             <property name="can_focus">True</property>
+            <property name="visibility">False</property>
+            <property name="input_purpose">GTK_INPUT_PURPOSE_PASSWORD</property>
           </object>
           <packing>
             <property name="top-attach">3</property>
             <property name="left-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLinkButton" id="forgot_password">
+            <property name="label" translatable="yes">Forgot Password?</property>
+            <property name="uri">https://riot.im/app/#/login</property>
+            <property name="halign">start</property>
+            <style>
+              <class name="forgot-password"/>
+            </style>
+          </object>
+          <packing>
+            <property name="top-attach">4</property>
+            <property name="left-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="credentials_err_label">
+            <property name="visible">False</property>
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="xalign">0</property>
+            <property name="label" translatable="yes">Invalid username or password</property>
+            <style>
+              <class name="error-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="top-attach">5</property>
+            <property name="left-attach">1</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="name">credentials</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkStack" id="login_flow_headers">
+    <property name="can_focus">False</property>
+    <property name="hhomogeneous">True</property>
+    <property name="visible_child_name" bind-source="login_flow_stack" bind-property="visible-child-name" bind-flags="sync-create"/>
+    <property name="transition_duration" bind-source="login_flow_stack" bind-property="transition-duration" bind-flags="sync-create"/>
+    <property name="transition_type" bind-source="login_flow_stack" bind-property="transition-type" bind-flags="sync-create"/>
+    <child>
+      <object class="GtkHeaderBar" id="login_greeter_header">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <property name="title" translatable="yes">Fractal</property>
+      </object>
+      <packing>
+        <property name="name">greeter</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHeaderBar" id="login_server_chooser_header">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <property name="width_request">360</property>
+        <property name="title" translatable="yes">Choose Server</property>
+        <child>
+          <object class="GtkButton">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="action_name">login.back</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="icon_name">go-previous-symbolic</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="pack_type">start</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="action_name">login.credentials</property>
+            <property name="label" translatable="yes">Next</property>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="pack_type">end</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="name">server-chooser</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHeaderBar" id="login_credentials_header">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <property name="title" translatable="yes">Log In</property>
+        <child>
+          <object class="GtkButton">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="action_name">login.back</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="icon_name">go-previous-symbolic</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="pack_type">start</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="action_name">login.login</property>
+            <property name="label" translatable="yes">Log In</property>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="pack_type">end</property>
           </packing>
         </child>
       </object>

@@ -25,7 +25,6 @@ use crate::widgets::ErrorDialog;
 impl AppOp {
     pub fn bk_login(&mut self, uid: String, token: String, device: Option<String>) {
         self.logged_in = true;
-        self.clean_login();
         if let Err(_) = self.store_token(uid.clone(), token) {
             error!("Can't store the token using libsecret");
         }
@@ -70,112 +69,6 @@ impl AppOp {
         let bk = Backend::new(tx);
         self.backend = bk.run();
         backend_loop(rx);
-    }
-
-    pub fn clean_login(&self) {
-        let user_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_username")
-            .expect("Can't find login_username in ui file.");
-        let pass_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_password")
-            .expect("Can't find login_password in ui file.");
-        let server_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_server")
-            .expect("Can't find login_server in ui file.");
-        let idp_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_idp")
-            .expect("Can't find login_idp in ui file.");
-
-        user_entry.set_text("");
-        pass_entry.set_text("");
-        server_entry.set_text(globals::DEFAULT_HOMESERVER);
-        idp_entry.set_text(globals::DEFAULT_IDENTITYSERVER);
-    }
-
-    pub fn login(&mut self) {
-        let user_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_username")
-            .expect("Can't find login_username in ui file.");
-        let pass_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_password")
-            .expect("Can't find login_password in ui file.");
-        let server_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_server")
-            .expect("Can't find login_server in ui file.");
-        let idp_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_idp")
-            .expect("Can't find login_idp in ui file.");
-        let login_error: gtk::Label = self
-            .ui
-            .builder
-            .get_object("login_error_msg")
-            .expect("Can't find login_error_msg in ui file.");
-
-        let username = user_entry.get_text();
-        let password = pass_entry.get_text();
-        let server = server_entry.get_text();
-        let identity = idp_entry.get_text();
-
-        if username.clone().unwrap_or_default().is_empty()
-            || password.clone().unwrap_or_default().is_empty()
-        {
-            login_error.set_text(i18n("Invalid username or password").as_str());
-            login_error.show();
-            return;
-        } else {
-            login_error.set_text(i18n("Unknown Error").as_str());
-            login_error.hide();
-        }
-
-        /* FIXME: validate server and identity same as username and passwod */
-
-        self.set_state(AppState::Loading);
-        self.since = None;
-        self.connect(username, password, server, identity);
-    }
-
-    pub fn set_login_pass(&self, username: &str, password: &str, server: &str, identity: &str) {
-        let user_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_username")
-            .expect("Can't find login_username in ui file.");
-        let pass_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_password")
-            .expect("Can't find login_password in ui file.");
-        let server_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_server")
-            .expect("Can't find login_server in ui file.");
-        let idp_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_idp")
-            .expect("Can't find login_idp in ui file.");
-
-        user_entry.set_text(username);
-        pass_entry.set_text(password);
-        server_entry.set_text(server);
-        idp_entry.set_text(identity);
     }
 
     #[allow(dead_code)]
