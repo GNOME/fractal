@@ -20,10 +20,7 @@ impl AppOp {
             .expect("Can't find room_header_bar in ui file.");
 
         let widget_name = match self.state {
-            AppState::Login => {
-                self.clean_login();
-                "login"
-            }
+            AppState::Login => "login",
             AppState::NoRoom => {
                 self.set_state_no_room(&headerbar);
                 self.leaflet.set_visible_child_name("sidebar");
@@ -53,7 +50,7 @@ impl AppOp {
         let bar_name = match self.state {
             AppState::Login => "login",
             AppState::Directory => "back",
-            AppState::Loading => "login",
+            AppState::Loading => "loading",
             AppState::AccountSettings => "account-settings",
             AppState::RoomSettings => "room-settings",
             AppState::MediaViewer => "media-viewer",
@@ -68,7 +65,6 @@ impl AppOp {
 
         //set focus for views
         let widget_focus = match self.state {
-            AppState::Login => "login_username",
             AppState::Directory => "directory_search_entry",
             _ => "",
         };
