@@ -6,7 +6,6 @@ mod headerbar;
 mod invite;
 mod join_room;
 mod leave_room;
-mod login;
 mod markdown;
 mod new_room;
 mod roomlist_search;
@@ -17,7 +16,6 @@ use crate::app::App;
 impl App {
     pub fn connect_gtk(&self) {
         self.connect_headerbars();
-        self.connect_login_view();
 
         self.connect_send();
         self.connect_markdown();

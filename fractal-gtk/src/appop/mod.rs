@@ -33,7 +33,7 @@ mod notify;
 mod room;
 mod room_settings;
 mod start_chat;
-mod state;
+pub mod state;
 mod sync;
 mod user;
 
@@ -135,7 +135,6 @@ impl AppOp {
             if let Ok((token, uid)) = self.get_token() {
                 self.set_token(Some(token), Some(uid), Some(pass.2));
             } else {
-                self.set_login_pass(&pass.0, &pass.1, &pass.2, &pass.3);
                 self.connect(Some(pass.0), Some(pass.1), Some(pass.2), Some(pass.3));
             }
         } else {
