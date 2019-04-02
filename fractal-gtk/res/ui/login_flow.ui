@@ -41,7 +41,8 @@
         <child>
           <object class="GtkButton" id="login_button">
             <property name="visible">True</property>
-            <property name="label" translatable="true">Log In</property>
+            <property name="use_underline">True</property>
+            <property name="label" translatable="true">_Log In</property>
             <property name="action_name">login.server_chooser</property>
             <property name="height-request">48</property>
             <style>
@@ -52,7 +53,8 @@
         <child>
           <object class="GtkButton" id="create_account_button">
             <property name="visible">True</property>
-            <property name="label" translatable="yes">Create Account</property>
+            <property name="use_underline">True</property>
+            <property name="label" translatable="yes">_Create Account</property>
             <property name="height-request">48</property>
             <property name="action_name">login.create-account</property>
           </object>
@@ -153,10 +155,12 @@
         <child>
           <object class="GtkLabel">
             <property name="visible">True</property>
+            <property name="use_underline">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">User ID</property>
+            <property name="label" translatable="yes">_User ID</property>
             <property name="halign">end</property>
             <property name="valign">end</property>
+            <property name="mnemonic_widget">username_entry</property>
             <style>
               <class name="dim-label"/>
             </style>
@@ -165,9 +169,11 @@
         <child>
           <object class="GtkLabel">
             <property name="visible">True</property>
+            <property name="use_underline">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Password</property>
+            <property name="label" translatable="yes">_Password</property>
             <property name="halign">end</property>
+            <property name="mnemonic_widget">password_entry</property>
             <style>
               <class name="dim-label"/>
             </style>
@@ -225,7 +231,8 @@
         </child>
         <child>
           <object class="GtkLinkButton" id="forgot_password">
-            <property name="label" translatable="yes">Forgot Password?</property>
+            <property name="use_underline">True</property>
+            <property name="label" translatable="yes">_Forgot Password?</property>
             <property name="uri">https://riot.im/app/#/login</property>
             <property name="halign">start</property>
             <style>
@@ -302,9 +309,10 @@
         <child>
           <object class="GtkButton">
             <property name="visible">True</property>
+            <property name="use_underline">True</property>
             <property name="can_focus">True</property>
             <property name="action_name">login.credentials</property>
-            <property name="label" translatable="yes">Next</property>
+            <property name="label" translatable="yes">_Next</property>
             <style>
               <class name="suggested-action"/>
             </style>
@@ -343,9 +351,10 @@
         <child>
           <object class="GtkButton">
             <property name="visible">True</property>
+            <property name="use_underline">True</property>
             <property name="can_focus">True</property>
             <property name="action_name">login.login</property>
-            <property name="label" translatable="yes">Log In</property>
+            <property name="label" translatable="yes">_Log In</property>
             <style>
               <class name="suggested-action"/>
             </style>
