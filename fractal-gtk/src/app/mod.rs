@@ -154,6 +154,8 @@ impl App {
         stack.add_named(&login.container, "login");
         stack_header.add_named(&login.headers, "login");
 
+        gtk_app.set_accels_for_action("login.back", &["Escape"]);
+
         unsafe {
             OP = Some(Arc::downgrade(&op));
         }
