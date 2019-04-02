@@ -122,6 +122,19 @@ pub fn new(
         }
     });
 
+    gio::Application::get_default().map(|app| {
+        app.downcast::<gtk::Application>().map(|gtk_app| {
+            gtk_app.get_active_window().map(|window| {
+                window.connect_button_press_event(move |_, e| {
+                    if e.get_button() == 8 {
+                        back.activate(None);
+                    }
+                    Inhibit(false)
+                });
+            })
+        })
+    });
+
     stack.insert_action_group("login", &actions);
     headers.insert_action_group("login", &actions);
 
