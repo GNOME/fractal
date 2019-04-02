@@ -119,7 +119,6 @@ impl AppOp {
                 return;
             }
         }
-        self.set_state(AppState::Room);
 
         let msg_entry = self.ui.sventry.view.clone();
         if let Some(buffer) = msg_entry.get_buffer() {
@@ -186,6 +185,7 @@ impl AppOp {
         self.history = Some(history);
 
         self.active_room = Some(active_room);
+        self.set_state(AppState::Room);
         /* Mark the new active room as read */
         self.mark_last_message_as_read(Force(false));
         self.update_typing_notification();
