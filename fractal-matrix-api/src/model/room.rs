@@ -6,6 +6,7 @@ use crate::model::message::Message;
 use crate::types::SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use url::Url;
@@ -208,7 +209,14 @@ impl Room {
                 let receipts = obj["m.read"]
                     .as_object()?
                     .iter()
-                    .map(|(uid, ts)| (uid.to_string(), ts["ts"].as_i64().unwrap()))
+                    .map(|(uid, ts)| {
+                        info!("Value of timestamp 'ts': {}", ts);
+                        let ts = ts["ts"].as_i64().unwrap_or(0);
+                        if ts == 0 {
+                            info!("Working around synapse bug 4898");
+                        };
+                        (uid.to_string(), ts)
+                    })
                     .collect();
 
                 Some((mid.to_string(), receipts))
