@@ -16,6 +16,7 @@ fractal-gtk/res/ui/invite.ui
 fractal-gtk/res/ui/invite_user.ui
 fractal-gtk/res/ui/join_room.ui
 fractal-gtk/res/ui/leave_room.ui
+fractal-gtk/res/ui/login_flow.ui
 fractal-gtk/res/ui/main_menu.ui
 fractal-gtk/res/ui/main_window.ui
 fractal-gtk/res/ui/markdown_popover.ui
@@ -34,6 +35,7 @@ fractal-gtk/res/ui/server_chooser_menu.ui
 # rust files
 fractal-gtk/src/actions/account_settings.rs
 fractal-gtk/src/actions/global.rs
+fractal-gtk/src/actions/login.rs
 fractal-gtk/src/actions/mod.rs
 fractal-gtk/src/actions/room_history.rs
 fractal-gtk/src/actions/room_settings.rs
@@ -46,7 +48,6 @@ fractal-gtk/src/app/connect/headerbar.rs
 fractal-gtk/src/app/connect/invite.rs
 fractal-gtk/src/app/connect/join_room.rs
 fractal-gtk/src/app/connect/leave_room.rs
-fractal-gtk/src/app/connect/login.rs
 fractal-gtk/src/app/connect/markdown.rs
 fractal-gtk/src/app/connect/mod.rs
 fractal-gtk/src/app/connect/new_room.rs
@@ -88,6 +89,7 @@ fractal-gtk/src/widgets/error_dialog.rs
 fractal-gtk/src/widgets/file_dialog.rs
 fractal-gtk/src/widgets/image.rs
 fractal-gtk/src/widgets/inline_player.rs
+fractal-gtk/src/widgets/login.rs
 fractal-gtk/src/widgets/media_viewer.rs
 fractal-gtk/src/widgets/member.rs
 fractal-gtk/src/widgets/members_list.rs
