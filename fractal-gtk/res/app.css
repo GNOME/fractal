@@ -327,3 +327,8 @@ button.forgot-password {
 .error-label {
   color: @error_color;
 }
+
+box.folded-history > overlay > scrolledwindow > viewport > box > hdycolumn > list {
+  padding-left: 6px;
+  padding-right: 6px;
+}
