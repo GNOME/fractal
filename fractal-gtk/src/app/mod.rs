@@ -2,6 +2,7 @@ use gettextrs::{bindtextdomain, setlocale, textdomain, LocaleCategory};
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
+use libhandy::prelude::*;
 use std::cell::RefCell;
 use std::ops;
 use std::rc::{Rc, Weak};
@@ -125,6 +126,39 @@ impl App {
         {
             window.get_style_context().map(|c| c.add_class("devel"));
         }
+
+        let leaflet = ui
+            .builder
+            .get_object::<libhandy::Leaflet>("chat_state_leaflet")
+            .expect("Can't find chat_state_leaflet in ui file.");
+        let container = ui
+            .builder
+            .get_object::<gtk::Box>("history_container")
+            .expect("Can't find history_container in ui file.");
+
+        if let libhandy::Fold::Folded = leaflet.get_fold() {
+            container
+                .get_style_context()
+                .unwrap()
+                .add_class("folded-history");
+        }
+
+        let weak_container = container.downgrade();
+        leaflet.connect_property_fold_notify(move |leaflet| {
+            let container = upgrade_weak!(weak_container);
+
+            match leaflet.get_fold() {
+                libhandy::Fold::Folded => container
+                    .get_style_context()
+                    .unwrap()
+                    .add_class("folded-history"),
+                libhandy::Fold::Unfolded => container
+                    .get_style_context()
+                    .unwrap()
+                    .remove_class("folded-history"),
+                _ => (),
+            }
+        });
 
         let stack = ui
             .builder
