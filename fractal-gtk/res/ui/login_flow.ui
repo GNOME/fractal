@@ -44,7 +44,7 @@
           <object class="GtkButton" id="login_button">
             <property name="visible">True</property>
             <property name="use_underline">True</property>
-            <property name="label" translatable="true">_Log In</property>
+            <property name="label" translatable="yes">_Log In</property>
             <property name="action_name">login.server_chooser</property>
             <property name="height-request">48</property>
             <style>
