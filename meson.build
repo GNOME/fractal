@@ -72,13 +72,14 @@ gresource = find_program('glib-compile-resources', required: false)
 cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 grabber = find_program('scripts/grabber.sh')
-cargo_release = find_program('scripts/release.sh')
 
 subdir('fractal-gtk/src')
 
-run_target('release', command: ['scripts/release.sh',
-                                meson.project_name() + '-' + fractal_version
-                               ])
+meson.add_dist_script(
+  'scripts/vendor.sh',
+  meson.source_root(),
+  join_paths(meson.build_root(), 'meson-dist', meson.project_name() + '-' + fractal_version)
+)
 
 if get_option('profile') == 'development'
     # Setup pre-commit hook for ensuring coding style is always consistent
