@@ -96,6 +96,7 @@
         {
             "name" : "fractal",
             "buildsystem" : "meson",
+            "builddir" : true,
             "config-opts" : [
                 "-Dprofile=development"
             ],
