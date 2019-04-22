@@ -71,6 +71,7 @@ cargo = find_program('cargo', required: false)
 gresource = find_program('glib-compile-resources', required: false)
 cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
+test_script = find_program('scripts/test.sh')
 grabber = find_program('scripts/grabber.sh')
 
 subdir('fractal-gtk/src')
@@ -79,6 +80,14 @@ meson.add_dist_script(
   'scripts/vendor.sh',
   meson.source_root(),
   join_paths(meson.build_root(), 'meson-dist', meson.project_name() + '-' + fractal_version)
+)
+
+test(
+  'cargo-test',
+  test_script,
+  args: meson.build_root(),
+  workdir: meson.source_root(),
+  timeout: 3000,
 )
 
 if get_option('profile') == 'development'
