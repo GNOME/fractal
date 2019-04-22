@@ -6,3 +6,6 @@ Makefile
 _build
 vendor
 *.gresource
+
+# Files configured by meson
+fractal-gtk/src/config.rs

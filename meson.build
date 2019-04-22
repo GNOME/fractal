@@ -73,25 +73,7 @@ cargo_script = find_program('scripts/cargo.sh')
 grabber = find_program('scripts/grabber.sh')
 cargo_release = find_program('scripts/release.sh')
 
-c = run_command(grabber)
-sources = c.stdout().strip().split('\n')
-
-cargo_release = custom_target('cargo-build',
-                        build_by_default: true,
-                        input: sources,
-                        output: ['fractal'],
-                        install: true,
-                        install_dir: fractal_bindir,
-                        console: true,
-                        command: [cargo_script,
-                                  '@CURRENT_SOURCE_DIR@',
-                                  '@OUTPUT@',
-                                  fractal_localedir,
-                                  application_id,
-                                  name_suffix,
-                                  fractal_version + version_suffix,
-                                  profile
-                                 ])
+subdir('fractal-gtk/src')
 
 run_target('release', command: ['scripts/release.sh',
                                 meson.project_name() + '-' + fractal_version

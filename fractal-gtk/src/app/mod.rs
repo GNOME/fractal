@@ -14,7 +14,7 @@ use crate::backend::BKResponse;
 use crate::backend::Backend;
 
 use crate::actions;
-use crate::globals;
+use crate::config;
 use crate::uibuilder;
 use crate::widgets;
 
@@ -85,7 +85,7 @@ impl App {
 
         // Set up the textdomain for gettext
         setlocale(LocaleCategory::LcAll, "");
-        bindtextdomain("fractal", globals::LOCALEDIR.unwrap_or("./fractal-gtk/po"));
+        bindtextdomain("fractal", config::LOCALEDIR);
         textdomain("fractal");
 
         glib::set_application_name("fractal");

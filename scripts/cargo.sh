@@ -1,11 +1,7 @@
 #!/bin/sh
 
 export CARGO_HOME=$1/target/cargo-home
-export FRACTAL_LOCALEDIR="$3"
-export FRACTAL_APP_ID="$4"
-export FRACTAL_NAME_SUFFIX="$5"
-export FRACTAL_VERSION="$6"
-export FRACTAL_PROFILE="$7"
+export FRACTAL_PROFILE="$3"
 
 if [ "$FRACTAL_PROFILE" = "Devel" ]
 then
