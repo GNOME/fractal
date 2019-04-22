@@ -33,8 +33,6 @@ flatpak:
     stage: "test"
     script:
         - flatpak-builder --stop-at=${FLATPAK_MODULE} --force-clean app ${MANIFEST_PATH}
-        # Force regeneration of gresources regardless of artifacts chage
-        - flatpak-builder --run app ${MANIFEST_PATH} glib-compile-resources --sourcedir=fractal-gtk/res/ fractal-gtk/res/resources.xml
 
         # Build the flatpak repo
         - flatpak-builder --run app ${MANIFEST_PATH} meson --prefix=/app -Dprofile=development _build
@@ -97,8 +95,6 @@ pages:
     stage: deploy
     script:
         - flatpak-builder --stop-at=${FLATPAK_MODULE} --force-clean app ${MANIFEST_PATH}
-        # Force regeneration of gresources regardless of artifacts chage
-        - flatpak-builder --run app ${MANIFEST_PATH} glib-compile-resources --sourcedir=fractal-gtk/res/ fractal-gtk/res/resources.xml
         - flatpak-builder --run app ${MANIFEST_PATH} meson _build
 
         - |

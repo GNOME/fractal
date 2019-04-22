@@ -49,3 +49,10 @@ if appstream_util.found()
   )
 endif
 install_data('org.gnome.Fractal.gschema.xml', install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas'))
+
+fractal_resources = gnome.compile_resources(
+  'resources',
+  'resources.xml',
+  gresource_bundle: true,
+  source_dir: meson.current_build_dir()
+)

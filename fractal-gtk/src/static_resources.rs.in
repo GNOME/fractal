@@ -3,7 +3,8 @@ use glib::Bytes;
 
 pub fn init() -> Result<(), Error> {
     // load the gresource binary at build time and include/link it into the final binary.
-    let res_bytes = include_bytes!("../res/resources.gresource");
+    let res_bytes =
+        include_bytes!(@RESOURCEFILE@);
 
     // Create Resource, it will live as long the value lives.
     let gbytes = Bytes::from(res_bytes.as_ref());

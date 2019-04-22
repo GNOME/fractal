@@ -1,6 +1,5 @@
 [package]
 authors = ["Daniel Garcia <danigm@wadobo.com>"]
-build = "build.rs"
 name = "fractal-gtk"
 version = "4.0.0"
 workspace = "../"
