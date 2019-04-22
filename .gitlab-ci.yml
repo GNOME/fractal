@@ -24,6 +24,10 @@ check:
     image: "registry.gitlab.com/alatiera/rustfmt-oci-image/rustfmt:stable"
     stage: "check"
     script:
+        # Create blank versions of our configured files
+        # so rustfmt does not yell about non-existent files or completely empty files
+        - echo -e "" >> fractal-gtk/src/config.rs
+        - echo -e "" >> fractal-gtk/src/static_resource.rs
         - rustc -Vv && cargo -Vv
         - cargo --version
         - cargo fmt --all -- --check
