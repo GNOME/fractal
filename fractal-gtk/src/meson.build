@@ -46,6 +46,7 @@ cargo_release = custom_target('cargo-build',
                         command: [cargo_script,
                                   '@SOURCE_ROOT@',
                                   '@OUTPUT@',
+                                  meson.build_root(),
                                   profile
                                  ])
 
