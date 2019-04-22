@@ -49,7 +49,7 @@ flatpak:
               --env=CARGO_HOME="target/cargo-home" \
               --env=CARGO_TARGET_DIR="target_test/" \
               app ${MANIFEST_PATH} \
-              cargo test
+              ninja -C _build test
 
         # Create a flatpak bundle
         - flatpak-builder --finish-only app ${MANIFEST_PATH}
