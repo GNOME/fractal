@@ -10,8 +10,3 @@ pub static RIOT_REGISTER_URL: &'static str = "https://riot.im/app/#/register";
 
 pub static MAX_IMAGE_SIZE: (i32, i32) = (600, 400);
 pub static MAX_STICKER_SIZE: (i32, i32) = (200, 130);
-
-pub static LOCALEDIR: Option<&'static str> = option_env!("FRACTAL_LOCALEDIR");
-pub static APP_ID: Option<&'static str> = option_env!("FRACTAL_APP_ID");
-pub static NAME_SUFFIX: Option<&'static str> = option_env!("FRACTAL_NAME_SUFFIX");
-pub static VERSION: Option<&'static str> = option_env!("FRACTAL_VERSION");

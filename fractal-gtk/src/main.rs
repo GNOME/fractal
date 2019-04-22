@@ -2,6 +2,7 @@ use fractal_api::backend;
 use fractal_api::error;
 use fractal_api::types;
 
+mod config;
 mod globals;
 mod i18n;
 #[macro_use]
@@ -55,8 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     gst::init()?;
 
     // Create a Application with default flags
-    let appid = globals::APP_ID.unwrap_or("org.gnome.FractalDevel");
-    let application = gtk::Application::new(appid, gio::ApplicationFlags::empty())?;
+    let application = gtk::Application::new(config::APP_ID, gio::ApplicationFlags::empty())?;
 
     application.set_property_resource_base_path(Some("/org/gnome/Fractal"));
 
