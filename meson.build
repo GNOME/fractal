@@ -72,8 +72,15 @@ gresource = find_program('glib-compile-resources', required: false)
 cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 test_script = find_program('scripts/test.sh')
-grabber = find_program('scripts/grabber.sh')
 
+cargo_manifests = files(
+  'Cargo.toml',
+  'Cargo.lock',
+  'fractal-gtk/Cargo.toml',
+  'fractal-matrix-api/Cargo.toml'
+)
+
+subdir('fractal-matrix-api/src')
 subdir('fractal-gtk/src')
 
 meson.add_dist_script(
