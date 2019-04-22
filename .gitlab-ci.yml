@@ -16,7 +16,7 @@ variables:
         key: "flatpak"
         paths:
           - .flatpak-builder/cache/
-          - target/
+          - _build/target/
           - target_docs/
           - target_test/
 
