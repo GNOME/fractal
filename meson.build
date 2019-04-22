@@ -60,6 +60,7 @@ fractal_localedir = join_paths(fractal_prefix, get_option('localedir'))
 datadir = get_option('datadir')
 
 i18n = import('i18n')
+gnome = import('gnome')
 
 podir = join_paths (meson.source_root (), 'fractal-gtk', 'po')
 
