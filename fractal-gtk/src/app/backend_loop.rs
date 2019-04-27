@@ -16,26 +16,15 @@ use std::sync::mpsc::RecvError;
 
 pub fn backend_loop(rx: Receiver<BKResponse>) {
     thread::spawn(move || {
-        let mut shutting_down = false;
         loop {
             let recv = rx.recv();
-
-            if let Err(RecvError) = recv {
-                // stopping this backend loop thread
-                break;
-            }
-
-            if shutting_down {
-                // ignore this event, we're shutting down this thread
-                continue;
-            }
 
             match recv {
                 Err(RecvError) => {
                     break;
                 }
                 Ok(BKResponse::ShutDown) => {
-                    shutting_down = true;
+                    break;
                 }
                 Ok(BKResponse::Token(uid, tk, dev)) => {
                     APPOP!(bk_login, (uid, tk, dev));
