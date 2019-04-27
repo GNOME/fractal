@@ -23,6 +23,7 @@ use crate::error::Error;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
 
+use reqwest::header::CONTENT_LENGTH;
 use reqwest::header::CONTENT_TYPE;
 
 use crate::globals;
@@ -349,7 +350,10 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
     let mut conn = match method {
-        "post" => HTTP_CLIENT.get_client()?.post(url.as_str()),
+        "post" => HTTP_CLIENT
+            .get_client()?
+            .post(url.as_str())
+            .header(CONTENT_LENGTH, 0),
         "put" => HTTP_CLIENT.get_client()?.put(url.as_str()),
         "delete" => HTTP_CLIENT.get_client()?.delete(url.as_str()),
         _ => HTTP_CLIENT.get_client()?.get(url.as_str()),
