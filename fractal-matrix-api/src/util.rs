@@ -23,6 +23,7 @@ use crate::error::Error;
 use crate::types::Message;
 use crate::types::RoomEventFilter;
 
+use reqwest::header::CONTENT_LENGTH;
 use reqwest::header::CONTENT_TYPE;
 
 use crate::globals;
@@ -357,6 +358,8 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, E
 
     if !attrs.is_null() {
         conn = conn.json(attrs);
+    } else {
+        conn = conn.header(CONTENT_LENGTH, 0);
     }
 
     let mut res = conn.send()?;
