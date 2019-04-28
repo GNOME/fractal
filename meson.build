@@ -72,6 +72,7 @@ gresource = find_program('glib-compile-resources', required: false)
 cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 test_script = find_program('scripts/test.sh')
+doc_script = find_program('scripts/cargo-doc.sh')
 
 cargo_manifests = files(
   'Cargo.toml',

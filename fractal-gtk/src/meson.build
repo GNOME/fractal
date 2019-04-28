@@ -32,6 +32,18 @@ run_command(
   check: true
 )
 
+run_target(
+  'doc',
+  command: [
+    doc_script,
+    '@SOURCE_ROOT@',
+    '@OUTPUT@',
+    meson.build_root(),
+    profile
+  ],
+  depends: fractal_resources
+)
+
 # Keep in alphabetical order
 app_sources = files(
   'actions/account_settings.rs',
