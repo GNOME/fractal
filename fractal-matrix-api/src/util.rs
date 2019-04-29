@@ -358,7 +358,7 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, E
 
     if !attrs.is_null() {
         conn = conn.json(attrs);
-    } else {
+    } else if method == "post" {
         conn = conn.header(CONTENT_LENGTH, 0);
     }
 
