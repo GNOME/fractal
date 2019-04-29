@@ -61,7 +61,8 @@ version = "0.2.0"
 features = ["v0_0_7"]
 
 [dependencies.gettext-rs]
-version = "0.4.1"
+git = "https://github.com/danigm/gettext-rs"
+branch = "no-gettext"
 features = ["gettext-system"]
 
 [dependencies.gtk]
