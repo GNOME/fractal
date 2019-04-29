@@ -13,6 +13,7 @@ use crate::util::cache_path;
 use crate::util::json_q;
 use crate::util::media;
 
+use crate::types::PublicRoomsFilter;
 use crate::types::PublicRoomsRequest;
 use crate::types::PublicRoomsResponse;
 use crate::types::Room;
@@ -53,7 +54,7 @@ pub fn protocols(bk: &Backend) {
 pub fn room_search(
     bk: &Backend,
     homeserver: Option<String>,
-    filter: Option<String>,
+    generic_search_term: Option<String>,
     third_party: Option<String>,
     more: bool,
 ) -> Result<(), Error> {
@@ -79,7 +80,9 @@ pub fn room_search(
 
     let request = PublicRoomsRequest {
         limit: Some(globals::ROOM_DIRECTORY_LIMIT),
-        filter,
+        filter: Some(PublicRoomsFilter {
+            generic_search_term,
+        }),
         since,
         third_party_networks: third_party
             .map(|tp| ThirdPartyNetworks::Only(tp))

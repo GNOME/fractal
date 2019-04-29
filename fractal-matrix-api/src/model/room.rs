@@ -270,12 +270,15 @@ pub struct PublicRoomsRequest {
     pub limit: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub since: Option<String>,
-    // This field doesn't follow the spec but for some reason
-    // it fails with matrix.org if it's not set this way
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<String>,
+    pub filter: Option<PublicRoomsFilter>,
     #[serde(flatten)]
     pub third_party_networks: ThirdPartyNetworks,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicRoomsFilter {
+    pub generic_search_term: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]

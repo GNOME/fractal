@@ -11,6 +11,7 @@ pub use crate::model::message::Message;
 pub use crate::model::protocol::ProtocolInstance;
 pub use crate::model::protocol::SupportedProtocols;
 pub use crate::model::register::*;
+pub use crate::model::room::PublicRoomsFilter;
 pub use crate::model::room::PublicRoomsRequest;
 pub use crate::model::room::PublicRoomsResponse;
 pub use crate::model::room::Room;
