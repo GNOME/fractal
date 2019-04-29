@@ -538,7 +538,7 @@
                             <child>
                               <object class="GtkLabel" id="room_name">
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Room name</property>
+                                <property name="label">Room name</property>
                                 <property name="ellipsize">end</property>
                                 <style>
                                   <class name="title"/>
@@ -553,7 +553,7 @@
                             <child>
                               <object class="GtkLabel" id="room_topic">
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Room topic</property>
+                                <property name="label">Room topic</property>
                                 <property name="ellipsize">end</property>
                                 <style>
                                   <class name="subtitle"/>
