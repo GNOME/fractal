@@ -141,8 +141,11 @@ impl FCache {
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
         let cache = self.get_store();
+        let mut stored_room = room.clone();
+        // Don't store typing notifications
+        stored_room.typing_users = Vec::new();
         let approom = AppRoom {
-            room: RefCell::new(room),
+            room: RefCell::new(stored_room),
         };
         approom.store(cache.as_ref().unwrap())?;
 
