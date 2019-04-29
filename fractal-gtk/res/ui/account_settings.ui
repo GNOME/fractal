@@ -320,7 +320,8 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">None</property>
+                                    <!-- Translators: This string is replaced not user-visible -->
+                                    <property name="label">None</property>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -348,7 +349,8 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">None</property>
+                                    <!-- Translators: This string is replaced not user-visible -->
+                                    <property name="label">None</property>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>
@@ -376,7 +378,8 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">None</property>
+                                    <!-- Translators: This string is replaced not user-visible -->
+                                    <property name="label">None</property>
                                   </object>
                                   <packing>
                                     <property name="left_attach">1</property>

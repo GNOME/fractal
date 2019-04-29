@@ -227,7 +227,8 @@
       <object class="GtkHeaderBar" id="media_viewer_headerbar">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="title" translatable="yes">Media viewer</property>
+        <!-- Translators: This string is replaced not user-visible -->
+        <property name="title">Media viewer</property>
         <property name="show_close_button">True</property>
         <child>
           <object class="GtkButton" id="media_viewer_back_button">

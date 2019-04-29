@@ -16,7 +16,8 @@
     <property name="transient_for">main_window</property>
     <property name="message_type">question</property>
     <property name="text" translatable="yes">Invitation</property>
-    <property name="secondary_text" translatable="yes">You’ve been invited to join "", you can accept or reject</property>
+    <!-- Translators: This string is replaced not user-visible -->
+    <property name="secondary_text">You’ve been invited to join "", you can accept or reject</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can_focus">False</property>
