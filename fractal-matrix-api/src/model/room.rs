@@ -169,7 +169,7 @@ impl Room {
             let stevents = &room.invite_state.events;
             if let Some((alias, avatar)) = stevents
                 .iter()
-                .find(|x| x["membership"] == "invite" && x["state_key"] == userid)
+                .find(|x| x["content"]["membership"] == "invite" && x["state_key"] == userid)
                 .and_then(|ev| {
                     get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok()
                 })
