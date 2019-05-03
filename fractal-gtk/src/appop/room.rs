@@ -90,7 +90,19 @@ impl AppOp {
                 container.remove(ch);
             }
 
-            self.roomlist = widgets::RoomList::new(Some(self.server_url.clone()));
+            let scrolledwindow: gtk::ScrolledWindow = self
+                .ui
+                .builder
+                .get_object("roomlist_scroll")
+                .expect("Couldn't find room_container in ui file.");
+            let adj = scrolledwindow.get_vadjustment();
+            scrolledwindow.get_child().map(|child| {
+                child.downcast_ref::<gtk::Container>().map(|container| {
+                    adj.clone().map(|a| container.set_focus_vadjustment(&a));
+                });
+            });
+
+            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.clone()));
             self.roomlist.add_rooms(roomlist);
             container.add(self.roomlist.widget());
 

@@ -51,7 +51,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="roomlist_scroll">
                     <property name="width_request">200</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>

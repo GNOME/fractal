@@ -50,6 +50,13 @@ impl RoomUpdated {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RoomListType {
+    Invites,
+    Rooms,
+    Favorites,
+}
+
 pub struct RoomListGroup {
     pub rooms: HashMap<String, RoomRow>,
     pub baseu: Url,
@@ -396,6 +403,7 @@ impl RGroup {
 pub struct RoomList {
     pub baseu: Url,
     widget: gtk::Box,
+    adj: Option<gtk::Adjustment>,
 
     inv: RGroup,
     fav: RGroup,
@@ -415,7 +423,7 @@ macro_rules! run_in_group {
 }
 
 impl RoomList {
-    pub fn new(url: Option<String>) -> RoomList {
+    pub fn new(adj: Option<gtk::Adjustment>, url: Option<String>) -> RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
         let baseu = get_url(url);
 
@@ -438,6 +446,7 @@ impl RoomList {
         let rl = RoomList {
             baseu,
             widget,
+            adj,
             inv,
             fav,
             rooms,
@@ -556,6 +565,7 @@ impl RoomList {
         self.widget.add(self.fav.get().widget());
         self.widget.add(self.rooms.get().widget());
         self.connect_select();
+        self.connect_keynav();
 
         self.show_and_hide();
 
@@ -627,9 +637,98 @@ impl RoomList {
         });
     }
 
+    pub fn connect_keynav(&self) {
+        let weak_inv_lb = self.inv.get().list.downgrade();
+        let weak_fav_lb = self.fav.get().list.downgrade();
+        let weak_room_lb = self.rooms.get().list.downgrade();
+        let adj = self.adj.clone();
+        let type_ = RoomListType::Invites;
+        self.inv.get().list.connect_keynav_failed(move |_, d| {
+            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
+            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
+            let room_lb = upgrade_weak!(weak_room_lb, gtk::Inhibit(false));
+
+            keynav_cb(d, &inv_lb, &fav_lb, &room_lb, adj.clone(), type_)
+        });
+
+        let weak_fav_lb = self.fav.get().list.downgrade();
+        let weak_inv_lb = self.inv.get().list.downgrade();
+        let weak_room_lb = self.rooms.get().list.downgrade();
+        let adj = self.adj.clone();
+        let type_ = RoomListType::Favorites;
+        self.fav.get().list.connect_keynav_failed(move |_, d| {
+            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
+            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
+            let room_lb = upgrade_weak!(weak_room_lb, gtk::Inhibit(false));
+
+            keynav_cb(d, &inv_lb, &fav_lb, &room_lb, adj.clone(), type_)
+        });
+
+        let weak_rooms_lb = self.rooms.get().list.downgrade();
+        let weak_inv_lb = self.inv.get().list.downgrade();
+        let weak_fav_lb = self.fav.get().list.downgrade();
+        let adj = self.adj.clone();
+        let type_ = RoomListType::Rooms;
+        self.rooms.get().list.connect_keynav_failed(move |_, d| {
+            let rooms_lb = upgrade_weak!(weak_rooms_lb, gtk::Inhibit(false));
+            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
+            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
+
+            keynav_cb(d, &inv_lb, &fav_lb, &rooms_lb, adj.clone(), type_)
+        });
+    }
+
     pub fn filter_rooms(&self, term: Option<String>) {
         self.inv.get().filter_rooms(&term);
         self.fav.get().filter_rooms(&term);
         self.rooms.get().filter_rooms(&term);
+    }
+}
+
+/// Navigates between the different room
+/// lists seamlessly with widget focus,
+/// while keeping the `gtk::ScrolledWindow` in
+/// the proper position.
+///
+/// Translated from https://gitlab.gnome.org/GNOME/gtk/blob/d3ad6425/gtk/inspector/general.c#L655
+fn keynav_cb(
+    direction: gtk::DirectionType,
+    inv_lb: &gtk::ListBox,
+    fav_lb: &gtk::ListBox,
+    room_lb: &gtk::ListBox,
+    adj: Option<gtk::Adjustment>,
+    type_: RoomListType,
+) -> gtk::Inhibit {
+    let next: Option<&gtk::ListBox>;
+    next = match (direction, type_) {
+        (gtk::DirectionType::Down, RoomListType::Invites) => Some(fav_lb),
+        (gtk::DirectionType::Down, RoomListType::Favorites) => Some(room_lb),
+        (gtk::DirectionType::Up, RoomListType::Rooms) => Some(fav_lb),
+        (gtk::DirectionType::Up, RoomListType::Favorites) => Some(inv_lb),
+        _ => None,
+    };
+
+    if let Some(widget) = next {
+        widget.child_focus(direction);
+        gtk::Inhibit(true)
+    } else if let Some(adjustment) = adj {
+        let value = adjustment.get_value();
+        let lower = adjustment.get_lower();
+        let upper = adjustment.get_upper();
+        let page = adjustment.get_page_size();
+
+        match direction {
+            gtk::DirectionType::Up if value > lower => {
+                adjustment.set_value(lower);
+                gtk::Inhibit(true)
+            }
+            gtk::DirectionType::Down if value < upper - page => {
+                adjustment.set_value(upper - page);
+                gtk::Inhibit(true)
+            }
+            _ => gtk::Inhibit(false),
+        }
+    } else {
+        gtk::Inhibit(false)
     }
 }

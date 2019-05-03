@@ -100,6 +100,14 @@ impl Widgets {
             .add_class("messages-box");
         container.add(&column);
 
+        view.get_vadjustment().map(|adj| {
+            view.get_child().map(|child| {
+                child.downcast_ref::<gtk::Container>().map(|container| {
+                    container.set_focus_vadjustment(&adj);
+                });
+            });
+        });
+
         /* add a load more Spinner */
         let spinner = gtk::Spinner::new();
         messages.add(&create_load_more_spn(&spinner));

@@ -102,7 +102,7 @@ impl AppOp {
             msg_queue: vec![],
             sending_message: false,
             state: AppState::Login,
-            roomlist: widgets::RoomList::new(None),
+            roomlist: widgets::RoomList::new(None, None),
             since: None,
             unsent_messages: HashMap::new(),
 
