@@ -58,19 +58,20 @@ impl Default for SVEntry {
         */
 
         let entry_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        entry_box
-            .get_style_context()
-            .map(|c| c.add_class("message-input"));
+        entry_box.get_style_context().add_class("message-input");
 
-        let scroll = gtk::ScrolledWindow::new(None, None);
+        let hadjust: Option<&gtk::Adjustment> = None;
+        let vadjust: Option<&gtk::Adjustment> = None;
+        let scroll = gtk::ScrolledWindow::new(hadjust, vadjust);
 
-        let buffer = sourceview::Buffer::new(None);
+        let tag_table: Option<&gtk::TextTagTable> = None;
+        let buffer = sourceview::Buffer::new(tag_table);
         let view = sourceview::View::new_with_buffer(&buffer);
         view.set_wrap_mode(gtk::WrapMode::WordChar);
         view.set_indent_on_tab(false);
 
         let textview = view.upcast_ref::<gtk::TextView>();
-        let gspell_view = gspell::TextView::get_from_gtk_text_view(&textview).unwrap();
+        let gspell_view = gspell::TextView::get_from_gtk_text_view(textview).unwrap();
         gspell_view.basic_setup();
 
         scroll.add(&view);

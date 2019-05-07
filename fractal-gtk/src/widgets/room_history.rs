@@ -329,16 +329,14 @@ fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
         // Translators: This is a date format in the day divider with the year
         i18n("%B %e, %Y")
     };
-    let stamp = if let Some(string) = gdate.format(&format) {
-        string
+    let stamp = if let Some(gstr) = gdate.format(&format) {
+        gstr.to_string()
     } else {
         // Fallback to a non glib time string
         date.format(&format).to_string()
     };
     let row = gtk::ListBoxRow::new();
-    if let Some(style) = row.get_style_context() {
-        style.add_class("divider");
-    }
+    row.get_style_context().add_class("divider");
     row.set_margin_top(24);
     row.set_selectable(false);
     row.set_activatable(false);

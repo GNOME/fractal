@@ -153,7 +153,7 @@ impl AppOp {
                             let msg_position = iter.get_offset();
 
                             self.unsent_messages
-                                .insert(active_room.clone(), (msg, msg_position));
+                                .insert(active_room.clone(), (msg.to_string(), msg_position));
                         }
                     } else {
                         self.unsent_messages.remove(active_room);
@@ -237,7 +237,7 @@ impl AppOp {
                 "Leave {room_name}?",
                 &[("room_name", &r.name.clone().unwrap_or_default())],
             );
-            dialog.set_property_text(Some(&text));
+            dialog.set_property_text(Some(text.as_str()));
             dialog.present();
         }
     }
@@ -267,8 +267,9 @@ impl AppOp {
             .get_object::<gtk::ToggleButton>("private_visibility_button")
             .expect("Can't find private_visibility_button in ui file.");
 
-        let n = name.get_text().unwrap_or_default();
-
+        let n = name
+            .get_text()
+            .map_or(String::new(), |gstr| gstr.to_string());
         // Since the switcher
         let p = if private.get_active() {
             backend::RoomType::Private
@@ -407,7 +408,11 @@ impl AppOp {
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.");
 
-        let n = name.get_text().unwrap_or_default().trim().to_string();
+        let n = name
+            .get_text()
+            .map_or(String::new(), |gstr| gstr.to_string())
+            .trim()
+            .to_string();
 
         self.backend.send(BKCommand::JoinRoom(n.clone())).unwrap();
     }
@@ -577,7 +582,7 @@ impl AppOp {
                         typing_users.len() as u32,
                         typing_users
                             .iter()
-                            .map(|user| markup_escape_text(&user.get_alias()))
+                            .map(|user| markup_escape_text(&user.get_alias()).to_string())
                             .collect::<Vec<String>>()
                             .iter()
                             .map(std::ops::Deref::deref)

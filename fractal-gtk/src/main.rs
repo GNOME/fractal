@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create a Application with default flags
     let application = gtk::Application::new(config::APP_ID, gio::ApplicationFlags::empty())?;
 
-    application.set_property_resource_base_path(Some("/org/gnome/Fractal"));
+    application.set_resource_base_path(Some("/org/gnome/Fractal"));
 
     application.connect_startup(|application| {
         App::on_startup(application);

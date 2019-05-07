@@ -1,5 +1,4 @@
 use gio::SimpleAction;
-use gio::SimpleActionExt;
 use glib::Cast;
 use glib::ObjectExt;
 use glib::ToVariant;

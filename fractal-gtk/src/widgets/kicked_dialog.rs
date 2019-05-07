@@ -46,11 +46,11 @@ impl KickedDialog {
         let text = i18n_f("You have been kicked from {}", &[room_name]);
         self.widgets
             .msg_kicked_window
-            .set_property_text(Some(&text));
+            .set_property_text(Some(text.as_str()));
         let secondary_text = i18n_f("Kicked by: {}\n \"{}\"", &[kicker, reason]);
         self.widgets
             .msg_kicked_window
-            .set_property_secondary_text(Some(&secondary_text));
+            .set_property_secondary_text(Some(secondary_text.as_str()));
 
         self.widgets.msg_kicked_window.show();
     }
