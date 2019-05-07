@@ -249,9 +249,9 @@ impl AppOp {
             );
         }
 
-        dialog.set_property_text(Some(&title));
+        dialog.set_property_text(Some(title.as_str()));
         dialog.set_property_secondary_use_markup(true);
-        dialog.set_property_secondary_text(Some(&secondary));
+        dialog.set_property_secondary_text(Some(secondary.as_str()));
 
         dialog.present();
     }

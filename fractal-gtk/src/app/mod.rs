@@ -124,7 +124,7 @@ impl App {
             .get_application_id()
             .map_or(false, |s| s.ends_with("Devel"))
         {
-            window.get_style_context().map(|c| c.add_class("devel"));
+            window.get_style_context().add_class("devel");
         }
 
         let leaflet = ui
@@ -137,10 +137,7 @@ impl App {
             .expect("Can't find history_container in ui file.");
 
         if let libhandy::Fold::Folded = leaflet.get_fold() {
-            container
-                .get_style_context()
-                .unwrap()
-                .add_class("folded-history");
+            container.get_style_context().add_class("folded-history");
         }
 
         let weak_container = container.downgrade();
@@ -148,14 +145,10 @@ impl App {
             let container = upgrade_weak!(weak_container);
 
             match leaflet.get_fold() {
-                libhandy::Fold::Folded => container
-                    .get_style_context()
-                    .unwrap()
-                    .add_class("folded-history"),
-                libhandy::Fold::Unfolded => container
-                    .get_style_context()
-                    .unwrap()
-                    .remove_class("folded-history"),
+                libhandy::Fold::Folded => container.get_style_context().add_class("folded-history"),
+                libhandy::Fold::Unfolded => {
+                    container.get_style_context().remove_class("folded-history");
+                }
                 _ => (),
             }
         });

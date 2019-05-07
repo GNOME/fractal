@@ -244,7 +244,7 @@ pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
         .get_client()?
         .post(url)
         .body(file)
-        .header(CONTENT_TYPE, mime);
+        .header(CONTENT_TYPE, mime.to_string());
 
     let mut res = conn.send()?;
 
