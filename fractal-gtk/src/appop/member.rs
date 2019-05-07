@@ -106,7 +106,9 @@ impl AppOp {
                         users,
                         listbox,
                         scroll,
-                        buffer.get_text(&start, &end, false),
+                        buffer
+                            .get_text(&start, &end, false)
+                            .map_or(None, |gstr| Some(gstr.to_string())),
                     );
                 }
             }
@@ -135,7 +137,9 @@ impl AppOp {
                         users,
                         listbox,
                         scroll,
-                        buffer.get_text(&start, &end, false),
+                        buffer
+                            .get_text(&start, &end, false)
+                            .map_or(None, |gstr| Some(gstr.to_string())),
                     );
                 }
             }

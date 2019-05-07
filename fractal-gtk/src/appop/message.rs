@@ -1,6 +1,5 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
 use gio::prelude::{FileExt, FileInfoExt};
 use gstreamer_editing_services::prelude::*;
 use gstreamer_editing_services::UriClipAsset;
@@ -241,7 +240,7 @@ impl AppOp {
                 if let Ok(info) = gio::File::new_for_path(&path).query_info(
                     &gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                     gio::FileQueryInfoFlags::NONE,
-                    None,
+                    gio::NONE_CANCELLABLE,
                 ) {
                     // This should always return a type
                     let mime = info

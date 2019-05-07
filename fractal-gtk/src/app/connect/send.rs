@@ -44,7 +44,7 @@ impl App {
                     let end = buffer.get_end_iter();
 
                     if let Some(text) = buffer.get_text(&start, &end, false) {
-                        op.lock().unwrap().send_message(text);
+                        op.lock().unwrap().send_message(text.to_string());
                     }
 
                     buffer.set_text("");
@@ -61,17 +61,13 @@ impl App {
         });
 
         msg_entry.connect_focus_in_event(clone!(msg_entry_box => move |_, _| {
-            if let Some(style) = msg_entry_box.get_style_context() {
-                style.add_class("message-input-focused");
-            }
+            msg_entry_box.get_style_context().add_class("message-input-focused");
 
             Inhibit(false)
         }));
 
         msg_entry.connect_focus_out_event(clone!(msg_entry_box => move |_, _| {
-            if let Some(style) = msg_entry_box.get_style_context() {
-                style.remove_class("message-input-focused");
-            }
+            msg_entry_box.get_style_context().remove_class("message-input-focused");
 
             Inhibit(false)
         }));

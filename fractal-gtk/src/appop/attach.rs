@@ -19,7 +19,6 @@ use crate::App;
 use crate::util::get_pixbuf_data;
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
 
 impl AppOp {
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {
@@ -57,10 +56,7 @@ impl AppOp {
                 let bar = hbar.downcast::<gtk::HeaderBar>().unwrap();
                 let closebtn = gtk::Button::new_with_label(i18n("Cancel").as_str());
                 let okbtn = gtk::Button::new_with_label(i18n("Send").as_str());
-                okbtn
-                    .get_style_context()
-                    .unwrap()
-                    .add_class("suggested-action");
+                okbtn.get_style_context().add_class("suggested-action");
 
                 bar.set_show_close_button(false);
                 bar.pack_start(&closebtn);

@@ -14,9 +14,7 @@ impl NewMessageDivider {
         row.set_selectable(false);
 
         let divider = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        if let Some(style) = divider.get_style_context() {
-            style.add_class("divider");
-        }
+        divider.get_style_context().add_class("divider");
         divider.set_margin_top(24);
         divider.set_margin_bottom(6);
 
