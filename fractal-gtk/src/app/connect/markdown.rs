@@ -41,8 +41,8 @@ impl App {
         if md_active {
             op.lock().unwrap().md_enabled = true;
             markdown_switch.set_active(true);
-            md_img.set_from_icon_name("format-indent-more-symbolic", 1);
-            txt.get_style_context().unwrap().remove_class("dim-label");
+            md_img.set_from_icon_name("format-indent-more-symbolic", gtk::IconSize::Menu);
+            txt.get_style_context().remove_class("dim-label");
         }
 
         let op = op.clone();
@@ -52,16 +52,17 @@ impl App {
                 op.lock().unwrap().md_enabled = markdown_switch.get_active();
 
                 if !markdown_switch.get_active() {
-                    md_img.set_from_icon_name("format-justify-left-symbolic", 1);
-                    txt.get_style_context().unwrap().add_class("dim-label");
+                    md_img.set_from_icon_name("format-justify-left-symbolic", gtk::IconSize::Menu);
+                    txt.get_style_context().add_class("dim-label");
                     util::set_markdown_schema(false);
 
+                    let lang: Option<&sourceview::Language> = None;
                     buffer.set_highlight_matching_brackets(false);
-                    buffer.set_language(None);
+                    buffer.set_language(lang);
                     buffer.set_highlight_syntax(false);
                 } else {
-                    md_img.set_from_icon_name("format-indent-more-symbolic", 1);
-                    txt.get_style_context().unwrap().remove_class("dim-label");
+                    md_img.set_from_icon_name("format-indent-more-symbolic", gtk::IconSize::Menu);
+                    txt.get_style_context().remove_class("dim-label");
                     util::set_markdown_schema(true);
 
                     if let Some(md_lang) = md_lang.clone() {

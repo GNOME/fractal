@@ -41,7 +41,11 @@ impl LoginWidget {
                 let server = upgrade_weak!(weak_ser);
                 let username = upgrade_weak!(weak_user);
 
-                let state: LoginState = container.get_visible_child_name().unwrap().into();
+                let state: LoginState = container
+                    .get_visible_child_name()
+                    .unwrap()
+                    .to_string()
+                    .into();
 
                 match state {
                     LoginState::ServerChooser => server.grab_focus(),
@@ -68,8 +72,13 @@ impl LoginWidget {
             let err_label = upgrade_weak!(weak_err);
 
             if let Some(txt) = server_entry.get_text() {
-                let username = username_entry.get_text().unwrap_or_default();
-                let password = password_entry.get_text().unwrap_or_default();
+                let username = username_entry
+                    .get_text()
+                    .map_or(String::new(), |gstr| gstr.to_string());
+
+                let password = password_entry
+                    .get_text()
+                    .map_or(String::new(), |gstr| gstr.to_string());
 
                 let txt = format!(
                     "{}{}",

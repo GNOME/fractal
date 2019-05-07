@@ -3,7 +3,6 @@ use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
-use gdk_pixbuf::PixbufExt;
 use gio::prelude::{FileExt, FileInfoExt};
 use glib;
 use gtk;
@@ -50,23 +49,17 @@ impl Image {
     /// ```
     pub fn new(backend: &Sender<BKCommand>, path: &str) -> Image {
         let da = DrawingArea::new();
-        // gdk::EventMask::ENTER_NOTIFY_MASK = 4096
-        da.add_events(4096);
-        // gdk::EventMask::LEAVE_NOTIFY_MASK = 8192
-        da.add_events(8192);
+        da.add_events(gdk::EventMask::ENTER_NOTIFY_MASK);
+        da.add_events(gdk::EventMask::LEAVE_NOTIFY_MASK);
 
         da.connect_enter_notify_event(move |da, _| {
-            if let Some(style) = da.get_style_context() {
-                style.add_class("image-hover");
-                da.queue_draw();
-            }
+            da.get_style_context().add_class("image-hover");
+            da.queue_draw();
             Inhibit(false)
         });
         da.connect_leave_notify_event(move |da, _| {
-            if let Some(style) = da.get_style_context() {
-                style.remove_class("image-hover");
-                da.queue_draw();
-            }
+            da.get_style_context().remove_class("image-hover");
+            da.queue_draw();
             Inhibit(false)
         });
 
@@ -184,13 +177,11 @@ impl Image {
                 rh = i32::min(h, widget_h);
             }
 
-            let context = da.get_style_context().unwrap();
+            let context = da.get_style_context();
             gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
-            if let Some(style) = da.get_style_context() {
-                if style.has_class("image-spinner") {
-                    // TODO: draw a margin
-                }
+            if context.has_class("image-spinner") {
+                // TODO: draw a margin
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
@@ -281,18 +272,14 @@ impl Image {
             let scaled = self.scaled.clone();
             let da = self.widget.clone();
 
-            if let Some(style) = da.get_style_context() {
-                style.add_class("image-spinner");
-            }
+            da.get_style_context().add_class("image-spinner");
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => gtk::Continue(true),
                 Err(TryRecvError::Disconnected) => gtk::Continue(false),
                 Ok(fname) => {
                     *local_path.lock().unwrap() = Some(fname.clone());
                     load_pixbuf(pix.clone(), scaled.clone(), da.clone(), &fname);
-                    if let Some(style) = da.get_style_context() {
-                        style.remove_class("image-spinner");
-                    }
+                    da.get_style_context().remove_class("image-spinner");
                     gtk::Continue(false)
                 }
             });
@@ -375,12 +362,16 @@ pub fn is_gif(fname: &str) -> bool {
         return false;
     }
 
+    let cancellable: Option<&gio::Cancellable> = None;
     if let Ok(info) = gio::File::new_for_path(&p).query_info(
         &gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
         gio::FileQueryInfoFlags::NONE,
-        None,
+        cancellable,
     ) {
-        info.get_content_type() == Some("image/gif".to_string())
+        match info.get_content_type() {
+            Some(mime) => mime.to_string() == "image/gif".to_string(),
+            _ => false,
+        }
     } else {
         false
     }

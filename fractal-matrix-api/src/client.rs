@@ -82,8 +82,17 @@ impl Client {
         // Lock first so we don't overwrite proxy settings with outdated information
         let mut inner = self.inner.lock().unwrap();
 
-        let http_proxy = PROXY_RESOLVER.with(|resolver| resolver.lookup("http://", None))?;
-        let https_proxy = PROXY_RESOLVER.with(|resolver| resolver.lookup("https://", None))?;
+        let cancellable: Option<&gio::Cancellable> = None;
+        let http_proxy = PROXY_RESOLVER
+            .with(|resolver| resolver.lookup("http://", cancellable))?
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        let https_proxy = PROXY_RESOLVER
+            .with(|resolver| resolver.lookup("https://", cancellable))?
+            .iter()
+            .map(ToString::to_string)
+            .collect();
 
         let new_proxy_settings = ProxySettings::new(http_proxy, https_proxy);
 
