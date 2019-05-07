@@ -48,7 +48,7 @@ impl AppOp {
                 .get_object::<gtk::ListStore>("protocol_model")
                 .expect("Can't find protocol_model in ui file.");
 
-            let active = protocol_combo.get_active();
+            let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
             match protocol_model.iter_nth_child(None, active) {
                 Some(it) => {
                     let v = protocol_model.get_value(&it, 1);
@@ -117,7 +117,7 @@ impl AppOp {
         self.backend
             .send(BKCommand::DirectorySearch(
                 homeserver,
-                q.get_text().unwrap(),
+                q.get_text().unwrap().to_string(),
                 protocol,
                 more,
             ))
@@ -143,9 +143,7 @@ impl AppOp {
             .builder
             .get_object::<gtk::ListBox>("directory_room_list")
             .expect("Can't find directory_room_list in ui file.");
-        directory
-            .get_style_context()
-            .map(|c| c.add_class("room-directory"));
+        directory.get_style_context().add_class("room-directory");
 
         let directory_stack = self
             .ui

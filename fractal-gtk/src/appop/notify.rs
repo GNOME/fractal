@@ -1,6 +1,5 @@
 use gio::ApplicationExt;
 use gio::Notification;
-use gio::NotificationExt;
 use gtk;
 use gtk::prelude::*;
 use std::sync::mpsc::channel;

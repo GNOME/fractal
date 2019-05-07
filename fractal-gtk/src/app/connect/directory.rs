@@ -133,7 +133,7 @@ impl App {
                 other_homeserver_url_entry.set_sensitive(false);
             }
 
-            let active = protocol_combo.get_active();
+            let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
             let protocol: String = match protocol_model.iter_nth_child(None, active) {
                 Some(it) => {
                     let v = protocol_model.get_value(&it, 0);
@@ -147,7 +147,7 @@ impl App {
 
         protocol_combo.connect_changed(
             clone!(directory_choice_label, protocol_combo, protocol_model => move |_| {
-                let active = protocol_combo.get_active();
+                let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
                 let protocol: String = match protocol_model.iter_nth_child(None, active) {
                     Some(it) => {
                         let v = protocol_model.get_value(&it, 0);

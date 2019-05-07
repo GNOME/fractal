@@ -31,10 +31,8 @@ impl RoomRow {
         let name = room.name.clone().unwrap_or("...".to_string());
 
         let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
-        let direct = gtk::Image::new_from_icon_name("avatar-default-symbolic", 1);
-        if let Some(style) = direct.get_style_context() {
-            style.add_class("direct-chat");
-        }
+        let direct = gtk::Image::new_from_icon_name("avatar-default-symbolic", gtk::IconSize::Menu);
+        direct.get_style_context().add_class("direct-chat");
 
         let text = gtk::Label::new(name.clone().as_str());
         text.set_valign(gtk::Align::Start);
@@ -49,14 +47,13 @@ impl RoomRow {
             format!("{}", n)
         };
         let notifications = gtk::Label::new(&ntext[..]);
-        if let Some(style) = notifications.get_style_context() {
-            style.add_class("notify-badge");
+        let style = notifications.get_style_context();
+        style.add_class("notify-badge");
 
-            if h > 0 || room.membership.is_invited() {
-                style.add_class("notify-highlight");
-            } else {
-                style.remove_class("notify-highlight");
-            }
+        if h > 0 || room.membership.is_invited() {
+            style.add_class("notify-highlight");
+        } else {
+            style.remove_class("notify-highlight");
         }
 
         if n > 0 || room.membership.is_invited() {
@@ -91,22 +88,20 @@ impl RoomRow {
             self.notifications.hide();
         }
 
-        if let Some(style) = self.notifications.get_style_context() {
-            if h > 0 || self.room.membership.is_invited() {
-                style.add_class("notify-highlight");
-            } else {
-                style.remove_class("notify-highlight");
-            }
+        let style = self.notifications.get_style_context();
+        if h > 0 || self.room.membership.is_invited() {
+            style.add_class("notify-highlight");
+        } else {
+            style.remove_class("notify-highlight");
         }
     }
 
     pub fn set_bold(&self, bold: bool) {
-        if let Some(style) = self.text.get_style_context() {
-            if bold {
-                style.add_class("notify-bold");
-            } else {
-                style.remove_class("notify-bold");
-            }
+        let style = self.text.get_style_context();
+        if bold {
+            style.add_class("notify-bold");
+        } else {
+            style.remove_class("notify-bold");
         }
     }
 
@@ -141,9 +136,7 @@ impl RoomRow {
         }
         self.widget.add(&b);
 
-        if let Some(style) = b.get_style_context() {
-            style.add_class("room-row");
-        }
+        b.get_style_context().add_class("room-row");
 
         b.pack_start(&self.icon, false, false, 5);
         if self.room.direct {

@@ -36,9 +36,7 @@ impl<'a> MemberBox<'a> {
         uid.set_text(&self.member.uid);
         uid.set_valign(gtk::Align::Start);
         uid.set_halign(gtk::Align::Start);
-        if let Some(style) = uid.get_style_context() {
-            style.add_class("member-uid");
-        }
+        uid.get_style_context().add_class("member-uid");
 
         username.set_text(&self.member.get_alias());
         let mut alias = self.member.get_alias();
@@ -49,9 +47,7 @@ impl<'a> MemberBox<'a> {
         username.set_ellipsize(pango::EllipsizeMode::End);
         username.set_valign(gtk::Align::Center);
         username.set_halign(gtk::Align::Start);
-        if let Some(style) = username.get_style_context() {
-            style.add_class("member");
-        }
+        username.get_style_context().add_class("member");
 
         let avatar = widgets::Avatar::avatar_new(Some(globals::USERLIST_ICON_SIZE));
         let badge = match self.op.member_level(self.member) {
@@ -94,9 +90,7 @@ impl<'a> MemberBox<'a> {
 
         username.set_text(&self.member.get_alias());
         username.set_margin_end(3);
-        if let Some(style) = username.get_style_context() {
-            style.add_class("msg-highlighted");
-        }
+        username.get_style_context().add_class("msg-highlighted");
 
         let avatar = widgets::Avatar::avatar_new(Some(globals::PILL_ICON_SIZE));
         let data = avatar.circle(

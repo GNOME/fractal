@@ -57,7 +57,7 @@ impl<'a> Address<'a> {
             self.entry.set_editable(false);
 
             self.action = Some(AddressAction::Delete);
-            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", 1);
+            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", gtk::IconSize::Menu);
             self.button.set_image(&label);
             self.button.show();
         } else {
@@ -68,17 +68,15 @@ impl<'a> Address<'a> {
 
             self.entry.set_placeholder_text(text);
             self.action = Some(AddressAction::Add);
-            let label = gtk::Image::new_from_icon_name("list-add-symbolic", 1);
+            let label = gtk::Image::new_from_icon_name("list-add-symbolic", gtk::IconSize::Menu);
             self.button.set_image(&label);
-            if let Some(style) = self.button.get_style_context() {
-                style.add_class("suggested-action");
-            }
+            self.button
+                .get_style_context()
+                .add_class("suggested-action");
             self.button.hide();
             self.entry.set_editable(true);
         }
-        if let Some(style) = b.get_style_context() {
-            style.add_class("linked");
-        }
+        b.get_style_context().add_class("linked");
         self.entry.show();
         self.connect();
         b.show();
@@ -98,19 +96,19 @@ impl<'a> Address<'a> {
             self.entry.set_editable(false);
 
             self.action = Some(AddressAction::Delete);
-            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", 1);
+            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", gtk::IconSize::Menu);
             self.button.set_image(&label);
-            if let Some(style) = self.button.get_style_context() {
-                style.remove_class("suggested-action");
-            }
+            self.button
+                .get_style_context()
+                .remove_class("suggested-action");
             self.button.show();
         } else {
             self.action = Some(AddressAction::Add);
-            let label = gtk::Image::new_from_icon_name("list-add-symbolic", 1);
+            let label = gtk::Image::new_from_icon_name("list-add-symbolic", gtk::IconSize::Menu);
             self.button.set_image(&label);
-            if let Some(style) = self.button.get_style_context() {
-                style.add_class("suggested-action");
-            }
+            self.button
+                .get_style_context()
+                .add_class("suggested-action");
             self.button.hide();
             self.entry.set_editable(true);
         }
@@ -180,7 +178,12 @@ impl<'a> Address<'a> {
                     delete_address(&backend, medium, address.clone());
                 }
                 Some(AddressAction::Add) => {
-                    add_address(&backend, medium, id_server.clone(), entry.get_text());
+                    add_address(
+                        &backend,
+                        medium,
+                        id_server.clone(),
+                        entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
+                    );
                 }
                 _ => {}
             }

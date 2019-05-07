@@ -97,8 +97,7 @@ impl MessageBox {
         self.create(msg, true);
         {
             let w = self.get_listbox_row()?;
-            let style = w.get_style_context()?;
-            style.add_class("msg-tmp");
+            w.get_style_context().add_class("msg-tmp");
         }
         Some(self)
     }
@@ -198,22 +197,19 @@ impl MessageBox {
         self.username.set_text(&uname);
         self.username.set_justify(gtk::Justification::Left);
         self.username.set_halign(gtk::Align::Start);
-        if let Some(style) = self.username.get_style_context() {
-            style.add_class("username");
-        }
+        self.username.get_style_context().add_class("username");
 
         self.username.clone()
     }
 
     /* Add classes to the widget based on message type */
     fn set_msg_styles(&self, msg: &Message, w: &gtk::ListBoxRow) {
-        if let Some(style) = w.get_style_context() {
-            match msg.mtype {
-                RowType::Mention => style.add_class("msg-mention"),
-                RowType::Emote => style.add_class("msg-emote"),
-                RowType::Emoji => style.add_class("msg-emoji"),
-                _ => {}
-            }
+        let style = w.get_style_context();
+        match msg.mtype {
+            RowType::Mention => style.add_class("msg-mention"),
+            RowType::Emote => style.add_class("msg-emote"),
+            RowType::Emoji => style.add_class("msg-emoji"),
+            _ => {}
         }
     }
 
@@ -239,7 +235,7 @@ impl MessageBox {
                     if let Some(text) = w.get_text() {
                         let attr = pango::AttrList::new();
                         for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.clone());
+                            highlight_username(w.clone(), &attr, &light, text.to_string());
                         }
                         w.set_attributes(&attr);
                     }
@@ -250,7 +246,7 @@ impl MessageBox {
                     if let Some(text) = w.get_text() {
                         let attr = pango::AttrList::new();
                         for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.clone());
+                            highlight_username(w.clone(), &attr, &light, text.to_string());
                         }
                         w.set_attributes(&attr);
                     }
@@ -259,7 +255,7 @@ impl MessageBox {
                 if let Some(text) = part.get_text() {
                     let attr = pango::AttrList::new();
                     for light in msg.highlights.clone() {
-                        highlight_username(part.clone(), &attr, &light, text.clone());
+                        highlight_username(part.clone(), &attr, &light, text.to_string());
                     }
                     part.set_attributes(&attr);
                 }
@@ -303,7 +299,7 @@ impl MessageBox {
         self.set_label_styles(&msg_part);
 
         if k == MsgPartType::Quote {
-            msg_part.get_style_context().map(|s| s.add_class("quote"));
+            msg_part.get_style_context().add_class("quote");
         }
         msg_part
     }
@@ -319,9 +315,7 @@ impl MessageBox {
             .size(Some(globals::MAX_IMAGE_SIZE))
             .build();
 
-        if let Some(style) = image.widget.get_style_context() {
-            style.add_class("image-widget");
-        }
+        image.widget.get_style_context().add_class("image-widget");
 
         bx.pack_start(&image.widget, true, true, 0);
         bx.show_all();
@@ -400,9 +394,7 @@ impl MessageBox {
         name_lbl.set_tooltip_text(name);
         name_lbl.set_ellipsize(pango::EllipsizeMode::End);
 
-        if let Some(style) = name_lbl.get_style_context() {
-            style.add_class("msg-highlighted");
-        }
+        name_lbl.get_style_context().add_class("msg-highlighted");
 
         let download_btn =
             gtk::Button::new_from_icon_name("document-save-symbolic", gtk::IconSize::Button.into());
@@ -422,9 +414,7 @@ impl MessageBox {
 
         btn_bx.pack_start(&open_btn, false, false, 0);
         btn_bx.pack_start(&download_btn, false, false, 0);
-        if let Some(style) = btn_bx.get_style_context() {
-            style.add_class("linked");
-        }
+        btn_bx.get_style_context().add_class("linked");
 
         bx.pack_start(&name_lbl, false, false, 0);
         bx.pack_start(&btn_bx, false, false, 0);
@@ -450,9 +440,7 @@ impl MessageBox {
         date.set_justify(gtk::Justification::Right);
         date.set_valign(gtk::Align::Start);
         date.set_halign(gtk::Align::End);
-        if let Some(style) = date.get_style_context() {
-            style.add_class("timestamp");
-        }
+        date.get_style_context().add_class("timestamp");
 
         date
     }
@@ -559,8 +547,8 @@ fn highlight_username(
 
     let input = input.to_lowercase();
     let bounds = label.get_selection_bounds();
-    let context = gtk::Widget::get_style_context(&label.clone().upcast::<gtk::Widget>())?;
-    let fg = gtk::StyleContext::lookup_color(&context, "theme_selected_bg_color")?;
+    let context = label.get_style_context();
+    let fg = context.lookup_color("theme_selected_bg_color")?;
     let red = fg.red * 65535. + 0.5;
     let green = fg.green * 65535. + 0.5;
     let blue = fg.blue * 65535. + 0.5;

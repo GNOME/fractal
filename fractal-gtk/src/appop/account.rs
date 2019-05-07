@@ -96,7 +96,7 @@ impl AppOp {
                             id_server.clone(),
                             secret.clone(),
                             sid.clone(),
-                            token,
+                            token.to_string(),
                         ));
                     }
                 }
@@ -284,7 +284,7 @@ impl AppOp {
 
         name_btn.hide();
         name.set_editable(true);
-        let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", 1);
+        let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", gtk::IconSize::Menu);
         name_btn.set_image(&image);
         name_btn.set_sensitive(true);
 
@@ -480,7 +480,7 @@ impl AppOp {
             .expect("Can't find account_settings_name_button in ui file.");
         if let Some(name) = name.clone() {
             button.hide();
-            let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", 1);
+            let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", gtk::IconSize::Menu);
             button.set_image(&image);
             button.set_sensitive(true);
             entry.set_editable(true);
@@ -502,7 +502,9 @@ impl AppOp {
             .expect("Can't find account_settings_name_button in ui file.");
 
         let old_username = self.username.clone().unwrap_or_default();
-        let username = name.get_text().unwrap_or_default();
+        let username = name
+            .get_text()
+            .map_or(String::new(), |gstr| gstr.to_string());
 
         if old_username != username {
             let spinner = gtk::Spinner::new();
@@ -566,7 +568,11 @@ impl AppOp {
                     if old != "" && new != "" {
                         password_btn.set_sensitive(false);
                         password_btn_stack.set_visible_child_name("spinner");
-                        let _ = self.backend.send(BKCommand::ChangePassword(mxid, old, new));
+                        let _ = self.backend.send(BKCommand::ChangePassword(
+                            mxid,
+                            old.to_string(),
+                            new.to_string(),
+                        ));
                     }
                 }
             }
@@ -666,6 +672,7 @@ impl AppOp {
         if let Some(password) = entry.get_text() {
             if let Some(mxid) = self.uid.clone() {
                 let backend = self.backend.clone();
+                let password = password.to_string();
                 dialog.connect_response(clone!(mxid, password, flag => move |w, r| {
                     match gtk::ResponseType::from(r) {
                         gtk::ResponseType::Ok => {

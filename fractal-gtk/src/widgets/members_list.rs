@@ -47,9 +47,7 @@ impl MembersList {
             self.members.clone(),
             self.power_levels.clone(),
         );
-        self.error
-            .get_style_context()?
-            .add_class("no_member_search");
+        self.error.get_style_context().add_class("no_member_search");
         self.error.set_text(&i18n("No matching members found"));
         b.pack_start(&self.error, true, true, 0);
         self.connect();
@@ -86,7 +84,7 @@ impl MembersList {
                 container.clone(),
                 members.clone(),
                 error.clone(),
-                w.get_text(),
+                w.get_text().map_or(None, |gstr| Some(gstr.to_string())),
             );
         });
         /* we need to remove the handler when the member list is destroyed */
@@ -174,10 +172,10 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
 
         let badge_wid = gtk::Label::new(Some(format!("{} ({})", badge_data.0, pl).as_str()));
         badge_wid.set_valign(gtk::Align::Center);
-        if let Some(style) = badge_wid.get_style_context() {
-            style.add_class("badge");
-            style.add_class(badge_data.1);
-        }
+        let style = badge_wid.get_style_context();
+        style.add_class("badge");
+        style.add_class(badge_data.1);
+
         username_box.pack_start(&badge_wid, false, false, 0);
     }
 
@@ -186,10 +184,9 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     uid.set_xalign(0.);
     uid.set_line_wrap(true);
     uid.set_line_wrap_mode(pango::WrapMode::Char);
-    if let Some(style) = uid.get_style_context() {
-        style.add_class("small-font");
-        style.add_class("dim-label");
-    }
+    let style = uid.get_style_context();
+    style.add_class("small-font");
+    style.add_class("dim-label");
 
     b.set_margin_start(12);
     b.set_margin_end(12);
