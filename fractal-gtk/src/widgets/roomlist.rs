@@ -2,7 +2,6 @@ use crate::i18n::i18n;
 use fractal_api::clone;
 
 use gdk;
-use gdk::DragContextExtManual;
 use glib;
 use pango;
 
@@ -79,9 +78,7 @@ impl RoomListGroup {
         empty.set_line_wrap_mode(pango::WrapMode::WordChar);
         empty.set_line_wrap(true);
         empty.set_justify(gtk::Justification::Center);
-        if let Some(style) = empty.get_style_context() {
-            style.add_class("room-empty-text");
-        }
+        empty.get_style_context().add_class("room-empty-text");
 
         let rev = gtk::Revealer::new();
         let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -94,23 +91,20 @@ impl RoomListGroup {
         let title = gtk::Label::new(name);
         title.set_halign(gtk::Align::Start);
         title.set_valign(gtk::Align::Start);
-        let arrow = gtk::Image::new_from_icon_name("pan-down-symbolic", 2);
+        let arrow =
+            gtk::Image::new_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
         let expanded = Arc::new(Mutex::new(true));
         let title_eb = gtk::EventBox::new();
 
         title_eb.connect_button_press_event(clone!(list, arrow, rev, expanded => move |_, _| {
             if *expanded.lock().unwrap() {
-                arrow.set_from_icon_name("pan-end-symbolic", 2);
+                arrow.set_from_icon_name("pan-end-symbolic", gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(false);
-                if let Some(style) = list.get_style_context() {
-                    style.add_class("collapsed");
-                }
+                list.get_style_context().add_class("collapsed");
             } else {
-                arrow.set_from_icon_name("pan-down-symbolic", 2);
+                arrow.set_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(true);
-                if let Some(style) = list.get_style_context() {
-                    style.remove_class("collapsed");
-                }
+                list.get_style_context().remove_class("collapsed");
             }
             let exp = !(*expanded.lock().unwrap());
             *expanded.lock().unwrap() = exp;
@@ -237,16 +231,13 @@ impl RoomListGroup {
 
     pub fn widget(&self) -> &gtk::EventBox {
         let b = self.wbox.clone();
-        if let Some(style) = b.get_style_context() {
-            style.add_class("room-list");
-            style.add_class("sidebar");
-        }
+        let b_ctx = b.get_style_context();
+        b_ctx.add_class("room-list");
+        b_ctx.add_class("sidebar");
 
         // building the heading
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-        if let Some(style) = hbox.get_style_context() {
-            style.add_class("room-title");
-        }
+        hbox.get_style_context().add_class("room-title");
         hbox.pack_start(&self.title, true, true, 0);
         hbox.pack_start(&self.arrow, false, false, 0);
 
@@ -255,12 +246,11 @@ impl RoomListGroup {
         }
         self.title_eb.add(&hbox);
 
-        self.arrow.set_from_icon_name("pan-down-symbolic", 2);
+        self.arrow
+            .set_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
         *self.expanded.lock().unwrap() = true;
         self.rev.set_reveal_child(true);
-        if let Some(style) = self.list.get_style_context() {
-            style.remove_class("collapsed");
-        }
+        self.list.get_style_context().remove_class("collapsed");
 
         b.pack_start(&self.title_eb, false, false, 0);
         b.pack_start(&self.rev, true, true, 0);
@@ -622,7 +612,7 @@ impl RoomList {
         });
         widget.connect_drag_data_received(move |_w, _ctx, _x, _y, data, _info, _time| {
             if let Some(roomid) = data.get_text() {
-                cb(roomid);
+                cb(roomid.to_string());
             }
         });
     }

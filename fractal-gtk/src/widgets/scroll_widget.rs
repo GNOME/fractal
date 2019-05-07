@@ -71,10 +71,9 @@ impl Widgets {
 
         let typing_label = gtk::Label::new(None);
         typing_label.show();
-        typing_label.get_style_context().map(|ctx| {
-            ctx.add_class("typing_label");
-            ctx.add_class("small-font");
-        });
+        let typing_label_ctx = typing_label.get_style_context();
+        typing_label_ctx.add_class("typing_label");
+        typing_label_ctx.add_class("small-font");
         typing_label.set_xalign(0.0);
         typing_label.set_property_wrap(true);
         typing_label.set_property_wrap_mode(pango::WrapMode::WordChar);
@@ -88,16 +87,10 @@ impl Widgets {
         column.add(&column_box);
         column.show();
 
-        messages
-            .get_style_context()
-            .unwrap()
-            .add_class("messages-history");
+        messages.get_style_context().add_class("messages-history");
         messages.show();
 
-        container
-            .get_style_context()
-            .unwrap()
-            .add_class("messages-box");
+        container.get_style_context().add_class("messages-box");
         container.add(&column);
 
         /* add a load more Spinner */
@@ -292,19 +285,20 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
         let end_time = start_time + 1000 * duration;
         view.add_tick_callback(move |view, clock| {
             let now = clock.get_frame_time();
+            let view = view.downcast_ref::<gtk::ScrolledWindow>().unwrap();
             if let Some(adj) = view.get_vadjustment() {
                 let end = adj.get_upper() - adj.get_page_size();
                 if now < end_time && adj.get_value().round() != end.round() {
                     let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
                     t = ease_out_cubic(t);
                     adj.set_value(start + t * (end - start));
-                    return glib::Continue(true);
+                    return true;
                 } else {
                     adj.set_value(end);
-                    return glib::Continue(false);
+                    return false;
                 }
             }
-            return glib::Continue(false);
+            false
         });
     } else {
         adj.set_value(adj.get_upper() - adj.get_page_size());

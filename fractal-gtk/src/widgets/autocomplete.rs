@@ -53,24 +53,21 @@ impl Autocomplete {
     pub fn connect(self) {
         let this: Rc<RefCell<Autocomplete>> = Rc::new(RefCell::new(self));
 
-        if let Some(context) =
-            gtk::Widget::get_style_context(&this.borrow().entry.clone().upcast::<gtk::Widget>())
-        {
-            if let Some(fg) = gtk::StyleContext::lookup_color(&context, "theme_selected_bg_color") {
-                let color = gdk::RGBA {
-                    red: fg.red,
-                    green: fg.green,
-                    blue: fg.blue,
-                    alpha: 1.0,
-                };
+        let context = this.borrow().entry.get_style_context();
+        if let Some(fg) = context.lookup_color("theme_selected_bg_color") {
+            let color = gdk::RGBA {
+                red: fg.red,
+                green: fg.green,
+                blue: fg.blue,
+                alpha: 1.0,
+            };
 
-                let tag = TextTag::new("alias-highlight");
-                tag.set_property_foreground_rgba(Some(&color));
+            let tag = TextTag::new("alias-highlight");
+            tag.set_property_foreground_rgba(Some(&color));
 
-                if let Some(buffer) = this.borrow().entry.get_buffer() {
-                    if let Some(tag_table) = buffer.get_tag_table() {
-                        tag_table.add(&tag);
-                    }
+            if let Some(buffer) = this.borrow().entry.get_buffer() {
+                if let Some(tag_table) = buffer.get_tag_table() {
+                    tag_table.add(&tag);
                 }
             }
         }
@@ -104,7 +101,7 @@ impl Autocomplete {
                     let end_iter = buffer.get_end_iter();
 
                     if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
-                        item.add_highlight(input);
+                        item.add_highlight(input.to_string());
                     }
                 }
             });
@@ -118,7 +115,7 @@ impl Autocomplete {
                     let end_iter = buffer.get_end_iter();
 
                     if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
-                        item.add_highlight(input);
+                        item.add_highlight(input.to_string());
                     }
                 }
             });
@@ -229,7 +226,8 @@ impl Autocomplete {
 
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
-                let text = buffer.get_text(&start, &end, false);
+                let text = buffer.get_text(&start, &end, false)
+                    .map_or(None, |gstr| Some(gstr.to_string()));
 
                 /* when closing popover with tab */
                 {
@@ -340,7 +338,7 @@ impl Autocomplete {
                 let end_iter = buffer.get_end_iter();
 
                 if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
-                    self.add_highlight(input);
+                    self.add_highlight(input.to_string());
                 }
             }
         }
@@ -352,7 +350,7 @@ impl Autocomplete {
             let end_iter = buffer.get_end_iter();
 
             if let Some(input) = buffer.get_text(&start_iter, &end_iter, false) {
-                self.add_highlight(input);
+                self.add_highlight(input.to_string());
             }
         }
 

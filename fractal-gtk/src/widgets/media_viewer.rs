@@ -100,10 +100,8 @@ impl Data {
             .builder
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
-        // gdk::EventMask::ENTER_NOTIFY_MASK = 4096
-        headerbar_revealer.add_events(4096);
-        // gdk::EventMask::LEAVE_NOTIFY_MASK = 8192
-        headerbar_revealer.add_events(8192);
+        headerbar_revealer.add_events(gdk::EventMask::ENTER_NOTIFY_MASK);
+        headerbar_revealer.add_events(gdk::EventMask::LEAVE_NOTIFY_MASK);
 
         media_viewer_headerbar_box.remove(&media_viewer_headerbar);
 
