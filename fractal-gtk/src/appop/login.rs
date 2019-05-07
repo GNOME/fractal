@@ -100,15 +100,15 @@ impl AppOp {
             .expect("Can't find login_idp in ui file.");
 
         let username = match user_entry.get_text() {
-            Some(s) => s,
+            Some(s) => s.to_string(),
             None => String::new(),
         };
         let password = match pass_entry.get_text() {
-            Some(s) => s,
+            Some(s) => s.to_string(),
             None => String::new(),
         };
         let passconf = match pass_conf.get_text() {
-            Some(s) => s,
+            Some(s) => s.to_string(),
             None => String::new(),
         };
 
@@ -119,7 +119,7 @@ impl AppOp {
         }
 
         self.server_url = match server_entry.get_text() {
-            Some(s) => s,
+            Some(s) => s.to_string(),
             None => String::from(globals::DEFAULT_HOMESERVER),
         };
         /* FIXME ask also for the identity server */

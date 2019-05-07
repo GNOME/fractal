@@ -105,7 +105,9 @@ impl App {
 
                     let text = buffer.get_text(&start, &end, false);
 
-                    op.lock().unwrap().search_invite_user(text);
+                    op.lock().unwrap().search_invite_user(
+                        text.map_or(None, |gstr| Some(gstr.to_string()))
+                    );
                 }
 
                 *(source_id.lock().unwrap()) = None;
@@ -117,9 +119,7 @@ impl App {
         }));
 
         invite_entry.connect_focus_in_event(clone!(op, invite_entry_box => move |_, _| {
-            if let Some(style) = invite_entry_box.get_style_context() {
-                style.add_class("message-input-focused");
-            }
+            invite_entry_box.get_style_context().add_class("message-input-focused");
 
             op.lock().unwrap().remove_invite_user_dialog_placeholder();
 
@@ -127,9 +127,7 @@ impl App {
         }));
 
         invite_entry.connect_focus_out_event(clone!(op, invite_entry_box => move |_, _| {
-            if let Some(style) = invite_entry_box.get_style_context() {
-                style.remove_class("message-input-focused");
-            }
+            invite_entry_box.get_style_context().remove_class("message-input-focused");
 
             op.lock().unwrap().set_invite_user_dialog_placeholder();
 

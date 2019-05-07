@@ -1,7 +1,6 @@
 use gio::ApplicationExt;
 use gio::FileExt;
 use gio::Notification;
-use gio::NotificationExt;
 use gtk;
 use gtk::prelude::*;
 use log::info;
@@ -90,9 +89,8 @@ fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> 
     notification.set_body(body);
     notification.set_priority(gio::NotificationPriority::High);
     info!("Creating notification with avatar: {}", avatar);
-    let cancellable: Option<&gio::Cancellable> = None;
     let file = gio::File::new_for_path(avatar);
-    let _ = file.load_bytes(cancellable).map(|(b, _)| {
+    let _ = file.load_bytes(gio::NONE_CANCELLABLE).map(|(b, _)| {
         let avatar = gio::BytesIcon::new(&b);
         notification.set_icon(&avatar);
     });

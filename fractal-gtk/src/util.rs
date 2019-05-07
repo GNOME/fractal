@@ -3,7 +3,6 @@ use failure::format_err;
 use failure::Error;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
 use gio::{Settings, SettingsExt, SettingsSchemaSource};
 
 use html2pango::{html_escape, markup_links};

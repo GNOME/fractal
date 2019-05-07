@@ -6,7 +6,6 @@ use cairo;
 use fractal_api::util::cache_path;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
-use gdk_pixbuf::PixbufExt;
 use gtk;
 use gtk::prelude::*;
 pub use gtk::DrawingArea;
@@ -80,9 +79,7 @@ impl AvatarExt for gtk::Overlay {
         let b = gtk::Overlay::new();
         b.create_da(size);
         b.show_all();
-        if let Some(style) = b.get_style_context() {
-            style.add_class("avatar");
-        }
+        b.get_style_context().add_class("avatar");
 
         b
     }
@@ -123,14 +120,12 @@ impl AvatarExt for gtk::Overlay {
             badge.set_size_request(badge_size, badge_size);
             badge.set_valign(gtk::Align::Start);
             badge.set_halign(gtk::Align::End);
-            if let Some(style) = badge.get_style_context() {
-                style.add_class("badge-circle");
-                style.add_class(match color {
-                    AvatarBadgeColor::Gold => "badge-gold",
-                    AvatarBadgeColor::Silver => "badge-silver",
-                    AvatarBadgeColor::Grey => "badge-grey",
-                });
-            }
+            badge.get_style_context().add_class("badge-circle");
+            badge.get_style_context().add_class(match color {
+                AvatarBadgeColor::Gold => "badge-gold",
+                AvatarBadgeColor::Silver => "badge-silver",
+                AvatarBadgeColor::Grey => "badge-grey",
+            });
             self.add_overlay(&badge);
         }
 
@@ -177,7 +172,7 @@ impl AvatarExt for gtk::Overlay {
 
                 let data = user_cache.borrow();
                 if let Some(ref pb) = data.cache {
-                    let context = da.get_style_context().unwrap();
+                    let context = da.get_style_context();
                     gtk::render_background(&context, g, 0.0, 0.0, width, height);
 
                     let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;

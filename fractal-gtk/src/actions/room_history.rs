@@ -11,7 +11,6 @@ use crate::uibuilder::UI;
 use crate::App;
 use gio::ActionMapExt;
 use gio::SimpleAction;
-use gio::SimpleActionExt;
 use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
