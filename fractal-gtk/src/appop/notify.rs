@@ -1,8 +1,10 @@
 use gio::ApplicationExt;
+use gio::FileExt;
 use gio::Notification;
 use gio::NotificationExt;
 use gtk;
 use gtk::prelude::*;
+use log::info;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -87,8 +89,13 @@ fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> 
     let notification = Notification::new(title);
     notification.set_body(body);
     notification.set_priority(gio::NotificationPriority::High);
-    let avatar = gio::FileIcon::new(&gio::File::new_for_path(avatar));
-    notification.set_icon(&avatar);
+    info!("Creating notification with avatar: {}", avatar);
+    let cancellable: Option<&gio::Cancellable> = None;
+    let file = gio::File::new_for_path(avatar);
+    let _ = file.load_bytes(cancellable).map(|(b, _)| {
+        let avatar = gio::BytesIcon::new(&b);
+        notification.set_icon(&avatar);
+    });
     let data = glib::Variant::from(room_id);
     notification.set_default_action_and_target_value("app.open-room", Some(&data));
     notification

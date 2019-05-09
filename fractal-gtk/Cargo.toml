@@ -16,7 +16,6 @@ gdk = "0.9.0"
 gdk-pixbuf = "0.5.0"
 gdk-pixbuf-sys = "0.7.0"
 gstreamer-editing-services = "0.12.2"
-gio = "0.5.1"
 glib = "0.6.1"
 itertools = "0.8.0"
 lazy_static = "1.2.0"
@@ -72,3 +71,7 @@ features = ["v3_22"]
 [dependencies.serde]
 version = "1.0.82"
 features = ["derive"]
+
+[dependencies.gio]
+version = "0.5.1"
+features = ["v2_56"]
