@@ -276,6 +276,14 @@ impl RoomHistory {
     pub fn typing_notification(&mut self, typing_str: &str) {
         self.rows.borrow().view.typing_notification(typing_str);
     }
+
+    pub fn page_up(&mut self) {
+        self.rows.borrow_mut().view.page_up();
+    }
+
+    pub fn page_down(&mut self) {
+        self.rows.borrow_mut().view.page_down();
+    }
 }
 
 /* This function creates the content for a Row based on the conntent of msg */

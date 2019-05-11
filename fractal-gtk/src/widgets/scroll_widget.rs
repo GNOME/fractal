@@ -20,7 +20,7 @@ enum Position {
 #[allow(dead_code)]
 pub struct ScrollWidget {
     upper: Rc<Cell<f64>>,
-    value: Rc<Cell<f64>>,
+    value: Rc<Cell<f64>>, // FIXME: is it really used anywhere?
     balance: Rc<Cell<Option<Position>>>,
     autoscroll: Rc<Cell<bool>>,
     /* whether a request for more messages has been send or not */
@@ -277,6 +277,20 @@ impl ScrollWidget {
         } else {
             self.widgets.typing_label.set_visible(true);
             self.widgets.typing_label.set_markup(typing_str);
+        }
+    }
+
+    pub fn page_up(&mut self) {
+        if let Some(adj) = self.widgets.view.get_vadjustment() {
+            adj.set_value(adj.get_value() - adj.get_page_size());
+            self.upper.set(adj.get_upper());
+        }
+    }
+
+    pub fn page_down(&mut self) {
+        if let Some(adj) = self.widgets.view.get_vadjustment() {
+            adj.set_value(adj.get_value() + adj.get_page_size());
+            self.upper.set(adj.get_upper());
         }
     }
 }

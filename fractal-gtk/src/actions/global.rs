@@ -78,7 +78,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
 
     let shortcuts = SimpleAction::new("shortcuts", None);
     let about = SimpleAction::new("about", None);
-    let quit = gio::SimpleAction::new("quit", None);
+    let quit = SimpleAction::new("quit", None);
 
     let open_room = SimpleAction::new("open-room", glib::VariantTy::new("s").ok());
     let back = SimpleAction::new("back", None);
@@ -89,6 +89,15 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let room_settings = SimpleAction::new("open-room-settings", None);
     // TODO: send file should be a room_history action
     let send_file = SimpleAction::new("send-file", None);
+
+    let previous_room = SimpleAction::new("previous-room", None);
+    let next_room = SimpleAction::new("next-room", None);
+    let prev_unread_room = SimpleAction::new("prev-unread-room", None);
+    let next_unread_room = SimpleAction::new("next-unread-room", None);
+    let first_room = SimpleAction::new("first-room", None);
+    let last_room = SimpleAction::new("last-room", None);
+    let older_messages = SimpleAction::new("older-messages", None);
+    let newer_messages = SimpleAction::new("newer-messages", None);
 
     app.add_action(&settings);
     app.add_action(&account);
@@ -113,6 +122,15 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
 
     app.add_action(&send_file);
 
+    app.add_action(&previous_room);
+    app.add_action(&next_room);
+    app.add_action(&prev_unread_room);
+    app.add_action(&next_unread_room);
+    app.add_action(&first_room);
+    app.add_action(&last_room);
+    app.add_action(&older_messages);
+    app.add_action(&newer_messages);
+
     // When activated, shuts down the application
     let app_weak = app.downgrade();
     quit.connect_activate(move |_action, _parameter| {
@@ -133,6 +151,57 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     leave.connect_activate(clone!(op => move |_, _| op.lock().unwrap().leave_active_room() ));
     newr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().new_room_dialog() ));
     joinr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().join_to_room_dialog() ));
+
+    previous_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.prev_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    next_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.next_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    prev_unread_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.prev_unread_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    next_unread_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.next_unread_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    first_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.first_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    last_room.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(id) = op.roomlist.last_id() {
+            op.set_active_room_by_id(id);
+        }
+    }));
+    older_messages.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(ref mut hist) = op.history {
+            // println!("page up");
+            hist.page_up();
+        }
+    }));
+    newer_messages.connect_activate(clone!(op => move |_, _| {
+        let mut op = op.lock().unwrap();
+        if let Some(ref mut hist) = op.history {
+            // println!("page down");
+            hist.page_down();
+        }
+    }));
 
     /* Store the history of views so we can go back to it, this will be kept alive by the back
      * callback */
@@ -225,6 +294,14 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
 
     /* Add Keybindings to actions */
     app.set_accels_for_action("app.quit", &["<Ctrl>Q"]);
+    app.set_accels_for_action("app.previous-room", &["<Ctrl>Page_Up"]);
+    app.set_accels_for_action("app.next-room", &["<Ctrl>Page_Down"]);
+    app.set_accels_for_action("app.prev-unread-room", &["<Ctrl><Shift>Page_Up"]);
+    app.set_accels_for_action("app.next-unread-room", &["<Ctrl><Shift>Page_Down"]);
+    app.set_accels_for_action("app.first-room", &["<Ctrl>Home"]);
+    app.set_accels_for_action("app.last-room", &["<Ctrl>End"]);
+    app.set_accels_for_action("app.older-messages", &["Page_Up"]);
+    app.set_accels_for_action("app.newer-messages", &["Page_Down"]);
     app.set_accels_for_action("app.back", &["Escape"]);
 
     // connect mouse back button to app.back action

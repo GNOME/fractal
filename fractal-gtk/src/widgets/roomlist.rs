@@ -311,6 +311,71 @@ impl RoomListGroup {
         }
     }
 
+    /// Find the ID of a room after or before the current one in the list
+    ///
+    /// # Parameters
+    ///
+    /// - `unread_only`: true to only look for rooms with unread messages
+    /// - `direction`: `-1` for the previous room, `+1` for the next
+    ///
+    /// # Return value
+    ///
+    /// `(Room id if found, go to previous group, go to next group)`
+    fn sibling_id(&self, unread_only: bool, direction: i32) -> (Option<String>, bool, bool) {
+        match self.list.get_selected_row() {
+            Some(row) => {
+                let rv = self.roomvec.lock().unwrap();
+                let mut idx = row.get_index() + direction;
+                while unread_only
+                    && 0 <= idx
+                    && (idx as usize) < rv.len()
+                    && rv[idx as usize].room.notifications == 0
+                {
+                    idx += direction;
+                }
+
+                if 0 <= idx && (idx as usize) < rv.len() {
+                    (Some(rv[idx as usize].room.id.clone()), false, false)
+                } else {
+                    (None, idx < 0, idx >= 0)
+                }
+            }
+            None => (None, false, false),
+        }
+    }
+
+    fn first_id(&self, unread_only: bool) -> Option<String> {
+        self.roomvec
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| {
+                if unread_only {
+                    r.room.notifications > 0
+                } else {
+                    true
+                }
+            })
+            .next()
+            .map(|r| r.room.id.clone())
+    }
+
+    fn last_id(&self, unread_only: bool) -> Option<String> {
+        self.roomvec
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| {
+                if unread_only {
+                    r.room.notifications > 0
+                } else {
+                    true
+                }
+            })
+            .last()
+            .map(|r| r.room.id.clone())
+    }
+
     pub fn add_rooms(&mut self, mut array: Vec<Room>) {
         array.sort_by_key(|ref x| match x.messages.last() {
             Some(l) => l.date,
@@ -449,6 +514,68 @@ impl RoomList {
     pub fn select(&self, r: &str) {
         //FIXME don't use to_string(), pass &str
         run_in_group!(self, &r.to_string(), set_selected, Some(r.to_string()));
+    }
+
+    fn sibling_id(&self, unread_only: bool, direction: i32) -> Option<String> {
+        let (room, _, next) = self.inv.get().sibling_id(unread_only, direction);
+
+        if let Some(room) = room {
+            Some(room)
+        } else if next {
+            self.fav.get().first_id(unread_only)
+        } else {
+            let (room, prev, next) = self.fav.get().sibling_id(unread_only, direction);
+
+            if let Some(room) = room {
+                Some(room)
+            } else if prev {
+                self.inv.get().last_id(unread_only)
+            } else if next {
+                self.rooms.get().first_id(unread_only)
+            } else {
+                let (room, prev, _) = self.rooms.get().sibling_id(unread_only, direction);
+
+                if let Some(room) = room {
+                    Some(room)
+                } else if prev {
+                    self.fav.get().last_id(unread_only)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    pub fn next_id(&self) -> Option<String> {
+        self.sibling_id(false, 1)
+    }
+
+    pub fn prev_id(&self) -> Option<String> {
+        self.sibling_id(false, -1)
+    }
+
+    pub fn next_unread_id(&self) -> Option<String> {
+        self.sibling_id(true, 1)
+    }
+
+    pub fn prev_unread_id(&self) -> Option<String> {
+        self.sibling_id(true, -1)
+    }
+
+    pub fn first_id(&self) -> Option<String> {
+        self.inv
+            .get()
+            .first_id(false)
+            .or_else(|| self.fav.get().first_id(false))
+            .or_else(|| self.rooms.get().first_id(false))
+    }
+
+    pub fn last_id(&self) -> Option<String> {
+        self.rooms
+            .get()
+            .last_id(false)
+            .or_else(|| self.fav.get().last_id(false))
+            .or_else(|| self.inv.get().last_id(false))
     }
 
     pub fn unselect(&self) {
