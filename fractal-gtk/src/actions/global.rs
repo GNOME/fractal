@@ -189,16 +189,12 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         }
     }));
     older_messages.connect_activate(clone!(op => move |_, _| {
-        let mut op = op.lock().unwrap();
-        if let Some(ref mut hist) = op.history {
-            // println!("page up");
+        if let Some(ref mut hist) = op.lock().unwrap().history {
             hist.page_up();
         }
     }));
     newer_messages.connect_activate(clone!(op => move |_, _| {
-        let mut op = op.lock().unwrap();
-        if let Some(ref mut hist) = op.history {
-            // println!("page down");
+        if let Some(ref mut hist) = op.lock().unwrap().history {
             hist.page_down();
         }
     }));
