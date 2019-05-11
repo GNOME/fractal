@@ -13,8 +13,8 @@
     <property name="deletable">False</property>
     <property name="gravity">center</property>
     <property name="message_type">warning</property>
-    <property name="text" translatable="yes">You have been kicked from ROOM</property>
-    <property name="secondary_text" translatable="yes">Reason: Unknown</property>
+    <property name="text">You have been kicked from ROOM</property>
+    <property name="secondary_text">Reason: Unknown</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can_focus">False</property>

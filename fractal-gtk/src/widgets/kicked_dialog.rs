@@ -1,3 +1,4 @@
+use crate::i18n::i18n_f;
 use gtk;
 use gtk::prelude::*;
 
@@ -42,11 +43,11 @@ impl KickedDialog {
     }
 
     pub fn show(&self, room_name: &str, reason: &str, kicker: &str) {
-        let text = format!("You have been kicked from {}", room_name);
+        let text = i18n_f("You have been kicked from {}", &[room_name]);
         self.widgets
             .msg_kicked_window
             .set_property_text(Some(&text));
-        let secondary_text = format!("Kicked by: {}\n \"{}\"", kicker, reason);
+        let secondary_text = i18n_f("Kicked by: {}\n \"{}\"", &[kicker, reason]);
         self.widgets
             .msg_kicked_window
             .set_property_secondary_text(Some(&secondary_text));
