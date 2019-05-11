@@ -28,6 +28,62 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;Page_Up</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the previous room in the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;Page_Down</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the next room in the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;&lt;Shift&gt;Page_Up</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the previous room with unread messages in the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;&lt;Shift&gt;Page_Down</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the next room with unread messages in the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;Home</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the first room of the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">&lt;Ctrl&gt;End</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the last room of the list</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">Page_Up</property>
+                <property name="title" translatable="yes" context="shortcut window">View older messages</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
+                <property name="accelerator">Page_Down</property>
+                <property name="title" translatable="yes" context="shortcut window">View newer messages</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">true</property>
                 <property name="title" translatable="yes" context="shortcut window">Keyboard Shortcuts</property>
                 <property name="accelerator">&lt;ctrl&gt;&lt;shift&gt;question</property>
               </object>
