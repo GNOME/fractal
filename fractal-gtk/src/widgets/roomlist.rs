@@ -515,8 +515,8 @@ impl RoomList {
         //FIXME don't use to_string(), pass &str
         run_in_group!(self, &r.to_string(), set_selected, Some(r.to_string()));
     }
-
-    fn sibling_id(&self, unread_only: bool, direction: i32) -> Option<String> {
+    
+    fn sibling_id_inv(&self, unread_only: bool, direction: i32) -> Option<String> {
         let (room, _, next) = self.inv.get().sibling_id(unread_only, direction);
 
         if let Some(room) = room {
@@ -524,26 +524,38 @@ impl RoomList {
         } else if next {
             self.fav.get().first_id(unread_only)
         } else {
-            let (room, prev, next) = self.fav.get().sibling_id(unread_only, direction);
-
-            if let Some(room) = room {
-                Some(room)
-            } else if prev {
-                self.inv.get().last_id(unread_only)
-            } else if next {
-                self.rooms.get().first_id(unread_only)
-            } else {
-                let (room, prev, _) = self.rooms.get().sibling_id(unread_only, direction);
-
-                if let Some(room) = room {
-                    Some(room)
-                } else if prev {
-                    self.fav.get().last_id(unread_only)
-                } else {
-                    None
-                }
-            }
+            self.sibling_id_fav(unread_only, direction)
         }
+    }
+
+    fn sibling_id_fav(&self, unread_only: bool, direction: i32) -> Option<String> {
+        let (room, prev, next) = self.fav.get().sibling_id(unread_only, direction);
+
+        if let Some(room) = room {
+            Some(room)
+        } else if prev {
+            self.inv.get().last_id(unread_only)
+        } else if next {
+            self.rooms.get().first_id(unread_only)
+        } else {
+            self.sibling_id_rooms(unread_only, direction)
+        }
+    }
+
+    fn sibling_id_rooms(&self, unread_only: bool, direction: i32) -> Option<String> {
+        let (room, prev, _) = self.rooms.get().sibling_id(unread_only, direction);
+
+        if let Some(room) = room {
+            Some(room)
+        } else if prev {
+            self.fav.get().last_id(unread_only)
+        } else {
+            None
+        }
+    }
+
+    fn sibling_id(&self, unread_only: bool, direction: i32) -> Option<String> {
+        self.sibling_id_inv(unread_only, direction)
     }
 
     pub fn next_id(&self) -> Option<String> {
