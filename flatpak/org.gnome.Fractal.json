@@ -44,12 +44,12 @@
             "buildsystem" : "meson",
             "config-opts" : [
                 "-Dprofiling=false",
-                "-Dintrospection=true",
+                "-Dintrospection=enabled",
                 "-Dgtk_doc=false",
                 "-Dtests=false",
                 "-Dexamples=false",
                 "-Dvapi=false",
-                "-Dglade_catalog=false"
+                "-Dglade_catalog=disabled"
             ],
             "sources" : [
                 {
