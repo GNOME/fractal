@@ -47,7 +47,7 @@ impl KickedDialog {
         self.widgets
             .msg_kicked_window
             .set_property_text(Some(&text));
-        let secondary_text = i18n_f("Kicked by: {}\n \"{}\"", &[kicker, reason]);
+        let secondary_text = i18n_f("Kicked by: {}\n “{}”", &[kicker, reason]);
         self.widgets
             .msg_kicked_window
             .set_property_secondary_text(Some(&secondary_text));
