@@ -15,6 +15,7 @@ fractal-gtk/res/ui/filechooser.ui
 fractal-gtk/res/ui/invite.ui
 fractal-gtk/res/ui/invite_user.ui
 fractal-gtk/res/ui/join_room.ui
+fractal-gtk/res/ui/kicked_room.ui
 fractal-gtk/res/ui/leave_room.ui
 fractal-gtk/res/ui/login_flow.ui
 fractal-gtk/res/ui/main_menu.ui
@@ -87,6 +88,7 @@ fractal-gtk/src/widgets/error_dialog.rs
 fractal-gtk/src/widgets/file_dialog.rs
 fractal-gtk/src/widgets/image.rs
 fractal-gtk/src/widgets/inline_player.rs
+fractal-gtk/src/widgets/kicked_dialog.rs
 fractal-gtk/src/widgets/media_viewer.rs
 fractal-gtk/src/widgets/member.rs
 fractal-gtk/src/widgets/members_list.rs
