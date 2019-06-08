@@ -170,22 +170,26 @@ impl Room {
         });
 
         let left_rooms = response.rooms.leave.iter().map(|(k, room)| {
-            let leave_id = &room.timeline.events.last().unwrap()["sender"];
-            if leave_id != userid {
-                let kick_reason = &room.timeline.events.last().unwrap()["content"]["reason"];
-                if let Some((kicker_alias, kicker_avatar)) =
-                    get_user_avatar(baseu, leave_id.as_str().unwrap_or_default()).ok()
-                {
-                    let kicker = Member {
-                        alias: Some(kicker_alias),
-                        avatar: Some(kicker_avatar),
-                        uid: String::from(leave_id.as_str().unwrap_or_default()),
-                    };
-                    let reason = Reason::Kicked(
-                        String::from(kick_reason.as_str().unwrap_or_default()),
-                        kicker,
-                    );
-                    Self::new(k.clone(), RoomMembership::Left(reason))
+            if let Some(last_event) = room.timeline.events.last() {
+                let leave_id = &last_event["sender"];
+                if leave_id != userid {
+                    let kick_reason = &last_event["content"]["reason"];
+                    if let Some((kicker_alias, kicker_avatar)) =
+                        get_user_avatar(baseu, leave_id.as_str().unwrap_or_default()).ok()
+                    {
+                        let kicker = Member {
+                            alias: Some(kicker_alias),
+                            avatar: Some(kicker_avatar),
+                            uid: String::from(leave_id.as_str().unwrap_or_default()),
+                        };
+                        let reason = Reason::Kicked(
+                            String::from(kick_reason.as_str().unwrap_or_default()),
+                            kicker,
+                        );
+                        Self::new(k.clone(), RoomMembership::Left(reason))
+                    } else {
+                        Self::new(k.clone(), RoomMembership::Left(Reason::None))
+                    }
                 } else {
                     Self::new(k.clone(), RoomMembership::Left(Reason::None))
                 }
