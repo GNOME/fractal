@@ -135,6 +135,10 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                                 {
                                     for user in typing_users {
                                         let user: String = from_value(user.to_owned()).unwrap();
+                                        // ignoring the user typing notifications
+                                        if user == userid {
+                                            continue;
+                                        }
                                         typing.push(Member {
                                             uid: user,
                                             alias: None,
