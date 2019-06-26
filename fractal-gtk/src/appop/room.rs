@@ -594,4 +594,12 @@ impl AppOp {
             }
         }
     }
+
+    pub fn send_typing(&self) {
+        if let Some(ref active_room) = self.active_room {
+            self.backend
+                .send(BKCommand::SendTyping(active_room.clone()))
+                .unwrap();
+        }
+    }
 }

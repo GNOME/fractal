@@ -207,6 +207,10 @@ impl Backend {
                 let r = room::redact_msg(self, &msg);
                 bkerror!(r, tx, BKResponse::SendMsgRedactionError);
             }
+            Ok(BKCommand::SendTyping(room)) => {
+                let r = room::send_typing(self, room);
+                bkerror!(r, tx, BKResponse::SendTypingError);
+            }
             Ok(BKCommand::SetRoom(id)) => {
                 let r = room::set_room(self, id);
                 bkerror!(r, tx, BKResponse::SetRoomError);
