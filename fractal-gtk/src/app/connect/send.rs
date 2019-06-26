@@ -56,6 +56,12 @@ impl App {
         });
 
         op = self.op.clone();
+        msg_entry.connect_key_release_event(move |_, _| {
+            op.lock().unwrap().send_typing();
+            Inhibit(false)
+        });
+
+        op = self.op.clone();
         msg_entry.connect_paste_clipboard(move |_| {
             attach::paste(op.clone());
         });

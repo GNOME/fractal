@@ -280,6 +280,23 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn send_typing(bk: &Backend, roomid: String) -> Result<(), Error> {
+    let userid = bk.data.lock().unwrap().user_id.clone();
+    let url = bk.url(&format!("rooms/{}/typing/{}", roomid, userid), vec![])?;
+
+    let attrs = json!({
+        "timeout": 1000,
+        "typing": true
+    });
+
+    let tx = bk.tx.clone();
+    query!("put", &url, &attrs, move |_| {}, |err| {
+        tx.send(BKResponse::SendTypingError(err)).unwrap();
+    });
+
+    Ok(())
+}
+
 pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
     let roomid = msg.room.clone();
     let txnid = msg.id.clone();
