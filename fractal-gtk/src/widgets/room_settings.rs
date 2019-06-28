@@ -75,8 +75,10 @@ impl RoomSettings {
             .get_object::<gtk::Stack>("room_settings_stack")
             .expect("Can't find room_settings_stack in ui file.");
 
-        /*as long we don't have an avatar, room topic, members list we show a spinner */
-        if self.room.avatar.is_none() || self.room.topic.is_none() || self.room.members.len() < 1 {
+        // We can have rooms without name or topic but with members, the 1:1 rooms are this, so
+        // we should show the loading if we've nothing, if there's something we need to show
+        // the info
+        if self.room.avatar.is_none() && self.room.topic.is_none() && self.room.members.len() < 1 {
             stack.set_visible_child_name("loading")
         } else {
             stack.set_visible_child_name("info")
