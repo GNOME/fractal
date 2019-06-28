@@ -63,6 +63,8 @@ pub struct RoomFilter<'a> {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct RoomEventFilter<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub lazy_load_members: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub not_senders: Vec<&'a str>,

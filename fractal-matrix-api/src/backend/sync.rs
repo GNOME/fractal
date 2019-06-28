@@ -42,8 +42,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
         let filter = Filter {
             room: Some(RoomFilter {
                 state: Some(RoomEventFilter {
+                    lazy_load_members: Some(true),
                     types: Some(vec!["m.room.*"]),
-                    not_types: vec!["m.room.member"],
                     ..Default::default()
                 }),
                 timeline: Some(RoomEventFilter {
