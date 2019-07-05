@@ -141,9 +141,10 @@ impl AppOp {
         if let Some(aroom) = self.active_room.clone() {
             if let Some(r) = self.rooms.get(&aroom) {
                 if let &Some(ref name) = &r.name {
-                    headerbar.set_title(i18n_k("Invite to {name}", &[("name", name)]).as_str());
+                    headerbar
+                        .set_title(Some(i18n_k("Invite to {name}", &[("name", name)]).as_str()));
                 } else {
-                    headerbar.set_title(i18n("Invite").as_str());
+                    headerbar.set_title(Some(i18n("Invite").as_str()));
                 }
             }
         }

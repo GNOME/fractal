@@ -31,10 +31,11 @@ impl RoomRow {
         let name = room.name.clone().unwrap_or("...".to_string());
 
         let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
-        let direct = gtk::Image::new_from_icon_name("avatar-default-symbolic", gtk::IconSize::Menu);
+        let direct =
+            gtk::Image::new_from_icon_name(Some("avatar-default-symbolic"), gtk::IconSize::Menu);
         direct.get_style_context().add_class("direct-chat");
 
-        let text = gtk::Label::new(name.clone().as_str());
+        let text = gtk::Label::new(Some(name.clone().as_str()));
         text.set_valign(gtk::Align::Start);
         text.set_halign(gtk::Align::Start);
         text.set_ellipsize(pango::EllipsizeMode::End);
@@ -46,7 +47,7 @@ impl RoomRow {
         } else {
             format!("{}", n)
         };
-        let notifications = gtk::Label::new(&ntext[..]);
+        let notifications = gtk::Label::new(Some(&ntext[..]));
         let style = notifications.get_style_context();
         style.add_class("notify-badge");
 
@@ -155,8 +156,8 @@ impl RoomRow {
         let row = gtk::ListBoxRow::new();
         row.add(&self.widget);
         let data = glib::Variant::from(&self.room.id);
-        row.set_action_target_value(&data);
-        row.set_action_name("app.open-room");
+        row.set_action_target_value(Some(&data));
+        row.set_action_name(Some("app.open-room"));
 
         row
     }

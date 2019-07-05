@@ -20,7 +20,7 @@ impl NewMessageDivider {
 
         let left_separator = gtk::Separator::new(gtk::Orientation::Horizontal);
         left_separator.set_valign(gtk::Align::Center);
-        let label = gtk::Label::new(text);
+        let label = gtk::Label::new(Some(text));
         label.set_selectable(false);
         let right_separator = gtk::Separator::new(gtk::Orientation::Horizontal);
         right_separator.set_valign(gtk::Align::Center);

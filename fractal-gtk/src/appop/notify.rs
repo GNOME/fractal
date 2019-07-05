@@ -86,7 +86,7 @@ impl AppOp {
 
 fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> Notification {
     let notification = Notification::new(title);
-    notification.set_body(body);
+    notification.set_body(Some(body));
     notification.set_priority(gio::NotificationPriority::High);
     info!("Creating notification with avatar: {}", avatar);
     let file = gio::File::new_for_path(avatar);

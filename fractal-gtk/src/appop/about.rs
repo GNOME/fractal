@@ -17,17 +17,19 @@ impl AppOp {
         let program_name = format!("Fractal{}", config::NAME_SUFFIX);
 
         let dialog = gtk::AboutDialog::new();
-        dialog.set_logo_icon_name(config::APP_ID);
-        dialog.set_comments(i18n("A Matrix.org client for GNOME").as_str());
-        dialog.set_copyright(i18n("© 2017–2018 Daniel García Moreno, et al.").as_str());
+        dialog.set_logo_icon_name(Some(config::APP_ID));
+        dialog.set_comments(Some(i18n("A Matrix.org client for GNOME").as_str()));
+        dialog.set_copyright(Some(
+            i18n("© 2017–2018 Daniel García Moreno, et al.").as_str(),
+        ));
         dialog.set_license_type(gtk::License::Gpl30);
         dialog.set_modal(true);
-        dialog.set_version(config::VERSION);
+        dialog.set_version(Some(config::VERSION));
         dialog.set_program_name(&program_name);
-        dialog.set_website("https://wiki.gnome.org/Fractal");
-        dialog.set_website_label(i18n("Learn more about Fractal").as_str());
-        dialog.set_translator_credits(i18n("translator-credits").as_str());
-        dialog.set_transient_for(&window);
+        dialog.set_website(Some("https://wiki.gnome.org/Fractal"));
+        dialog.set_website_label(Some(i18n("Learn more about Fractal").as_str()));
+        dialog.set_translator_credits(Some(i18n("translator-credits").as_str()));
+        dialog.set_transient_for(Some(&window));
 
         dialog.set_artists(&["Tobias Bernard"]);
 

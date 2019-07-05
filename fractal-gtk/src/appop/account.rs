@@ -284,8 +284,8 @@ impl AppOp {
 
         name_btn.hide();
         name.set_editable(true);
-        let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", gtk::IconSize::Menu);
-        name_btn.set_image(&image);
+        let image = gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+        name_btn.set_image(Some(&image));
         name_btn.set_sensitive(true);
 
         /* reset the password button */
@@ -364,13 +364,25 @@ impl AppOp {
                             let entry = widgets::Address::new(widgets::AddressType::Email, &self)
                                 .create(None);
                             grid.insert_next_to(&email, gtk::PositionType::Bottom);
-                            grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
+                            grid.attach_next_to(
+                                &entry,
+                                Some(&email),
+                                gtk::PositionType::Bottom,
+                                1,
+                                1,
+                            );
                             first_email = false;
                         } else {
                             let entry = widgets::Address::new(widgets::AddressType::Email, &self)
                                 .create(Some(item.address));
                             grid.insert_next_to(&email, gtk::PositionType::Bottom);
-                            grid.attach_next_to(&entry, &email, gtk::PositionType::Bottom, 1, 1);
+                            grid.attach_next_to(
+                                &entry,
+                                Some(&email),
+                                gtk::PositionType::Bottom,
+                                1,
+                                1,
+                            );
                         }
                     }
                     Medium::MsIsdn => {
@@ -379,14 +391,26 @@ impl AppOp {
                             let entry = widgets::Address::new(widgets::AddressType::Phone, &self)
                                 .create(None);
                             grid.insert_next_to(&phone, gtk::PositionType::Bottom);
-                            grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
+                            grid.attach_next_to(
+                                &entry,
+                                Some(&phone),
+                                gtk::PositionType::Bottom,
+                                1,
+                                1,
+                            );
                             first_phone = false;
                         } else {
                             let s = String::from("+") + &item.address;
                             let entry = widgets::Address::new(widgets::AddressType::Phone, &self)
                                 .create(Some(s));
                             grid.insert_next_to(&phone, gtk::PositionType::Bottom);
-                            grid.attach_next_to(&entry, &phone, gtk::PositionType::Bottom, 1, 1);
+                            grid.attach_next_to(
+                                &entry,
+                                Some(&phone),
+                                gtk::PositionType::Bottom,
+                                1,
+                                1,
+                            );
                         }
                     }
                 }
@@ -480,8 +504,9 @@ impl AppOp {
             .expect("Can't find account_settings_name_button in ui file.");
         if let Some(name) = name.clone() {
             button.hide();
-            let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", gtk::IconSize::Menu);
-            button.set_image(&image);
+            let image =
+                gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+            button.set_image(Some(&image));
             button.set_sensitive(true);
             entry.set_editable(true);
             entry.set_text(&name);
@@ -509,7 +534,7 @@ impl AppOp {
         if old_username != username {
             let spinner = gtk::Spinner::new();
             spinner.start();
-            button.set_image(&spinner);
+            button.set_image(Some(&spinner));
             button.set_sensitive(false);
             name.set_editable(false);
             self.backend.send(BKCommand::SetUserName(username)).unwrap();

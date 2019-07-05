@@ -321,11 +321,11 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     //op.lock().unwrap().mark_active_room_messages();
 }
 
-fn get_room_id(data: &Option<glib::Variant>) -> Option<&str> {
-    data.as_ref()?.get_str()
+fn get_room_id(data: Option<&glib::Variant>) -> Option<&str> {
+    data?.get_str()
 }
 
-fn get_message(data: &Option<glib::Variant>) -> Option<Message> {
+fn get_message(data: Option<&glib::Variant>) -> Option<Message> {
     get_message_by_id(data.as_ref()?.get_str()?)
 }
 
@@ -337,7 +337,7 @@ fn get_message_by_id(id: &str) -> Option<Message> {
     op.get_message_by_id(room_id, id)
 }
 
-fn open_viewer(data: &Option<glib::Variant>) -> Option<()> {
+fn open_viewer(data: Option<&glib::Variant>) -> Option<()> {
     let msg = get_message(data)?;
     let op = App::get_op()?;
     let mut op = op.lock().unwrap();
