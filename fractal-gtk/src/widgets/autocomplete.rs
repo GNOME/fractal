@@ -62,7 +62,7 @@ impl Autocomplete {
                 alpha: 1.0,
             };
 
-            let tag = TextTag::new("alias-highlight");
+            let tag = TextTag::new(Some("alias-highlight"));
             tag.set_property_foreground_rgba(Some(&color));
 
             if let Some(buffer) = this.borrow().entry.get_buffer() {
@@ -394,26 +394,26 @@ impl Autocomplete {
                 match row {
                     None => {
                         if let Some(row) = self.listbox.get_row_at_index(0) {
-                            self.listbox.select_row(&row);
+                            self.listbox.select_row(Some(&row));
                             result = Some(row.get_children().first()?.clone());
                         }
                     }
                     Some(row) => {
-                        self.listbox.select_row(&row);
+                        self.listbox.select_row(Some(&row));
                         result = Some(row.get_children().first()?.clone());
                     }
                 };
             } else {
                 if let Some(row) = self.listbox.get_children().last() {
                     if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
-                        self.listbox.select_row(&row);
+                        self.listbox.select_row(Some(&row));
                         result = Some(row.get_children().first()?.clone());
                     }
                 }
             }
         } else {
             if let Some(row) = self.listbox.get_row_at_index(0) {
-                self.listbox.select_row(&row);
+                self.listbox.select_row(Some(&row));
                 result = Some(row.get_children().first()?.clone());
             }
         }
@@ -457,7 +457,7 @@ impl Autocomplete {
             self.popover.set_modal(false);
 
             if let Some(row) = self.listbox.get_row_at_index(0) {
-                self.listbox.select_row(&row);
+                self.listbox.select_row(Some(&row));
             }
 
             self.popover.popup();

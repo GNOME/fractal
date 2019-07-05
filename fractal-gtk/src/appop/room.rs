@@ -538,19 +538,19 @@ impl AppOp {
 
         match topic {
             None => {
-                t.set_tooltip_text("");
-                n.set_tooltip_text("");
+                t.set_tooltip_text(None);
+                n.set_tooltip_text(None);
                 t.hide();
             }
             Some(ref topic) if topic.is_empty() => {
-                t.set_tooltip_text("");
-                n.set_tooltip_text("");
+                t.set_tooltip_text(None);
+                n.set_tooltip_text(None);
                 t.hide();
             }
             Some(ref topic) => {
-                n.set_tooltip_text(&topic[..]);
+                n.set_tooltip_text(Some(&topic[..]));
                 t.set_markup(&markup_text(&topic.split('\n').next().unwrap_or_default()));
-                t.set_tooltip_text(&topic[..]);
+                t.set_tooltip_text(Some(&topic[..]));
                 t.show();
             }
         };

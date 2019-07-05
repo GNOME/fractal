@@ -62,7 +62,7 @@ impl SourceDialog {
 
     /* This sets the transient_for parent */
     pub fn set_parent_window(&self, parent: &gtk::Window) {
-        self.widgets.msg_src_window.set_transient_for(parent);
+        self.widgets.msg_src_window.set_transient_for(Some(parent));
     }
 
     fn connect(&self) {
@@ -101,13 +101,13 @@ impl SourceDialog {
             .source_buffer
             .set_highlight_matching_brackets(false);
         if let Some(ref json_lang) = json_lang {
-            self.widgets.source_buffer.set_language(json_lang);
+            self.widgets.source_buffer.set_language(Some(json_lang));
             self.widgets.source_buffer.set_highlight_syntax(true);
 
             if let Some(scheme) = sourceview::StyleSchemeManager::get_default()
                 .map_or(None, |scm| scm.get_scheme("kate"))
             {
-                self.widgets.source_buffer.set_style_scheme(&scheme);
+                self.widgets.source_buffer.set_style_scheme(Some(&scheme));
             }
         }
     }

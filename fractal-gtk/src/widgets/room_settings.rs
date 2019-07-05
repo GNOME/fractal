@@ -158,8 +158,8 @@ impl RoomSettings {
         if let Some(action) = self.actions.lookup_action("change-avatar") {
             action.bind_button_state(&avatar_btn);
             let data = glib::Variant::from(&self.room.id);
-            avatar_btn.set_action_target_value(&data);
-            avatar_btn.set_action_name("room-settings.change-avatar");
+            avatar_btn.set_action_target_value(Some(&data));
+            avatar_btn.set_action_name(Some("room-settings.change-avatar"));
             let avatar_spinner = self
                 .builder
                 .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
@@ -274,8 +274,8 @@ impl RoomSettings {
     }
 
     pub fn reset_action_button(&self, button: gtk::Button) {
-        let image = gtk::Image::new_from_icon_name("emblem-ok-symbolic", gtk::IconSize::Menu);
-        button.set_image(&image);
+        let image = gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+        button.set_image(Some(&image));
         button.set_sensitive(true);
     }
 
@@ -477,7 +477,7 @@ impl RoomSettings {
 
         let spinner = gtk::Spinner::new();
         spinner.start();
-        button.set_image(&spinner);
+        button.set_image(Some(&spinner));
         button.set_sensitive(false);
         entry.set_editable(false);
 
@@ -524,7 +524,7 @@ impl RoomSettings {
 
         let spinner = gtk::Spinner::new();
         spinner.start();
-        button.set_image(&spinner);
+        button.set_image(Some(&spinner));
         button.set_sensitive(false);
         name.set_editable(false);
 

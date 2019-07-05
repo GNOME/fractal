@@ -27,8 +27,8 @@ impl<'a> MemberBox<'a> {
 
     pub fn widget(&self, show_uid: bool) -> gtk::EventBox {
         let backend = self.op.backend.clone();
-        let username = gtk::Label::new("");
-        let uid = gtk::Label::new("");
+        let username = gtk::Label::new(None);
+        let uid = gtk::Label::new(None);
         let event_box = gtk::EventBox::new();
         let w = gtk::Box::new(gtk::Orientation::Horizontal, 5);
         let v = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -42,7 +42,7 @@ impl<'a> MemberBox<'a> {
         let mut alias = self.member.get_alias();
         alias.push_str("\n");
         alias.push_str(&self.member.uid);
-        username.set_tooltip_text(&alias[..]);
+        username.set_tooltip_text(Some(&alias[..]));
         username.set_margin_end(5);
         username.set_ellipsize(pango::EllipsizeMode::End);
         username.set_valign(gtk::Align::Center);
@@ -86,7 +86,7 @@ impl<'a> MemberBox<'a> {
         let backend = self.op.backend.clone();
         let pill = gtk::Box::new(gtk::Orientation::Horizontal, 3);
 
-        let username = gtk::Label::new("");
+        let username = gtk::Label::new(None);
 
         username.set_text(&self.member.get_alias());
         username.set_margin_end(3);

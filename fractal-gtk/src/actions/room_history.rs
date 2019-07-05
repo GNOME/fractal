@@ -174,8 +174,8 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     actions
 }
 
-fn get_message(data: &Option<glib::Variant>) -> Option<Message> {
-    get_message_by_id(data.as_ref()?.get_str()?)
+fn get_message(data: Option<&glib::Variant>) -> Option<Message> {
+    get_message_by_id(data?.get_str()?)
 }
 
 /* TODO: get message from stroage once implemented */
@@ -186,7 +186,7 @@ fn get_message_by_id(id: &str) -> Option<Message> {
     op.get_message_by_id(room_id, id)
 }
 
-fn get_room_id(data: &Option<glib::Variant>) -> Option<String> {
+fn get_room_id(data: Option<&glib::Variant>) -> Option<String> {
     data.as_ref()?.get_str().map(|s| s.to_string())
 }
 

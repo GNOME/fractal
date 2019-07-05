@@ -106,7 +106,7 @@ impl App {
             .builder
             .get_object("main_window")
             .expect("Couldn't find main_window in ui file.");
-        window.set_application(gtk_app);
+        window.set_application(Some(gtk_app));
 
         window.set_title("Fractal");
 

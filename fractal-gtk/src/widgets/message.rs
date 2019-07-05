@@ -44,7 +44,7 @@ pub struct MessageBox {
 
 impl MessageBox {
     pub fn new(backend: Sender<BKCommand>) -> MessageBox {
-        let username = gtk::Label::new("");
+        let username = gtk::Label::new(None);
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
         let row = gtk::ListBoxRow::new();
@@ -237,7 +237,7 @@ impl MessageBox {
                         for light in highlights.clone() {
                             highlight_username(w.clone(), &attr, &light, text.to_string());
                         }
-                        w.set_attributes(&attr);
+                        w.set_attributes(Some(&attr));
                     }
                 });
 
@@ -248,7 +248,7 @@ impl MessageBox {
                         for light in highlights.clone() {
                             highlight_username(w.clone(), &attr, &light, text.to_string());
                         }
-                        w.set_attributes(&attr);
+                        w.set_attributes(Some(&attr));
                     }
                 });
 
@@ -257,7 +257,7 @@ impl MessageBox {
                     for light in msg.highlights.clone() {
                         highlight_username(part.clone(), &attr, &light, text.to_string());
                     }
-                    part.set_attributes(&attr);
+                    part.set_attributes(Some(&attr));
                 }
             }
         }
@@ -294,7 +294,7 @@ impl MessageBox {
     }
 
     fn create_msg(&self, body: &str, k: MsgPartType) -> gtk::Label {
-        let msg_part = gtk::Label::new("");
+        let msg_part = gtk::Label::new(None);
         msg_part.set_markup(&markup_text(body));
         self.set_label_styles(&msg_part);
 
@@ -332,7 +332,7 @@ impl MessageBox {
             let image = widgets::image::Image::new(&backend, url)
                 .size(Some(globals::MAX_STICKER_SIZE))
                 .build();
-            image.widget.set_tooltip_text(&msg.body[..]);
+            image.widget.set_tooltip_text(Some(&msg.body[..]));
 
             bx.add(&image.widget);
         }
@@ -372,13 +372,15 @@ impl MessageBox {
             }),
         );
 
-        let download_btn =
-            gtk::Button::new_from_icon_name("document-save-symbolic", gtk::IconSize::Button.into());
-        download_btn.set_tooltip_text(i18n("Save").as_str());
+        let download_btn = gtk::Button::new_from_icon_name(
+            Some("document-save-symbolic"),
+            gtk::IconSize::Button.into(),
+        );
+        download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let data = glib::Variant::from(msg.id.as_str());
-        download_btn.set_action_target_value(&data);
-        download_btn.set_action_name("room_history.save_as");
+        download_btn.set_action_target_value(Some(&data));
+        download_btn.set_action_name(Some("room_history.save_as"));
 
         bx.pack_start(&player.container, false, true, 0);
         bx.pack_start(&download_btn, false, false, 3);
@@ -390,27 +392,31 @@ impl MessageBox {
         let btn_bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let name = msg.body.as_str();
-        let name_lbl = gtk::Label::new(name);
-        name_lbl.set_tooltip_text(name);
+        let name_lbl = gtk::Label::new(Some(name));
+        name_lbl.set_tooltip_text(Some(name));
         name_lbl.set_ellipsize(pango::EllipsizeMode::End);
 
         name_lbl.get_style_context().add_class("msg-highlighted");
 
-        let download_btn =
-            gtk::Button::new_from_icon_name("document-save-symbolic", gtk::IconSize::Button.into());
-        download_btn.set_tooltip_text(i18n("Save").as_str());
+        let download_btn = gtk::Button::new_from_icon_name(
+            Some("document-save-symbolic"),
+            gtk::IconSize::Button.into(),
+        );
+        download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let data = glib::Variant::from(msg.id.as_str());
-        download_btn.set_action_target_value(&data);
-        download_btn.set_action_name("room_history.save_as");
+        download_btn.set_action_target_value(Some(&data));
+        download_btn.set_action_name(Some("room_history.save_as"));
 
-        let open_btn =
-            gtk::Button::new_from_icon_name("document-open-symbolic", gtk::IconSize::Button.into());
-        open_btn.set_tooltip_text(i18n("Open").as_str());
+        let open_btn = gtk::Button::new_from_icon_name(
+            Some("document-open-symbolic"),
+            gtk::IconSize::Button.into(),
+        );
+        open_btn.set_tooltip_text(Some(i18n("Open").as_str()));
 
         let data = glib::Variant::from(msg.id.as_str());
-        open_btn.set_action_target_value(&data);
-        open_btn.set_action_name("room_history.open_with");
+        open_btn.set_action_target_value(Some(&data));
+        open_btn.set_action_name(Some("room_history.open_with"));
 
         btn_bx.pack_start(&open_btn, false, false, 0);
         btn_bx.pack_start(&download_btn, false, false, 0);
@@ -434,7 +440,7 @@ impl MessageBox {
 
         let d = dt.format(&format).to_string();
 
-        let date = gtk::Label::new("");
+        let date = gtk::Label::new(None);
         date.set_markup(&format!("<span alpha=\"60%\">{}</span>", d.trim()));
         date.set_line_wrap(true);
         date.set_justify(gtk::Justification::Right);
@@ -470,7 +476,7 @@ impl MessageBox {
             .sender_name
             .clone()
             .unwrap_or(String::from(msg.sender.clone()));
-        let msg_label = gtk::Label::new("");
+        let msg_label = gtk::Label::new(None);
         let body: &str = &msg.body;
         let markup = markup_text(body);
 
@@ -525,8 +531,8 @@ impl MessageBox {
 
     fn connect_image(&self, msg: &Message) -> Option<()> {
         let data = glib::Variant::from(msg.id.as_str());
-        self.row.set_action_name("app.open-media-viewer");
-        self.row.set_action_target_value(&data);
+        self.row.set_action_name(Some("app.open-media-viewer"));
+        self.row.set_action_target_value(Some(&data));
         None
     }
 }

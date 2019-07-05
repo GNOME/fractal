@@ -1,7 +1,6 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use gdk::FrameClockExt;
 use gio::Action;
 use gio::ActionExt;
 use gtk;
@@ -219,7 +218,7 @@ impl ScrollWidget {
                         /* Load more messages once the user is nearly at the end of the history */
                         spinner.start();
                         let data = glib::Variant::from(&room_id);
-                        action.activate(&data);
+                        action.activate(Some(&data));
                         request_sent.set(true);
                     }
                 }
@@ -314,13 +313,13 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
                     let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
                     t = ease_out_cubic(t);
                     adj.set_value(start + t * (end - start));
-                    return true;
+                    return glib::Continue(true);
                 } else {
                     adj.set_value(end);
-                    return false;
+                    return glib::Continue(false);
                 }
             }
-            false
+            glib::Continue(false)
         });
     } else {
         adj.set_value(adj.get_upper() - adj.get_page_size());

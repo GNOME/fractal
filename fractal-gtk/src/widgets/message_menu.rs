@@ -76,14 +76,14 @@ impl Widgets {
         copy_text_button.set_visible(mtype != &RowType::Image);
 
         let data = glib::Variant::from(id);
-        reply_button.set_action_target_value(&data);
-        open_with_button.set_action_target_value(&data);
-        view_source_button.set_action_target_value(&data);
-        delete_message_button.set_action_target_value(&data);
-        open_with_button.set_action_target_value(&data);
-        save_image_as_button.set_action_target_value(&data);
-        copy_image_button.set_action_target_value(&data);
-        copy_text_button.set_action_target_value(&data);
+        reply_button.set_action_target_value(Some(&data));
+        open_with_button.set_action_target_value(Some(&data));
+        view_source_button.set_action_target_value(Some(&data));
+        delete_message_button.set_action_target_value(Some(&data));
+        open_with_button.set_action_target_value(Some(&data));
+        save_image_as_button.set_action_target_value(Some(&data));
+        copy_image_button.set_action_target_value(Some(&data));
+        copy_text_button.set_action_target_value(Some(&data));
 
         Widgets {
             popover,
@@ -145,7 +145,7 @@ impl MessageMenu {
                     height: 0,
                 };
 
-                self.widgets.popover.set_relative_to(w);
+                self.widgets.popover.set_relative_to(Some(w));
                 self.widgets.popover.set_pointing_to(&rect);
                 self.widgets.popover.set_position(gtk::PositionType::Bottom);
 

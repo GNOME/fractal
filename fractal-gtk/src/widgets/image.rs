@@ -3,7 +3,7 @@ use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
-use gio::prelude::{FileExt, FileInfoExt};
+use gio::prelude::FileExt;
 use glib;
 use gtk;
 use gtk::prelude::*;

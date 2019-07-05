@@ -82,12 +82,12 @@ impl App {
             .builder
             .get_object::<gtk::Box>("account_settings_box")
             .expect("Can't find account_settings_box in ui file.");
-        container.insert_action_group("user-settings", &actions);
+        container.insert_action_group("user-settings", Some(&actions));
 
         /* Body */
         if let Some(action) = actions.lookup_action("change-avatar") {
             action.bind_button_state(&avatar_btn);
-            avatar_btn.set_action_name("user-settings.change-avatar");
+            avatar_btn.set_action_name(Some("user-settings.change-avatar"));
             let avatar_spinner = self
                 .ui
                 .builder

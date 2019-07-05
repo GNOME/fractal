@@ -57,7 +57,9 @@ impl KickedDialog {
 
     /* This sets the transient_for parent */
     pub fn set_parent_window(&self, parent: &gtk::Window) {
-        self.widgets.msg_kicked_window.set_transient_for(parent);
+        self.widgets
+            .msg_kicked_window
+            .set_transient_for(Some(parent));
     }
 
     fn connect(&self) {

@@ -57,8 +57,9 @@ impl<'a> Address<'a> {
             self.entry.set_editable(false);
 
             self.action = Some(AddressAction::Delete);
-            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", gtk::IconSize::Menu);
-            self.button.set_image(&label);
+            let label =
+                gtk::Image::new_from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
+            self.button.set_image(Some(&label));
             self.button.show();
         } else {
             let text = match self.medium {
@@ -66,10 +67,11 @@ impl<'a> Address<'a> {
                 AddressType::Phone => "Add Phone",
             };
 
-            self.entry.set_placeholder_text(text);
+            self.entry.set_placeholder_text(Some(text));
             self.action = Some(AddressAction::Add);
-            let label = gtk::Image::new_from_icon_name("list-add-symbolic", gtk::IconSize::Menu);
-            self.button.set_image(&label);
+            let label =
+                gtk::Image::new_from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
+            self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
                 .add_class("suggested-action");
@@ -96,16 +98,18 @@ impl<'a> Address<'a> {
             self.entry.set_editable(false);
 
             self.action = Some(AddressAction::Delete);
-            let label = gtk::Image::new_from_icon_name("user-trash-symbolic", gtk::IconSize::Menu);
-            self.button.set_image(&label);
+            let label =
+                gtk::Image::new_from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
+            self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
                 .remove_class("suggested-action");
             self.button.show();
         } else {
             self.action = Some(AddressAction::Add);
-            let label = gtk::Image::new_from_icon_name("list-add-symbolic", gtk::IconSize::Menu);
-            self.button.set_image(&label);
+            let label =
+                gtk::Image::new_from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
+            self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
                 .add_class("suggested-action");
@@ -164,7 +168,7 @@ impl<'a> Address<'a> {
 
             let spinner = gtk::Spinner::new();
             spinner.start();
-            w.set_image(&spinner);
+            w.set_image(Some(&spinner));
             w.set_sensitive(false);
             entry.set_editable(false);
 

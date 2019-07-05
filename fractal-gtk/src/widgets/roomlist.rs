@@ -81,7 +81,7 @@ impl RoomListGroup {
         let rooms = HashMap::new();
         let roomvec = Arc::new(Mutex::new(vec![]));
 
-        let empty = gtk::Label::new(empty_text);
+        let empty = gtk::Label::new(Some(empty_text));
         empty.set_line_wrap_mode(pango::WrapMode::WordChar);
         empty.set_line_wrap(true);
         empty.set_justify(gtk::Justification::Center);
@@ -95,21 +95,21 @@ impl RoomListGroup {
         rev.add(&b);
         rev.set_reveal_child(true);
 
-        let title = gtk::Label::new(name);
+        let title = gtk::Label::new(Some(name));
         title.set_halign(gtk::Align::Start);
         title.set_valign(gtk::Align::Start);
         let arrow =
-            gtk::Image::new_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
+            gtk::Image::new_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
         let expanded = Arc::new(Mutex::new(true));
         let title_eb = gtk::EventBox::new();
 
         title_eb.connect_button_press_event(clone!(list, arrow, rev, expanded => move |_, _| {
             if *expanded.lock().unwrap() {
-                arrow.set_from_icon_name("pan-end-symbolic", gtk::IconSize::SmallToolbar);
+                arrow.set_from_icon_name(Some("pan-end-symbolic"), gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(false);
                 list.get_style_context().add_class("collapsed");
             } else {
-                arrow.set_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
+                arrow.set_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(true);
                 list.get_style_context().remove_class("collapsed");
             }
@@ -254,7 +254,7 @@ impl RoomListGroup {
         self.title_eb.add(&hbox);
 
         self.arrow
-            .set_from_icon_name("pan-down-symbolic", gtk::IconSize::SmallToolbar);
+            .set_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
         *self.expanded.lock().unwrap() = true;
         self.rev.set_reveal_child(true);
         self.list.get_style_context().remove_class("collapsed");
@@ -303,7 +303,7 @@ impl RoomListGroup {
         let rv = self.roomvec.lock().unwrap();
         if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
             if let Some(ref row) = self.list.get_row_at_index(idx as i32) {
-                self.list.select_row(row);
+                self.list.select_row(Some(row));
             }
         }
     }
