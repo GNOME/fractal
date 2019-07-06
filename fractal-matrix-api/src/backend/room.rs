@@ -6,6 +6,9 @@ use std::io::prelude::*;
 use std::sync::mpsc::Sender;
 use url::Url;
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use crate::error::Error;
 use crate::globals;
 use std::thread;
@@ -20,6 +23,7 @@ use crate::util::{client_url, media_url};
 use crate::backend::types::BKCommand;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
+use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
 use crate::types::ExtraContent;
@@ -583,6 +587,41 @@ pub fn new_room(
     Ok(())
 }
 
+pub fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user: String, room: String) {
+    get!(
+        &url,
+        |r: JsonValue| {
+            let mut directs: HashMap<String, Vec<String>> = HashMap::new();
+            let direct_obj = r.as_object().unwrap();
+
+            direct_obj.iter().for_each(|(userid, rooms)| {
+                let roomlist: Vec<String> = rooms
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|x| x.as_str().unwrap().to_string())
+                    .collect();
+                directs.insert(userid.clone(), roomlist);
+            });
+
+            if directs.contains_key(&user) {
+                if let Some(v) = directs.get_mut(&user) {
+                    v.push(room)
+                };
+            } else {
+                directs.insert(user, vec![room]);
+            }
+            data.lock().unwrap().m_direct = directs.clone();
+
+            let attrs = json!(directs.clone());
+            put!(&url, &attrs, |_| {}, |err| error!("{:?}", err));
+        },
+        |err| {
+            error!("Can't set m.direct: {:?}", err);
+        }
+    );
+}
+
 pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(), Error> {
     let url = bk.url("createRoom", vec![])?;
     let attrs = json!({
@@ -615,17 +654,7 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
             r.direct = true;
             tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
 
-            let directs = &mut data.lock().unwrap().m_direct;
-            if directs.contains_key(&m.uid) {
-                if let Some(v) = directs.get_mut(&m.uid) {
-                    v.push(id.clone())
-                };
-            } else {
-                directs.insert(m.uid.clone(), vec![id.clone()]);
-            }
-
-            let attrs = json!(directs.clone());
-            put!(&direct_url, &attrs, |_| {}, |err| error!("{:?}", err));
+            update_direct_chats(direct_url, data, m.uid.clone(), id);
         },
         |err| {
             tx.send(BKResponse::NewRoomError(err, internal_id)).unwrap();
