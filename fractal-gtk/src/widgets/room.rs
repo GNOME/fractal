@@ -83,6 +83,8 @@ impl<'a> RoomBox<'a> {
         }
 
         let alias_label = gtk::Label::new(None);
+        alias_label.set_line_wrap(true);
+        alias_label.set_line_wrap_mode(pango::WrapMode::WordChar);
         alias_label.set_markup(&format!(
             "<span alpha=\"60%\">{}</span>",
             room.alias.clone().unwrap_or_default()
@@ -102,10 +104,8 @@ impl<'a> RoomBox<'a> {
         }
         details_box.add(&alias_label);
 
-        widget_box.pack_start(&details_box, true, true, 0);
-
         let membership_grid = gtk::Grid::new();
-        membership_grid.set_row_spacing(6);
+        membership_grid.set_column_spacing(6);
 
         let members_icon = gtk::Image::new_from_icon_name(
             Some("system-users-symbolic"),
@@ -124,11 +124,13 @@ impl<'a> RoomBox<'a> {
         });
         join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
-        membership_grid.attach(&members_icon, 1, 0, 1, 1);
-        membership_grid.attach(&members_count, 2, 0, 1, 1);
-        membership_grid.attach(&join_button, 0, 1, 4, 1);
+        membership_grid.attach(&join_button, 0, 0, 4, 1);
+        membership_grid.attach(&members_icon, 5, 0, 1, 1);
+        membership_grid.attach(&members_count, 6, 0, 1, 1);
 
-        widget_box.pack_start(&membership_grid, false, false, 18);
+        details_box.add(&membership_grid);
+
+        widget_box.pack_start(&details_box, true, true, 0);
 
         widget_box.show_all();
         widget_box
