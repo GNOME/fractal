@@ -138,27 +138,44 @@ impl AppOp {
                 self.invitation_roomid = Some(room.id.clone());
                 return;
             }
-        }
 
-        let msg_entry = self.ui.sventry.view.clone();
-        if let Some(buffer) = msg_entry.get_buffer() {
-            let start = buffer.get_start_iter();
-            let end = buffer.get_end_iter();
+            let msg_entry = self.ui.sventry.view.clone();
 
-            if let Some(msg) = buffer.get_text(&start, &end, false) {
-                if let Some(ref active_room) = self.active_room {
-                    if msg.len() > 0 {
-                        if let Some(mark) = buffer.get_insert() {
-                            let iter = buffer.get_iter_at_mark(&mark);
-                            let msg_position = iter.get_offset();
+            let user_power = match room.admins.get(&self.uid.clone().unwrap_or_default()) {
+                Some(p) => p,
+                None => room
+                    .power_levels
+                    .get("user_default")
+                    .map(|x| *x)
+                    .unwrap_or_default(),
+            };
 
-                            self.unsent_messages
-                                .insert(active_room.clone(), (msg.to_string(), msg_position));
+            if user_power >= 0 {
+                msg_entry.set_editable(true);
+                if let Some(buffer) = msg_entry.get_buffer() {
+                    let start = buffer.get_start_iter();
+                    let end = buffer.get_end_iter();
+
+                    if let Some(msg) = buffer.get_text(&start, &end, false) {
+                        if let Some(ref active_room) = self.active_room {
+                            if msg.len() > 0 {
+                                if let Some(mark) = buffer.get_insert() {
+                                    let iter = buffer.get_iter_at_mark(&mark);
+                                    let msg_position = iter.get_offset();
+
+                                    self.unsent_messages.insert(
+                                        active_room.clone(),
+                                        (msg.to_string(), msg_position),
+                                    );
+                                }
+                            } else {
+                                self.unsent_messages.remove(active_room);
+                            }
                         }
-                    } else {
-                        self.unsent_messages.remove(active_room);
                     }
                 }
+            } else {
+                msg_entry.set_editable(false);
             }
         }
 
