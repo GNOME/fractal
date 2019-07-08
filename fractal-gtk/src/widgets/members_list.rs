@@ -19,12 +19,14 @@ pub struct MembersList {
     error: gtk::Label,
     members: Vec<Member>,
     admins: HashMap<String, i32>,
+    power_levels: HashMap<String, i32>,
 }
 
 impl MembersList {
     pub fn new(
         m: Vec<Member>,
         admins: HashMap<String, i32>,
+        power_levels: HashMap<String, i32>,
         entry: gtk::SearchEntry,
     ) -> MembersList {
         MembersList {
@@ -33,6 +35,7 @@ impl MembersList {
             members: m,
             search_entry: entry,
             admins: admins,
+            power_levels: power_levels,
         }
     }
 
