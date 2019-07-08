@@ -33,10 +33,13 @@ impl App {
         column.set_hexpand(true);
         column.set_vexpand(true);
         column.set_margin_top(24);
+        column.set_margin_start(12);
+        column.set_margin_end(12);
 
         let frame = gtk::Frame::new(None);
         frame.set_shadow_type(gtk::ShadowType::In);
         frame.add(&listbox);
+        frame.get_style_context().add_class("room-directory");
         column.add(&frame);
         listbox.show();
         frame.show();
