@@ -97,7 +97,7 @@ pub struct Room {
 
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
-    pub power_levels: HashMap<String, i32>,
+    pub admins: HashMap<String, i32>,
 }
 
 impl Room {
@@ -141,7 +141,7 @@ impl Room {
                 highlight: room.unread_notifications.highlight_count,
                 prev_batch: timeline.prev_batch.clone(),
                 messages: Message::from_json_events_iter(&k, timeline.events.iter()),
-                power_levels: get_admins(stevents),
+                admins: get_admins(stevents),
                 members: stevents
                     .iter()
                     .filter(|x| x["type"] == "m.room.member")

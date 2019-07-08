@@ -186,7 +186,7 @@ impl RoomSettings {
         let mut is_room = true;
         let mut is_group = false;
         let members: Vec<Member> = self.room.members.values().cloned().collect();
-        let power = *self.room.power_levels.get(&self.uid.clone()?).unwrap_or(&0);
+        let power = *self.room.admins.get(&self.uid.clone()?).unwrap_or(&0);
 
         let edit = power >= 50 && !self.room.direct;
 
@@ -630,8 +630,7 @@ impl RoomSettings {
             )
             .as_str(),
         );
-        let list =
-            widgets::MembersList::new(members.clone(), self.room.power_levels.clone(), entry);
+        let list = widgets::MembersList::new(members.clone(), self.room.admins.clone(), entry);
         let w = list.create()?;
         b.add(&w);
         self.members_list = Some(list);
