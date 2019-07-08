@@ -441,11 +441,11 @@ impl AppOp {
         };
 
         let uid = self.uid.clone().unwrap_or_default();
-        let power_level = match self.uid.clone().and_then(|uid| room.power_levels.get(&uid)) {
+        let admin = match self.uid.clone().and_then(|uid| room.admins.get(&uid)) {
             Some(&pl) => pl,
             None => 0,
         };
-        let redactable = power_level != 0 || uid == msg.sender;
+        let redactable = admin != 0 || uid == msg.sender;
 
         let is_last_viewed = msg.receipt.contains_key(&uid);
         Some(create_ui_message(
