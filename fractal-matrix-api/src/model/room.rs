@@ -97,6 +97,7 @@ pub struct Room {
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
     pub admins: HashMap<String, i32>,
+    pub power_levels: HashMap<String, i32>,
 }
 
 impl Room {
@@ -141,6 +142,7 @@ impl Room {
                 prev_batch: timeline.prev_batch.clone(),
                 messages: Message::from_json_events_iter(&k, timeline.events.iter()),
                 admins: get_admins(stevents),
+                power_levels: get_power_levels(stevents),
                 members: stevents
                     .iter()
                     .filter(|x| x["type"] == "m.room.member")
@@ -365,6 +367,16 @@ fn get_admins(stevents: &Vec<JsonValue>) -> HashMap<String, i32> {
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
         .filter_map(|ev| ev["content"]["users"].as_object())
+        .flatten()
+        .map(|(k, v)| (k.clone(), v.as_i64().map(|v| v as i32).unwrap_or_default()))
+        .collect()
+}
+
+fn get_power_levels(stevents: &Vec<JsonValue>) -> HashMap<String, i32> {
+    stevents
+        .iter()
+        .filter(|x| x["type"] == "m.room.power_levels")
+        .filter_map(|ev| ev["content"].as_object())
         .flatten()
         .map(|(k, v)| (k.clone(), v.as_i64().map(|v| v as i32).unwrap_or_default()))
         .collect()
