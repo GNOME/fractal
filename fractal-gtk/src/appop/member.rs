@@ -26,7 +26,7 @@ impl AppOp {
             .rooms
             .get(&self.active_room.clone().unwrap_or_default())
         {
-            if let Some(level) = r.power_levels.get(&member.uid) {
+            if let Some(level) = r.admins.get(&member.uid) {
                 return *level;
             }
         }
