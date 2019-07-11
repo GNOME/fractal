@@ -43,6 +43,12 @@ impl App {
             markdown_switch.set_active(true);
             md_img.set_from_icon_name("format-indent-more-symbolic", gtk::IconSize::Menu);
             txt.get_style_context().remove_class("dim-label");
+
+            if let Some(md_lang) = md_lang.clone() {
+                buffer.set_highlight_matching_brackets(true);
+                buffer.set_language(&md_lang);
+                buffer.set_highlight_syntax(true);
+            }
         }
 
         let op = op.clone();
