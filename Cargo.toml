@@ -3,3 +3,10 @@ members = [
     "fractal-matrix-api",
     "fractal-gtk",
 ]
+
+[profile.release]
+panic = "abort"
+
+[profile.dev]
+panic = "abort"
+
