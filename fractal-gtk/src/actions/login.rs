@@ -69,7 +69,8 @@ pub fn new(
             .downcast::<gtk::Window>()
             .expect("Could not cast toplevel to GtkWindow");
         let uri = globals::RIOT_REGISTER_URL;
-        if let Err(e) = gtk::show_uri_on_window(&toplevel, uri, gtk::get_current_event_time()) {
+        if let Err(e) = gtk::show_uri_on_window(Some(&toplevel), uri, gtk::get_current_event_time())
+        {
             warn!("Could not show {}: {}", uri, e)
         }
     });
@@ -135,8 +136,8 @@ pub fn new(
         })
     });
 
-    stack.insert_action_group("login", &actions);
-    headers.insert_action_group("login", &actions);
+    stack.insert_action_group("login", Some(&actions));
+    headers.insert_action_group("login", Some(&actions));
 
     actions
 }

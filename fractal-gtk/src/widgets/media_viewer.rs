@@ -554,7 +554,7 @@ fn set_header_title(ui: &gtk::Builder, title: &str) {
     let media_viewer_headerbar = ui
         .get_object::<gtk::HeaderBar>("media_viewer_headerbar")
         .expect("Cant find media_viewer_headerbar in ui file.");
-    media_viewer_headerbar.set_title(title);
+    media_viewer_headerbar.set_title(Some(title));
 }
 
 fn loading_state(ui: &gtk::Builder, val: bool) -> bool {

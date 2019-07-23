@@ -57,7 +57,7 @@ impl<'a> RoomBox<'a> {
             ref n => n.clone(),
         };
 
-        let name_label = gtk::Label::new("");
+        let name_label = gtk::Label::new(None);
         name_label.set_line_wrap(true);
         name_label.set_line_wrap_mode(pango::WrapMode::WordChar);
         name_label.set_markup(&format!(
@@ -69,7 +69,7 @@ impl<'a> RoomBox<'a> {
         name_label.set_valign(gtk::Align::Start);
         name_label.set_xalign(0.0);
 
-        let topic_label = gtk::Label::new("");
+        let topic_label = gtk::Label::new(None);
         if !room.topic.clone().unwrap_or_default().is_empty() {
             topic_label.set_line_wrap(true);
             topic_label.set_line_wrap_mode(pango::WrapMode::WordChar);
@@ -82,7 +82,9 @@ impl<'a> RoomBox<'a> {
             topic_label.set_xalign(0.0);
         }
 
-        let alias_label = gtk::Label::new("");
+        let alias_label = gtk::Label::new(None);
+        alias_label.set_line_wrap(true);
+        alias_label.set_line_wrap_mode(pango::WrapMode::WordChar);
         alias_label.set_markup(&format!(
             "<span alpha=\"60%\">{}</span>",
             room.alias.clone().unwrap_or_default()
@@ -102,16 +104,16 @@ impl<'a> RoomBox<'a> {
         }
         details_box.add(&alias_label);
 
-        widget_box.pack_start(&details_box, true, true, 0);
-
         let membership_grid = gtk::Grid::new();
-        membership_grid.set_row_spacing(6);
+        membership_grid.set_column_spacing(6);
 
-        let members_icon =
-            gtk::Image::new_from_icon_name("system-users-symbolic", gtk::IconSize::Menu.into());
+        let members_icon = gtk::Image::new_from_icon_name(
+            Some("system-users-symbolic"),
+            gtk::IconSize::Menu.into(),
+        );
         members_icon.get_style_context().add_class("dim-label");
 
-        let members_count = gtk::Label::new(&format!("{}", room.n_members)[..]);
+        let members_count = gtk::Label::new(Some(&format!("{}", room.n_members)[..]));
         members_count.get_style_context().add_class("dim-label");
 
         let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
@@ -122,11 +124,13 @@ impl<'a> RoomBox<'a> {
         });
         join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
-        membership_grid.attach(&members_icon, 1, 0, 1, 1);
-        membership_grid.attach(&members_count, 2, 0, 1, 1);
-        membership_grid.attach(&join_button, 0, 1, 4, 1);
+        membership_grid.attach(&join_button, 0, 0, 4, 1);
+        membership_grid.attach(&members_icon, 5, 0, 1, 1);
+        membership_grid.attach(&members_count, 6, 0, 1, 1);
 
-        widget_box.pack_start(&membership_grid, false, false, 18);
+        details_box.add(&membership_grid);
+
+        widget_box.pack_start(&details_box, true, true, 0);
 
         widget_box.show_all();
         widget_box

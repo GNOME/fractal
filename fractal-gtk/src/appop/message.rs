@@ -1,6 +1,6 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gdk_pixbuf::Pixbuf;
-use gio::prelude::{FileExt, FileInfoExt};
+use gio::prelude::FileExt;
 use gstreamer_editing_services::prelude::*;
 use gstreamer_editing_services::UriClipAsset;
 use gtk;
@@ -527,7 +527,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let nfile = format!("file://{}", file);
     let uri = UriClipAsset::request_sync(&nfile).ok()?;
-    let duration = uri?.get_duration().mseconds()?;
+    let duration = uri.get_duration().mseconds()?;
     let size = fs::metadata(file).ok()?.len();
 
     let info = json!({

@@ -340,7 +340,7 @@ fn create_day_divider(date: DateTime<Local>) -> gtk::ListBoxRow {
     row.set_margin_top(24);
     row.set_selectable(false);
     row.set_activatable(false);
-    let label = gtk::Label::new(stamp.as_str());
+    let label = gtk::Label::new(Some(stamp.as_str()));
     label.set_selectable(false);
     row.add(&label);
 

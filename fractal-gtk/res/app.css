@@ -79,6 +79,16 @@
   font-size: x-small;
 }
 
+frame.room-directory > border {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.room-directory {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
 .room-directory row {
   padding-top: 18px;
   padding-bottom: 18px;

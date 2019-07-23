@@ -41,12 +41,12 @@ impl App {
         if md_active {
             op.lock().unwrap().md_enabled = true;
             markdown_switch.set_active(true);
-            md_img.set_from_icon_name("format-indent-more-symbolic", gtk::IconSize::Menu);
+            md_img.set_from_icon_name(Some("format-indent-more-symbolic"), gtk::IconSize::Menu);
             txt.get_style_context().remove_class("dim-label");
 
             if let Some(md_lang) = md_lang.clone() {
                 buffer.set_highlight_matching_brackets(true);
-                buffer.set_language(&md_lang);
+                buffer.set_language(Some(&md_lang));
                 buffer.set_highlight_syntax(true);
             }
         }
@@ -58,7 +58,10 @@ impl App {
                 op.lock().unwrap().md_enabled = markdown_switch.get_active();
 
                 if !markdown_switch.get_active() {
-                    md_img.set_from_icon_name("format-justify-left-symbolic", gtk::IconSize::Menu);
+                    md_img.set_from_icon_name(
+                        Some("format-justify-left-symbolic"),
+                        gtk::IconSize::Menu,
+                    );
                     txt.get_style_context().add_class("dim-label");
                     util::set_markdown_schema(false);
 
@@ -67,13 +70,16 @@ impl App {
                     buffer.set_language(lang);
                     buffer.set_highlight_syntax(false);
                 } else {
-                    md_img.set_from_icon_name("format-indent-more-symbolic", gtk::IconSize::Menu);
+                    md_img.set_from_icon_name(
+                        Some("format-indent-more-symbolic"),
+                        gtk::IconSize::Menu,
+                    );
                     txt.get_style_context().remove_class("dim-label");
                     util::set_markdown_schema(true);
 
                     if let Some(md_lang) = md_lang.clone() {
                         buffer.set_highlight_matching_brackets(true);
-                        buffer.set_language(&md_lang);
+                        buffer.set_language(Some(&md_lang));
                         buffer.set_highlight_syntax(true);
                     }
                 }

@@ -47,7 +47,7 @@ impl AppOp {
                 &[],
             );
 
-            img.set_from_pixbuf(&pb);
+            img.set_from_pixbuf(Some(&pb));
             img.show();
             dialog.get_content_area().add(&img);
             dialog.present();
