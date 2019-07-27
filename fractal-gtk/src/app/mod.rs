@@ -224,13 +224,10 @@ impl App {
                 app.op.lock().unwrap().mark_active_room_messages();
             });
 
-        let app_weak = app.downgrade();
         app.main_window.connect_delete_event(move |window, _| {
-            let app = upgrade_weak!(app_weak, Inhibit(false));
             let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
             let window_state = WindowState::from_window(window);
             window_state.save_in_gsettings(&settings);
-            app.op.lock().unwrap().quit();
             Inhibit(false)
         });
 
