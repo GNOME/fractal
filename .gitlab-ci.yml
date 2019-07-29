@@ -65,3 +65,9 @@ pages:
     only:
         - master
     <<: *flatpak_cache
+
+
+publish_nightly:
+    extends: ".publish_nightly"
+    variables:
+        BUNDLE: "${BUNDLE}"
