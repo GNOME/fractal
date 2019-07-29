@@ -1,3 +1,5 @@
+include: 'https://gitlab.gnome.org/GNOME/citemplates/raw/master/flatpak/flatpak_ci_initiative.yml'
+
 stages:
   - check
   - test
@@ -7,9 +9,8 @@ stages:
 variables:
     BUNDLE: "org.gnome.FractalDevel.flatpak"
     MANIFEST_PATH: "flatpak/org.gnome.Fractal.json"
-    MANIFEST_PATH: "flatpak/org.gnome.Fractal.json"
     FLATPAK_MODULE: "fractal"
-    DBUS_ID: "org.gnome.FractalDevel"
+    APP_ID: "org.gnome.FractalDevel"
 
 .flatpak_cache_template: &flatpak_cache
     cache:
@@ -33,65 +34,18 @@ check:
         - cargo fmt --all -- --check
 
 flatpak:
+    extends: ".flatpak"
     image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
-    stage: "test"
-    script:
-        - flatpak-builder --stop-at=${FLATPAK_MODULE} --force-clean app ${MANIFEST_PATH}
-
-        # Build the flatpak repo
-        - flatpak-builder --run app ${MANIFEST_PATH} meson --prefix=/app -Dprofile=development _build
-        - flatpak-builder --run app ${MANIFEST_PATH} ninja -C _build install
-
-        # Run the tests
-        - |
-          xvfb-run -a -s "-screen 0 1024x768x24" \
-              flatpak-builder --run \
-              --env=CARGO_HOME="target/cargo-home" \
-              --env=CARGO_TARGET_DIR="target_test/" \
-              app ${MANIFEST_PATH} \
-              ninja -C _build test
-
-        # Create a flatpak bundle
-        - flatpak-builder --finish-only app ${MANIFEST_PATH}
-        - flatpak build-export repo app
-        - flatpak build-bundle repo ${BUNDLE} ${DBUS_ID}
-
-    artifacts:
-        paths:
-            - "${BUNDLE}"
-        expire_in: 2 days
     <<: *flatpak_cache
 
 
 review:
+    extends: ".review"
     stage: review
-    dependencies:
-        - flatpak
-    script:
-        - echo "Generating flatpak deployment"
-    artifacts:
-        paths:
-            - "${BUNDLE}"
-        expire_in: 30 days
-    environment:
-        name: "review/${CI_COMMIT_REF_NAME}"
-        url: "https://gitlab.gnome.org/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/raw/${BUNDLE}"
-        on_stop: stop_review
-    except:
-        - master@GNOME/fractal
-        - tags
 
 stop_review:
+    extends: ".stop_review"
     stage: review
-    script:
-        - echo "Stopping flatpak deployment"
-    when: manual
-    environment:
-        name: "review/${CI_COMMIT_REF_NAME}"
-        action: stop
-    except:
-        - master@GNOME/fractal
-        - tags
 
 
 pages:
@@ -111,3 +65,9 @@ pages:
     only:
         - master
     <<: *flatpak_cache
+
+
+publish_nightly:
+    extends: ".publish_nightly"
+    variables:
+        BUNDLE: "${BUNDLE}"
