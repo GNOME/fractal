@@ -7,7 +7,6 @@ stages:
 variables:
     BUNDLE: "org.gnome.FractalDevel.flatpak"
     MANIFEST_PATH: "flatpak/org.gnome.Fractal.json"
-    MANIFEST_PATH: "flatpak/org.gnome.Fractal.json"
     FLATPAK_MODULE: "fractal"
     DBUS_ID: "org.gnome.FractalDevel"
 
