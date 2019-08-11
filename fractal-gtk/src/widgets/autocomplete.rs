@@ -10,7 +10,6 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use gtk::TextTag;
-use sourceview;
 
 use crate::types::Member;
 
@@ -18,7 +17,7 @@ use crate::appop::AppOp;
 use crate::widgets;
 
 pub struct Autocomplete {
-    entry: sourceview::View,
+    entry: sourceview4::View,
     listbox: gtk::ListBox,
     popover: gtk::Popover,
     window: gtk::Window,
@@ -33,7 +32,7 @@ impl Autocomplete {
     pub fn new(
         op: Arc<Mutex<AppOp>>,
         window: gtk::Window,
-        msg_entry: sourceview::View,
+        msg_entry: sourceview4::View,
         popover: gtk::Popover,
         listbox: gtk::ListBox,
     ) -> Autocomplete {

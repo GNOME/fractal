@@ -3,7 +3,7 @@ use fractal_api::clone;
 use gdk;
 use gtk;
 use gtk::prelude::*;
-use sourceview::BufferExt;
+use sourceview4::BufferExt;
 
 use crate::app::App;
 

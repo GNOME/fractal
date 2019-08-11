@@ -1,6 +1,6 @@
 use gtk::prelude::*;
 use libhandy::{Column, ColumnExt};
-use sourceview::ViewExt;
+use sourceview4::ViewExt;
 // This alias is necessary to avoid conflict with gtk's TextViewExt
 use gspell::TextViewExt as GspellTextViewExt;
 
@@ -13,8 +13,8 @@ pub struct SVEntry {
     pub markdown_img: gtk::Image,
     pub entry_box: gtk::Box,
     pub scroll: gtk::ScrolledWindow,
-    pub view: sourceview::View,
-    pub buffer: sourceview::Buffer,
+    pub view: sourceview4::View,
+    pub buffer: sourceview4::Buffer,
 }
 
 impl Default for SVEntry {
@@ -66,8 +66,8 @@ impl Default for SVEntry {
         let scroll = gtk::ScrolledWindow::new(hadjust, vadjust);
 
         let tag_table: Option<&gtk::TextTagTable> = None;
-        let buffer = sourceview::Buffer::new(tag_table);
-        let view = sourceview::View::new_with_buffer(&buffer);
+        let buffer = sourceview4::Buffer::new(tag_table);
+        let view = sourceview4::View::new_with_buffer(&buffer);
         view.set_wrap_mode(gtk::WrapMode::WordChar);
         view.set_indent_on_tab(false);
 

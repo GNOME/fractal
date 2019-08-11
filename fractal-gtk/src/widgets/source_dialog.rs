@@ -1,13 +1,12 @@
 use gtk;
 use gtk::prelude::*;
-use sourceview;
-use sourceview::prelude::*;
+use sourceview4::prelude::*;
 
 struct Widgets {
     msg_src_window: gtk::Window,
     copy_src_button: gtk::Button,
     close_src_button: gtk::Button,
-    source_buffer: sourceview::Buffer,
+    source_buffer: sourceview4::Buffer,
 }
 
 impl Widgets {
@@ -29,7 +28,7 @@ impl Widgets {
             .get_object("close_src_button")
             .expect("Can't find close_src_button in ui file.");
 
-        let source_buffer: sourceview::Buffer = builder
+        let source_buffer: sourceview4::Buffer = builder
             .get_object("source_buffer")
             .expect("Can't find source_buffer in ui file.");
 
@@ -95,7 +94,7 @@ impl SourceDialog {
         });
 
         let json_lang =
-            sourceview::LanguageManager::get_default().map_or(None, |lm| lm.get_language("json"));
+            sourceview4::LanguageManager::get_default().map_or(None, |lm| lm.get_language("json"));
 
         self.widgets
             .source_buffer
@@ -104,7 +103,7 @@ impl SourceDialog {
             self.widgets.source_buffer.set_language(Some(json_lang));
             self.widgets.source_buffer.set_highlight_syntax(true);
 
-            if let Some(scheme) = sourceview::StyleSchemeManager::get_default()
+            if let Some(scheme) = sourceview4::StyleSchemeManager::get_default()
                 .map_or(None, |scm| scm.get_scheme("kate"))
             {
                 self.widgets.source_buffer.set_style_scheme(Some(&scheme));
