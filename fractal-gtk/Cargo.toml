@@ -30,7 +30,7 @@ rand = "0.6.1"
 regex = "1.1.0"
 secret-service = "1.0.0"
 serde_json = "1.0.33"
-sourceview = "0.7.0"
+sourceview4 = "0.1.0"
 url = "1.7.2"
 
 [dependencies.gst]

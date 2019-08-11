@@ -1,7 +1,6 @@
 use gtk;
 use gtk::prelude::*;
-use sourceview;
-use sourceview::prelude::*;
+use sourceview4::prelude::*;
 
 use crate::util;
 
@@ -31,7 +30,7 @@ impl App {
             .get_object("tutorial_text_box")
             .expect("Couldn't find tutorial_text_box in ui file.");
 
-        let md_lang = sourceview::LanguageManager::get_default()
+        let md_lang = sourceview4::LanguageManager::get_default()
             .map_or(None, |lm| lm.get_language("markdown"));
 
         md_popover_btn.set_popover(Some(&popover));
@@ -65,7 +64,7 @@ impl App {
                     txt.get_style_context().add_class("dim-label");
                     util::set_markdown_schema(false);
 
-                    let lang: Option<&sourceview::Language> = None;
+                    let lang: Option<&sourceview4::Language> = None;
                     buffer.set_highlight_matching_brackets(false);
                     buffer.set_language(lang);
                     buffer.set_highlight_syntax(false);
