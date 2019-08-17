@@ -157,7 +157,13 @@ impl AppOp {
             .expect("Can't find directory_column in ui file.");
         directory_stack.set_visible_child(&directory_column);
 
+        let mut length = directory.get_children().len();
         for r in self.directory.iter() {
+            // Skip already appended widgets
+            if length != 0 {
+                length -= 1;
+                continue;
+            }
             let rb = widgets::RoomBox::new(&r, &self);
             let room_widget = rb.widget();
             directory.add(&room_widget);
