@@ -135,9 +135,14 @@ impl App {
             .builder
             .get_object::<gtk::Box>("history_container")
             .expect("Can't find history_container in ui file.");
+        let popover = ui
+            .builder
+            .get_object::<gtk::Popover>("autocomplete_popover")
+            .expect("Can't find autocomplete_popover in ui file.");
 
         if let libhandy::Fold::Folded = leaflet.get_fold() {
             container.get_style_context().add_class("folded-history");
+            popover.get_style_context().add_class("narrow");
         }
 
         let weak_container = container.downgrade();
@@ -145,9 +150,13 @@ impl App {
             let container = upgrade_weak!(weak_container);
 
             match leaflet.get_fold() {
-                libhandy::Fold::Folded => container.get_style_context().add_class("folded-history"),
+                libhandy::Fold::Folded => {
+                    container.get_style_context().add_class("folded-history");
+                    popover.get_style_context().add_class("narrow");
+                }
                 libhandy::Fold::Unfolded => {
                     container.get_style_context().remove_class("folded-history");
+                    popover.get_style_context().remove_class("narrow");
                 }
                 _ => (),
             }

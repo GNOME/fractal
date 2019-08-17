@@ -214,6 +214,10 @@ row .timestamp {
   margin-left: 150px;
 }
 
+.autocomplete.narrow {
+  margin-left: 0;
+}
+
 .autocomplete,
 .autocomplete list,
 .autocomplete row:not(:hover):not(:selected) {
