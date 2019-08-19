@@ -130,7 +130,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_protocols, (protocols));
                 }
                 Ok(BKResponse::DirectorySearch(rooms)) => {
-                    APPOP!(set_directory_rooms, (rooms));
+                    APPOP!(append_directory_rooms, (rooms));
                 }
 
                 Ok(BKResponse::JoinRoom) => {
