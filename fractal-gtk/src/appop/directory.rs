@@ -128,7 +128,7 @@ impl AppOp {
         self.search_rooms(true);
     }
 
-    pub fn set_directory_rooms(&mut self, rooms: Vec<Room>) {
+    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>) {
         for r in rooms.iter() {
             if self.directory.contains(r) {
                 continue;
