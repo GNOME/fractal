@@ -128,16 +128,7 @@ impl AppOp {
         self.search_rooms(true);
     }
 
-    pub fn set_directory_rooms(&mut self, rooms: Vec<Room>) {
-        for r in rooms.iter() {
-            if self.directory.contains(r) {
-                continue;
-            }
-            self.directory.push(r.clone());
-        }
-
-        self.directory.sort_by_key(|a| -a.n_members);
-
+    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>) {
         let directory = self
             .ui
             .builder
@@ -157,7 +148,11 @@ impl AppOp {
             .expect("Can't find directory_column in ui file.");
         directory_stack.set_visible_child(&directory_column);
 
-        for r in self.directory.iter() {
+        let mut sorted_rooms = rooms.clone();
+        sorted_rooms.sort_by_key(|a| -a.n_members);
+
+        for r in sorted_rooms.iter() {
+            self.directory.push(r.clone());
             let rb = widgets::RoomBox::new(&r, &self);
             let room_widget = rb.widget();
             directory.add(&room_widget);
