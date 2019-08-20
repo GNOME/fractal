@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::ops::Not;
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct Filter<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event_fields: Option<Vec<&'a str>>,
@@ -15,7 +15,13 @@ pub struct Filter<'a> {
     pub room: Option<RoomFilter<'a>>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+impl<'a> Filter<'a> {
+    pub fn is_default(&self) -> bool {
+        *self == Default::default()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EventFormat {
     Client,
@@ -28,7 +34,7 @@ impl Default for EventFormat {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct EventFilter<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i32>,
@@ -42,7 +48,7 @@ pub struct EventFilter<'a> {
     pub types: Option<Vec<&'a str>>,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct RoomFilter<'a> {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub not_rooms: Vec<&'a str>,
@@ -60,10 +66,10 @@ pub struct RoomFilter<'a> {
     pub account_data: Option<RoomEventFilter<'a>>,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct RoomEventFilter<'a> {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lazy_load_members: Option<bool>,
+    #[serde(skip_serializing_if = "Not::not")]
+    pub lazy_load_members: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -80,4 +86,13 @@ pub struct RoomEventFilter<'a> {
     pub rooms: Option<Vec<&'a str>>,
     #[serde(skip_serializing_if = "Not::not")]
     pub contains_url: bool,
+}
+
+pub fn serialize_filter_as_str<S>(filter: &Filter, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let filter_str = serde_json::to_string(filter).expect("Malformed filter");
+
+    ser.serialize_str(&filter_str)
 }

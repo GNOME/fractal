@@ -1,95 +1,131 @@
-use serde_json::json;
-use serde_json::Value as JsonValue;
-
 use std::thread;
 use url::Url;
 
 use crate::error::Error;
-use crate::util::json_q;
 
-use crate::types::LoginRequest;
-use crate::types::LoginResponse;
-use crate::types::RegisterRequest;
-use crate::types::RegisterResponse;
-use crate::types::WellKnownResponse;
+use crate::globals;
+use crate::r0::account::login::request as login_req;
+use crate::r0::account::login::Auth;
+use crate::r0::account::login::Body as LoginBody;
+use crate::r0::account::login::Response as LoginResponse;
+use crate::r0::account::logout::request as logout_req;
+use crate::r0::account::logout::Parameters as LogoutParameters;
+use crate::r0::account::register::request as register_req;
+use crate::r0::account::register::Body as RegisterBody;
+use crate::r0::account::register::Parameters as RegisterParameters;
+use crate::r0::account::register::RegistrationKind;
+use crate::r0::account::register::Response as RegisterResponse;
+use crate::r0::account::Identifier;
+use crate::r0::account::UserIdentifier;
+use crate::r0::server::domain_info::request as domain_info;
+use crate::r0::server::domain_info::Response as DomainInfoResponse;
+use crate::r0::Medium;
+use crate::util::HTTP_CLIENT;
 
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 
-use crate::globals;
-
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
-    let baseu = Url::parse(server)?;
-    let url = baseu
-        .join("/_matrix/client/r0/register?kind=guest")
-        .expect("Wrong URL in guest()");
-    bk.data.lock().unwrap().server_url = baseu;
-
     let data = bk.data.clone();
     let tx = bk.tx.clone();
-    let attrs = RegisterRequest::default();
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize guest register request");
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<RegisterResponse>(r) {
-            let uid = response.user_id;
-            let tk = response.access_token.unwrap_or_default();
-            let dev = response.device_id;
 
-            data.lock().unwrap().user_id = uid.clone();
-            data.lock().unwrap().access_token = tk.clone();
-            data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
-            tx.send(BKResponse::Rooms(vec![], None)).unwrap();
-        } else {
-            tx.send(BKResponse::GuestLoginError(Error::BackendError))
-                .unwrap();
-        },
-        |err| tx.send(BKResponse::GuestLoginError(err)).unwrap()
-    );
+    let base = Url::parse(server)?;
+    data.lock().unwrap().server_url = base.clone();
+
+    let params = RegisterParameters {
+        kind: RegistrationKind::Guest,
+    };
+    let body = Default::default();
+
+    thread::spawn(move || {
+        let query = register_req(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<RegisterResponse>()
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(response) => {
+                let uid = response.user_id;
+                let tk = response.access_token.unwrap_or_default();
+                let dev = response.device_id;
+
+                data.lock().unwrap().user_id = uid.clone();
+                data.lock().unwrap().access_token = tk.clone();
+                data.lock().unwrap().since = None;
+                let _ = tx.send(BKResponse::Token(uid, tk, dev));
+                let _ = tx.send(BKResponse::Rooms(vec![], None));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::GuestLoginError(err));
+            }
+        }
+    });
 
     Ok(())
 }
 
 pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
-    bk.data.lock().unwrap().server_url = Url::parse(server)?;
-    let url = bk.url("login", vec![])?;
-
-    let attrs = LoginRequest::new(
-        user.clone(),
-        password,
-        Some(globals::DEVICE_NAME.into()),
-        None,
-    );
-    let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize login request");
     let data = bk.data.clone();
-
     let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<LoginResponse>(r) {
-            let uid = response.user_id.unwrap_or(user);
-            let tk = response.access_token.unwrap_or_default();
-            let dev = response.device_id;
 
-            if uid.is_empty() || tk.is_empty() {
-                tx.send(BKResponse::LoginError(Error::BackendError))
-                    .unwrap();
-            } else {
-                data.lock().unwrap().user_id = uid.clone();
-                data.lock().unwrap().access_token = tk.clone();
-                data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
+    let base = Url::parse(server)?;
+    data.lock().unwrap().server_url = base.clone();
+
+    let body = if globals::EMAIL_RE.is_match(&user) {
+        LoginBody {
+            auth: Auth::Password { password },
+            identifier: Identifier::new(UserIdentifier::ThirdParty {
+                medium: Medium::Email,
+                address: user.clone(),
+            }),
+            initial_device_display_name: Some(globals::DEVICE_NAME.into()),
+            device_id: None,
+        }
+    } else {
+        LoginBody {
+            auth: Auth::Password { password },
+            identifier: Identifier::new(UserIdentifier::User { user: user.clone() }),
+            initial_device_display_name: Some(globals::DEVICE_NAME.into()),
+            device_id: None,
+        }
+    };
+
+    thread::spawn(move || {
+        let query = login_req(base, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<LoginResponse>()
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(response) => {
+                let uid = response.user_id.unwrap_or(user);
+                let tk = response.access_token.unwrap_or_default();
+                let dev = response.device_id;
+
+                if uid.is_empty() || tk.is_empty() {
+                    let _ = tx.send(BKResponse::LoginError(Error::BackendError));
+                } else {
+                    data.lock().unwrap().user_id = uid.clone();
+                    data.lock().unwrap().access_token = tk.clone();
+                    data.lock().unwrap().since = None;
+                    let _ = tx.send(BKResponse::Token(uid, tk, dev));
+                }
             }
-        } else {
-            tx.send(BKResponse::LoginError(Error::BackendError))
-                .unwrap();
-        },
-        |err| tx.send(BKResponse::LoginError(err)).unwrap()
-    );
+            Err(err) => {
+                let _ = tx.send(BKResponse::LoginError(err));
+            }
+        }
+    });
 
     Ok(())
 }
@@ -104,75 +140,91 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Resu
     Ok(())
 }
 
-pub fn logout(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url("logout", vec![])?;
-    let attrs = json!({});
-
+pub fn logout(bk: &Backend) {
     let data = bk.data.clone();
     let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs,
-        |_| {
-            data.lock().unwrap().user_id = String::new();
-            data.lock().unwrap().access_token = String::new();
-            data.lock().unwrap().since = None;
-            tx.send(BKResponse::Logout).unwrap();
-        },
-        |err| tx.send(BKResponse::LogoutError(err)).unwrap()
-    );
-    Ok(())
+
+    let base = bk.get_base_url();
+    let params = LogoutParameters {
+        access_token: data.lock().unwrap().access_token.clone(),
+    };
+
+    thread::spawn(move || {
+        let query = logout_req(base, &params)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(_) => {
+                data.lock().unwrap().user_id = Default::default();
+                data.lock().unwrap().access_token = Default::default();
+                data.lock().unwrap().since = None;
+                let _ = tx.send(BKResponse::Logout);
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::LogoutError(err));
+            }
+        }
+    });
 }
 
 pub fn register(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
-    bk.data.lock().unwrap().server_url = Url::parse(server)?;
-    let url = bk.url("register", vec![("kind", String::from("user"))])?;
+    let data = bk.data.clone();
+    let tx = bk.tx.clone();
 
-    let attrs = RegisterRequest {
+    let base = Url::parse(server)?;
+    data.lock().unwrap().server_url = base.clone();
+    let params = Default::default();
+    let body = RegisterBody {
         username: Some(user),
         password: Some(password),
         ..Default::default()
     };
 
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize user register request");
-    let data = bk.data.clone();
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<RegisterResponse>(r) {
-            let uid = response.user_id;
-            let tk = response.access_token.unwrap_or_default();
-            let dev = response.device_id;
+    thread::spawn(move || {
+        let query = register_req(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<RegisterResponse>()
+                    .map_err(Into::into)
+            });
 
-            data.lock().unwrap().user_id = uid.clone();
-            data.lock().unwrap().access_token = tk.clone();
-            data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
-        } else {
-            tx.send(BKResponse::LoginError(Error::BackendError))
-                .unwrap();
-        },
-        |err| tx.send(BKResponse::LoginError(err)).unwrap()
-    );
+        match query {
+            Ok(response) => {
+                let uid = response.user_id;
+                let tk = response.access_token.unwrap_or_default();
+                let dev = response.device_id;
+
+                data.lock().unwrap().user_id = uid.clone();
+                data.lock().unwrap().access_token = tk.clone();
+                data.lock().unwrap().since = None;
+                let _ = tx.send(BKResponse::Token(uid, tk, dev));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::LoginError(err));
+            }
+        }
+    });
 
     Ok(())
 }
 
-pub fn get_well_known(domain: &str) -> Result<WellKnownResponse, Error> {
-    let well_known = Url::parse(domain)?.join(".well-known/matrix/client")?;
-
-    // NOTE: The query! macro doesn't like what we're
-    // trying to do, so this implements what we need
-
-    let handle = thread::spawn(move || json_q("get", &well_known, &json!(null)));
-
-    match handle.join() {
-        Ok(r) => match r {
-            Ok(val) => serde_json::from_value(val).map_err(|_| Error::BackendError),
-            Err(e) => Err(e.into()),
-        },
-        _ => Err(Error::BackendError),
-    }
+pub fn get_well_known(domain: &str) -> Result<DomainInfoResponse, Error> {
+    domain_info(Url::parse(domain)?)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<DomainInfoResponse>()
+                .map_err(Into::into)
+        })
 }

@@ -90,10 +90,7 @@ impl Backend {
                 let r = register::login(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
             }
-            Ok(BKCommand::Logout) => {
-                let r = register::logout(self);
-                bkerror!(r, tx, BKResponse::LogoutError);
-            }
+            Ok(BKCommand::Logout) => register::logout(self),
             Ok(BKCommand::Register(user, passwd, server)) => {
                 let r = register::register(self, user, passwd, &server);
                 bkerror!(r, tx, BKResponse::LoginError);
@@ -108,79 +105,44 @@ impl Backend {
             }
 
             // User module
-            Ok(BKCommand::GetUsername) => {
-                let r = user::get_username(self);
-                bkerror!(r, tx, BKResponse::UserNameError);
-            }
-            Ok(BKCommand::SetUserName(name)) => {
-                let r = user::set_username(self, name);
-                bkerror!(r, tx, BKResponse::SetUserNameError);
-            }
-            Ok(BKCommand::GetThreePID) => {
-                let r = user::get_threepid(self);
-                bkerror!(r, tx, BKResponse::GetThreePIDError);
-            }
+            Ok(BKCommand::GetUsername) => user::get_username(self),
+            Ok(BKCommand::SetUserName(name)) => user::set_username(self, name),
+            Ok(BKCommand::GetThreePID) => user::get_threepid(self),
             Ok(BKCommand::GetTokenEmail(identity, email, client_secret)) => {
-                let r = user::get_email_token(self, identity, email, client_secret);
-                bkerror!(r, tx, BKResponse::GetTokenEmailError);
+                user::get_email_token(self, identity, email, client_secret)
             }
             Ok(BKCommand::GetTokenPhone(identity, phone, client_secret)) => {
-                let r = user::get_phone_token(self, identity, phone, client_secret);
-                bkerror!(r, tx, BKResponse::GetTokenEmailError);
+                user::get_phone_token(self, identity, phone, client_secret)
             }
-            Ok(BKCommand::SubmitPhoneToken(identity, client_secret, sid, token)) => {
-                let r = user::submit_phone_token(self, &identity, client_secret, sid, token);
-                bkerror!(r, tx, BKResponse::SubmitPhoneTokenError);
+            Ok(BKCommand::SubmitPhoneToken(_, client_secret, sid, token)) => {
+                user::submit_phone_token(self, client_secret, sid, token)
             }
             Ok(BKCommand::AddThreePID(identity, client_secret, sid)) => {
-                let r = user::add_threepid(self, identity, client_secret, sid);
-                bkerror!(r, tx, BKResponse::AddThreePIDError);
+                user::add_threepid(self, identity, client_secret, sid)
             }
             Ok(BKCommand::DeleteThreePID(medium, address)) => {
-                user::delete_three_pid(self, medium, address);
+                user::delete_three_pid(self, medium, address)
             }
             Ok(BKCommand::ChangePassword(username, old_password, new_password)) => {
-                let r = user::change_password(self, username, old_password, new_password);
-                bkerror!(r, tx, BKResponse::ChangePasswordError);
+                user::change_password(self, username, old_password, new_password)
             }
             Ok(BKCommand::AccountDestruction(username, password, _)) => {
-                let r = user::account_destruction(self, username, password);
-                bkerror!(r, tx, BKResponse::AccountDestructionError);
+                user::account_destruction(self, username, password)
             }
-            Ok(BKCommand::GetAvatar) => {
-                let r = user::get_avatar(self);
-                bkerror!(r, tx, BKResponse::AvatarError);
-            }
-            Ok(BKCommand::SetUserAvatar(file)) => {
-                let r = user::set_user_avatar(self, file);
-                bkerror!(r, tx, BKResponse::SetUserAvatarError);
-            }
-            Ok(BKCommand::GetAvatarAsync(member, ctx)) => {
-                let r = user::get_avatar_async(self, member, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
-            }
+            Ok(BKCommand::GetAvatar) => user::get_avatar(self),
+            Ok(BKCommand::SetUserAvatar(file)) => user::set_user_avatar(self, file),
+            Ok(BKCommand::GetAvatarAsync(member, ctx)) => user::get_avatar_async(self, member, ctx),
             Ok(BKCommand::GetUserInfoAsync(sender, ctx)) => {
-                let r = user::get_user_info_async(self, &sender, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
+                user::get_user_info_async(self, &sender, ctx)
             }
             Ok(BKCommand::GetUserNameAsync(sender, ctx)) => {
-                let r = user::get_username_async(self, sender, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
+                user::get_username_async(self, sender, ctx)
             }
-            Ok(BKCommand::UserSearch(term)) => {
-                let r = user::search(self, term);
-                bkerror!(r, tx, BKResponse::CommandError);
-            }
+            Ok(BKCommand::UserSearch(term)) => user::search(self, term),
 
             // Sync module
-            Ok(BKCommand::Sync(since, initial)) => {
-                let r = sync::sync(self, since, initial);
-                bkerror!(r, tx, BKResponse::SyncError);
-            }
-            Ok(BKCommand::SyncForced) => {
-                let r = sync::force_sync(self);
-                bkerror!(r, tx, BKResponse::SyncError);
-            }
+            Ok(BKCommand::Sync(since, initial)) => sync::sync(self, since, initial),
+            Ok(BKCommand::SyncForced) => sync::force_sync(self),
 
             // Room module
             Ok(BKCommand::GetRoomMembers(room)) => {
@@ -303,9 +265,7 @@ impl Backend {
             }
 
             // Directory module
-            Ok(BKCommand::DirectoryProtocols) => {
-                directory::protocols(self);
-            }
+            Ok(BKCommand::DirectoryProtocols) => directory::protocols(self),
             Ok(BKCommand::DirectorySearch(dhs, dq, dtp, more)) => {
                 let hs = match dhs {
                     ref a if a.is_empty() => None,

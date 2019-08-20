@@ -12,8 +12,8 @@ use crate::widgets;
 use crate::widgets::AvatarExt;
 
 use crate::cache::download_to_cache;
-use fractal_api::types::Medium;
-use fractal_api::types::ThirdPartyIdentifier;
+use fractal_api::r0::contact::get_identifiers::ThirdPartyIdentifier;
+use fractal_api::r0::Medium;
 
 impl AppOp {
     pub fn set_three_pid(&self, data: Option<Vec<ThirdPartyIdentifier>>) {

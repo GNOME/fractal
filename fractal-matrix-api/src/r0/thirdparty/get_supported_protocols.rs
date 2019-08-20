@@ -1,8 +1,17 @@
-use serde::Deserialize;
+use reqwest::Client;
+use reqwest::Error;
+use reqwest::Request;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
+use url::Url;
 
-pub type SupportedProtocols = BTreeMap<String, Protocol>;
+#[derive(Debug, Clone, Serialize)]
+pub struct Parameters {
+    pub access_token: String,
+}
+
+pub type Response = BTreeMap<String, Protocol>;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Protocol {
@@ -23,9 +32,18 @@ pub struct FieldType {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProtocolInstance {
+    // TODO: Avoid this rename
     #[serde(rename = "network_id")]
     pub id: String,
     pub desc: String,
     pub icon: Option<String>,
     pub fields: JsonValue,
+}
+
+pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
+    let url = base
+        .join("/_matrix/client/r0/thirdparty/protocols")
+        .expect("Wrong URL in get_supported_protocols");
+
+    Client::new().get(url).query(params).build()
 }

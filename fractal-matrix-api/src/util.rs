@@ -20,8 +20,10 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::r0::filter::RoomEventFilter;
+use crate::r0::profile::get_profile::request as get_profile;
+use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::types::Message;
-use crate::types::RoomEventFilter;
 
 use reqwest::header::CONTENT_LENGTH;
 use reqwest::header::CONTENT_TYPE;
@@ -29,7 +31,7 @@ use reqwest::header::CONTENT_TYPE;
 use crate::globals;
 
 lazy_static! {
-    static ref HTTP_CLIENT: Client = Client::new();
+    pub static ref HTTP_CLIENT: Client = Client::new();
 }
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
@@ -238,20 +240,16 @@ pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let (mime, _) = gio::content_type_guess(None, file.as_slice());
+    let (mime, _) = gio::content_type_guess(None, &file);
 
-    let conn = HTTP_CLIENT
+    HTTP_CLIENT
         .get_client()?
         .post(url)
         .body(file)
-        .header(CONTENT_TYPE, mime.to_string());
-
-    let mut res = conn.send()?;
-
-    match res.json() {
-        Ok(js) => Ok(js),
-        Err(_) => Err(Error::BackendError),
-    }
+        .header(CONTENT_TYPE, mime.to_string())
+        .send()?
+        .json()
+        .or(Err(Error::BackendError))
 }
 
 pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
@@ -391,29 +389,31 @@ pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, E
     }
 }
 
-pub fn get_user_avatar(baseu: &Url, userid: &str) -> Result<(String, String), Error> {
-    let url = client_url(baseu, &format!("profile/{}", encode_uid(userid)), &[])?;
-    let attrs = json!(null);
+pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Error> {
+    let response = get_profile(base.clone(), &encode_uid(userid))
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<GetProfileResponse>()
+                .map_err(Into::into)
+        })?;
 
-    match json_q("get", &url, &attrs) {
-        Ok(js) => {
-            let name = match js["displayname"].as_str() {
-                Some(n) if n.is_empty() => userid.to_string(),
-                Some(n) => n.to_string(),
-                None => userid.to_string(),
-            };
+    let name = response
+        .displayname
+        .filter(|n| !n.is_empty())
+        .unwrap_or(userid.to_string());
 
-            match js["avatar_url"].as_str() {
-                Some(url) => {
-                    let dest = cache_path(userid)?;
-                    let img = thumb(baseu, &url, Some(&dest))?;
-                    Ok((name.clone(), img))
-                }
-                None => Ok((name.clone(), String::new())),
-            }
-        }
-        Err(_) => Ok((String::from(userid), String::new())),
-    }
+    let img = response
+        .avatar_url
+        .map(|url| {
+            let dest = cache_path(userid)?;
+            thumb(base, &url, Some(&dest))
+        })
+        .unwrap_or(Ok(Default::default()))?;
+
+    Ok((name, img))
 }
 
 pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {

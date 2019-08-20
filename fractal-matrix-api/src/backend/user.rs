@@ -1,7 +1,4 @@
-use log::info;
-use serde_json::json;
-use std::fs::File;
-use std::io::prelude::*;
+use std::fs;
 
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
@@ -9,155 +6,226 @@ use crate::error::Error;
 use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::get_user_avatar_img;
-use crate::util::json_q;
-use crate::util::put_media;
 use crate::util::semaphore;
-use crate::util::{build_url, media_url};
+use crate::util::HTTP_CLIENT;
+use reqwest::header::HeaderValue;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use url::Url;
 
-use crate::types::AddThreePIDRequest;
-use crate::types::AuthenticationData;
-use crate::types::ChangePasswordRequest;
-use crate::types::DeactivateAccountRequest;
-use crate::types::DeleteThreePIDRequest;
-use crate::types::EmailTokenRequest;
-use crate::types::GetDisplayNameResponse;
-use crate::types::Identifier;
-use crate::types::Medium;
+use crate::identity::r0::association::msisdn::submit_token::request as submit_phone_token_req;
+use crate::identity::r0::association::msisdn::submit_token::Body as SubmitPhoneTokenBody;
+use crate::identity::r0::association::msisdn::submit_token::Response as SubmitPhoneTokenResponse;
+use crate::r0::account::change_password::request as change_password_req;
+use crate::r0::account::change_password::Body as ChangePasswordBody;
+use crate::r0::account::change_password::Parameters as ChangePasswordParameters;
+use crate::r0::account::deactivate::request as deactivate;
+use crate::r0::account::deactivate::Body as DeactivateBody;
+use crate::r0::account::deactivate::Parameters as DeactivateParameters;
+use crate::r0::account::AuthenticationData;
+use crate::r0::account::Identifier;
+use crate::r0::account::UserIdentifier;
+use crate::r0::contact::create::request as create_contact;
+use crate::r0::contact::create::Body as AddThreePIDBody;
+use crate::r0::contact::create::Parameters as AddThreePIDParameters;
+use crate::r0::contact::delete::request as delete_contact;
+use crate::r0::contact::delete::Body as DeleteThreePIDBody;
+use crate::r0::contact::delete::Parameters as DeleteThreePIDParameters;
+use crate::r0::contact::get_identifiers::request as get_identifiers;
+use crate::r0::contact::get_identifiers::Parameters as ThirdPartyIDParameters;
+use crate::r0::contact::get_identifiers::Response as ThirdPartyIDResponse;
+use crate::r0::contact::request_verification_token_email::request as request_contact_verification_token_email;
+use crate::r0::contact::request_verification_token_email::Body as EmailTokenBody;
+use crate::r0::contact::request_verification_token_email::Parameters as EmailTokenParameters;
+use crate::r0::contact::request_verification_token_email::Response as EmailTokenResponse;
+use crate::r0::contact::request_verification_token_msisdn::request as request_contact_verification_token_msisdn;
+use crate::r0::contact::request_verification_token_msisdn::Body as PhoneTokenBody;
+use crate::r0::contact::request_verification_token_msisdn::Parameters as PhoneTokenParameters;
+use crate::r0::contact::request_verification_token_msisdn::Response as PhoneTokenResponse;
+use crate::r0::media::create::request as create_content;
+use crate::r0::media::create::Parameters as CreateContentParameters;
+use crate::r0::media::create::Response as CreateContentResponse;
+use crate::r0::profile::get_display_name::request as get_display_name;
+use crate::r0::profile::get_display_name::Response as GetDisplayNameResponse;
+use crate::r0::profile::set_avatar_url::request as set_avatar_url;
+use crate::r0::profile::set_avatar_url::Body as SetAvatarUrlBody;
+use crate::r0::profile::set_avatar_url::Parameters as SetAvatarUrlParameters;
+use crate::r0::profile::set_display_name::request as set_display_name;
+use crate::r0::profile::set_display_name::Body as SetDisplayNameBody;
+use crate::r0::profile::set_display_name::Parameters as SetDisplayNameParameters;
+use crate::r0::search::user::request as user_directory;
+use crate::r0::search::user::Body as UserDirectoryBody;
+use crate::r0::search::user::Parameters as UserDirectoryParameters;
+use crate::r0::search::user::Response as UserDirectoryResponse;
+use crate::r0::Medium;
+use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
-use crate::types::PhoneTokenRequest;
-use crate::types::PutDisplayNameRequest;
-use crate::types::SearchUserRequest;
-use crate::types::SearchUserResponse;
-use crate::types::SubmitPhoneTokenRequest;
-use crate::types::SubmitPhoneTokenResponse;
-use crate::types::ThirdPartyIDResponse;
-use crate::types::ThirdPartyTokenResponse;
-use crate::types::ThreePIDCredentials;
-use crate::types::UserIdentifier;
 
-use serde_json;
-use serde_json::Value as JsonValue;
-
-pub fn get_username(bk: &Backend) -> Result<(), Error> {
-    let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
+pub fn get_username(bk: &Backend) {
     let tx = bk.tx.clone();
-    get!(
-        &url,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
-            let name = response.displayname.unwrap_or(id);
-            tx.send(BKResponse::Name(name)).unwrap();
-        } else {
-            tx.send(BKResponse::UserNameError(Error::BackendError))
-                .unwrap();
-        },
-        |err| tx.send(BKResponse::UserNameError(err)).unwrap()
-    );
+    let uid = bk.data.lock().unwrap().user_id.clone();
+    let base = bk.get_base_url();
 
-    Ok(())
+    thread::spawn(move || {
+        let query = get_display_name(base, &encode_uid(&uid))
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<GetDisplayNameResponse>()
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(response) => {
+                let name = response.displayname.unwrap_or(uid);
+                let _ = tx.send(BKResponse::Name(name));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::UserNameError(err));
+            }
+        }
+    });
 }
 
-pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
-    let id = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&id)), vec![])?;
+// FIXME: This function manages errors *really* wrong and isn't more async
+// than the normal function. It should be removed.
+pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) {
+    let base = bk.get_base_url();
 
-    let attrs = PutDisplayNameRequest {
+    thread::spawn(move || {
+        let query = get_display_name(base, &encode_uid(&uid))
+            .map_err::<Error, _>(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<GetDisplayNameResponse>()
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(response) => {
+                let name = response.displayname.unwrap_or(uid);
+                let _ = tx.send(name);
+            }
+            Err(_) => {
+                let _ = tx.send(uid);
+            }
+        }
+    });
+}
+
+pub fn set_username(bk: &Backend, name: String) {
+    let tx = bk.tx.clone();
+
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let uid = bk.data.lock().unwrap().user_id.clone();
+    let params = SetDisplayNameParameters { access_token };
+    let body = SetDisplayNameBody {
         displayname: Some(name.clone()),
     };
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize display name setting request");
 
-    let tx = bk.tx.clone();
-    query!(
-        "put",
-        &url,
-        &attrs_json,
-        |_| {
-            tx.send(BKResponse::SetUserName(name)).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::SetUserNameError(err)).unwrap();
+    thread::spawn(move || {
+        let query = set_display_name(base, &params, &body, &encode_uid(&uid))
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::SetUserName(name));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::SetUserNameError(err));
+            }
         }
-    );
-
-    Ok(())
+    });
 }
 
-pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), vec![])?;
+pub fn get_threepid(bk: &Backend) {
     let tx = bk.tx.clone();
-    get!(
-        &url,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyIDResponse>(r) {
-            tx.send(BKResponse::GetThreePID(response.threepids))
-                .unwrap();
-        } else {
-            tx.send(BKResponse::GetThreePIDError(Error::BackendError))
-                .unwrap();
-        },
-        |err| tx.send(BKResponse::GetThreePIDError(err)).unwrap()
-    );
 
-    Ok(())
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = ThirdPartyIDParameters { access_token };
+
+    thread::spawn(move || {
+        let query = get_identifiers(base, &params)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<ThirdPartyIDResponse>()
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(response) => {
+                let _ = tx.send(BKResponse::GetThreePID(response.threepids));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::GetThreePIDError(err));
+            }
+        }
+    });
 }
 
-pub fn get_email_token(
-    bk: &Backend,
-    identity: String,
-    email: String,
-    client_secret: String,
-) -> Result<(), Error> {
-    let url = bk.url("account/3pid/email/requestToken", vec![])?;
+pub fn get_email_token(bk: &Backend, identity: String, email: String, client_secret: String) {
+    let tx = bk.tx.clone();
 
-    let attrs = EmailTokenRequest {
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = EmailTokenParameters { access_token };
+    let body = EmailTokenBody {
         id_server: identity[8..].into(),
         client_secret: client_secret.clone(),
-        email: email,
+        email,
         send_attempt: 1,
         next_link: None,
     };
 
-    let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize email token request");
+    thread::spawn(move || {
+        let query = request_contact_verification_token_email(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<EmailTokenResponse>()
+                    .map_err(Into::into)
+            });
 
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
-            tx.send(BKResponse::GetTokenEmail(response.sid, client_secret))
-                .unwrap();
-        } else {
-            tx.send(BKResponse::GetTokenEmailError(Error::BackendError))
-                .unwrap();
-        },
-        |err| match err {
-            Error::MatrixError(ref js)
+        match query {
+            Ok(response) => {
+                let _ = tx.send(BKResponse::GetTokenEmail(response.sid, client_secret));
+            }
+            Err(Error::MatrixError(ref js))
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenEmailUsed).unwrap();
+                let _ = tx.send(BKResponse::GetTokenEmailUsed);
             }
-            _ => {
-                tx.send(BKResponse::GetTokenEmailError(err)).unwrap();
+            Err(err) => {
+                let _ = tx.send(BKResponse::GetTokenEmailError(err));
             }
         }
-    );
-
-    Ok(())
+    });
 }
 
-pub fn get_phone_token(
-    bk: &Backend,
-    identity: String,
-    phone: String,
-    client_secret: String,
-) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid/msisdn/requestToken"), vec![])?;
+pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_secret: String) {
+    let tx = bk.tx.clone();
 
-    let attrs = PhoneTokenRequest {
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = PhoneTokenParameters { access_token };
+    let body = PhoneTokenBody {
         id_server: identity[8..].into(),
         client_secret: client_secret.clone(),
         phone_number: phone,
@@ -166,42 +234,40 @@ pub fn get_phone_token(
         next_link: None,
     };
 
-    let attrs_json = serde_json::to_value(attrs).expect("Failed to serialize phone token request");
+    thread::spawn(move || {
+        let query = request_contact_verification_token_msisdn(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<PhoneTokenResponse>()
+                    .map_err(Into::into)
+            });
 
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
-            tx.send(BKResponse::GetTokenPhone(response.sid, client_secret))
-                .unwrap();
-        } else {
-            tx.send(BKResponse::GetTokenPhoneError(Error::BackendError))
-                .unwrap();
-        },
-        |err| match err {
-            Error::MatrixError(ref js)
+        match query {
+            Ok(response) => {
+                let _ = tx.send(BKResponse::GetTokenPhone(response.sid, client_secret));
+            }
+            Err(Error::MatrixError(ref js))
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenPhoneUsed).unwrap();
+                let _ = tx.send(BKResponse::GetTokenPhoneUsed);
             }
-            _ => {
-                tx.send(BKResponse::GetTokenPhoneError(err)).unwrap();
+            Err(err) => {
+                let _ = tx.send(BKResponse::GetTokenPhoneError(err));
             }
         }
-    );
-
-    Ok(())
+    });
 }
 
-pub fn add_threepid(
-    bk: &Backend,
-    identity: String,
-    client_secret: String,
-    sid: String,
-) -> Result<(), Error> {
-    let url = bk.url(&format!("account/3pid"), vec![])?;
-    let attrs = AddThreePIDRequest {
+pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: String) {
+    let tx = bk.tx.clone();
+
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = AddThreePIDParameters { access_token };
+    let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
             id_server: identity[8..].into(),
             sid: sid.clone(),
@@ -210,97 +276,96 @@ pub fn add_threepid(
         bind: true,
     };
 
-    let attrs_json = serde_json::to_value(attrs)
-        .expect("Failed to serialize add third party information request");
+    thread::spawn(move || {
+        let query = create_contact(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
 
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |_| {
-            tx.send(BKResponse::AddThreePID(sid)).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::AddThreePIDError(err)).unwrap();
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::AddThreePID(sid));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::AddThreePIDError(err));
+            }
         }
-    );
-
-    Ok(())
+    });
 }
 
-pub fn submit_phone_token(
-    bk: &Backend,
-    url: &str,
-    client_secret: String,
-    sid: String,
-    token: String,
-) -> Result<(), Error> {
-    let path = "/_matrix/identity/api/v1/validate/msisdn/submitToken";
-    let url = build_url(&Url::parse(url)?, path, &[])?;
+pub fn submit_phone_token(bk: &Backend, client_secret: String, sid: String, token: String) {
+    let tx = bk.tx.clone();
 
-    let attrs = SubmitPhoneTokenRequest {
+    let base = bk.get_base_url();
+    let body = SubmitPhoneTokenBody {
         sid: sid.clone(),
         client_secret: client_secret.clone(),
         token,
     };
 
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize phone token submit request");
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<SubmitPhoneTokenResponse>(r) {
-            let result = Some(sid).filter(|_| response.success);
-            tx.send(BKResponse::SubmitPhoneToken(result, client_secret))
-                .unwrap();
-        } else {
-            tx.send(BKResponse::SubmitPhoneTokenError(Error::BackendError))
-                .unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();
-        }
-    );
+    thread::spawn(move || {
+        let query = submit_phone_token_req(base, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<SubmitPhoneTokenResponse>()
+                    .map_err(Into::into)
+            });
 
-    Ok(())
+        match query {
+            Ok(response) => {
+                let result = Some(sid).filter(|_| response.success);
+                let _ = tx.send(BKResponse::SubmitPhoneToken(result, client_secret));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::SubmitPhoneTokenError(err));
+            }
+        }
+    });
 }
 
 pub fn delete_three_pid(bk: &Backend, medium: Medium, address: String) {
-    let baseu = bk.get_base_url();
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    let mut url = baseu
-        .join("/_matrix/client/r0/account/3pid/delete")
-        .expect("Wrong URL in delete_three_pid()");
-    url.query_pairs_mut()
-        .clear()
-        .append_pair("access_token", &tk);
-    let attrs = DeleteThreePIDRequest { medium, address };
-
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize third party ID delete request");
     let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |_r: JsonValue| {
-            tx.send(BKResponse::DeleteThreePID).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::DeleteThreePIDError(err)).unwrap();
+
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = DeleteThreePIDParameters { access_token };
+    let body = DeleteThreePIDBody { address, medium };
+
+    thread::spawn(move || {
+        let query = delete_contact(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::DeleteThreePID);
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::DeleteThreePIDError(err));
+            }
         }
-    );
+    });
 }
 
-pub fn change_password(
-    bk: &Backend,
-    user: String,
-    old_password: String,
-    new_password: String,
-) -> Result<(), Error> {
-    let url = bk.url(&format!("account/password"), vec![])?;
+pub fn change_password(bk: &Backend, user: String, old_password: String, new_password: String) {
+    let tx = bk.tx.clone();
 
-    let attrs = ChangePasswordRequest {
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let base = bk.get_base_url();
+    let params = ChangePasswordParameters { access_token };
+    let body = ChangePasswordBody {
         new_password,
         auth: Some(AuthenticationData::Password {
             identifier: Identifier::new(UserIdentifier::User { user }),
@@ -309,28 +374,34 @@ pub fn change_password(
         }),
     };
 
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize password change request");
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| {
-            info!("{}", r);
-            tx.send(BKResponse::ChangePassword).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::ChangePasswordError(err)).unwrap();
-        }
-    );
+    thread::spawn(move || {
+        let query = change_password_req(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
 
-    Ok(())
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::ChangePassword);
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::ChangePasswordError(err));
+            }
+        }
+    });
 }
 
-pub fn account_destruction(bk: &Backend, user: String, password: String) -> Result<(), Error> {
-    let url = bk.url(&format!("account/deactivate"), vec![])?;
+pub fn account_destruction(bk: &Backend, user: String, password: String) {
+    let tx = bk.tx.clone();
 
-    let attrs = DeactivateAccountRequest {
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = DeactivateParameters { access_token };
+    let body = DeactivateBody {
         auth: Some(AuthenticationData::Password {
             identifier: Identifier::new(UserIdentifier::User { user }),
             password,
@@ -338,49 +409,120 @@ pub fn account_destruction(bk: &Backend, user: String, password: String) -> Resu
         }),
     };
 
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize account deactivation request");
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| {
-            info!("{}", r);
-            tx.send(BKResponse::AccountDestruction).unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::AccountDestructionError(err)).unwrap();
-        }
-    );
+    thread::spawn(move || {
+        let query = deactivate(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
 
-    Ok(())
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::AccountDestruction);
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::AccountDestructionError(err));
+            }
+        }
+    });
 }
 
-pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
-    let baseu = bk.get_base_url();
+pub fn get_avatar(bk: &Backend) {
+    let base = bk.get_base_url();
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let tx = bk.tx.clone();
-    thread::spawn(move || match get_user_avatar(&baseu, &userid) {
+    thread::spawn(move || match get_user_avatar(&base, &userid) {
         Ok((_, fname)) => {
-            tx.send(BKResponse::Avatar(fname)).unwrap();
+            let _ = tx.send(BKResponse::Avatar(fname));
         }
         Err(err) => {
-            tx.send(BKResponse::AvatarError(err)).unwrap();
+            let _ = tx.send(BKResponse::AvatarError(err));
         }
     });
-
-    Ok(())
 }
 
-pub fn get_user_info_async(
-    bk: &mut Backend,
-    uid: &str,
-    tx: Option<Sender<(String, String)>>,
-) -> Result<(), Error> {
+pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>) {
+    if let Some(member) = member {
+        let base = bk.get_base_url();
+        let uid = member.uid.clone();
+        let avatar = member.avatar.clone().unwrap_or_default();
+
+        semaphore(
+            bk.limit_threads.clone(),
+            move || match get_user_avatar_img(&base, &uid, &avatar) {
+                Ok(fname) => {
+                    let _ = tx.send(fname);
+                }
+                Err(_) => {
+                    let _ = tx.send(Default::default());
+                }
+            },
+        );
+    } else {
+        let _ = tx.send(Default::default());
+    }
+}
+
+pub fn set_user_avatar(bk: &Backend, avatar: String) {
+    let tx = bk.tx.clone();
+
+    let base = bk.get_base_url();
+    let id = bk.data.lock().unwrap().user_id.clone();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params_upload = CreateContentParameters {
+        access_token: access_token.clone(),
+        filename: None,
+    };
+
+    thread::spawn(move || {
+        let query = fs::read(&avatar).map_err(Into::into).and_then(|contents| {
+            let (mime, _) = gio::content_type_guess(None, &contents);
+            let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
+            let upload_response =
+                create_content(base.clone(), &params_upload, contents, Some(mime_value))
+                    .map_err::<Error, _>(Into::into)
+                    .and_then(|request| {
+                        HTTP_CLIENT
+                            .get_client()?
+                            .execute(request)?
+                            .json::<CreateContentResponse>()
+                            .map_err(Into::into)
+                    })?;
+
+            let params_avatar = SetAvatarUrlParameters { access_token };
+            let body = SetAvatarUrlBody {
+                avatar_url: Some(upload_response.content_uri),
+            };
+
+            set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
+                .map_err(Into::into)
+                .and_then(|request| {
+                    HTTP_CLIENT
+                        .get_client()?
+                        .execute(request)
+                        .map_err(Into::into)
+                })
+        });
+
+        match query {
+            Ok(_) => {
+                let _ = tx.send(BKResponse::SetUserAvatar(avatar));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::SetUserAvatarError(err));
+            }
+        }
+    });
+}
+
+pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(String, String)>>) {
     let baseu = bk.get_base_url();
 
-    let u = String::from(uid);
+    let u = uid.to_string();
 
     if let Some(info) = bk.user_info_cache.get(&u) {
         if let Some(tx) = tx.clone() {
@@ -390,7 +532,7 @@ pub fn get_user_info_async(
                 tx.send(i).unwrap();
             });
         }
-        return Ok(());
+        return;
     }
 
     let info = Arc::new(Mutex::new((String::new(), String::new())));
@@ -417,118 +559,38 @@ pub fn get_user_info_async(
     });
 
     bk.user_info_cache.insert(cache_key, cache_value);
-
-    Ok(())
 }
 
-pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Result<(), Error> {
-    let url = bk.url(&format!("profile/{}/displayname", encode_uid(&uid)), vec![])?;
-    get!(
-        &url,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
-            let name = response.displayname.unwrap_or(uid);
-            tx.send(name).unwrap();
-        } else {
-            tx.send(uid.to_string()).unwrap();
-        },
-        |_| tx.send(uid.to_string()).unwrap()
-    );
-
-    Ok(())
-}
-
-pub fn get_avatar_async(
-    bk: &Backend,
-    member: Option<Member>,
-    tx: Sender<String>,
-) -> Result<(), Error> {
-    let baseu = bk.get_base_url();
-
-    if member.is_none() {
-        tx.send(String::new()).unwrap();
-        return Ok(());
-    }
-
-    let m = member.unwrap();
-
-    let uid = m.uid.clone();
-    let avatar = m.avatar.clone();
-
-    semaphore(bk.limit_threads.clone(), move || match get_user_avatar_img(
-        &baseu,
-        &uid,
-        &avatar.unwrap_or_default(),
-    ) {
-        Ok(fname) => {
-            tx.send(fname.clone()).unwrap();
-        }
-        Err(_) => {
-            tx.send(String::new()).unwrap();
-        }
-    });
-
-    Ok(())
-}
-
-pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
-    let baseu = bk.get_base_url();
-    let id = bk.data.lock().unwrap().user_id.clone();
-    let tk = bk.data.lock().unwrap().access_token.clone();
-    let params = &[("access_token", tk.clone())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
-    let url = bk.url(&format!("profile/{}/avatar_url", encode_uid(&id)), vec![])?;
-
-    let mut file = File::open(&avatar)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
-
+pub fn search(bk: &Backend, search_term: String) {
     let tx = bk.tx.clone();
-    thread::spawn(move || {
-        match put_media(mediaurl.as_str(), contents) {
-            Err(err) => {
-                tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
-            }
-            Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or_default();
-                let attrs = json!({ "avatar_url": uri });
-                put!(
-                    &url,
-                    &attrs,
-                    |_| tx.send(BKResponse::SetUserAvatar(avatar)).unwrap(),
-                    |err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap()
-                );
-            }
-        };
-    });
 
-    Ok(())
-}
-
-pub fn search(bk: &Backend, search_term: String) -> Result<(), Error> {
-    let url = bk.url(&format!("user_directory/search"), vec![])?;
-
-    let attrs = SearchUserRequest {
+    let base = bk.get_base_url();
+    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let params = UserDirectoryParameters { access_token };
+    let body = UserDirectoryBody {
         search_term,
         ..Default::default()
     };
 
-    let attrs_json =
-        serde_json::to_value(attrs).expect("Failed to serialize user directory search request");
-    let tx = bk.tx.clone();
-    post!(
-        &url,
-        &attrs_json,
-        |r: JsonValue| if let Ok(response) = serde_json::from_value::<SearchUserResponse>(r) {
-            let users = response.results.into_iter().map(Into::into).collect();
-            tx.send(BKResponse::UserSearch(users)).unwrap();
-        } else {
-            tx.send(BKResponse::CommandError(Error::BackendError))
-                .unwrap();
-        },
-        |err| {
-            tx.send(BKResponse::CommandError(err)).unwrap();
-        }
-    );
+    thread::spawn(move || {
+        let query = user_directory(base, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<UserDirectoryResponse>()
+                    .map_err(Into::into)
+            });
 
-    Ok(())
+        match query {
+            Ok(response) => {
+                let users = response.results.into_iter().map(Into::into).collect();
+                let _ = tx.send(BKResponse::UserSearch(users));
+            }
+            Err(err) => {
+                let _ = tx.send(BKResponse::CommandError(err));
+            }
+        }
+    });
 }

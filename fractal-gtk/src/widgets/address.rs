@@ -1,4 +1,4 @@
-use fractal_api::types::Medium;
+use fractal_api::r0::Medium;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
