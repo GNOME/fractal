@@ -1,3 +1,4 @@
+use crate::i18n::i18n;
 use crate::widgets::SVEntry;
 use gtk::{self, prelude::*};
 
@@ -5,6 +6,7 @@ use gtk::{self, prelude::*};
 pub struct UI {
     pub builder: gtk::Builder,
     pub sventry: SVEntry,
+    pub sventry_box: Box<gtk::Stack>,
 }
 
 impl UI {
@@ -42,9 +44,21 @@ impl UI {
             .expect("Can't load ui file: main_window.ui");
 
         // Order which sventry is created matters
+        let sventry_stack = gtk::Stack::new();
+
         let sventry = SVEntry::default();
+        sventry_stack.add_named(&sventry.column, "Text Entry");
+        let sventry_disabled = gtk::Label::new(Some(&i18n(
+            "You don't have permission to post to this room",
+        )));
+        sventry_disabled.set_hexpand(false);
+        sventry_disabled.get_style_context().add_class("dim-label");
+        sventry_disabled.set_line_wrap_mode(pango::WrapMode::WordChar);
+        sventry_stack.add_named(&sventry_disabled, "Disabled Entry");
+
+        let sventry_box = Box::new(sventry_stack.clone());
         let parent: gtk::Box = builder.get_object("room_parent").unwrap();
-        parent.add(&sventry.column);
+        parent.add(&sventry_stack);
 
         // Depends on main_window
         // These are all dialogs transient for main_window
@@ -73,6 +87,10 @@ impl UI {
             .add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
             .expect("Can't load ui file: account_settings.ui");
 
-        UI { builder, sventry }
+        UI {
+            builder,
+            sventry,
+            sventry_box,
+        }
     }
 }

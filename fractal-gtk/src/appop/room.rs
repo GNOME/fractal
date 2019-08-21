@@ -140,6 +140,12 @@ impl AppOp {
             }
 
             let msg_entry = self.ui.sventry.view.clone();
+            let msg_entry_stack = self
+                .ui
+                .sventry_box
+                .clone()
+                .downcast::<gtk::Stack>()
+                .unwrap();
 
             let user_power = match room.admins.get(&self.uid.clone().unwrap_or_default()) {
                 Some(p) => *p,
@@ -152,6 +158,8 @@ impl AppOp {
 
             if user_power >= 0 {
                 msg_entry.set_editable(true);
+                msg_entry_stack.set_visible_child_name("Text Entry");
+
                 if let Some(buffer) = msg_entry.get_buffer() {
                     let start = buffer.get_start_iter();
                     let end = buffer.get_end_iter();
@@ -176,6 +184,7 @@ impl AppOp {
                 }
             } else {
                 msg_entry.set_editable(false);
+                msg_entry_stack.set_visible_child_name("Disabled Entry");
             }
         }
 
