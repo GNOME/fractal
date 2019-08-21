@@ -5,6 +5,7 @@ use gtk::{self, prelude::*};
 pub struct UI {
     pub builder: gtk::Builder,
     pub sventry: SVEntry,
+    pub sventry_box: Box<gtk::Stack>,
 }
 
 impl UI {
@@ -42,9 +43,21 @@ impl UI {
             .expect("Can't load ui file: main_window.ui");
 
         // Order which sventry is created matters
+        let sventry_stack = gtk::Stack::new();
+
         let sventry = SVEntry::default();
+        sventry_stack.add_named(&sventry.column, "Text Entry");
+        let sventry_disabled = gtk::Label::new(Some(
+            "You don't have permission to post to this room"
+                .to_owned()
+                .clone()
+                .as_str(),
+        ));
+        sventry_stack.add_named(&sventry_disabled, "Disabled Entry");
+
+        let sventry_box = Box::new(sventry_stack.clone());
         let parent: gtk::Box = builder.get_object("room_parent").unwrap();
-        parent.add(&sventry.column);
+        parent.add(&sventry_stack);
 
         // Depends on main_window
         // These are all dialogs transient for main_window
@@ -73,6 +86,10 @@ impl UI {
             .add_from_resource("/org/gnome/Fractal/ui/account_settings.ui")
             .expect("Can't load ui file: account_settings.ui");
 
-        UI { builder, sventry }
+        UI {
+            builder,
+            sventry,
+            sventry_box,
+        }
     }
 }
