@@ -146,6 +146,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::SetRoomAvatar) => {
                     APPOP!(show_new_room_avatar);
                 }
+                Ok(BKResponse::RemoveMessage(room, msg)) => {
+                    APPOP!(remove_message, (room, msg));
+                }
                 Ok(BKResponse::MarkedAsRead(r, _)) => {
                     APPOP!(clear_room_notifications, (r));
                 }

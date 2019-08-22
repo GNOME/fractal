@@ -6,6 +6,7 @@ pub struct Event {
     pub stype: String,
     pub room: String,
     pub id: String,
+    pub redacts: String,
     pub content: JsonValue,
 }
 
