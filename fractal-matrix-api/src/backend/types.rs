@@ -125,6 +125,7 @@ pub enum BKResponse {
     SetRoomName,
     SetRoomTopic,
     SetRoomAvatar,
+    RemoveMessage(String, String),
     RoomName(String, String),
     RoomTopic(String, String),
     Media(String),
