@@ -253,6 +253,34 @@ impl RoomHistory {
         None
     }
 
+    pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
+        let mut rows = self.rows.borrow_mut();
+
+        let ref mut message = rows.list.iter_mut().by_ref().find(|e| match e {
+            Element::Message(ref itermessage) => itermessage.id == item.id,
+            _ => false,
+        })?;
+
+        let mut msg_listbox: Option<MessageContent> = None;
+
+        match message {
+            Element::Message(ref mut msg) => {
+                msg_listbox = Some(msg.clone());
+                msg.body = "".to_string();
+            }
+            _ => {}
+        }
+
+        match msg_listbox {
+            Some(msg) => {
+                rows.listbox.remove(msg.widget.as_ref()?.get_listbox_row()?);
+            }
+            _ => {}
+        }
+
+        None
+    }
+
     pub fn add_new_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
         /* TODO: use lazy loading */
         for item in messages {
