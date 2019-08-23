@@ -267,6 +267,20 @@ impl RoomHistory {
         None
     }
 
+    pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
+        let mut rows = self.rows.borrow_mut();
+        let ref mut msg = rows.list.iter_mut().find_map(|e| match e {
+            Element::Message(ref mut itermessage) if itermessage.id == item.id => Some(itermessage),
+            _ => None,
+        })?;
+
+        let msg_widget = msg.widget.clone()?;
+        msg.msg.redacted = true;
+        rows.listbox.remove(msg_widget.get_listbox_row()?);
+
+        None
+    }
+
     pub fn add_new_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
         /* TODO: use lazy loading */
         for item in messages {
