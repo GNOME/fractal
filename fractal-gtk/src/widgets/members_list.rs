@@ -18,12 +18,14 @@ pub struct MembersList {
     search_entry: gtk::SearchEntry,
     error: gtk::Label,
     members: Vec<Member>,
+    admins: HashMap<String, i32>,
     power_levels: HashMap<String, i32>,
 }
 
 impl MembersList {
     pub fn new(
         m: Vec<Member>,
+        admins: HashMap<String, i32>,
         power_levels: HashMap<String, i32>,
         entry: gtk::SearchEntry,
     ) -> MembersList {
@@ -32,6 +34,7 @@ impl MembersList {
             error: gtk::Label::new(None),
             members: m,
             search_entry: entry,
+            admins: admins,
             power_levels: power_levels,
         }
     }
@@ -45,7 +48,7 @@ impl MembersList {
         add_rows(
             self.container.clone(),
             self.members.clone(),
-            self.power_levels.clone(),
+            self.admins.clone(),
         );
         self.error.get_style_context().add_class("no_member_search");
         self.error.set_text(&i18n("No matching members found"));
@@ -206,15 +209,15 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
 fn add_rows(
     container: gtk::ListBox,
     members: Vec<Member>,
-    power_levels: HashMap<String, i32>,
+    admins: HashMap<String, i32>,
 ) -> Option<usize> {
     /* Load just enough members to fill atleast the visible list */
     for member in members.iter() {
-        let power_level = match power_levels.get(&member.uid) {
+        let admin = match admins.get(&member.uid) {
             Some(pl) => Some(*pl),
             None => None,
         };
-        container.insert(&create_row(member.clone(), power_level)?, -1);
+        container.insert(&create_row(member.clone(), admin)?, -1);
     }
     None
 }
