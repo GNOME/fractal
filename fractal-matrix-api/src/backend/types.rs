@@ -89,7 +89,7 @@ pub enum BKCommand {
 pub enum BKResponse {
     ShutDown,
     Token(String, String, Option<String>),
-    Logout,
+    Logout(Result<(), Error>),
     Name(String),
     SetUserName(String),
     GetThreePID(Vec<ThirdPartyIdentifier>),
@@ -150,7 +150,6 @@ pub enum BKResponse {
     AvatarError(Error),
     SetUserAvatarError(Error),
     LoginError(Error),
-    LogoutError(Error),
     GuestLoginError(Error),
     SyncError(Error),
     RoomDetailError(Error),

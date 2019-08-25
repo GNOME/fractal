@@ -29,7 +29,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::Token(uid, tk, dev)) => {
                     APPOP!(bk_login, (uid, tk, dev));
                 }
-                Ok(BKResponse::Logout) => {
+                Ok(BKResponse::Logout(Ok(_))) => {
                     APPOP!(bk_logout);
                 }
                 Ok(BKResponse::Name(username)) => {
