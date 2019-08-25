@@ -167,7 +167,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::RoomMemberEvent(ev)) => {
                     APPOP!(room_member_event, (ev));
                 }
-                Ok(BKResponse::Media(fname)) => {
+                Ok(BKResponse::Media(Ok(fname))) => {
                     Command::new("xdg-open")
                         .arg(&fname)
                         .spawn()
