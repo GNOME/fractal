@@ -239,29 +239,18 @@ impl Backend {
             }
 
             // Media module
-            Ok(BKCommand::GetThumbAsync(media, ctx)) => {
-                let r = media::get_thumb_async(self, media, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
-            }
-            Ok(BKCommand::GetMediaAsync(media, ctx)) => {
-                let r = media::get_media_async(self, media, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
-            }
+            Ok(BKCommand::GetThumbAsync(media, ctx)) => media::get_thumb_async(self, media, ctx),
+            Ok(BKCommand::GetMediaAsync(media, ctx)) => media::get_media_async(self, media, ctx),
             Ok(BKCommand::GetMediaListAsync(roomid, first_media_id, prev_batch, ctx)) => {
-                let r = media::get_media_list_async(self, &roomid, first_media_id, prev_batch, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
+                media::get_media_list_async(self, &roomid, first_media_id, prev_batch, ctx)
             }
-            Ok(BKCommand::GetMedia(media)) => {
-                let r = media::get_media(self, media);
-                bkerror!(r, tx, BKResponse::CommandError);
-            }
+            Ok(BKCommand::GetMedia(media)) => media::get_media(self, media),
             Ok(BKCommand::GetMediaUrl(media, ctx)) => {
-                let r = media::get_media_url(self, media.to_string(), ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
+                media::get_media_url(self, media.to_string(), ctx)
             }
             Ok(BKCommand::GetFileAsync(url, ctx)) => {
                 let r = media::get_file_async(url, ctx);
-                bkerror!(r, tx, BKResponse::CommandError);
+                bkerror!(r, tx, BKResponse::GetFileAsyncError);
             }
 
             // Directory module

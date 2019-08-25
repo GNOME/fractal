@@ -15,38 +15,34 @@ use crate::util::thumb;
 
 use crate::types::Message;
 
-pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match thumb(&baseu, &media, None) {
             Ok(fname) => {
-                tx.send(fname).unwrap();
+                let _ = tx.send(fname);
             }
             Err(_) => {
-                tx.send(String::new()).unwrap();
+                let _ = tx.send(String::new());
             }
         };
     });
-
-    Ok(())
 }
 
-pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match util::media(&baseu, &media, None) {
             Ok(fname) => {
-                tx.send(fname).unwrap();
+                let _ = tx.send(fname);
             }
             Err(_) => {
-                tx.send(String::new()).unwrap();
+                let _ = tx.send(String::new());
             }
         };
     });
-
-    Ok(())
 }
 
 pub fn get_media_list_async(
@@ -55,7 +51,7 @@ pub fn get_media_list_async(
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
-) -> Result<(), Error> {
+) {
     let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let room = String::from(roomid);
@@ -69,49 +65,37 @@ pub fn get_media_list_async(
         &prev_batch,
     ) {
         Ok(media_list) => {
-            tx.send(media_list).unwrap();
+            let _ = tx.send(media_list);
         }
         Err(_) => {
-            tx.send((Vec::new(), String::new())).unwrap();
+            let _ = tx.send((Vec::new(), String::new()));
         }
     });
-
-    Ok(())
 }
 
-pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
+pub fn get_media(bk: &Backend, media: String) {
     let baseu = bk.get_base_url();
 
     let tx = bk.tx.clone();
     thread::spawn(move || {
-        match util::media(&baseu, &media, None) {
-            Ok(fname) => {
-                tx.send(BKResponse::Media(fname)).unwrap();
-            }
-            Err(err) => {
-                tx.send(BKResponse::MediaError(err)).unwrap();
-            }
-        };
+        let fname = util::media(&baseu, &media, None);
+        let _ = tx.send(BKResponse::Media(fname));
     });
-
-    Ok(())
 }
 
-pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
         match resolve_media_url(&baseu, &media, false, 0, 0) {
             Ok(uri) => {
-                tx.send(uri.to_string()).unwrap();
+                let _ = tx.send(uri.to_string());
             }
             Err(_) => {
-                tx.send(String::new()).unwrap();
+                let _ = tx.send(String::new());
             }
         };
     });
-
-    Ok(())
 }
 
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
@@ -124,10 +108,10 @@ pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
     thread::spawn(move || {
         match download_file(&url, fname, None) {
             Ok(fname) => {
-                tx.send(fname).unwrap();
+                let _ = tx.send(fname);
             }
             Err(_) => {
-                tx.send(String::new()).unwrap();
+                let _ = tx.send(String::new());
             }
         };
     });
