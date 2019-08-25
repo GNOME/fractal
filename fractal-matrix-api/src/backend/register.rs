@@ -157,19 +157,16 @@ pub fn logout(bk: &Backend) {
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(()));
 
-        match query {
-            Ok(_) => {
-                data.lock().unwrap().user_id = Default::default();
-                data.lock().unwrap().access_token = Default::default();
-                data.lock().unwrap().since = None;
-                let _ = tx.send(BKResponse::Logout);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::LogoutError(err));
-            }
+        if query.is_ok() {
+            data.lock().unwrap().user_id = Default::default();
+            data.lock().unwrap().access_token = Default::default();
+            data.lock().unwrap().since = None;
         }
+
+        let _ = tx.send(BKResponse::Logout(query));
     });
 }
 
