@@ -126,10 +126,10 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let initial = false;
                     APPOP!(sync, (initial));
                 }
-                Ok(BKResponse::DirectoryProtocols(protocols)) => {
+                Ok(BKResponse::DirectoryProtocols(Ok(protocols))) => {
                     APPOP!(set_protocols, (protocols));
                 }
-                Ok(BKResponse::DirectorySearch(rooms)) => {
+                Ok(BKResponse::DirectorySearch(Ok(rooms))) => {
                     APPOP!(append_directory_rooms, (rooms));
                 }
 
@@ -249,7 +249,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));
                 }
-                Ok(BKResponse::DirectoryError(_)) => {
+                Ok(BKResponse::DirectoryProtocols(Err(_)))
+                | Ok(BKResponse::DirectorySearch(Err(_))) => {
                     let error = i18n("Error searching for rooms");
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));
