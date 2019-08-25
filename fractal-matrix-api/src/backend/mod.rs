@@ -286,7 +286,7 @@ impl Backend {
                 };
 
                 let r = directory::room_search(self, hs, q, tp, more);
-                bkerror!(r, tx, BKResponse::DirectoryError);
+                bkerror2!(r, tx, BKResponse::DirectorySearch);
             }
 
             // Stickers module
