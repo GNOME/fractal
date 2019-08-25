@@ -38,21 +38,15 @@ pub fn protocols(bk: &Backend) {
                     .execute(request)?
                     .json::<SupportedProtocolsResponse>()
                     .map_err(Into::into)
-            });
-
-        match query {
-            Ok(response) => {
-                let protocols = response
+            })
+            .map(|response| {
+                response
                     .into_iter()
                     .flat_map(|(_, protocol)| protocol.instances.into_iter())
-                    .collect();
+                    .collect()
+            });
 
-                let _ = tx.send(BKResponse::DirectoryProtocols(protocols));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::DirectoryError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::DirectoryProtocols(query));
     });
 }
 
@@ -115,13 +109,11 @@ pub fn room_search(
                     .execute(request)?
                     .json::<PublicRoomsResponse>()
                     .map_err(Into::into)
-            });
-
-        match query {
-            Ok(response) => {
+            })
+            .map(|response| {
                 data.lock().unwrap().rooms_since = response.next_batch.unwrap_or_default();
 
-                let rooms = response
+                response
                     .chunk
                     .into_iter()
                     .map(Into::into)
@@ -132,14 +124,10 @@ pub fn room_search(
                             }
                         }
                     })
-                    .collect();
+                    .collect()
+            });
 
-                let _ = tx.send(BKResponse::DirectorySearch(rooms));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::DirectoryError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::DirectorySearch(query));
     });
 
     Ok(())
