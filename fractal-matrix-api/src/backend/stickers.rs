@@ -43,11 +43,11 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
                 let group = StickerGroup::from_json(sticker_group);
                 stickers.push(group);
             }
-            tx.send(BKResponse::Stickers(stickers))
+            tx.send(BKResponse::Stickers(Ok(stickers)))
                 .expect_log("Connection closed");
         },
         |err| {
-            tx.send(BKResponse::StickersError(err))
+            tx.send(BKResponse::Stickers(Err(err)))
                 .expect_log("Connection closed");
         }
     );
@@ -165,7 +165,7 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
                 .expect_log("Connection closed");
         },
         |err| {
-            tx.send(BKResponse::StickersError(err))
+            tx.send(BKResponse::Stickers(Err(err)))
                 .expect_log("Connection closed");
         }
     );

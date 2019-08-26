@@ -281,15 +281,15 @@ impl Backend {
             // Stickers module
             Ok(BKCommand::ListStickers) => {
                 let r = stickers::list(self);
-                bkerror!(r, tx, BKResponse::StickersError);
+                bkerror2!(r, tx, BKResponse::Stickers);
             }
             Ok(BKCommand::SendSticker(room, sticker)) => {
                 let r = stickers::send(self, &room, &sticker);
-                bkerror!(r, tx, BKResponse::StickersError);
+                bkerror2!(r, tx, BKResponse::Stickers);
             }
             Ok(BKCommand::PurchaseSticker(group)) => {
                 let r = stickers::purchase(self, &group);
-                bkerror!(r, tx, BKResponse::StickersError);
+                bkerror2!(r, tx, BKResponse::Stickers);
             }
 
             // Internal commands
