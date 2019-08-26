@@ -134,7 +134,7 @@ impl Backend {
             Ok(BKCommand::SetUserAvatar(file)) => user::set_user_avatar(self, file),
             Ok(BKCommand::GetAvatarAsync(member, ctx)) => user::get_avatar_async(self, member, ctx),
             Ok(BKCommand::GetUserInfoAsync(sender, ctx)) => {
-                user::get_user_info_async(self, &sender, ctx)
+                user::get_user_info_async(self, sender, ctx)
             }
             Ok(BKCommand::GetUserNameAsync(sender, ctx)) => {
                 user::get_username_async(self, sender, ctx)
