@@ -164,7 +164,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                             typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::UpdateRooms(rooms)).unwrap();
+                    let _ = tx.send(BKResponse::UpdateRooms(rooms));
 
                     // Other events
                     join.iter()
@@ -229,14 +229,14 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
 
                 let next_batch = response.next_batch;
                 data.lock().unwrap().since = Some(next_batch.clone()).filter(|s| !s.is_empty());
-                let _ = tx.send(BKResponse::Sync(next_batch));
+                let _ = tx.send(BKResponse::Sync(Ok(next_batch)));
             }
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
                 thread::sleep(time::Duration::from_secs(10));
 
-                tx.send(BKResponse::SyncError(err)).unwrap();
+                let _ = tx.send(BKResponse::Sync(Err(err)));
             }
         }
     });
