@@ -124,11 +124,10 @@ pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> 
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string())).unwrap();
+            let _ = tx.send(BKResponse::SentMsg(Ok((id, evid.to_string()))));
         },
         |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
-                .unwrap();
+            let _ = tx.send(BKResponse::SentMsg(Err(Error::SendMsgError(id))));
         }
     );
 

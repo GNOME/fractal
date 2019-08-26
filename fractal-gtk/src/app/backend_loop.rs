@@ -105,23 +105,23 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let clear_room_list = false;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                 }
-                Ok(BKResponse::RoomDetail(room, key, value)) => {
+                Ok(BKResponse::RoomDetail(Ok((room, key, value)))) => {
                     let v = Some(value);
                     APPOP!(set_room_detail, (room, key, v));
                 }
-                Ok(BKResponse::RoomAvatar(room, avatar)) => {
+                Ok(BKResponse::RoomAvatar(Ok((room, avatar)))) => {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
-                Ok(BKResponse::RoomMembers(room, members)) => {
+                Ok(BKResponse::RoomMembers(Ok((room, members)))) => {
                     APPOP!(set_room_members, (room, members));
                 }
                 Ok(BKResponse::RoomMessages(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
                 }
-                Ok(BKResponse::RoomMessagesTo(msgs, room, prev_batch)) => {
+                Ok(BKResponse::RoomMessagesTo(Ok((msgs, room, prev_batch)))) => {
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
-                Ok(BKResponse::SentMsg(txid, evid)) => {
+                Ok(BKResponse::SentMsg(Ok((txid, evid)))) => {
                     APPOP!(msg_sent, (txid, evid));
                     let initial = false;
                     APPOP!(sync, (initial));
@@ -133,20 +133,20 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(append_directory_rooms, (rooms));
                 }
 
-                Ok(BKResponse::JoinRoom) => {
+                Ok(BKResponse::JoinRoom(Ok(_))) => {
                     APPOP!(reload_rooms);
                 }
-                Ok(BKResponse::LeaveRoom) => {}
-                Ok(BKResponse::SetRoomName) => {
+                Ok(BKResponse::LeaveRoom(Ok(_))) => {}
+                Ok(BKResponse::SetRoomName(Ok(_))) => {
                     APPOP!(show_new_room_name);
                 }
-                Ok(BKResponse::SetRoomTopic) => {
+                Ok(BKResponse::SetRoomTopic(Ok(_))) => {
                     APPOP!(show_new_room_topic);
                 }
-                Ok(BKResponse::SetRoomAvatar) => {
+                Ok(BKResponse::SetRoomAvatar(Ok(_))) => {
                     APPOP!(show_new_room_avatar);
                 }
-                Ok(BKResponse::MarkedAsRead(r, _)) => {
+                Ok(BKResponse::MarkedAsRead(Ok((r, _)))) => {
                     APPOP!(clear_room_notifications, (r));
                 }
                 Ok(BKResponse::RoomNotifications(r, n, h)) => {
@@ -173,14 +173,14 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         .spawn()
                         .expect("failed to execute process");
                 }
-                Ok(BKResponse::AttachedFile(msg)) => {
+                Ok(BKResponse::AttachedFile(Ok(msg))) => {
                     APPOP!(attached_file, (msg));
                 }
-                Ok(BKResponse::NewRoom(r, internal_id)) => {
+                Ok(BKResponse::NewRoom(Ok(r), internal_id)) => {
                     let id = Some(internal_id);
                     APPOP!(new_room, (r, id));
                 }
-                Ok(BKResponse::AddedToFav(r, tofav)) => {
+                Ok(BKResponse::AddedToFav(Ok((r, tofav)))) => {
                     APPOP!(added_to_fav, (r, tofav));
                 }
                 Ok(BKResponse::UserSearch(users)) => {
@@ -208,7 +208,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     error!("{:?}", err);
                     APPOP!(show_three_pid_error_dialog, (error));
                 }
-                Ok(BKResponse::NewRoomError(err, internal_id)) => {
+                Ok(BKResponse::NewRoom(Err(err), internal_id)) => {
                     error!("{:?}", err);
 
                     let error = i18n("Can’t create the room, try again");
@@ -217,7 +217,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
-                Ok(BKResponse::JoinRoomError(err)) => {
+                Ok(BKResponse::JoinRoom(Err(err))) => {
                     error!("{:?}", err);
                     let error = format!("{}", i18n("Can’t join the room, try again."));
                     let state = AppState::NoRoom;
@@ -231,11 +231,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(logout);
                     APPOP!(set_state, (st));
                 }
-                Ok(BKResponse::AttachFileError(err)) => {
+                Ok(BKResponse::AttachedFile(Err(err))) => {
                     error!("attaching {:?}: retrying send", err);
                     APPOP!(retry_send);
                 }
-                Ok(BKResponse::SendMsgError(err)) => match err {
+                Ok(BKResponse::SentMsg(Err(err))) => match err {
                     Error::SendMsgError(txid) => {
                         error!("sending {}: retrying send", txid);
                         APPOP!(retry_send);
@@ -245,7 +245,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         APPOP!(show_error, (error));
                     }
                 },
-                Ok(BKResponse::SendMsgRedactionError(_)) => {
+                Ok(BKResponse::SentMsgRedaction(Err(_))) => {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));
                 }
