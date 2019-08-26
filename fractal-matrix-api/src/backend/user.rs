@@ -75,17 +75,10 @@ pub fn get_username(bk: &Backend) {
                     .execute(request)?
                     .json::<GetDisplayNameResponse>()
                     .map_err(Into::into)
-            });
+            })
+            .map(|response| response.displayname.unwrap_or(uid));
 
-        match query {
-            Ok(response) => {
-                let name = response.displayname.unwrap_or(uid);
-                let _ = tx.send(BKResponse::Name(name));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::UserNameError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::Name(query));
     });
 }
 
@@ -103,17 +96,12 @@ pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) {
                     .execute(request)?
                     .json::<GetDisplayNameResponse>()
                     .map_err(Into::into)
-            });
+            })
+            .ok()
+            .and_then(|response| response.displayname)
+            .unwrap_or(uid);
 
-        match query {
-            Ok(response) => {
-                let name = response.displayname.unwrap_or(uid);
-                let _ = tx.send(name);
-            }
-            Err(_) => {
-                let _ = tx.send(uid);
-            }
-        }
+        let _ = tx.send(query);
     });
 }
 
@@ -136,16 +124,10 @@ pub fn set_username(bk: &Backend, name: String) {
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(name));
 
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::SetUserName(name));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::SetUserNameError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::SetUserName(query));
     });
 }
 
@@ -165,16 +147,10 @@ pub fn get_threepid(bk: &Backend) {
                     .execute(request)?
                     .json::<ThirdPartyIDResponse>()
                     .map_err(Into::into)
-            });
+            })
+            .map(|response| response.threepids);
 
-        match query {
-            Ok(response) => {
-                let _ = tx.send(BKResponse::GetThreePID(response.threepids));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::GetThreePIDError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::GetThreePID(query));
     });
 }
 
@@ -201,21 +177,18 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
                     .execute(request)?
                     .json::<EmailTokenResponse>()
                     .map_err(Into::into)
+            })
+            .map(|response| (response.sid, client_secret))
+            .map_err(|error| match error {
+                Error::MatrixError(ref js)
+                    if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
+                {
+                    Error::TokenUsed
+                }
+                err => err,
             });
 
-        match query {
-            Ok(response) => {
-                let _ = tx.send(BKResponse::GetTokenEmail(response.sid, client_secret));
-            }
-            Err(Error::MatrixError(ref js))
-                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
-            {
-                let _ = tx.send(BKResponse::GetTokenEmailUsed);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::GetTokenEmailError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::GetTokenEmail(query));
     });
 }
 
@@ -243,21 +216,18 @@ pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_sec
                     .execute(request)?
                     .json::<PhoneTokenResponse>()
                     .map_err(Into::into)
+            })
+            .map(|response| (response.sid, client_secret))
+            .map_err(|error| match error {
+                Error::MatrixError(ref js)
+                    if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
+                {
+                    Error::TokenUsed
+                }
+                err => err,
             });
 
-        match query {
-            Ok(response) => {
-                let _ = tx.send(BKResponse::GetTokenPhone(response.sid, client_secret));
-            }
-            Err(Error::MatrixError(ref js))
-                if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
-            {
-                let _ = tx.send(BKResponse::GetTokenPhoneUsed);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::GetTokenPhoneError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::GetTokenPhone(query));
     });
 }
 
@@ -284,16 +254,10 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(sid));
 
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::AddThreePID(sid));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::AddThreePIDError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::AddThreePID(query));
     });
 }
 
@@ -316,17 +280,10 @@ pub fn submit_phone_token(bk: &Backend, client_secret: String, sid: String, toke
                     .execute(request)?
                     .json::<SubmitPhoneTokenResponse>()
                     .map_err(Into::into)
-            });
+            })
+            .map(|response| (Some(sid).filter(|_| response.success), client_secret));
 
-        match query {
-            Ok(response) => {
-                let result = Some(sid).filter(|_| response.success);
-                let _ = tx.send(BKResponse::SubmitPhoneToken(result, client_secret));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::SubmitPhoneTokenError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::SubmitPhoneToken(query));
     });
 }
 
@@ -346,16 +303,10 @@ pub fn delete_three_pid(bk: &Backend, medium: Medium, address: String) {
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(()));
 
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::DeleteThreePID);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::DeleteThreePIDError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::DeleteThreePID(query));
     });
 }
 
@@ -382,16 +333,10 @@ pub fn change_password(bk: &Backend, user: String, old_password: String, new_pas
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(()));
 
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::ChangePassword);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::ChangePasswordError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::ChangePassword(query));
     });
 }
 
@@ -417,16 +362,10 @@ pub fn account_destruction(bk: &Backend, user: String, password: String) {
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(()));
 
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::AccountDestruction);
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::AccountDestructionError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::AccountDestruction(query));
     });
 }
 
@@ -435,13 +374,9 @@ pub fn get_avatar(bk: &Backend) {
     let userid = bk.data.lock().unwrap().user_id.clone();
 
     let tx = bk.tx.clone();
-    thread::spawn(move || match get_user_avatar(&base, &userid) {
-        Ok((_, fname)) => {
-            let _ = tx.send(BKResponse::Avatar(fname));
-        }
-        Err(err) => {
-            let _ = tx.send(BKResponse::AvatarError(err));
-        }
+    thread::spawn(move || {
+        let query = get_user_avatar(&base, &userid).map(|(_, fname)| fname);
+        let _ = tx.send(BKResponse::Avatar(query));
     });
 }
 
@@ -451,17 +386,10 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
         let uid = member.uid.clone();
         let avatar = member.avatar.clone().unwrap_or_default();
 
-        semaphore(
-            bk.limit_threads.clone(),
-            move || match get_user_avatar_img(&base, &uid, &avatar) {
-                Ok(fname) => {
-                    let _ = tx.send(fname);
-                }
-                Err(_) => {
-                    let _ = tx.send(Default::default());
-                }
-            },
-        );
+        semaphore(bk.limit_threads.clone(), move || {
+            let fname = get_user_avatar_img(&base, &uid, &avatar).unwrap_or_default();
+            let _ = tx.send(fname);
+        });
     } else {
         let _ = tx.send(Default::default());
     }
@@ -479,86 +407,71 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) {
     };
 
     thread::spawn(move || {
-        let query = fs::read(&avatar).map_err(Into::into).and_then(|contents| {
-            let (mime, _) = gio::content_type_guess(None, &contents);
-            let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
-            let upload_response =
-                create_content(base.clone(), &params_upload, contents, Some(mime_value))
-                    .map_err::<Error, _>(Into::into)
+        let query = fs::read(&avatar)
+            .map_err(Into::into)
+            .and_then(|contents| {
+                let (mime, _) = gio::content_type_guess(None, &contents);
+                let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
+                let upload_response =
+                    create_content(base.clone(), &params_upload, contents, Some(mime_value))
+                        .map_err::<Error, _>(Into::into)
+                        .and_then(|request| {
+                            HTTP_CLIENT
+                                .get_client()?
+                                .execute(request)?
+                                .json::<CreateContentResponse>()
+                                .map_err(Into::into)
+                        })?;
+
+                let params_avatar = SetAvatarUrlParameters { access_token };
+                let body = SetAvatarUrlBody {
+                    avatar_url: Some(upload_response.content_uri),
+                };
+
+                set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
+                    .map_err(Into::into)
                     .and_then(|request| {
                         HTTP_CLIENT
                             .get_client()?
-                            .execute(request)?
-                            .json::<CreateContentResponse>()
+                            .execute(request)
                             .map_err(Into::into)
-                    })?;
+                    })
+            })
+            .and(Ok(avatar));
 
-            let params_avatar = SetAvatarUrlParameters { access_token };
-            let body = SetAvatarUrlBody {
-                avatar_url: Some(upload_response.content_uri),
-            };
-
-            set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
-                .map_err(Into::into)
-                .and_then(|request| {
-                    HTTP_CLIENT
-                        .get_client()?
-                        .execute(request)
-                        .map_err(Into::into)
-                })
-        });
-
-        match query {
-            Ok(_) => {
-                let _ = tx.send(BKResponse::SetUserAvatar(avatar));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::SetUserAvatarError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::SetUserAvatar(query));
     });
 }
 
-pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(String, String)>>) {
+pub fn get_user_info_async(bk: &mut Backend, uid: String, tx: Option<Sender<(String, String)>>) {
     let baseu = bk.get_base_url();
 
-    let u = uid.to_string();
-
-    if let Some(info) = bk.user_info_cache.get(&u) {
+    if let Some(info) = bk.user_info_cache.get(&uid) {
         if let Some(tx) = tx.clone() {
             let info = info.clone();
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
-                tx.send(i).unwrap();
+                let _ = tx.send(i);
             });
         }
         return;
     }
 
-    let info = Arc::new(Mutex::new((String::new(), String::new())));
-    let cache_key = u.clone();
-    let cache_value = info.clone();
+    let info: Arc<Mutex<(String, String)>> = Default::default();
+    bk.user_info_cache.insert(uid.clone(), info.clone());
 
     semaphore(bk.limit_threads.clone(), move || {
-        let i0 = info.lock();
-        match get_user_avatar(&baseu, &u) {
-            Ok(info) => {
-                if let Some(tx) = tx.clone() {
-                    tx.send(info.clone()).unwrap();
-                    let mut i = i0.unwrap();
-                    i.0 = info.0;
-                    i.1 = info.1;
-                }
+        match (get_user_avatar(&baseu, &uid), tx) {
+            (Ok(i0), Some(tx)) => {
+                let _ = tx.send(i0.clone());
+                *info.lock().unwrap() = i0;
             }
-            Err(_) => {
-                if let Some(tx) = tx.clone() {
-                    tx.send((String::new(), String::new())).unwrap();
-                }
+            (Err(_), Some(tx)) => {
+                let _ = tx.send(Default::default());
             }
+            _ => {}
         };
     });
-
-    bk.user_info_cache.insert(cache_key, cache_value);
 }
 
 pub fn search(bk: &Backend, search_term: String) {
@@ -581,16 +494,9 @@ pub fn search(bk: &Backend, search_term: String) {
                     .execute(request)?
                     .json::<UserDirectoryResponse>()
                     .map_err(Into::into)
-            });
+            })
+            .map(|response| response.results.into_iter().map(Into::into).collect());
 
-        match query {
-            Ok(response) => {
-                let users = response.results.into_iter().map(Into::into).collect();
-                let _ = tx.send(BKResponse::UserSearch(users));
-            }
-            Err(err) => {
-                let _ = tx.send(BKResponse::CommandError(err));
-            }
-        }
+        let _ = tx.send(BKResponse::UserSearch(query));
     });
 }
