@@ -134,7 +134,7 @@ pub enum BKResponse {
     AddedToFav(Result<(String, bool), Error>),
     RoomNotifications(String, i32, i32),
     UserSearch(Vec<Member>),
-    Stickers(Vec<StickerGroup>),
+    Stickers(Result<Vec<StickerGroup>, Error>),
 
     //errors
     UserNameError(Error),
@@ -157,7 +157,6 @@ pub enum BKResponse {
     CommandError(Error),
     GetFileAsyncError(Error),
     InviteError(Error),
-    StickersError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
