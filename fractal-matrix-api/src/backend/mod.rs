@@ -148,27 +148,27 @@ impl Backend {
             // Room module
             Ok(BKCommand::GetRoomMembers(room)) => {
                 let r = room::get_room_members(self, room);
-                bkerror!(r, tx, BKResponse::RoomMembersError);
+                bkerror2!(r, tx, BKResponse::RoomMembers);
             }
             Ok(BKCommand::GetRoomMessages(room, from)) => {
                 let r = room::get_room_messages(self, room, from);
-                bkerror!(r, tx, BKResponse::RoomMessagesError);
+                bkerror2!(r, tx, BKResponse::RoomMessagesTo);
             }
             Ok(BKCommand::GetRoomMessagesFromMsg(room, from)) => {
                 let r = room::get_room_messages_from_msg(self, room, from);
-                bkerror!(r, tx, BKResponse::RoomMessagesError);
+                bkerror2!(r, tx, BKResponse::RoomMessagesTo);
             }
             Ok(BKCommand::GetMessageContext(message)) => {
                 let r = room::get_message_context(self, message);
-                bkerror!(r, tx, BKResponse::RoomMessagesError);
+                bkerror2!(r, tx, BKResponse::RoomMessagesTo);
             }
             Ok(BKCommand::SendMsg(msg)) => {
                 let r = room::send_msg(self, msg);
-                bkerror!(r, tx, BKResponse::SendMsgError);
+                bkerror2!(r, tx, BKResponse::SentMsg);
             }
             Ok(BKCommand::SendMsgRedaction(msg)) => {
                 let r = room::redact_msg(self, &msg);
-                bkerror!(r, tx, BKResponse::SendMsgRedactionError);
+                bkerror2!(r, tx, BKResponse::SentMsgRedaction);
             }
             Ok(BKCommand::SendTyping(room)) => {
                 let r = room::send_typing(self, room);
@@ -180,61 +180,61 @@ impl Backend {
             }
             Ok(BKCommand::GetRoomAvatar(room)) => {
                 let r = room::get_room_avatar(self, room);
-                bkerror!(r, tx, BKResponse::GetRoomAvatarError);
+                bkerror2!(r, tx, BKResponse::RoomAvatar);
             }
             Ok(BKCommand::JoinRoom(roomid)) => {
                 let r = room::join_room(self, roomid);
-                bkerror!(r, tx, BKResponse::JoinRoomError);
+                bkerror2!(r, tx, BKResponse::JoinRoom);
             }
             Ok(BKCommand::LeaveRoom(roomid)) => {
                 let r = room::leave_room(self, &roomid);
-                bkerror!(r, tx, BKResponse::LeaveRoomError);
+                bkerror2!(r, tx, BKResponse::LeaveRoom);
             }
             Ok(BKCommand::MarkAsRead(roomid, evid)) => {
                 let r = room::mark_as_read(self, &roomid, &evid);
-                bkerror!(r, tx, BKResponse::MarkAsReadError);
+                bkerror2!(r, tx, BKResponse::MarkedAsRead);
             }
             Ok(BKCommand::SetRoomName(roomid, name)) => {
                 let r = room::set_room_name(self, &roomid, &name);
-                bkerror!(r, tx, BKResponse::SetRoomNameError);
+                bkerror2!(r, tx, BKResponse::SetRoomName);
             }
             Ok(BKCommand::SetRoomTopic(roomid, topic)) => {
                 let r = room::set_room_topic(self, &roomid, &topic);
-                bkerror!(r, tx, BKResponse::SetRoomTopicError);
+                bkerror2!(r, tx, BKResponse::SetRoomTopic);
             }
             Ok(BKCommand::SetRoomAvatar(roomid, fname)) => {
                 let r = room::set_room_avatar(self, &roomid, &fname);
-                bkerror!(r, tx, BKResponse::SetRoomAvatarError);
+                bkerror2!(r, tx, BKResponse::SetRoomAvatar);
             }
             Ok(BKCommand::AttachFile(msg)) => {
                 let r = room::attach_file(self, msg);
-                bkerror!(r, tx, BKResponse::AttachFileError);
+                bkerror2!(r, tx, BKResponse::AttachedFile);
             }
             Ok(BKCommand::NewRoom(name, privacy, internalid)) => {
                 let r = room::new_room(self, &name, privacy, internalid.clone());
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoomError(e, internalid))
+                    tx.send(BKResponse::NewRoom(Err(e), internalid))
                         .expect_log("Connection closed");
                 }
             }
             Ok(BKCommand::DirectChat(user, internalid)) => {
                 let r = room::direct_chat(self, &user, internalid.clone());
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoomError(e, internalid))
+                    tx.send(BKResponse::NewRoom(Err(e), internalid))
                         .expect_log("Connection closed");
                 }
             }
             Ok(BKCommand::AddToFav(roomid, tofav)) => {
                 let r = room::add_to_fav(self, roomid, tofav);
-                bkerror!(r, tx, BKResponse::AddToFavError);
+                bkerror2!(r, tx, BKResponse::AddedToFav);
             }
             Ok(BKCommand::AcceptInv(roomid)) => {
                 let r = room::join_room(self, roomid);
-                bkerror!(r, tx, BKResponse::AcceptInvError);
+                bkerror2!(r, tx, BKResponse::JoinRoom);
             }
             Ok(BKCommand::RejectInv(roomid)) => {
                 let r = room::leave_room(self, &roomid);
-                bkerror!(r, tx, BKResponse::RejectInvError);
+                bkerror2!(r, tx, BKResponse::LeaveRoom);
             }
             Ok(BKCommand::Invite(room, userid)) => {
                 let r = room::invite(self, &room, &userid);
