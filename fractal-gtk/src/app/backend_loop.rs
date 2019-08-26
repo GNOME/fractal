@@ -87,7 +87,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let av = Some(path);
                     APPOP!(show_new_avatar, (av));
                 }
-                Ok(BKResponse::Sync(since)) => {
+                Ok(BKResponse::Sync(Ok(since))) => {
                     info!("SYNC");
                     let s = Some(since);
                     APPOP!(synced, (s));
@@ -255,7 +255,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));
                 }
-                Ok(BKResponse::SyncError(err)) => {
+                Ok(BKResponse::Sync(Err(err))) => {
                     error!("SYNC Error: {:?}", err);
                     APPOP!(sync_error);
                 }

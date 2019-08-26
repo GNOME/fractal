@@ -239,7 +239,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
 
                 let next_batch = response.next_batch;
                 data.lock().unwrap().since = Some(next_batch.clone()).filter(|s| !s.is_empty());
-                tx.send(BKResponse::Sync(next_batch))
+                tx.send(BKResponse::Sync(Ok(next_batch)))
                     .expect_log("Connection closed");
             }
             Err(err) => {
@@ -247,7 +247,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
                 thread::sleep(time::Duration::from_secs(10));
 
-                tx.send(BKResponse::SyncError(err))
+                tx.send(BKResponse::Sync(Err(err)))
                     .expect_log("Connection closed");
             }
         }
