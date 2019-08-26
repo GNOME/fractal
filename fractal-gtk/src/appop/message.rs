@@ -54,6 +54,15 @@ impl AppOp {
         None
     }
 
+    pub fn remove_room_message(&mut self, msg: &Message) -> Option<()> {
+        if let Some(ui_msg) = self.create_new_room_message(msg) {
+            if let Some(ref mut history) = self.history {
+                history.remove_message(ui_msg);
+            }
+        }
+        None
+    }
+
     pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
@@ -383,6 +392,15 @@ impl AppOp {
         if let Some(ref mut history) = self.history {
             history.add_old_messages_in_batch(list);
         }
+    }
+
+    pub fn remove_message(&mut self, room: String, id: String) -> Option<()> {
+        let message = self.get_message_by_id(&room, &id);
+        if let Some(msg) = message {
+            self.remove_room_message(&msg);
+        }
+
+        None
     }
 
     /* parese a backend Message into a Message for the UI */
