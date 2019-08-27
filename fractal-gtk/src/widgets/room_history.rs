@@ -269,17 +269,59 @@ impl RoomHistory {
 
     pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
+        let mut i: usize = 0;
 
-        let ref mut message = rows.list.iter_mut().find(|e| match e {
-            Element::Message(ref itermessage) => itermessage.id == item.id,
+        let ref mut message = rows.list.iter_mut().by_ref().find(|e| match e {
+            Element::Message(ref itermessage) => {
+                i = i + 1;
+                itermessage.id == item.id
+            }
             _ => false,
         })?;
 
         match message {
             Element::Message(ref mut msg) => {
                 let msg_widget = msg.widget.clone()?;
+                let msg_sender = msg.sender.clone();
                 msg.msg.redacted = true;
                 rows.listbox.remove(msg_widget.get_listbox_row()?);
+
+                if msg_widget.header {
+                    /* If the redacted message was a header message let's set
+                     * the header on the next non-redacted message instead.
+                     * */
+                    let mut n: isize = i as isize - 2;
+                    while n >= 0 {
+                        let message_next_clone = rows.list.iter().nth(n as usize)?.clone();
+                        let ref mut message_next = rows.list.iter_mut().nth(n as usize)?;
+                        match message_next {
+                            Element::Message(ref mut msg_next) => match msg_next.widget {
+                                Some(ref mut msg_widet) => {
+                                    if msg_next.msg.redacted {
+                                        n = n - 1;
+                                        continue;
+                                    }
+                                    if !msg_next.redactable || msg_next.sender != msg_sender {
+                                        /* If we hit a non-redactable message or a
+                                         * message from a different sender let's
+                                         * stop looking and assume we are outside of
+                                         * our block.*/
+                                        break;
+                                    }
+                                    match message_next_clone {
+                                        Element::Message(msg_next_cloned) => {
+                                            msg_widet.update_header(msg_next_cloned, true);
+                                            break;
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                _ => {}
+                            },
+                            _ => {}
+                        }
+                    }
+                }
             }
             _ => {}
         }
