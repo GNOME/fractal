@@ -269,9 +269,13 @@ impl RoomHistory {
 
     pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
+        let mut i: usize = 0;
 
-        let ref mut message = rows.list.iter_mut().find(|e| match e {
-            Element::Message(ref itermessage) => itermessage.id == item.id,
+        let ref mut message = rows.list.iter_mut().by_ref().find(|e| match e {
+            Element::Message(ref itermessage) => {
+                i = i + 1;
+                itermessage.id == item.id
+            }
             _ => false,
         })?;
 
@@ -280,6 +284,27 @@ impl RoomHistory {
                 let msg_widget = msg.widget.clone()?;
                 msg.msg.redacted = true;
                 rows.listbox.remove(msg_widget.get_listbox_row()?);
+
+                if msg_widget.header {
+                    /* If the redacted message was a header message let's set
+                     * the header on the next message instead.
+                     * */
+                    let n = i - 2;
+                    let message_next_clone = rows.list.iter().nth(n)?.clone();
+                    let ref mut message_next = rows.list.iter_mut().nth(n)?;
+                    match message_next {
+                        Element::Message(ref mut msg_next) => match msg_next.widget {
+                            Some(ref mut msg_widet) => match message_next_clone {
+                                Element::Message(msg_next_cloned) => {
+                                    msg_widet.update_header(msg_next_cloned, true);
+                                }
+                                _ => {}
+                            },
+                            _ => {}
+                        },
+                        _ => {}
+                    }
+                }
             }
             _ => {}
         }

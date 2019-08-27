@@ -41,7 +41,7 @@ pub struct MessageBox {
     gesture: gtk::GestureLongPress,
     row: gtk::ListBoxRow,
     image: Option<gtk::DrawingArea>,
-    header: bool,
+    pub header: bool,
 }
 
 impl MessageBox {
@@ -103,6 +103,28 @@ impl MessageBox {
             w.get_style_context().add_class("msg-tmp");
         }
         Some(self)
+    }
+
+    pub fn update_header(&mut self, msg: Message, has_header: bool) {
+        let w = if has_header && msg.mtype != RowType::Emote {
+            self.row.set_margin_top(12);
+            self.header = true;
+            self.widget(&msg)
+        } else {
+            if let RowType::Emote = msg.mtype {
+                self.row.set_margin_top(12);
+            }
+            self.header = false;
+            self.small_widget(&msg)
+        };
+        match self.eventbox.get_child() {
+            Some(eb) => {
+                eb.destroy(); // clean the eventbox
+            }
+            _ => {}
+        }
+        self.eventbox.add(&w);
+        self.row.show_all();
     }
 
     fn widget(&mut self, msg: &Message) -> gtk::Box {
