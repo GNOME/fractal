@@ -39,7 +39,7 @@ pub struct MessageBox {
     gesture: gtk::GestureLongPress,
     row: gtk::ListBoxRow,
     image: Option<gtk::DrawingArea>,
-    header: bool,
+    pub header: bool,
 }
 
 impl MessageBox {
