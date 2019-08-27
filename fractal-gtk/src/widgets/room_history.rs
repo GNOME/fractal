@@ -322,7 +322,7 @@ fn create_row(
 
 /* returns if two messages should have only a single header or not */
 fn should_group_message(msg: &MessageContent, prev: &MessageContent) -> bool {
-    if msg.sender == prev.sender {
+    if msg.sender == prev.sender && !prev.msg.redacted {
         let diff = msg.date.signed_duration_since(prev.date);
         let minutes = diff.num_minutes();
         minutes < globals::MINUTES_TO_SPLIT_MSGS
