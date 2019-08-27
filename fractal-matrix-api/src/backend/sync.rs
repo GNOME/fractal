@@ -230,12 +230,10 @@ pub fn sync(
                                     // This event is managed in the room list
                                 }
                                 "m.room.redaction" => {
-                                    let _ = tx.send(BKResponse::RemoveMessage(
-                                        Ok((
-                                            ev.room.clone(),
-                                            ev.redacts,
-                                        ))
-                                    ));
+                                    let _ = tx.send(BKResponse::RemoveMessage(Ok((
+                                        ev.room.clone(),
+                                        ev.redacts,
+                                    ))));
                                 }
                                 _ => {
                                     error!("EVENT NOT MANAGED: {:?}", ev);
