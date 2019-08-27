@@ -275,9 +275,36 @@ impl RoomHistory {
         })?;
 
         let msg_widget = msg.widget.clone()?;
+        let msg_sender = msg.sender.clone();
         msg.msg.redacted = true;
         rows.listbox.remove(msg_widget.get_listbox_row()?);
 
+        // If the redacted message was a header message let's set
+        // the header on the next non-redacted message instead.
+        if msg_widget.header {
+            if let Some((msg_next_cloned, msg_widget)) = rows
+                .list
+                .iter_mut()
+                .rev()
+                .filter_map(|message_next| match message_next {
+                    Element::Message(ref mut msg_next) => {
+                        let msg_next_cloned = msg_next.clone();
+                        msg_next
+                            .widget
+                            .as_mut()
+                            .filter(|_| !msg_next_cloned.msg.redacted)
+                            .map(|msg_widet| (msg_next_cloned, msg_widet))
+                    }
+                    _ => None,
+                })
+                .next()
+                .filter(|(msg_next_cloned, _)| {
+                    msg_next_cloned.redactable && msg_next_cloned.sender == msg_sender
+                })
+            {
+                msg_widget.update_header(msg_next_cloned, true);
+            }
+        }
         None
     }
 
