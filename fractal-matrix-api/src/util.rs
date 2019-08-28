@@ -11,9 +11,7 @@ use std::path::Path;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
-use std::fs::create_dir_all;
-use std::fs::File;
-use std::io::prelude::*;
+use std::fs::{create_dir_all, write};
 
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -229,16 +227,6 @@ pub fn get_room_media_list(
     Ok((media_list, prev_batch))
 }
 
-pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
-    let conn = HTTP_CLIENT.get_client()?.get(url);
-    let mut res = conn.send()?;
-
-    let mut buffer = Vec::new();
-    res.read_to_end(&mut buffer)?;
-
-    Ok(buffer)
-}
-
 pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
     let (mime, _) = gio::content_type_guess(None, &file);
 
@@ -325,25 +313,24 @@ pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error>
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
-    let pathname = fname.clone();
-    let p = Path::new(&pathname);
-    if p.is_file() {
-        if dest.is_none() {
-            return Ok(fname);
-        }
+    let fpath = Path::new(&fname);
 
-        let moddate = p.metadata()?.modified()?;
-        // one minute cached
-        if moddate.elapsed()?.as_secs() < 60 {
-            return Ok(fname);
-        }
+    // one minute cached
+    if fpath.is_file()
+        && (dest.is_none() || fpath.metadata()?.modified()?.elapsed()?.as_secs() < 60)
+    {
+        Ok(fname)
+    } else {
+        HTTP_CLIENT
+            .get_client()?
+            .get(url)
+            .send()?
+            .bytes()
+            .collect::<Result<Vec<u8>, std::io::Error>>()
+            .and_then(|media| write(&fname, media))
+            .and(Ok(fname))
+            .map_err(Error::from)
     }
-
-    let mut file = File::create(&fname)?;
-    let buffer = get_media(url)?;
-    file.write_all(&buffer)?;
-
-    Ok(fname)
 }
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
