@@ -20,13 +20,10 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::r0::filter::RoomEventFilter;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
-use crate::types::Message;
 
 use reqwest::header::CONTENT_LENGTH;
-use reqwest::header::CONTENT_TYPE;
 
 use crate::globals;
 
@@ -184,67 +181,6 @@ pub fn get_prev_batch_from(
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
 
     Ok(prev_batch)
-}
-
-pub fn get_room_media_list(
-    baseu: &Url,
-    tk: &str,
-    roomid: &str,
-    limit: i32,
-    first_media_id: Option<String>,
-    prev_batch: &Option<String>,
-) -> Result<(Vec<Message>, String), Error> {
-    let mut params = vec![
-        ("dir", String::from("b")),
-        ("limit", format!("{}", limit)),
-        ("access_token", String::from(tk)),
-        (
-            "filter",
-            serde_json::to_string(&RoomEventFilter {
-                contains_url: true,
-                not_types: vec!["m.sticker"],
-                ..Default::default()
-            })
-            .expect("Failed to serialize room media list request filter"),
-        ),
-    ];
-
-    match prev_batch {
-        Some(ref pb) => params.push(("from", pb.clone())),
-        None => {
-            if let Some(id) = first_media_id {
-                params.push(("from", get_prev_batch_from(baseu, tk, &roomid, &id)?))
-            }
-        }
-    };
-
-    let path = format!("rooms/{}/messages", roomid);
-    let url = client_url(baseu, &path, &params)?;
-
-    let r = json_q("get", &url, &json!(null))?;
-    let array = r["chunk"].as_array();
-    let prev_batch = r["end"].to_string().trim_matches('"').to_string();
-    if array.is_none() || array.unwrap().is_empty() {
-        return Ok((vec![], prev_batch));
-    }
-
-    let evs = array.unwrap().iter().rev();
-    let media_list = Message::from_json_events_iter(roomid, evs);
-
-    Ok((media_list, prev_batch))
-}
-
-pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let (mime, _) = gio::content_type_guess(None, &file);
-
-    HTTP_CLIENT
-        .get_client()?
-        .post(url)
-        .body(file)
-        .header(CONTENT_TYPE, mime.to_string())
-        .send()?
-        .json()
-        .or(Err(Error::BackendError))
 }
 
 pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
@@ -450,15 +386,6 @@ pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
         .to_str()
         .map(Into::into)
         .ok_or(Error::CacheError)
-}
-
-pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
-    if avatar.is_empty() {
-        return Ok(String::new());
-    }
-
-    let dest = cache_dir_path(None, &userid)?;
-    thumb(baseu, &avatar, Some(&dest))
 }
 
 pub fn encode_uid(userid: &str) -> String {
