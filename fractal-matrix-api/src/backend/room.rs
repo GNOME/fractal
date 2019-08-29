@@ -14,7 +14,7 @@ use crate::globals;
 use std::thread;
 
 use crate::util;
-use crate::util::cache_path;
+use crate::util::cache_dir_path;
 use crate::util::json_q;
 use crate::util::put_media;
 use crate::util::thumb;
@@ -71,7 +71,7 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
         &url,
         |r: JsonValue| {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
-            let dest = cache_path(&roomid).ok();
+            let dest = cache_dir_path("", &roomid).ok();
             if let Some(ref avatar) = avatar {
                 let _ = thumb(&baseu, avatar.as_str(), dest.as_ref().map(String::as_str));
             }

@@ -7,7 +7,7 @@ use crate::backend::types::Backend;
 use crate::error::Error;
 use std::thread;
 
-use crate::util::cache_path;
+use crate::util::cache_dir_path;
 use crate::util::media;
 use crate::util::HTTP_CLIENT;
 
@@ -127,7 +127,7 @@ pub fn room_search(
                     .map(Into::into)
                     .inspect(|r: &Room| {
                         if let Some(avatar) = r.avatar.clone() {
-                            if let Ok(dest) = cache_path(&r.id) {
+                            if let Ok(dest) = cache_dir_path("", &r.id) {
                                 let _ = media(&base, &avatar, Some(&dest));
                             }
                         }
