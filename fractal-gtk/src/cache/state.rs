@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::types::Message;
 use crate::types::Room;
-use fractal_api::util::cache_path;
+use fractal_api::util::cache_dir_path;
 
 // Models
 
@@ -101,7 +101,8 @@ impl FCache {
     fn get_store<'a>(&'a self) -> MutexGuard<'a, Option<Cache>> {
         let mut guard = self.cache.lock().unwrap();
         if guard.is_none() {
-            let db: String = cache_path("cache.mdl").expect("Fatal error: Can't start the cache");
+            let db: String =
+                cache_dir_path(None, "cache.mdl").expect("Fatal error: Can't start the cache");
             let mdl_cache = Cache::new(&db).expect("Fatal error: Can't start the cache");
             *guard = Some(mdl_cache);
         }
@@ -112,7 +113,8 @@ impl FCache {
         let mut guard = self.cache.lock().unwrap();
         guard.take();
 
-        let fname = cache_path("cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
+        let fname =
+            cache_dir_path(None, "cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
         remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
     }
 

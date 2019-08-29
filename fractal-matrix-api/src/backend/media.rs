@@ -122,7 +122,7 @@ pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
     let fname;
     {
         let name = url.split('/').last().unwrap_or_default();
-        fname = cache_dir_path("files", name)?.clone();
+        fname = cache_dir_path(Some("files"), name)?.clone();
     }
 
     thread::spawn(move || {

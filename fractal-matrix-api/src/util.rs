@@ -8,6 +8,7 @@ use directories::ProjectDirs;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
@@ -31,6 +32,11 @@ use crate::globals;
 
 lazy_static! {
     pub static ref HTTP_CLIENT: Client = Client::new();
+    static ref CACHE_PATH: PathBuf = ProjectDirs::from("org", "GNOME", "Fractal")
+        .as_ref()
+        .map(ProjectDirs::cache_dir)
+        .map(Into::into)
+        .unwrap_or(std::env::temp_dir().join("fractal"));
 }
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
@@ -290,8 +296,8 @@ pub fn dw_media(
     let url = media_url(base, &path, &params)?;
 
     let fname = match dest {
-        None if thumb => cache_dir_path("thumbs", &media)?,
-        None => cache_dir_path("medias", &media)?,
+        None if thumb => cache_dir_path(Some("thumbs"), &media)?,
+        None => cache_dir_path(Some("medias"), &media)?,
         Some(d) => String::from(d),
     };
 
@@ -396,7 +402,7 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
     let img = response
         .avatar_url
         .map(|url| {
-            let dest = cache_path(userid)?;
+            let dest = cache_dir_path(None, userid)?;
             thumb(base, &url, Some(&dest))
         })
         .unwrap_or(Ok(Default::default()))?;
@@ -433,19 +439,11 @@ pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
     build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
-pub fn cache_path(name: &str) -> Result<String, Error> {
-    cache_dir_path("", name)
-}
-
-pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
-    let path = &ProjectDirs::from("org", "GNOME", "Fractal")
-        .as_ref()
-        .map(|project_dir| project_dir.cache_dir())
-        .unwrap_or(&std::env::temp_dir().join("fractal"))
-        .join(dir);
+pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
+    let path = CACHE_PATH.join(dir.unwrap_or_default());
 
     if !path.is_dir() {
-        create_dir_all(path)?;
+        create_dir_all(&path)?;
     }
 
     path.join(name)
@@ -459,7 +457,7 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
         return Ok(String::new());
     }
 
-    let dest = cache_path(&userid)?;
+    let dest = cache_dir_path(None, &userid)?;
     thumb(baseu, &avatar, Some(&dest))
 }
 
