@@ -3,11 +3,13 @@ use std::fs;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
+use crate::globals;
 use crate::util::cache_dir_path;
+use crate::util::dw_media;
 use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::semaphore;
-use crate::util::thumb;
+use crate::util::ContentType;
 use crate::util::HTTP_CLIENT;
 use reqwest::header::HeaderValue;
 use std::sync::mpsc::Sender;
@@ -603,5 +605,10 @@ fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String
     }
 
     let dest = cache_dir_path("", &userid)?;
-    thumb(baseu, &avatar, Some(&dest))
+    dw_media(
+        baseu,
+        &avatar,
+        ContentType::Thumbnail(globals::THUMBNAIL_SIZE, globals::THUMBNAIL_SIZE),
+        Some(&dest),
+    )
 }
