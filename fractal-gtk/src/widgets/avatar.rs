@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use cairo;
-use fractal_api::util::cache_path;
+use fractal_api::util::cache_dir_path;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
 use gtk;
@@ -37,7 +37,7 @@ impl AvatarData {
     }
 
     pub fn redraw_pixbuf(&mut self) {
-        let path = cache_path(&self.uid).unwrap_or_default();
+        let path = cache_dir_path("", &self.uid).unwrap_or_default();
         self.cache = load_pixbuf(&path, self.size);
         self.widget.queue_draw();
     }
@@ -99,7 +99,7 @@ impl AvatarExt for gtk::Overlay {
     ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
-        let path = cache_path(&uid).unwrap_or_default();
+        let path = cache_dir_path("", &uid).unwrap_or_default();
         let user_avatar = load_pixbuf(&path, size);
         let uname = username.clone();
         /* remove IRC postfix from the username */

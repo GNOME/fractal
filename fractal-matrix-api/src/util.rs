@@ -395,7 +395,7 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
     let img = response
         .avatar_url
         .map(|url| {
-            let dest = cache_path(userid)?;
+            let dest = cache_dir_path("", userid)?;
             thumb(base, &url, Some(&dest))
         })
         .unwrap_or(Ok(Default::default()))?;
@@ -432,10 +432,6 @@ pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
     build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
-pub fn cache_path(name: &str) -> Result<String, Error> {
-    cache_dir_path("", name)
-}
-
 pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
     let path = &ProjectDirs::from("org", "GNOME", "Fractal")
         .as_ref()
@@ -458,7 +454,7 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
         return Ok(String::new());
     }
 
-    let dest = cache_path(&userid)?;
+    let dest = cache_dir_path("", &userid)?;
     thumb(baseu, &avatar, Some(&dest))
 }
 

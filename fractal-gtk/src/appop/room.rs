@@ -11,7 +11,7 @@ use crate::appop::AppOp;
 
 use crate::backend;
 use crate::backend::BKCommand;
-use fractal_api::util::cache_path;
+use fractal_api::util::cache_dir_path;
 
 use crate::actions;
 use crate::actions::AppState;
@@ -349,7 +349,7 @@ impl AppOp {
 
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<Url>) {
         if avatar.is_none() {
-            if let Ok(dest) = cache_path(&roomid) {
+            if let Ok(dest) = cache_dir_path("", &roomid) {
                 let _ = remove_file(dest);
             }
         }
@@ -360,8 +360,8 @@ impl AppOp {
                         if m != uid {
                             //FIXME: Find a better solution
                             // create a symlink from user avatar to room avatar (works only on unix)
-                            if let Ok(source) = cache_path(m) {
-                                if let Ok(dest) = cache_path(&roomid) {
+                            if let Ok(source) = cache_dir_path("", m) {
+                                if let Ok(dest) = cache_dir_path("", &roomid) {
                                     let _ = fs::symlink(source, dest);
                                 }
                             }
