@@ -15,9 +15,10 @@ use crate::globals;
 use std::thread;
 
 use crate::util::cache_dir_path;
+use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::json_q;
-use crate::util::thumb;
+use crate::util::ContentType;
 use crate::util::HTTP_CLIENT;
 use crate::util::{client_url, media_url};
 
@@ -74,7 +75,12 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
             let dest = cache_dir_path("", &roomid).ok();
             if let Some(ref avatar) = avatar {
-                let _ = thumb(&baseu, avatar.as_str(), dest.as_ref().map(String::as_str));
+                let _ = dw_media(
+                    &baseu,
+                    avatar.as_str(),
+                    ContentType::Thumbnail(globals::THUMBNAIL_SIZE, globals::THUMBNAIL_SIZE),
+                    dest.as_ref().map(String::as_str),
+                );
             }
             tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
         },

@@ -139,6 +139,21 @@ macro_rules! query {
     };
 }
 
+#[derive(PartialEq)]
+pub enum ContentType {
+    Download,
+    Thumbnail(i32, i32),
+}
+
+impl ContentType {
+    pub fn is_thumbnail(&self) -> bool {
+        match self {
+            ContentType::Download => false,
+            ContentType::Thumbnail(_, _) => true,
+        }
+    }
+}
+
 pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
     events
         .iter()
@@ -176,22 +191,28 @@ pub fn get_prev_batch_from(
     Ok(prev_batch)
 }
 
-pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
+pub fn resolve_scaled_media_url(
+    base: &Url,
+    url: &str,
+    media_type: ContentType,
+) -> Result<Url, Error> {
     let caps = globals::MATRIX_RE
         .captures(url)
         .ok_or(Error::BackendError)?;
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
-    let mut params: Vec<(&str, String)> = vec![];
-
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("scale")));
-        format!("thumbnail/{}/{}", server, media)
+    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
+        (
+            vec![
+                ("width", w.to_string()),
+                ("height", h.to_string()),
+                ("method", String::from("scale")),
+            ],
+            format!("thumbnail/{}/{}", server, media),
+        )
     } else {
-        format!("download/{}/{}", server, media)
+        (vec![], format!("download/{}/{}", server, media))
     };
 
     media_url(base, &path, &params)
@@ -200,10 +221,8 @@ pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> 
 pub fn dw_media(
     base: &Url,
     url: &str,
-    thumb: bool,
+    media_type: ContentType,
     dest: Option<&str>,
-    w: i32,
-    h: i32,
 ) -> Result<String, Error> {
     let caps = globals::MATRIX_RE
         .captures(url)
@@ -211,41 +230,28 @@ pub fn dw_media(
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
-    let mut params: Vec<(&str, String)> = vec![];
-
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("crop")));
-        format!("thumbnail/{}/{}", server, media)
+    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
+        (
+            vec![
+                ("width", w.to_string()),
+                ("height", h.to_string()),
+                ("method", String::from("crop")),
+            ],
+            format!("thumbnail/{}/{}", server, media),
+        )
     } else {
-        format!("download/{}/{}", server, media)
+        (vec![], format!("download/{}/{}", server, media))
     };
 
     let url = media_url(base, &path, &params)?;
 
     let fname = match dest {
-        None if thumb => cache_dir_path("thumbs", &media)?,
+        None if media_type.is_thumbnail() => cache_dir_path("thumbs", &media)?,
         None => cache_dir_path("medias", &media)?,
         Some(d) => String::from(d),
     };
 
     download_file(url.as_str(), fname, dest)
-}
-
-pub fn media(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
-    dw_media(base, url, false, dest, 0, 0)
-}
-
-pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
-    dw_media(
-        base,
-        url,
-        true,
-        dest,
-        globals::THUMBNAIL_SIZE,
-        globals::THUMBNAIL_SIZE,
-    )
 }
 
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
@@ -332,7 +338,12 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
         .avatar_url
         .map(|url| {
             let dest = cache_dir_path("", userid)?;
-            thumb(base, &url, Some(&dest))
+            dw_media(
+                base,
+                &url,
+                ContentType::Thumbnail(globals::THUMBNAIL_SIZE, globals::THUMBNAIL_SIZE),
+                Some(&dest),
+            )
         })
         .unwrap_or(Ok(Default::default()))?;
 
