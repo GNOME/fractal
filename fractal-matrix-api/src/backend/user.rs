@@ -4,10 +4,11 @@ use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::util::cache_dir_path;
+use crate::util::dw_media;
 use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::semaphore;
-use crate::util::thumb;
+use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use reqwest::header::HeaderValue;
@@ -632,6 +633,11 @@ fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String
         return Ok(String::new());
     }
 
-    let dest = cache_dir_path("", &userid)?;
-    thumb(baseu, &avatar, Some(&dest))
+    let dest = cache_dir_path(None, &userid)?;
+    dw_media(
+        baseu,
+        &avatar,
+        ContentType::default_thumbnail(),
+        Some(&dest),
+    )
 }

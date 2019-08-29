@@ -7,15 +7,15 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;
 
-use crate::util;
 use crate::util::cache_dir_path;
 use crate::util::client_url;
 use crate::util::download_file;
+use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::json_q;
 use crate::util::resolve_media_url;
 use crate::util::semaphore;
-use crate::util::thumb;
+use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 
 use crate::r0::filter::RoomEventFilter;
@@ -25,7 +25,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match thumb(&baseu, &media, None) {
+        match dw_media(&baseu, &media, ContentType::default_thumbnail(), None) {
             Ok(fname) => {
                 tx.send(fname).expect_log("Connection closed");
             }
@@ -42,7 +42,7 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Resul
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match util::media(&baseu, &media, None) {
+        match dw_media(&baseu, &media, ContentType::Download, None) {
             Ok(fname) => {
                 tx.send(fname).expect_log("Connection closed");
             }
@@ -91,7 +91,7 @@ pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     thread::spawn(move || {
-        match util::media(&baseu, &media, None) {
+        match dw_media(&baseu, &media, ContentType::Download, None) {
             Ok(fname) => {
                 tx.send(BKResponse::Media(fname))
                     .expect_log("Connection closed");
@@ -110,7 +110,7 @@ pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match resolve_media_url(&baseu, &media, false, 0, 0) {
+        match resolve_media_url(&baseu, &media, ContentType::Download) {
             Ok(uri) => {
                 tx.send(uri.to_string()).expect_log("Connection closed");
             }

@@ -8,7 +8,8 @@ use crate::error::Error;
 use std::thread;
 
 use crate::util::cache_dir_path;
-use crate::util::media;
+use crate::util::dw_media;
+use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
@@ -131,7 +132,8 @@ pub fn room_search(
                     .inspect(|r: &Room| {
                         if let Some(avatar) = r.avatar.clone() {
                             if let Ok(dest) = cache_dir_path(None, &r.id) {
-                                let _ = media(&base, &avatar, Some(&dest));
+                                let _ =
+                                    dw_media(&base, &avatar, ContentType::Download, Some(&dest));
                             }
                         }
                     })
