@@ -199,6 +199,7 @@ pub struct BackendData {
     pub m_direct: HashMap<String, Vec<String>>,
 }
 
+#[derive(Clone)]
 pub struct Backend {
     pub tx: Sender<BKResponse>,
     pub data: Arc<Mutex<BackendData>>,
@@ -208,16 +209,4 @@ pub struct Backend {
     pub user_info_cache: CacheMap<Arc<Mutex<(String, String)>>>,
     // semaphore to limit the number of threads downloading images
     pub limit_threads: Arc<(Mutex<u8>, Condvar)>,
-}
-
-impl Clone for Backend {
-    fn clone(&self) -> Backend {
-        Backend {
-            tx: self.tx.clone(),
-            data: self.data.clone(),
-            internal_tx: self.internal_tx.clone(),
-            user_info_cache: self.user_info_cache.clone(),
-            limit_threads: self.limit_threads.clone(),
-        }
-    }
 }
