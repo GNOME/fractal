@@ -49,7 +49,7 @@ impl UI {
         let sventry = SVEntry::default();
         sventry_stack.add_named(&sventry.column, "Text Entry");
         let sventry_disabled = gtk::Label::new(Some(&i18n(
-            "You don\u{2019}t have permission to post to this room",
+            "You don't have permission to post to this room",
         )));
         sventry_disabled.set_hexpand(false);
         sventry_disabled.get_style_context().add_class("dim-label");
