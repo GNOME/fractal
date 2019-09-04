@@ -137,12 +137,8 @@ macro_rules! query {
             }
         });
     };
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!($method, $url, $attrs, $okcb, $errcb, globals::TIMEOUT);
-    };
     ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        let attrs = json!(null);
-        query!($method, $url, &attrs, $okcb, $errcb)
+        query!($method, $url, &json!(null), $okcb, $errcb)
     };
 }
 
