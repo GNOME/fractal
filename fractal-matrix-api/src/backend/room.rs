@@ -55,9 +55,11 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
             let k = keys.split('.').last().unwrap();
 
             let value = String::from(r[&k].as_str().unwrap_or_default());
-            tx.send(BKResponse::RoomDetail(roomid, key, value)).unwrap();
+            let _ = tx.send(BKResponse::RoomDetail(roomid, key, value));
         },
-        |err| tx.send(BKResponse::RoomDetailError(err)).unwrap()
+        |err| {
+            let _ = tx.send(BKResponse::RoomDetailError(err));
+        }
     );
 
     Ok(())
@@ -75,16 +77,16 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
             if let Some(ref avatar) = avatar {
                 let _ = thumb(&baseu, avatar.as_str(), dest.as_ref().map(String::as_str));
             }
-            tx.send(BKResponse::RoomAvatar(roomid, avatar)).unwrap();
+            let _ = tx.send(BKResponse::RoomAvatar(roomid, avatar));
         },
         |err: Error| match err {
             Error::MatrixError(ref js)
                 if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
             {
-                tx.send(BKResponse::RoomAvatar(roomid, None)).unwrap();
+                let _ = tx.send(BKResponse::RoomAvatar(roomid, None));
             }
             _ => {
-                tx.send(BKResponse::RoomAvatarError(err)).unwrap();
+                let _ = tx.send(BKResponse::RoomAvatarError(err));
             }
         }
     );
@@ -108,9 +110,11 @@ pub fn get_room_members(bk: &Backend, roomid: String) -> Result<(), Error> {
                     member
                 })
                 .collect();
-            tx.send(BKResponse::RoomMembers(roomid, ms)).unwrap();
+            let _ = tx.send(BKResponse::RoomMembers(roomid, ms));
         },
-        |err| tx.send(BKResponse::RoomMembersError(err)).unwrap()
+        |err| {
+            let _ = tx.send(BKResponse::RoomMembersError(err));
+        }
     );
 
     Ok(())
@@ -142,10 +146,11 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
             let evs = array.unwrap().iter().rev();
             let list = Message::from_json_events_iter(&roomid, evs);
             let prev_batch = r["end"].as_str().map(String::from);
-            tx.send(BKResponse::RoomMessagesTo(list, roomid, prev_batch))
-                .unwrap();
+            let _ = tx.send(BKResponse::RoomMessagesTo(list, roomid, prev_batch));
         },
-        |err| tx.send(BKResponse::RoomMembersError(err)).unwrap()
+        |err| {
+            let _ = tx.send(BKResponse::RoomMembersError(err));
+        }
     );
 
     Ok(())
@@ -161,7 +166,7 @@ pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) ->
     thread::spawn(move || {
         if let Ok(from) = util::get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
             if let Some(t) = tx {
-                t.send(BKCommand::GetRoomMessages(roomid, from)).unwrap();
+                let _ = t.send(BKCommand::GetRoomMessages(roomid, from));
             }
         }
     });
@@ -211,14 +216,15 @@ fn parse_context(
                 if let Err(err) =
                     parse_context(tx.clone(), tk, baseu, roomid, &id.unwrap(), limit * 2)
                 {
-                    tx.send(BKResponse::RoomMessagesError(err)).unwrap();
+                    let _ = tx.send(BKResponse::RoomMessagesError(err));
                 }
             } else {
-                tx.send(BKResponse::RoomMessagesTo(ms, roomid, None))
-                    .unwrap();
+                let _ = tx.send(BKResponse::RoomMessagesTo(ms, roomid, None));
             }
         },
-        |err| tx.send(BKResponse::RoomMessagesError(err)).unwrap()
+        |err| {
+            let _ = tx.send(BKResponse::RoomMessagesError(err));
+        }
     );
 
     Ok(())
@@ -272,12 +278,10 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(msg.id, evid.to_string()))
-                .unwrap();
+            let _ = tx.send(BKResponse::SentMsg(msg.id, evid.to_string()));
         },
         |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(msg.id)))
-                .unwrap();
+            let _ = tx.send(BKResponse::SendMsgError(Error::SendMsgError(msg.id)));
         }
     );
 
@@ -295,7 +299,7 @@ pub fn send_typing(bk: &Backend, roomid: String) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     query!("put", &url, &attrs, move |_| {}, |err| {
-        tx.send(BKResponse::SendTypingError(err)).unwrap();
+        let _ = tx.send(BKResponse::SendTypingError(err));
     });
 
     Ok(())
@@ -322,14 +326,12 @@ pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsgRedaction(msgid, evid.to_string()))
-                .unwrap();
+            let _ = tx.send(BKResponse::SentMsgRedaction(msgid, evid.to_string()));
         },
         |_| {
-            tx.send(BKResponse::SendMsgRedactionError(
+            let _ = tx.send(BKResponse::SendMsgRedactionError(
                 Error::SendMsgRedactionError(msgid),
-            ))
-            .unwrap();
+            ));
         }
     );
 
@@ -345,10 +347,10 @@ pub fn join_room(bk: &Backend, roomid: String) -> Result<(), Error> {
         &url,
         move |_: JsonValue| {
             data.lock().unwrap().join_to_room = roomid.clone();
-            tx.send(BKResponse::JoinRoom).unwrap();
+            let _ = tx.send(BKResponse::JoinRoom);
         },
         |err| {
-            tx.send(BKResponse::JoinRoomError(err)).unwrap();
+            let _ = tx.send(BKResponse::JoinRoomError(err));
         }
     );
 
@@ -362,10 +364,10 @@ pub fn leave_room(bk: &Backend, roomid: &str) -> Result<(), Error> {
     post!(
         &url,
         move |_: JsonValue| {
-            tx.send(BKResponse::LeaveRoom).unwrap();
+            let _ = tx.send(BKResponse::LeaveRoom);
         },
         |err| {
-            tx.send(BKResponse::LeaveRoomError(err)).unwrap();
+            let _ = tx.send(BKResponse::LeaveRoomError(err));
         }
     );
 
@@ -384,10 +386,10 @@ pub fn mark_as_read(bk: &Backend, roomid: &str, eventid: &str) -> Result<(), Err
     post!(
         &url,
         move |_: JsonValue| {
-            tx.send(BKResponse::MarkedAsRead(r, e)).unwrap();
+            let _ = tx.send(BKResponse::MarkedAsRead(r, e));
         },
         |err| {
-            tx.send(BKResponse::MarkAsReadError(err)).unwrap();
+            let _ = tx.send(BKResponse::MarkAsReadError(err));
         }
     );
 
@@ -418,10 +420,10 @@ pub fn set_room_name(bk: &Backend, roomid: &str, name: &str) -> Result<(), Error
         &url,
         &attrs,
         |_| {
-            tx.send(BKResponse::SetRoomName).unwrap();
+            let _ = tx.send(BKResponse::SetRoomName);
         },
         |err| {
-            tx.send(BKResponse::SetRoomNameError(err)).unwrap();
+            let _ = tx.send(BKResponse::SetRoomNameError(err));
         }
     );
 
@@ -441,10 +443,10 @@ pub fn set_room_topic(bk: &Backend, roomid: &str, topic: &str) -> Result<(), Err
         &url,
         &attrs,
         |_| {
-            tx.send(BKResponse::SetRoomTopic).unwrap();
+            let _ = tx.send(BKResponse::SetRoomTopic);
         },
         |err| {
-            tx.send(BKResponse::SetRoomTopicError(err)).unwrap();
+            let _ = tx.send(BKResponse::SetRoomTopicError(err));
         }
     );
 
@@ -466,7 +468,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
     thread::spawn(move || {
         match put_media(mediaurl.as_str(), contents) {
             Err(err) => {
-                tx.send(BKResponse::SetRoomAvatarError(err)).unwrap();
+                let _ = tx.send(BKResponse::SetRoomAvatarError(err));
             }
             Ok(js) => {
                 let uri = js["content_uri"].as_str().unwrap_or_default();
@@ -474,8 +476,12 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
                 put!(
                     &roomurl,
                     &attrs,
-                    |_| tx.send(BKResponse::SetRoomAvatar).unwrap(),
-                    |err| tx.send(BKResponse::SetRoomAvatarError(err)).unwrap()
+                    |_| {
+                        let _ = tx.send(BKResponse::SetRoomAvatar);
+                    },
+                    |err| {
+                        let _ = tx.send(BKResponse::SetRoomAvatarError(err));
+                    }
                 );
             }
         };
@@ -503,7 +509,7 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
         if thumb != "" {
             match upload_file(&tk, &baseu, &thumb) {
                 Err(err) => {
-                    tx.send(BKResponse::AttachFileError(err)).unwrap();
+                    let _ = tx.send(BKResponse::AttachFileError(err));
                 }
                 Ok(thumb_uri) => {
                     msg.thumb = Some(thumb_uri.to_string());
@@ -518,14 +524,14 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
 
         match upload_file(&tk, &baseu, &fname) {
             Err(err) => {
-                tx.send(BKResponse::AttachFileError(err)).unwrap();
+                let _ = tx.send(BKResponse::AttachFileError(err));
             }
             Ok(uri) => {
                 msg.url = Some(uri.to_string());
                 if let Some(t) = itx {
-                    t.send(BKCommand::SendMsg(msg.clone())).unwrap();
+                    let _ = t.send(BKCommand::SendMsg(msg.clone()));
                 }
-                tx.send(BKResponse::AttachedFile(msg)).unwrap();
+                let _ = tx.send(BKResponse::AttachedFile(msg));
             }
         };
     });
@@ -578,10 +584,10 @@ pub fn new_room(
             let id = String::from(r["room_id"].as_str().unwrap_or_default());
             let mut r = Room::new(id, RoomMembership::Joined(RoomTag::None));
             r.name = Some(n);
-            tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
+            let _ = tx.send(BKResponse::NewRoom(r, internal_id));
         },
         |err| {
-            tx.send(BKResponse::NewRoomError(err, internal_id)).unwrap();
+            let _ = tx.send(BKResponse::NewRoomError(err, internal_id));
         }
     );
     Ok(())
@@ -652,12 +658,12 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
             let mut r = Room::new(id.clone(), RoomMembership::Joined(RoomTag::None));
             r.name = m.alias.clone();
             r.direct = true;
-            tx.send(BKResponse::NewRoom(r, internal_id)).unwrap();
+            let _ = tx.send(BKResponse::NewRoom(r, internal_id));
 
             update_direct_chats(direct_url, data, m.uid.clone(), id);
         },
         |err| {
-            tx.send(BKResponse::NewRoomError(err, internal_id)).unwrap();
+            let _ = tx.send(BKResponse::NewRoomError(err, internal_id));
         }
     );
 
@@ -682,11 +688,10 @@ pub fn add_to_fav(bk: &Backend, roomid: String, tofav: bool) -> Result<(), Error
         &url,
         &attrs,
         |_| {
-            tx.send(BKResponse::AddedToFav(roomid.clone(), tofav))
-                .unwrap();
+            let _ = tx.send(BKResponse::AddedToFav(roomid.clone(), tofav));
         },
         |err| {
-            tx.send(BKResponse::AddToFavError(err)).unwrap();
+            let _ = tx.send(BKResponse::AddToFavError(err));
         }
     );
 
@@ -702,7 +707,7 @@ pub fn invite(bk: &Backend, roomid: &str, userid: &str) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     post!(&url, &attrs, |_| {}, |err| {
-        tx.send(BKResponse::InviteError(err)).unwrap();
+        let _ = tx.send(BKResponse::InviteError(err));
     });
 
     Ok(())
