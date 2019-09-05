@@ -529,7 +529,7 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
             let info = info.clone();
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
-                tx.send(i).unwrap();
+                let _ = tx.send(i);
             });
         }
         return;
@@ -544,7 +544,7 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
                 if let Some(tx) = tx.clone() {
-                    tx.send(info.clone()).unwrap();
+                    let _ = tx.send(info.clone());
                     let mut i = i0.unwrap();
                     i.0 = info.0;
                     i.1 = info.1;
@@ -552,7 +552,7 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
             }
             Err(_) => {
                 if let Some(tx) = tx.clone() {
-                    tx.send((String::new(), String::new())).unwrap();
+                    let _ = tx.send((String::new(), String::new()));
                 }
             }
         };

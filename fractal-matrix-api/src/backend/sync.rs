@@ -164,7 +164,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                             typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::UpdateRooms(rooms)).unwrap();
+                    let _ = tx.send(BKResponse::UpdateRooms(rooms));
 
                     // Other events
                     join.iter()
@@ -236,7 +236,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
                 thread::sleep(time::Duration::from_secs(10));
 
-                tx.send(BKResponse::SyncError(err)).unwrap();
+                let _ = tx.send(BKResponse::SyncError(err));
             }
         }
     });

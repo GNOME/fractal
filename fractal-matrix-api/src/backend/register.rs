@@ -135,7 +135,7 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Resu
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
-    bk.tx.send(BKResponse::Token(uid, token, None)).unwrap();
+    let _ = bk.tx.send(BKResponse::Token(uid, token, None));
 
     Ok(())
 }
