@@ -50,12 +50,11 @@ pub fn get_username(bk: &Backend) -> Result<(), Error> {
         &url,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
             let name = response.displayname.unwrap_or(id);
-            tx.send(BKResponse::Name(name)).unwrap();
+            send!(tx, BKResponse::Name(name));
         } else {
-            tx.send(BKResponse::UserNameError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::UserNameError(Error::BackendError));
         },
-        |err| tx.send(BKResponse::UserNameError(err)).unwrap()
+        |err| send!(tx, BKResponse::UserNameError(err))
     );
 
     Ok(())
@@ -77,10 +76,10 @@ pub fn set_username(bk: &Backend, name: String) -> Result<(), Error> {
         &url,
         &attrs_json,
         |_| {
-            tx.send(BKResponse::SetUserName(name)).unwrap();
+            send!(tx, BKResponse::SetUserName(name));
         },
         |err| {
-            tx.send(BKResponse::SetUserNameError(err)).unwrap();
+            send!(tx, BKResponse::SetUserNameError(err));
         }
     );
 
@@ -93,13 +92,11 @@ pub fn get_threepid(bk: &Backend) -> Result<(), Error> {
     get!(
         &url,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyIDResponse>(r) {
-            tx.send(BKResponse::GetThreePID(response.threepids))
-                .unwrap();
+            send!(tx, BKResponse::GetThreePID(response.threepids));
         } else {
-            tx.send(BKResponse::GetThreePIDError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::GetThreePIDError(Error::BackendError));
         },
-        |err| tx.send(BKResponse::GetThreePIDError(err)).unwrap()
+        |err| send!(tx, BKResponse::GetThreePIDError(err))
     );
 
     Ok(())
@@ -128,20 +125,18 @@ pub fn get_email_token(
         &url,
         &attrs_json,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
-            tx.send(BKResponse::GetTokenEmail(response.sid, client_secret))
-                .unwrap();
+            send!(tx, BKResponse::GetTokenEmail(response.sid, client_secret));
         } else {
-            tx.send(BKResponse::GetTokenEmailError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::GetTokenEmailError(Error::BackendError));
         },
         |err| match err {
             Error::MatrixError(ref js)
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenEmailUsed).unwrap();
+                send!(tx, BKResponse::GetTokenEmailUsed);
             }
             _ => {
-                tx.send(BKResponse::GetTokenEmailError(err)).unwrap();
+                send!(tx, BKResponse::GetTokenEmailError(err));
             }
         }
     );
@@ -173,20 +168,18 @@ pub fn get_phone_token(
         &url,
         &attrs_json,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<ThirdPartyTokenResponse>(r) {
-            tx.send(BKResponse::GetTokenPhone(response.sid, client_secret))
-                .unwrap();
+            send!(tx, BKResponse::GetTokenPhone(response.sid, client_secret));
         } else {
-            tx.send(BKResponse::GetTokenPhoneError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::GetTokenPhoneError(Error::BackendError));
         },
         |err| match err {
             Error::MatrixError(ref js)
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                tx.send(BKResponse::GetTokenPhoneUsed).unwrap();
+                send!(tx, BKResponse::GetTokenPhoneUsed);
             }
             _ => {
-                tx.send(BKResponse::GetTokenPhoneError(err)).unwrap();
+                send!(tx, BKResponse::GetTokenPhoneError(err));
             }
         }
     );
@@ -218,10 +211,10 @@ pub fn add_threepid(
         &url,
         &attrs_json,
         |_| {
-            tx.send(BKResponse::AddThreePID(sid)).unwrap();
+            send!(tx, BKResponse::AddThreePID(sid));
         },
         |err| {
-            tx.send(BKResponse::AddThreePIDError(err)).unwrap();
+            send!(tx, BKResponse::AddThreePIDError(err));
         }
     );
 
@@ -252,14 +245,12 @@ pub fn submit_phone_token(
         &attrs_json,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<SubmitPhoneTokenResponse>(r) {
             let result = Some(sid).filter(|_| response.success);
-            tx.send(BKResponse::SubmitPhoneToken(result, client_secret))
-                .unwrap();
+            send!(tx, BKResponse::SubmitPhoneToken(result, client_secret));
         } else {
-            tx.send(BKResponse::SubmitPhoneTokenError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::SubmitPhoneTokenError(Error::BackendError));
         },
         |err| {
-            tx.send(BKResponse::SubmitPhoneTokenError(err)).unwrap();
+            send!(tx, BKResponse::SubmitPhoneTokenError(err));
         }
     );
 
@@ -284,10 +275,10 @@ pub fn delete_three_pid(bk: &Backend, medium: Medium, address: String) {
         &url,
         &attrs_json,
         |_r: JsonValue| {
-            tx.send(BKResponse::DeleteThreePID).unwrap();
+            send!(tx, BKResponse::DeleteThreePID);
         },
         |err| {
-            tx.send(BKResponse::DeleteThreePIDError(err)).unwrap();
+            send!(tx, BKResponse::DeleteThreePIDError(err));
         }
     );
 }
@@ -317,10 +308,10 @@ pub fn change_password(
         &attrs_json,
         |r: JsonValue| {
             info!("{}", r);
-            tx.send(BKResponse::ChangePassword).unwrap();
+            send!(tx, BKResponse::ChangePassword);
         },
         |err| {
-            tx.send(BKResponse::ChangePasswordError(err)).unwrap();
+            send!(tx, BKResponse::ChangePasswordError(err));
         }
     );
 
@@ -346,10 +337,10 @@ pub fn account_destruction(bk: &Backend, user: String, password: String) -> Resu
         &attrs_json,
         |r: JsonValue| {
             info!("{}", r);
-            tx.send(BKResponse::AccountDestruction).unwrap();
+            send!(tx, BKResponse::AccountDestruction);
         },
         |err| {
-            tx.send(BKResponse::AccountDestructionError(err)).unwrap();
+            send!(tx, BKResponse::AccountDestructionError(err));
         }
     );
 
@@ -363,10 +354,10 @@ pub fn get_avatar(bk: &Backend) -> Result<(), Error> {
     let tx = bk.tx.clone();
     thread::spawn(move || match get_user_avatar(&baseu, &userid) {
         Ok((_, fname)) => {
-            tx.send(BKResponse::Avatar(fname)).unwrap();
+            send!(tx, BKResponse::Avatar(fname));
         }
         Err(err) => {
-            tx.send(BKResponse::AvatarError(err)).unwrap();
+            send!(tx, BKResponse::AvatarError(err));
         }
     });
 
@@ -387,7 +378,7 @@ pub fn get_user_info_async(
             let info = info.clone();
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
-                tx.send(i).unwrap();
+                send!(tx, i);
             });
         }
         return Ok(());
@@ -402,7 +393,7 @@ pub fn get_user_info_async(
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
                 if let Some(tx) = tx.clone() {
-                    tx.send(info.clone()).unwrap();
+                    send!(tx, info.clone());
                     let mut i = i0.unwrap();
                     i.0 = info.0;
                     i.1 = info.1;
@@ -410,7 +401,7 @@ pub fn get_user_info_async(
             }
             Err(_) => {
                 if let Some(tx) = tx.clone() {
-                    tx.send((String::new(), String::new())).unwrap();
+                    send!(tx, (String::new(), String::new()));
                 }
             }
         };
@@ -427,11 +418,11 @@ pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) -> Resu
         &url,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<GetDisplayNameResponse>(r) {
             let name = response.displayname.unwrap_or(uid);
-            tx.send(name).unwrap();
+            send!(tx, name);
         } else {
-            tx.send(uid.to_string()).unwrap();
+            send!(tx, uid.to_string());
         },
-        |_| tx.send(uid.to_string()).unwrap()
+        |_| send!(tx, uid.to_string())
     );
 
     Ok(())
@@ -445,7 +436,7 @@ pub fn get_avatar_async(
     let baseu = bk.get_base_url();
 
     if member.is_none() {
-        tx.send(String::new()).unwrap();
+        send!(tx, String::new());
         return Ok(());
     }
 
@@ -460,10 +451,10 @@ pub fn get_avatar_async(
         &avatar.unwrap_or_default(),
     ) {
         Ok(fname) => {
-            tx.send(fname.clone()).unwrap();
+            send!(tx, fname.clone());
         }
         Err(_) => {
-            tx.send(String::new()).unwrap();
+            send!(tx, String::new());
         }
     });
 
@@ -486,7 +477,7 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
     thread::spawn(move || {
         match put_media(mediaurl.as_str(), contents) {
             Err(err) => {
-                tx.send(BKResponse::SetUserAvatarError(err)).unwrap();
+                send!(tx, BKResponse::SetUserAvatarError(err));
             }
             Ok(js) => {
                 let uri = js["content_uri"].as_str().unwrap_or_default();
@@ -494,8 +485,8 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) -> Result<(), Error> {
                 put!(
                     &url,
                     &attrs,
-                    |_| tx.send(BKResponse::SetUserAvatar(avatar)).unwrap(),
-                    |err| tx.send(BKResponse::SetUserAvatarError(err)).unwrap()
+                    |_| send!(tx, BKResponse::SetUserAvatar(avatar)),
+                    |err| send!(tx, BKResponse::SetUserAvatarError(err))
                 );
             }
         };
@@ -520,13 +511,12 @@ pub fn search(bk: &Backend, search_term: String) -> Result<(), Error> {
         &attrs_json,
         |r: JsonValue| if let Ok(response) = serde_json::from_value::<SearchUserResponse>(r) {
             let users = response.results.into_iter().map(Into::into).collect();
-            tx.send(BKResponse::UserSearch(users)).unwrap();
+            send!(tx, BKResponse::UserSearch(users));
         } else {
-            tx.send(BKResponse::CommandError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::CommandError(Error::BackendError));
         },
         |err| {
-            tx.send(BKResponse::CommandError(err)).unwrap();
+            send!(tx, BKResponse::CommandError(err));
         }
     );
 

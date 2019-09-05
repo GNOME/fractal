@@ -42,9 +42,9 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
                 let group = StickerGroup::from_json(sticker_group);
                 stickers.push(group);
             }
-            tx.send(BKResponse::Stickers(stickers)).unwrap();
+            send!(tx, BKResponse::Stickers(stickers));
         },
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
+        |err| send!(tx, BKResponse::StickersError(err))
     );
 
     Ok(())
@@ -75,7 +75,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
             d.lock().unwrap().sticker_widget = widget_id;
 
             if let Some(t) = itx {
-                t.send(then).unwrap();
+                send!(t, then);
             }
         },
         |err| {
@@ -90,7 +90,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
             }
 
             if let Some(t) = itx {
-                t.send(then).unwrap();
+                send!(t, then);
             }
         }
     );
@@ -124,11 +124,10 @@ pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> 
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string())).unwrap();
+            send!(tx, BKResponse::SentMsg(id, evid.to_string()));
         },
         |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
-                .unwrap();
+            send!(tx, BKResponse::SendMsgError(Error::SendMsgError(id)));
         }
     );
 
@@ -155,9 +154,9 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     get!(
         &url,
         |_| if let Some(t) = itx {
-            t.send(BKCommand::ListStickers).unwrap();
+            send!(t, BKCommand::ListStickers);
         },
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
+        |err| send!(tx, BKResponse::StickersError(err))
     );
 
     Ok(())

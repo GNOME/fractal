@@ -97,7 +97,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
 
                     // New rooms
                     let rs = Room::from_sync_response(&response, &userid, &baseu);
-                    tx.send(BKResponse::UpdateRooms(rs)).unwrap();
+                    send!(tx, BKResponse::UpdateRooms(rs));
 
                     // Message events
                     let msgs = join
@@ -107,7 +107,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             Message::from_json_events_iter(&k, events).into_iter()
                         })
                         .collect();
-                    tx.send(BKResponse::RoomMessages(msgs)).unwrap();
+                    send!(tx, BKResponse::RoomMessages(msgs));
 
                     // Room notifications
                     for (k, room) in join.iter() {
@@ -115,8 +115,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             highlight_count: h,
                             notification_count: n,
                         } = room.unread_notifications;
-                        tx.send(BKResponse::RoomNotifications(k.clone(), n, h))
-                            .unwrap();
+                        send!(tx, BKResponse::RoomNotifications(k.clone(), n, h));
                     }
 
                     // Typing notifications
@@ -151,7 +150,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                             typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::UpdateRooms(rooms)).unwrap();
+                    send!(tx, BKResponse::UpdateRooms(rooms));
 
                     // Other events
                     join.iter()
@@ -178,21 +177,20 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    tx.send(BKResponse::RoomName(ev.room.clone(), name))
-                                        .unwrap();
+                                    send!(tx, BKResponse::RoomName(ev.room.clone(), name));
                                 }
                                 "m.room.topic" => {
                                     let t = ev.content["topic"]
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    tx.send(BKResponse::RoomTopic(ev.room.clone(), t)).unwrap();
+                                    send!(tx, BKResponse::RoomTopic(ev.room.clone(), t));
                                 }
                                 "m.room.avatar" => {
-                                    tx.send(BKResponse::NewRoomAvatar(ev.room.clone())).unwrap();
+                                    send!(tx, BKResponse::NewRoomAvatar(ev.room.clone()));
                                 }
                                 "m.room.member" => {
-                                    tx.send(BKResponse::RoomMemberEvent(ev)).unwrap();
+                                    send!(tx, BKResponse::RoomMemberEvent(ev));
                                 }
                                 "m.sticker" => {
                                     // This event is managed in the room list
@@ -212,14 +210,14 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
                     } else {
                         None
                     };
-                    tx.send(BKResponse::Rooms(rooms, def)).unwrap();
+                    send!(tx, BKResponse::Rooms(rooms, def));
                 }
 
                 let next_batch = response.next_batch;
-                tx.send(BKResponse::Sync(next_batch.clone())).unwrap();
+                send!(tx, BKResponse::Sync(next_batch.clone()));
                 data.lock().unwrap().since = Some(next_batch).filter(|s| !s.is_empty());
             } else {
-                tx.send(BKResponse::SyncError(Error::BackendError)).unwrap();
+                send!(tx, BKResponse::SyncError(Error::BackendError));
             }
         },
         |err| {
@@ -227,7 +225,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) -> Result<()
             error!("Sync Error, waiting 10 seconds to respond for the next sync");
             thread::sleep(time::Duration::from_secs(10));
 
-            tx.send(BKResponse::SyncError(err)).unwrap();
+            send!(tx, BKResponse::SyncError(err));
         }
     );
 

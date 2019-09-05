@@ -41,13 +41,12 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
-            tx.send(BKResponse::Rooms(vec![], None)).unwrap();
+            send!(tx, BKResponse::Token(uid, tk, dev));
+            send!(tx, BKResponse::Rooms(vec![], None));
         } else {
-            tx.send(BKResponse::GuestLoginError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::GuestLoginError(Error::BackendError));
         },
-        |err| tx.send(BKResponse::GuestLoginError(err)).unwrap()
+        |err| send!(tx, BKResponse::GuestLoginError(err))
     );
 
     Ok(())
@@ -76,19 +75,17 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
             let dev = response.device_id;
 
             if uid.is_empty() || tk.is_empty() {
-                tx.send(BKResponse::LoginError(Error::BackendError))
-                    .unwrap();
+                send!(tx, BKResponse::LoginError(Error::BackendError));
             } else {
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
                 data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
+                send!(tx, BKResponse::Token(uid, tk, dev));
             }
         } else {
-            tx.send(BKResponse::LoginError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::LoginError(Error::BackendError));
         },
-        |err| tx.send(BKResponse::LoginError(err)).unwrap()
+        |err| send!(tx, BKResponse::LoginError(err))
     );
 
     Ok(())
@@ -99,7 +96,7 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Resu
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
-    bk.tx.send(BKResponse::Token(uid, token, None)).unwrap();
+    send!(bk.tx, BKResponse::Token(uid, token, None));
 
     Ok(())
 }
@@ -117,9 +114,9 @@ pub fn logout(bk: &Backend) -> Result<(), Error> {
             data.lock().unwrap().user_id = String::new();
             data.lock().unwrap().access_token = String::new();
             data.lock().unwrap().since = None;
-            tx.send(BKResponse::Logout).unwrap();
+            send!(tx, BKResponse::Logout)
         },
-        |err| tx.send(BKResponse::LogoutError(err)).unwrap()
+        |err| send!(tx, BKResponse::LogoutError(err))
     );
     Ok(())
 }
@@ -149,12 +146,11 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
             data.lock().unwrap().user_id = uid.clone();
             data.lock().unwrap().access_token = tk.clone();
             data.lock().unwrap().since = None;
-            tx.send(BKResponse::Token(uid, tk, dev)).unwrap();
+            send!(tx, BKResponse::Token(uid, tk, dev));
         } else {
-            tx.send(BKResponse::LoginError(Error::BackendError))
-                .unwrap();
+            send!(tx, BKResponse::LoginError(Error::BackendError));
         },
-        |err| tx.send(BKResponse::LoginError(err)).unwrap()
+        |err| send!(tx, BKResponse::LoginError(err))
     );
 
     Ok(())

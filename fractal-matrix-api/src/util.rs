@@ -95,7 +95,18 @@ macro_rules! derror {
 macro_rules! bkerror {
     ($result: ident, $tx: ident, $type: expr) => {
         if let Err(e) = $result {
-            $tx.send($type(e)).unwrap();
+            send!($tx, $type(e));
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! send {
+    ($sender: expr, $data: expr) => {
+        if let Err(_error) = $sender.send($data) {
+            // this use is here to avoid the need to add to every place where this macro is used
+            use log::error;
+            error!("Cannot send data, the other end is disconnected");
         }
     };
 }

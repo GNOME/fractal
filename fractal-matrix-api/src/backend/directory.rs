@@ -43,10 +43,10 @@ pub fn protocols(bk: &Backend) {
                 })
                 .unwrap_or_default();
 
-            tx.send(BKResponse::DirectoryProtocols(protocols)).unwrap();
+            send!(tx, BKResponse::DirectoryProtocols(protocols));
         },
         |err| {
-            tx.send(BKResponse::DirectoryError(err)).unwrap();
+            send!(tx, BKResponse::DirectoryError(err));
         }
     );
 }
@@ -115,10 +115,10 @@ pub fn room_search(
                 })
                 .unwrap_or_default();
 
-            tx.send(BKResponse::DirectorySearch(rooms)).unwrap();
+            send!(tx, BKResponse::DirectorySearch(rooms));
         },
         |err| {
-            tx.send(BKResponse::DirectoryError(err)).unwrap();
+            send!(tx, BKResponse::DirectoryError(err));
         }
     );
 
