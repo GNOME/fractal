@@ -15,6 +15,7 @@ use std::fs::create_dir_all;
 use std::fs::File;
 use std::io::prelude::*;
 
+use std::sync::mpsc::SendError;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
@@ -97,7 +98,7 @@ macro_rules! derror {
 macro_rules! bkerror {
     ($result: ident, $tx: ident, $type: expr) => {
         if let Err(e) = $result {
-            $tx.send($type(e)).unwrap();
+            $tx.send($type(e)).expect_log("Connection closed");
         }
     };
 }
@@ -477,4 +478,16 @@ pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<St
 
 pub fn encode_uid(userid: &str) -> String {
     utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect::<String>()
+}
+
+pub trait ResultExpectLog {
+    fn expect_log(&self, log: &str);
+}
+
+impl<T> ResultExpectLog for Result<(), SendError<T>> {
+    fn expect_log(&self, log: &str) {
+        if self.is_err() {
+            error!("{}", log);
+        }
+    }
 }

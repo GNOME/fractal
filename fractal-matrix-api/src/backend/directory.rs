@@ -9,6 +9,7 @@ use std::thread;
 
 use crate::util::cache_path;
 use crate::util::media;
+use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
 use crate::r0::directory::post_public_rooms::request as post_public_rooms;
@@ -47,10 +48,12 @@ pub fn protocols(bk: &Backend) {
                     .flat_map(|(_, protocol)| protocol.instances.into_iter())
                     .collect();
 
-                let _ = tx.send(BKResponse::DirectoryProtocols(protocols));
+                tx.send(BKResponse::DirectoryProtocols(protocols))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::DirectoryError(err));
+                tx.send(BKResponse::DirectoryError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -134,10 +137,12 @@ pub fn room_search(
                     })
                     .collect();
 
-                let _ = tx.send(BKResponse::DirectorySearch(rooms));
+                tx.send(BKResponse::DirectorySearch(rooms))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::DirectoryError(err));
+                tx.send(BKResponse::DirectoryError(err))
+                    .expect_log("Connection closed");
             }
         }
     });

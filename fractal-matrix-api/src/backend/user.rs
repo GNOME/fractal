@@ -7,6 +7,7 @@ use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::get_user_avatar_img;
 use crate::util::semaphore;
+use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use reqwest::header::HeaderValue;
 use std::sync::mpsc::Sender;
@@ -80,10 +81,12 @@ pub fn get_username(bk: &Backend) {
         match query {
             Ok(response) => {
                 let name = response.displayname.unwrap_or(uid);
-                let _ = tx.send(BKResponse::Name(name));
+                tx.send(BKResponse::Name(name))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::UserNameError(err));
+                tx.send(BKResponse::UserNameError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -108,10 +111,10 @@ pub fn get_username_async(bk: &Backend, uid: String, tx: Sender<String>) {
         match query {
             Ok(response) => {
                 let name = response.displayname.unwrap_or(uid);
-                let _ = tx.send(name);
+                tx.send(name).expect_log("Connection closed");
             }
             Err(_) => {
-                let _ = tx.send(uid);
+                tx.send(uid).expect_log("Connection closed");
             }
         }
     });
@@ -140,10 +143,12 @@ pub fn set_username(bk: &Backend, name: String) {
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::SetUserName(name));
+                tx.send(BKResponse::SetUserName(name))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::SetUserNameError(err));
+                tx.send(BKResponse::SetUserNameError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -169,10 +174,12 @@ pub fn get_threepid(bk: &Backend) {
 
         match query {
             Ok(response) => {
-                let _ = tx.send(BKResponse::GetThreePID(response.threepids));
+                tx.send(BKResponse::GetThreePID(response.threepids))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::GetThreePIDError(err));
+                tx.send(BKResponse::GetThreePIDError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -205,15 +212,18 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
 
         match query {
             Ok(response) => {
-                let _ = tx.send(BKResponse::GetTokenEmail(response.sid, client_secret));
+                tx.send(BKResponse::GetTokenEmail(response.sid, client_secret))
+                    .expect_log("Connection closed");
             }
             Err(Error::MatrixError(ref js))
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                let _ = tx.send(BKResponse::GetTokenEmailUsed);
+                tx.send(BKResponse::GetTokenEmailUsed)
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::GetTokenEmailError(err));
+                tx.send(BKResponse::GetTokenEmailError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -247,15 +257,18 @@ pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_sec
 
         match query {
             Ok(response) => {
-                let _ = tx.send(BKResponse::GetTokenPhone(response.sid, client_secret));
+                tx.send(BKResponse::GetTokenPhone(response.sid, client_secret))
+                    .expect_log("Connection closed");
             }
             Err(Error::MatrixError(ref js))
                 if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
             {
-                let _ = tx.send(BKResponse::GetTokenPhoneUsed);
+                tx.send(BKResponse::GetTokenPhoneUsed)
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::GetTokenPhoneError(err));
+                tx.send(BKResponse::GetTokenPhoneError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -288,10 +301,12 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::AddThreePID(sid));
+                tx.send(BKResponse::AddThreePID(sid))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::AddThreePIDError(err));
+                tx.send(BKResponse::AddThreePIDError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -321,10 +336,12 @@ pub fn submit_phone_token(bk: &Backend, client_secret: String, sid: String, toke
         match query {
             Ok(response) => {
                 let result = Some(sid).filter(|_| response.success);
-                let _ = tx.send(BKResponse::SubmitPhoneToken(result, client_secret));
+                tx.send(BKResponse::SubmitPhoneToken(result, client_secret))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::SubmitPhoneTokenError(err));
+                tx.send(BKResponse::SubmitPhoneTokenError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -350,10 +367,12 @@ pub fn delete_three_pid(bk: &Backend, medium: Medium, address: String) {
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::DeleteThreePID);
+                tx.send(BKResponse::DeleteThreePID)
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::DeleteThreePIDError(err));
+                tx.send(BKResponse::DeleteThreePIDError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -386,10 +405,12 @@ pub fn change_password(bk: &Backend, user: String, old_password: String, new_pas
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::ChangePassword);
+                tx.send(BKResponse::ChangePassword)
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::ChangePasswordError(err));
+                tx.send(BKResponse::ChangePasswordError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -421,10 +442,12 @@ pub fn account_destruction(bk: &Backend, user: String, password: String) {
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::AccountDestruction);
+                tx.send(BKResponse::AccountDestruction)
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::AccountDestructionError(err));
+                tx.send(BKResponse::AccountDestructionError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -437,10 +460,12 @@ pub fn get_avatar(bk: &Backend) {
     let tx = bk.tx.clone();
     thread::spawn(move || match get_user_avatar(&base, &userid) {
         Ok((_, fname)) => {
-            let _ = tx.send(BKResponse::Avatar(fname));
+            tx.send(BKResponse::Avatar(fname))
+                .expect_log("Connection closed");
         }
         Err(err) => {
-            let _ = tx.send(BKResponse::AvatarError(err));
+            tx.send(BKResponse::AvatarError(err))
+                .expect_log("Connection closed");
         }
     });
 }
@@ -455,15 +480,15 @@ pub fn get_avatar_async(bk: &Backend, member: Option<Member>, tx: Sender<String>
             bk.limit_threads.clone(),
             move || match get_user_avatar_img(&base, &uid, &avatar) {
                 Ok(fname) => {
-                    let _ = tx.send(fname);
+                    tx.send(fname).expect_log("Connection closed");
                 }
                 Err(_) => {
-                    let _ = tx.send(Default::default());
+                    tx.send(Default::default()).expect_log("Connection closed");
                 }
             },
         );
     } else {
-        let _ = tx.send(Default::default());
+        tx.send(Default::default()).expect_log("Connection closed");
     }
 }
 
@@ -510,10 +535,12 @@ pub fn set_user_avatar(bk: &Backend, avatar: String) {
 
         match query {
             Ok(_) => {
-                let _ = tx.send(BKResponse::SetUserAvatar(avatar));
+                tx.send(BKResponse::SetUserAvatar(avatar))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::SetUserAvatarError(err));
+                tx.send(BKResponse::SetUserAvatarError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -529,7 +556,7 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
             let info = info.clone();
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
-                let _ = tx.send(i);
+                tx.send(i).expect_log("Connection closed");
             });
         }
         return;
@@ -544,7 +571,7 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
         match get_user_avatar(&baseu, &u) {
             Ok(info) => {
                 if let Some(tx) = tx.clone() {
-                    let _ = tx.send(info.clone());
+                    tx.send(info.clone()).expect_log("Connection closed");
                     let mut i = i0.unwrap();
                     i.0 = info.0;
                     i.1 = info.1;
@@ -552,7 +579,8 @@ pub fn get_user_info_async(bk: &mut Backend, uid: &str, tx: Option<Sender<(Strin
             }
             Err(_) => {
                 if let Some(tx) = tx.clone() {
-                    let _ = tx.send((String::new(), String::new()));
+                    tx.send((String::new(), String::new()))
+                        .expect_log("Connection closed");
                 }
             }
         };
@@ -586,10 +614,12 @@ pub fn search(bk: &Backend, search_term: String) {
         match query {
             Ok(response) => {
                 let users = response.results.into_iter().map(Into::into).collect();
-                let _ = tx.send(BKResponse::UserSearch(users));
+                tx.send(BKResponse::UserSearch(users))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::CommandError(err));
+                tx.send(BKResponse::CommandError(err))
+                    .expect_log("Connection closed");
             }
         }
     });

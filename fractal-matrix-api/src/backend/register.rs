@@ -20,6 +20,7 @@ use crate::r0::account::UserIdentifier;
 use crate::r0::server::domain_info::request as domain_info;
 use crate::r0::server::domain_info::Response as DomainInfoResponse;
 use crate::r0::Medium;
+use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
 use crate::backend::types::BKResponse;
@@ -57,11 +58,14 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
                 data.lock().unwrap().since = None;
-                let _ = tx.send(BKResponse::Token(uid, tk, dev));
-                let _ = tx.send(BKResponse::Rooms(vec![], None));
+                tx.send(BKResponse::Token(uid, tk, dev))
+                    .expect_log("Connection closed");
+                tx.send(BKResponse::Rooms(vec![], None))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::GuestLoginError(err));
+                tx.send(BKResponse::GuestLoginError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -113,16 +117,19 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
                 let dev = response.device_id;
 
                 if uid.is_empty() || tk.is_empty() {
-                    let _ = tx.send(BKResponse::LoginError(Error::BackendError));
+                    tx.send(BKResponse::LoginError(Error::BackendError))
+                        .expect_log("Connection closed");
                 } else {
                     data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().access_token = tk.clone();
                     data.lock().unwrap().since = None;
-                    let _ = tx.send(BKResponse::Token(uid, tk, dev));
+                    tx.send(BKResponse::Token(uid, tk, dev))
+                        .expect_log("Connection closed");
                 }
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::LoginError(err));
+                tx.send(BKResponse::LoginError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -135,7 +142,9 @@ pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Resu
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
-    let _ = bk.tx.send(BKResponse::Token(uid, token, None));
+    bk.tx
+        .send(BKResponse::Token(uid, token, None))
+        .expect_log("Connection closed");
 
     Ok(())
 }
@@ -164,10 +173,11 @@ pub fn logout(bk: &Backend) {
                 data.lock().unwrap().user_id = Default::default();
                 data.lock().unwrap().access_token = Default::default();
                 data.lock().unwrap().since = None;
-                let _ = tx.send(BKResponse::Logout);
+                tx.send(BKResponse::Logout).expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::LogoutError(err));
+                tx.send(BKResponse::LogoutError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
@@ -206,10 +216,12 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
                 data.lock().unwrap().since = None;
-                let _ = tx.send(BKResponse::Token(uid, tk, dev));
+                tx.send(BKResponse::Token(uid, tk, dev))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
-                let _ = tx.send(BKResponse::LoginError(err));
+                tx.send(BKResponse::LoginError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
