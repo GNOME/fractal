@@ -18,6 +18,7 @@ use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
 use crate::util::parse_m_direct;
+use crate::util::ResultExpectLog;
 
 use log::error;
 use reqwest::Client;
@@ -111,7 +112,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
 
                     // New rooms
                     let rs = Room::from_sync_response(&response, &userid, &base);
-                    let _ = tx.send(BKResponse::UpdateRooms(rs));
+                    tx.send(BKResponse::UpdateRooms(rs))
+                        .expect_log("Connection closed");
 
                     // Message events
                     let msgs = join
@@ -121,7 +123,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                             Message::from_json_events_iter(&k, events).into_iter()
                         })
                         .collect();
-                    let _ = tx.send(BKResponse::RoomMessages(msgs));
+                    tx.send(BKResponse::RoomMessages(msgs))
+                        .expect_log("Connection closed");
 
                     // Room notifications
                     for (k, room) in join.iter() {
@@ -129,7 +132,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                             highlight_count: h,
                             notification_count: n,
                         } = room.unread_notifications;
-                        let _ = tx.send(BKResponse::RoomNotifications(k.clone(), n, h));
+                        tx.send(BKResponse::RoomNotifications(k.clone(), n, h))
+                            .expect_log("Connection closed");
                     }
 
                     // Typing notifications
@@ -164,7 +168,8 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                             typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::UpdateRooms(rooms)).unwrap();
+                    tx.send(BKResponse::UpdateRooms(rooms))
+                        .expect_log("Connection closed");
 
                     // Other events
                     join.iter()
@@ -191,20 +196,24 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    let _ = tx.send(BKResponse::RoomName(ev.room.clone(), name));
+                                    tx.send(BKResponse::RoomName(ev.room.clone(), name))
+                                        .expect_log("Connection closed");
                                 }
                                 "m.room.topic" => {
                                     let t = ev.content["topic"]
                                         .as_str()
                                         .map(Into::into)
                                         .unwrap_or_default();
-                                    let _ = tx.send(BKResponse::RoomTopic(ev.room.clone(), t));
+                                    tx.send(BKResponse::RoomTopic(ev.room.clone(), t))
+                                        .expect_log("Connection closed");
                                 }
                                 "m.room.avatar" => {
-                                    let _ = tx.send(BKResponse::NewRoomAvatar(ev.room.clone()));
+                                    tx.send(BKResponse::NewRoomAvatar(ev.room.clone()))
+                                        .expect_log("Connection closed");
                                 }
                                 "m.room.member" => {
-                                    let _ = tx.send(BKResponse::RoomMemberEvent(ev));
+                                    tx.send(BKResponse::RoomMemberEvent(ev))
+                                        .expect_log("Connection closed");
                                 }
                                 "m.sticker" => {
                                     // This event is managed in the room list
@@ -224,19 +233,22 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                     } else {
                         None
                     };
-                    let _ = tx.send(BKResponse::Rooms(rooms, def));
+                    tx.send(BKResponse::Rooms(rooms, def))
+                        .expect_log("Connection closed");
                 }
 
                 let next_batch = response.next_batch;
                 data.lock().unwrap().since = Some(next_batch.clone()).filter(|s| !s.is_empty());
-                let _ = tx.send(BKResponse::Sync(next_batch));
+                tx.send(BKResponse::Sync(next_batch))
+                    .expect_log("Connection closed");
             }
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
                 error!("Sync Error, waiting 10 seconds to respond for the next sync");
                 thread::sleep(time::Duration::from_secs(10));
 
-                tx.send(BKResponse::SyncError(err)).unwrap();
+                tx.send(BKResponse::SyncError(err))
+                    .expect_log("Connection closed");
             }
         }
     });

@@ -7,6 +7,7 @@ use std::thread;
 use url::Url;
 
 use crate::util::client_url;
+use crate::util::ResultExpectLog;
 
 use crate::error::Error;
 
@@ -212,13 +213,15 @@ impl Backend {
             Ok(BKCommand::NewRoom(name, privacy, internalid)) => {
                 let r = room::new_room(self, &name, privacy, internalid.clone());
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoomError(e, internalid)).unwrap();
+                    tx.send(BKResponse::NewRoomError(e, internalid))
+                        .expect_log("Connection closed");
                 }
             }
             Ok(BKCommand::DirectChat(user, internalid)) => {
                 let r = room::direct_chat(self, &user, internalid.clone());
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoomError(e, internalid)).unwrap();
+                    tx.send(BKResponse::NewRoomError(e, internalid))
+                        .expect_log("Connection closed");
                 }
             }
             Ok(BKCommand::AddToFav(roomid, tofav)) => {
@@ -302,7 +305,8 @@ impl Backend {
 
             // Internal commands
             Ok(BKCommand::ShutDown) => {
-                tx.send(BKResponse::ShutDown).unwrap();
+                tx.send(BKResponse::ShutDown)
+                    .expect_log("Connection closed");
                 return false;
             }
             Err(_) => {

@@ -3,6 +3,7 @@ use serde_json::json;
 
 use crate::backend::BackendData;
 use crate::util::json_q;
+use crate::util::ResultExpectLog;
 use crate::util::{client_url, scalar_url};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -42,9 +43,13 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
                 let group = StickerGroup::from_json(sticker_group);
                 stickers.push(group);
             }
-            tx.send(BKResponse::Stickers(stickers)).unwrap();
+            tx.send(BKResponse::Stickers(stickers))
+                .expect_log("Connection closed");
         },
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
+        |err| {
+            tx.send(BKResponse::StickersError(err))
+                .expect_log("Connection closed");
+        }
     );
 
     Ok(())
@@ -75,7 +80,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
             d.lock().unwrap().sticker_widget = widget_id;
 
             if let Some(t) = itx {
-                t.send(then).unwrap();
+                t.send(then).expect_log("Connection closed");
             }
         },
         |err| {
@@ -90,7 +95,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
             }
 
             if let Some(t) = itx {
-                t.send(then).unwrap();
+                t.send(then).expect_log("Connection closed");
             }
         }
     );
@@ -124,11 +129,12 @@ pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> 
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string())).unwrap();
+            tx.send(BKResponse::SentMsg(id, evid.to_string()))
+                .expect_log("Connection closed");
         },
         |_| {
             tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
-                .unwrap();
+                .expect_log("Connection closed");
         }
     );
 
@@ -155,9 +161,13 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     get!(
         &url,
         |_| if let Some(t) = itx {
-            t.send(BKCommand::ListStickers).unwrap();
+            t.send(BKCommand::ListStickers)
+                .expect_log("Connection closed");
         },
-        |err| tx.send(BKResponse::StickersError(err)).unwrap()
+        |err| {
+            tx.send(BKResponse::StickersError(err))
+                .expect_log("Connection closed");
+        }
     );
 
     Ok(())
