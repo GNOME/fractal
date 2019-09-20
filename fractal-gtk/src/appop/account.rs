@@ -273,7 +273,7 @@ impl AppOp {
         self.get_three_pid();
         uid.set_text(&self.uid.clone().unwrap_or_default());
         device_id.set_text(&self.device_id.clone().unwrap_or_default());
-        homeserver.set_text(&self.server_url);
+        homeserver.set_text(self.server_url.as_str());
         name.set_text(&self.username.clone().unwrap_or_default());
         name.grab_focus_without_selecting();
         name.set_position(-1);

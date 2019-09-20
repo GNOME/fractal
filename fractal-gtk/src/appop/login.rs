@@ -5,6 +5,8 @@ use crate::globals;
 use gtk;
 use gtk::prelude::*;
 
+use url::Url;
+
 use crate::appop::AppOp;
 
 use crate::backend::BKCommand;
@@ -118,10 +120,18 @@ impl AppOp {
             return;
         }
 
-        self.server_url = match server_entry.get_text() {
-            Some(s) => s.to_string(),
-            None => String::from(globals::DEFAULT_HOMESERVER),
-        };
+        if let Some(s) = server_entry.get_text() {
+            match Url::parse(&s) {
+                Ok(u) => {
+                    self.server_url = u;
+                }
+                Err(_) => {
+                    let msg = i18n("Malformed server URL");
+                    ErrorDialog::new(false, &msg);
+                    return;
+                }
+            }
+        }
         /* FIXME ask also for the identity server */
 
         //self.store_pass(username.clone(), password.clone(), server_url.clone())
@@ -132,9 +142,9 @@ impl AppOp {
 
         let uname = username.clone();
         let pass = password.clone();
-        let ser = self.server_url.clone();
+        let ser = self.server_url.to_string();
         self.backend
-            .send(BKCommand::Register(uname, pass, ser))
+            .send(BKCommand::Register(uname, pass, ser))  // TODO: Change command type to url
             .unwrap();
     }
 
@@ -142,13 +152,10 @@ impl AppOp {
         &mut self,
         username: Option<String>,
         password: Option<String>,
-        server: Option<String>,
+        server: Url,
         identity: Option<String>,
     ) -> Option<()> {
-        self.server_url = match server {
-            Some(s) => s,
-            None => String::from(globals::DEFAULT_HOMESERVER),
-        };
+        self.server_url = server;
 
         self.identity_url = match identity {
             Some(u) => u,
@@ -158,7 +165,7 @@ impl AppOp {
         self.store_pass(
             username.clone()?,
             password.clone()?,
-            self.server_url.clone(),
+            self.server_url.to_string(),
             self.identity_url.clone(),
         )
         .unwrap_or_else(|_| {
@@ -168,9 +175,9 @@ impl AppOp {
 
         let uname = username?;
         let pass = password?;
-        let ser = self.server_url.clone();
+        let ser = self.server_url.to_string();
         self.backend
-            .send(BKCommand::Login(uname, pass, ser))
+            .send(BKCommand::Login(uname, pass, ser))  // TODO: Change command type to url
             .unwrap();
         Some(())
     }
@@ -179,29 +186,23 @@ impl AppOp {
         &mut self,
         token: Option<String>,
         uid: Option<String>,
-        server: Option<String>,
+        server: Url,
     ) -> Option<()> {
-        self.server_url = match server {
-            Some(s) => s,
-            None => String::from(globals::DEFAULT_HOMESERVER),
-        };
+        self.server_url = server;
 
-        let ser = self.server_url.clone();
+        let ser = self.server_url.to_string();
         self.backend
-            .send(BKCommand::SetToken(token?, uid?, ser))
+            .send(BKCommand::SetToken(token?, uid?, ser))  // TODO: Change command type to url
             .unwrap();
         Some(())
     }
 
     #[allow(dead_code)]
-    pub fn connect_guest(&mut self, server: Option<String>) {
-        self.server_url = match server {
-            Some(s) => s,
-            None => String::from(globals::DEFAULT_HOMESERVER),
-        };
+    pub fn connect_guest(&mut self, server: Url) {
+        self.server_url = server;
 
         self.backend
-            .send(BKCommand::Guest(self.server_url.clone()))
+            .send(BKCommand::Guest(self.server_url.to_string()))  // TODO: Change command type to url
             .unwrap();
     }
 

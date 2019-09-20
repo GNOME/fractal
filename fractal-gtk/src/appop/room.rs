@@ -110,7 +110,7 @@ impl AppOp {
                 });
             });
 
-            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.clone()));
+            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.to_string()));
             self.roomlist.add_rooms(roomlist);
             container.add(self.roomlist.widget());
 
