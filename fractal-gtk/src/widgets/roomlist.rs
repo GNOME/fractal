@@ -17,18 +17,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use chrono::prelude::*;
 
-fn get_url(url: Option<String>) -> Url {
-    let defurl = Url::parse(globals::DEFAULT_HOMESERVER).unwrap();
-
-    match url {
-        Some(u) => match Url::parse(&u) {
-            Ok(url) => url,
-            Err(_) => defurl,
-        },
-        None => defurl,
-    }
-}
-
 pub struct RoomUpdated {
     pub room: Room,
     pub updated: DateTime<Local>,
@@ -478,9 +466,12 @@ macro_rules! run_in_group {
 }
 
 impl RoomList {
+    // TODO: Change url to Url
     pub fn new(adj: Option<gtk::Adjustment>, url: Option<String>) -> RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let baseu = get_url(url);
+        let baseu = url
+            .and_then(|u| Url::parse(&u).ok())
+            .unwrap_or(globals::DEFAULT_HOMESERVER.clone());
 
         let inv = RGroup::new(
             &baseu,

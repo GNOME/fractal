@@ -1,9 +1,18 @@
 use fractal_api::derror;
 use secret_service;
+use url::ParseError;
+use url::Url;
 
 #[derive(Debug)]
 pub enum Error {
     SecretServiceError,
+    UrlParseError(ParseError),
+}
+
+impl From<ParseError> for Error {
+    fn from(err: ParseError) -> Error {
+        Error::UrlParseError(err)
+    }
 }
 
 derror!(secret_service::SsError, Error::SecretServiceError);
@@ -23,7 +32,7 @@ pub trait PasswordStorage {
         ss_storage::store_pass(username, password, server, identity)
     }
 
-    fn get_pass(&self) -> Result<(String, String, String, String), Error> {
+    fn get_pass(&self) -> Result<(String, String, Url, String), Error> {
         ss_storage::get_pass()
     }
 
@@ -38,6 +47,7 @@ pub trait PasswordStorage {
 
 mod ss_storage {
     use super::Error;
+    use url::Url;
 
     use super::secret_service::EncryptionType;
     use super::secret_service::SecretService;
@@ -184,7 +194,7 @@ mod ss_storage {
         Ok(())
     }
 
-    pub fn get_pass() -> Result<(String, String, String, String), Error> {
+    pub fn get_pass() -> Result<(String, String, Url, String), Error> {
         migrate_old_passwd()?;
 
         let ss = SecretService::new(EncryptionType::Dh)?;
@@ -214,7 +224,7 @@ mod ss_storage {
             .iter()
             .find(|&ref x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
-        let server = attr.1.clone();
+        let server = Url::parse(&attr.1)?;
 
         let attr = attrs.iter().find(|&ref x| x.0 == "identity");
 

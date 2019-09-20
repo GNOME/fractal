@@ -1,11 +1,14 @@
 use gio::prelude::*;
 use gtk::prelude::*;
 use log::info;
+use url::Url;
 
 use crate::actions;
 use crate::actions::global::AppState;
 use crate::actions::login::LoginState;
 use crate::appop::AppOp;
+use crate::i18n::i18n;
+use crate::widgets::ErrorDialog;
 
 use fractal_api::backend::register::get_well_known;
 
@@ -81,23 +84,32 @@ impl LoginWidget {
                     .map_or(String::new(), |gstr| gstr.to_string());
 
                 let txt = format!(
-                    "{}{}",
-                    "https://",
-                    String::from(txt)
-                        .trim()
+                    "https://{}",
+                    txt.trim()
                         .trim_start_matches("http://")
-                        .trim_start_matches("https://")
+                        .trim_start_matches("https://"),
                 );
 
                 if !password.is_empty() && !username.is_empty() {
                     // take the user's homeserver value if the
                     // well-known request fails
-                    let mut homeserver_url = txt.clone();
+                    let hs_url = Url::parse(&txt);
+
+                    if hs_url.is_err() {
+                        let msg = i18n("Malformed server URL");
+                        ErrorDialog::new(false, &msg);
+                        return;
+                    };
+
+                    let mut homeserver_url =
+                        hs_url.expect("hs_url must return earlier if it's Err");
                     let mut idserver = None;
                     match get_well_known(&txt) {
+                        // TODO: Use Url everywhere
                         Ok(response) => {
                             info!("Got well-known response from {}: {:#?}", &txt, response);
-                            homeserver_url = response.homeserver.base_url;
+                            homeserver_url =
+                                Url::parse(&response.homeserver.base_url).unwrap_or(homeserver_url);
                             idserver = response.identity_server.map(|ids| ids.base_url);
                         }
                         Err(e) => info!("Failed to .well-known request: {:#?}", e),
@@ -109,7 +121,7 @@ impl LoginWidget {
                     op.lock().unwrap().connect(
                         Some(username),
                         Some(password),
-                        Some(homeserver_url),
+                        homeserver_url,
                         idserver,
                     );
                 } else {
