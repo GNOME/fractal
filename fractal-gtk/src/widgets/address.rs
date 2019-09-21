@@ -159,7 +159,7 @@ impl<'a> Address<'a> {
         let action = self.action.clone();
         let entry = self.entry.clone();
         let address = self.address.clone();
-        let id_server = self.op.identity_url.clone();
+        let id_server = self.op.identity_url.to_string();
         let backend = self.op.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
             if !w.get_sensitive() || !w.is_visible() {
@@ -185,7 +185,7 @@ impl<'a> Address<'a> {
                     add_address(
                         &backend,
                         medium,
-                        id_server.clone(),
+                        id_server.clone(), // TODO: Change type to Url
                         entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
                     );
                 }

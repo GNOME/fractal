@@ -7,6 +7,7 @@ use crate::actions;
 use crate::actions::global::AppState;
 use crate::actions::login::LoginState;
 use crate::appop::AppOp;
+use crate::globals;
 use crate::i18n::i18n;
 use crate::widgets::ErrorDialog;
 
@@ -103,14 +104,17 @@ impl LoginWidget {
 
                     let mut homeserver_url =
                         hs_url.expect("hs_url must return earlier if it's Err");
-                    let mut idserver = None;
+                    let mut idserver = globals::DEFAULT_IDENTITYSERVER.clone();
                     match get_well_known(&txt) {
                         // TODO: Use Url everywhere
                         Ok(response) => {
                             info!("Got well-known response from {}: {:#?}", &txt, response);
                             homeserver_url =
                                 Url::parse(&response.homeserver.base_url).unwrap_or(homeserver_url);
-                            idserver = response.identity_server.map(|ids| ids.base_url);
+                            idserver = response
+                                .identity_server
+                                .and_then(|ids| Url::parse(&ids.base_url).ok())
+                                .unwrap_or(idserver);
                         }
                         Err(e) => info!("Failed to .well-known request: {:#?}", e),
                     };
