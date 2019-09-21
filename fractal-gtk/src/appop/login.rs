@@ -1,7 +1,6 @@
 use crate::i18n::i18n;
 use log::error;
 
-use crate::globals;
 use gtk;
 use gtk::prelude::*;
 
@@ -153,20 +152,16 @@ impl AppOp {
         username: Option<String>,
         password: Option<String>,
         server: Url,
-        identity: Option<String>,
+        identity: Url,
     ) -> Option<()> {
         self.server_url = server;
-
-        self.identity_url = match identity {
-            Some(u) => u,
-            None => String::from(globals::DEFAULT_IDENTITYSERVER),
-        };
+        self.identity_url = identity;
 
         self.store_pass(
             username.clone()?,
             password.clone()?,
             self.server_url.to_string(),
-            self.identity_url.clone(),
+            self.identity_url.to_string(),
         )
         .unwrap_or_else(|_| {
             // TODO: show an error
