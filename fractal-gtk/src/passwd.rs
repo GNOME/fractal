@@ -32,7 +32,7 @@ pub trait PasswordStorage {
         ss_storage::store_pass(username, password, server, identity)
     }
 
-    fn get_pass(&self) -> Result<(String, String, Url, String), Error> {
+    fn get_pass(&self) -> Result<(String, String, Url, Url), Error> {
         ss_storage::get_pass()
     }
 
@@ -187,14 +187,14 @@ mod ss_storage {
             p.delete()?;
         }
         /* Fallback to default identity server if there is none */
-        let identity = String::from(globals::DEFAULT_IDENTITYSERVER);
+        let identity = globals::DEFAULT_IDENTITYSERVER.to_string();
 
         store_pass(username, pwd, server, identity)?;
 
         Ok(())
     }
 
-    pub fn get_pass() -> Result<(String, String, Url, String), Error> {
+    pub fn get_pass() -> Result<(String, String, Url, Url), Error> {
         migrate_old_passwd()?;
 
         let ss = SecretService::new(EncryptionType::Dh)?;
@@ -230,8 +230,8 @@ mod ss_storage {
 
         /* Fallback to the vector identity server when there is none */
         let identity = match attr {
-            Some(a) => a.1.clone(),
-            None => String::from(globals::DEFAULT_IDENTITYSERVER),
+            Some(a) => Url::parse(&a.1)?,
+            None => globals::DEFAULT_IDENTITYSERVER.clone(),
         };
 
         let tup = (

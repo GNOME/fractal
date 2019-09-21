@@ -55,7 +55,7 @@ pub struct AppOp {
     pub device_id: Option<String>,
     pub avatar: Option<String>,
     pub server_url: Url,
-    pub identity_url: String,
+    pub identity_url: Url,
 
     pub active_room: Option<String>,
     pub rooms: RoomList,
@@ -99,7 +99,7 @@ impl AppOp {
             device_id: None,
             avatar: None,
             server_url: globals::DEFAULT_HOMESERVER.clone(),
-            identity_url: String::from(globals::DEFAULT_IDENTITYSERVER),
+            identity_url: globals::DEFAULT_IDENTITYSERVER.clone(),
             syncing: false,
             msg_queue: vec![],
             sending_message: false,
@@ -137,7 +137,7 @@ impl AppOp {
             if let Ok((token, uid)) = self.get_token() {
                 self.set_token(Some(token), Some(uid), pass.2);
             } else {
-                self.connect(Some(pass.0), Some(pass.1), pass.2, Some(pass.3));
+                self.connect(Some(pass.0), Some(pass.1), pass.2, pass.3);
             }
         } else {
             self.set_state(AppState::Login);
