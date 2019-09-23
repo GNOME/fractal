@@ -6,7 +6,7 @@
     <value nick="Plain text" value="1"/>
   </enum>
 
-  <schema path="/org/gnome/factal/" id="org.gnome.Fractal">
+  <schema path="/org/gnome/Fractal/" id="org.gnome.Fractal">
 
     <key name="password-storage" enum="org.gnome.Fractal.PasswordStorage">
       <default>'Secret Service'</default>

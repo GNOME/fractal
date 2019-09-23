@@ -16,8 +16,7 @@
         "--device=dri",
         "--talk-name=org.freedesktop.secrets",
         "--talk-name=org.freedesktop.Notifications",
-        "--filesystem=home",
-        "--metadata=X-DConf=migrate-path=/org/gnome/factal/"
+        "--filesystem=home"
     ],
     "build-options" : {
         "append-path": "/usr/lib/sdk/rust-stable/bin",
