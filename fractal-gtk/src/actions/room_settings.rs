@@ -5,6 +5,7 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use std::sync::mpsc::Sender;
+use url::Url;
 
 use crate::backend::BKCommand;
 use crate::i18n::i18n;
@@ -15,7 +16,11 @@ use crate::widgets::FileDialog::open;
 use crate::actions::ButtonState;
 
 // This creates all actions a user can perform in the room settings
-pub fn new(window: &gtk::Window, backend: &Sender<BKCommand>) -> gio::SimpleActionGroup {
+pub fn new(
+    window: &gtk::Window,
+    backend: &Sender<BKCommand>,
+    server_url: Url,
+) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     // TODO create two stats loading interaction and conect it to the avatar box
     let change_avatar = SimpleAction::new_stateful(
@@ -37,7 +42,11 @@ pub fn new(window: &gtk::Window, backend: &Sender<BKCommand>) -> gio::SimpleActi
             if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
                 if let Some(file) = path.to_str() {
                     a.change_state(&ButtonState::Insensitive.into());
-                    let _ = backend.send(BKCommand::SetRoomAvatar(id, file.to_string()));
+                    let _ = backend.send(BKCommand::SetRoomAvatar(
+                        server_url.clone(),
+                        id,
+                        file.to_string(),
+                    ));
                 } else {
                     ErrorDialog::new(false, &i18n("Couldn’t open file"));
                 }

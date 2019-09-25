@@ -103,14 +103,18 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
     Ok(())
 }
 
-pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> {
+pub fn send(bk: &Backend, base: Url, roomid: &str, sticker: &Sticker) -> Result<(), Error> {
     let now = Local::now();
     let msg = format!("{}{}{}", roomid, sticker.name, now.to_string());
     let digest = md5::compute(msg.as_bytes());
     // TODO: we need to generate the msg.id in the frontend
     let id = format!("{:x}", digest);
 
-    let url = bk.url(&format!("rooms/{}/send/m.sticker/{}", roomid, id), vec![])?;
+    let url = bk.url(
+        base,
+        &format!("rooms/{}/send/m.sticker/{}", roomid, id),
+        vec![],
+    )?;
 
     let attrs = json!({
         "body": sticker.body.clone(),
@@ -173,28 +177,14 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
     Ok(())
 }
 
-fn get_base_url(data: &Arc<Mutex<BackendData>>) -> Url {
-    data.lock().unwrap().server_url.clone()
-}
-
-fn url(
-    data: &Arc<Mutex<BackendData>>,
-    path: &str,
-    mut params: Vec<(&str, String)>,
-) -> Result<Url, Error> {
-    let base = get_base_url(data);
-    let tk = data.lock().unwrap().access_token.clone();
-
-    params.push(("access_token", tk.clone()));
-
-    client_url(&base, path, &params)
-}
-
 fn get_scalar_token(data: &Arc<Mutex<BackendData>>) -> Result<String, Error> {
     let base = data.lock().unwrap().scalar_url.clone();
     let uid = data.lock().unwrap().user_id.clone();
+    let tk = data.lock().unwrap().access_token.clone();
 
-    let url = url(data, &format!("user/{}/openid/request_token", uid), vec![])?;
+    let params = &[("access_token", tk)];
+    let path = &format!("user/{}/openid/request_token", uid);
+    let url = client_url(&base, path, params)?;
     let js = json_q("post", &url, &json!({}))?;
 
     let vurl = base
@@ -219,7 +209,7 @@ fn vurl(
     let base = data.lock().unwrap().scalar_url.clone();
     let token = data.lock().unwrap().scalar_token.clone();
     let tk = match token {
-        None => get_scalar_token(&data)?,
+        None => get_scalar_token(data)?,
         Some(t) => t.clone(),
     };
 

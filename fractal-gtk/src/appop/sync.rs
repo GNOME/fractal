@@ -21,7 +21,9 @@ impl AppOp {
             // do the initial sync without a since:
             // https://matrix.org/docs/spec/client_server/latest.html#syncing
             let since = if initial { None } else { self.since.clone() };
-            self.backend.send(BKCommand::Sync(since, initial)).unwrap();
+            self.backend
+                .send(BKCommand::Sync(self.server_url.clone(), since, initial))
+                .unwrap();
         }
     }
 

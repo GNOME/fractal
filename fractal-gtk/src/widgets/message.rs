@@ -9,6 +9,7 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use pango;
+use url::Url;
 
 use crate::backend::BKCommand;
 
@@ -33,6 +34,7 @@ use crate::widgets::AvatarExt;
 #[derive(Clone, Debug)]
 pub struct MessageBox {
     backend: Sender<BKCommand>,
+    server_url: Url,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
     eventbox: gtk::EventBox,
@@ -43,7 +45,7 @@ pub struct MessageBox {
 }
 
 impl MessageBox {
-    pub fn new(backend: Sender<BKCommand>) -> MessageBox {
+    pub fn new(backend: Sender<BKCommand>, server_url: Url) -> MessageBox {
         let username = gtk::Label::new(None);
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
@@ -55,8 +57,9 @@ impl MessageBox {
         gesture.set_touch_only(true);
 
         MessageBox {
-            backend: backend,
-            username: username,
+            backend,
+            server_url,
+            username,
             username_event_box: eb,
             eventbox,
             gesture,
@@ -180,9 +183,15 @@ impl MessageBox {
             self.username.set_text(&uid);
         }
 
-        download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+        download_to_cache(
+            self.backend.clone(),
+            self.server_url.clone(),
+            uid.clone(),
+            data.clone(),
+        );
         download_to_cache_username(
             self.backend.clone(),
+            self.server_url.clone(),
             &uid,
             self.username.clone(),
             Some(data.clone()),
@@ -311,7 +320,7 @@ impl MessageBox {
             Some(ref m) => m.clone(),
             None => msg.url.clone().unwrap_or_default(),
         };
-        let image = widgets::image::Image::new(&self.backend, &img_path)
+        let image = widgets::image::Image::new(&self.backend, self.server_url.clone(), &img_path)
             .size(Some(globals::MAX_IMAGE_SIZE))
             .build();
 
@@ -329,7 +338,7 @@ impl MessageBox {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let backend = self.backend.clone();
         if let Some(url) = msg.url.as_ref() {
-            let image = widgets::image::Image::new(&backend, url)
+            let image = widgets::image::Image::new(&backend, self.server_url.clone(), url)
                 .size(Some(globals::MAX_STICKER_SIZE))
                 .build();
             image.widget.set_tooltip_text(Some(&msg.body[..]));
@@ -349,7 +358,11 @@ impl MessageBox {
 
         let (tx, rx): (Sender<String>, Receiver<String>) = channel();
         backend
-            .send(BKCommand::GetMediaUrl(url.clone(), tx))
+            .send(BKCommand::GetMediaUrl(
+                self.server_url.clone(),
+                url.clone(),
+                tx,
+            ))
             .unwrap();
 
         gtk::timeout_add(
@@ -482,6 +495,7 @@ impl MessageBox {
 
         download_to_cache_username_emote(
             self.backend.clone(),
+            self.server_url.clone(),
             &sname,
             &markup,
             msg_label.clone(),

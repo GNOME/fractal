@@ -63,7 +63,12 @@ impl<'a> MemberBox<'a> {
             None,
         );
         let member_id = self.member.uid.clone();
-        download_to_cache(backend.clone(), member_id.clone(), data.clone());
+        download_to_cache(
+            backend.clone(),
+            self.op.server_url.clone(),
+            member_id.clone(),
+            data.clone(),
+        );
 
         avatar.set_margin_start(3);
         avatar.set_valign(gtk::Align::Center);
@@ -101,7 +106,12 @@ impl<'a> MemberBox<'a> {
             None,
         );
         let member_id = self.member.uid.clone();
-        download_to_cache(backend.clone(), member_id.clone(), data.clone());
+        download_to_cache(
+            backend.clone(),
+            self.op.server_url.clone(),
+            member_id.clone(),
+            data.clone(),
+        );
 
         avatar.set_margin_start(3);
 

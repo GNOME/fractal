@@ -12,6 +12,7 @@ use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use gtk::ResponseType;
+use url::Url;
 
 use crate::types::Message;
 use crate::types::Room;
@@ -40,6 +41,7 @@ struct Data {
     builder: gtk::Builder,
     main_window: gtk::Window,
     backend: Sender<BKCommand>,
+    server_url: Url,
 
     pub image: Option<image::Image>,
     media_list: Vec<Message>,
@@ -55,14 +57,15 @@ struct Data {
 impl Data {
     pub fn new(
         backend: Sender<BKCommand>,
+        server_url: Url,
         media_list: Vec<Message>,
         current_media_index: usize,
         main_window: gtk::Window,
         builder: gtk::Builder,
     ) -> Data {
         Data {
-            media_list: media_list,
-            current_media_index: current_media_index,
+            media_list,
+            current_media_index,
             prev_batch: None,
             loading_more_media: false,
             loading_error: false,
@@ -70,6 +73,7 @@ impl Data {
             image: None,
             builder,
             backend,
+            server_url,
             main_window,
             signal_id: None,
         }
@@ -235,7 +239,7 @@ impl Data {
             .clone()
             .unwrap_or_default();
 
-        let image = image::Image::new(&self.backend, &url)
+        let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
             .fit_to_width(true)
             .center(true)
             .build();
@@ -255,6 +259,7 @@ impl MediaViewer {
         main_window: gtk::Window,
         room: &Room,
         current_media_msg: &Message,
+        server_url: Url,
     ) -> MediaViewer {
         let builder = gtk::Builder::new();
         builder
@@ -279,6 +284,7 @@ impl MediaViewer {
         MediaViewer {
             data: Rc::new(RefCell::new(Data::new(
                 backend.clone(),
+                server_url,
                 media_list,
                 current_media_index,
                 main_window,
@@ -324,10 +330,14 @@ impl MediaViewer {
             .get_object::<gtk::Viewport>("media_viewport")
             .expect("Cant find media_viewport in ui file.");
 
-        let image = image::Image::new(&self.backend, &media_msg.url.clone().unwrap_or_default())
-            .fit_to_width(true)
-            .center(true)
-            .build();
+        let image = image::Image::new(
+            &self.backend,
+            self.data.borrow().server_url.clone(),
+            &media_msg.url.clone().unwrap_or_default(),
+        )
+        .fit_to_width(true)
+        .center(true)
+        .build();
 
         media_viewport.add(&image.widget);
         media_viewport.show_all();
@@ -583,6 +593,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     let roomid = msg.room.clone();
     let first_media_id = Some(msg.id.clone());
     let prev_batch = data.borrow().prev_batch.clone();
+    let server_url = data.borrow().server_url.clone();
 
     let (tx, rx): (
         Sender<(Vec<Message>, String)>,
@@ -590,6 +601,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     ) = channel();
     backend
         .send(BKCommand::GetMediaListAsync(
+            server_url,
             roomid,
             first_media_id,
             prev_batch,

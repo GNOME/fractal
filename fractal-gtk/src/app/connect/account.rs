@@ -76,7 +76,8 @@ impl App {
         // FIXME: don't clone the backend
         let backend = self.op.lock().unwrap().backend.clone();
         let window = self.main_window.upcast_ref::<gtk::Window>();
-        let actions = AccountSettings::new(&window, &backend);
+        let server_url = self.op.lock().unwrap().server_url.clone();
+        let actions = AccountSettings::new(&window, &backend, server_url);
         let container = self
             .ui
             .builder
