@@ -8,12 +8,11 @@ use directories::ProjectDirs;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
-use std::fs::create_dir_all;
-use std::fs::File;
-use std::io::prelude::*;
+use std::fs::{create_dir_all, write};
 
 use std::sync::mpsc::SendError;
 use std::sync::{Arc, Condvar, Mutex};
@@ -21,18 +20,20 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::r0::filter::RoomEventFilter;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
-use crate::types::Message;
 
 use reqwest::header::CONTENT_LENGTH;
-use reqwest::header::CONTENT_TYPE;
 
 use crate::globals;
 
 lazy_static! {
     pub static ref HTTP_CLIENT: Client = Client::new();
+    static ref CACHE_PATH: PathBuf = ProjectDirs::from("org", "GNOME", "Fractal")
+        .as_ref()
+        .map(ProjectDirs::cache_dir)
+        .map(Into::into)
+        .unwrap_or(std::env::temp_dir().join("fractal"));
 }
 
 pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
@@ -136,13 +137,27 @@ macro_rules! query {
             }
         });
     };
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        query!($method, $url, $attrs, $okcb, $errcb, globals::TIMEOUT);
-    };
     ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        let attrs = json!(null);
-        query!($method, $url, &attrs, $okcb, $errcb)
+        query!($method, $url, &json!(null), $okcb, $errcb)
     };
+}
+
+pub enum ContentType {
+    Download,
+    Thumbnail(i32, i32),
+}
+
+impl ContentType {
+    pub fn default_thumbnail() -> Self {
+        ContentType::Thumbnail(128, 128)
+    }
+
+    pub fn is_thumbnail(&self) -> bool {
+        match self {
+            ContentType::Download => false,
+            ContentType::Thumbnail(_, _) => true,
+        }
+    }
 }
 
 pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
@@ -182,93 +197,24 @@ pub fn get_prev_batch_from(
     Ok(prev_batch)
 }
 
-pub fn get_room_media_list(
-    baseu: &Url,
-    tk: &str,
-    roomid: &str,
-    limit: i32,
-    first_media_id: Option<String>,
-    prev_batch: &Option<String>,
-) -> Result<(Vec<Message>, String), Error> {
-    let mut params = vec![
-        ("dir", String::from("b")),
-        ("limit", format!("{}", limit)),
-        ("access_token", String::from(tk)),
-        (
-            "filter",
-            serde_json::to_string(&RoomEventFilter {
-                contains_url: true,
-                not_types: vec!["m.sticker"],
-                ..Default::default()
-            })
-            .expect("Failed to serialize room media list request filter"),
-        ),
-    ];
-
-    match prev_batch {
-        Some(ref pb) => params.push(("from", pb.clone())),
-        None => {
-            if let Some(id) = first_media_id {
-                params.push(("from", get_prev_batch_from(baseu, tk, &roomid, &id)?))
-            }
-        }
-    };
-
-    let path = format!("rooms/{}/messages", roomid);
-    let url = client_url(baseu, &path, &params)?;
-
-    let r = json_q("get", &url, &json!(null))?;
-    let array = r["chunk"].as_array();
-    let prev_batch = r["end"].to_string().trim_matches('"').to_string();
-    if array.is_none() || array.unwrap().is_empty() {
-        return Ok((vec![], prev_batch));
-    }
-
-    let evs = array.unwrap().iter().rev();
-    let media_list = Message::from_json_events_iter(roomid, evs);
-
-    Ok((media_list, prev_batch))
-}
-
-pub fn get_media(url: &str) -> Result<Vec<u8>, Error> {
-    let conn = HTTP_CLIENT.get_client()?.get(url);
-    let mut res = conn.send()?;
-
-    let mut buffer = Vec::new();
-    res.read_to_end(&mut buffer)?;
-
-    Ok(buffer)
-}
-
-pub fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let (mime, _) = gio::content_type_guess(None, &file);
-
-    HTTP_CLIENT
-        .get_client()?
-        .post(url)
-        .body(file)
-        .header(CONTENT_TYPE, mime.to_string())
-        .send()?
-        .json()
-        .or(Err(Error::BackendError))
-}
-
-pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> Result<Url, Error> {
+pub fn resolve_media_url(base: &Url, url: &str, media_type: ContentType) -> Result<Url, Error> {
     let caps = globals::MATRIX_RE
         .captures(url)
         .ok_or(Error::BackendError)?;
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
-    let mut params: Vec<(&str, String)> = vec![];
-
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("scale")));
-        format!("thumbnail/{}/{}", server, media)
+    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
+        (
+            vec![
+                ("width", w.to_string()),
+                ("height", h.to_string()),
+                ("method", String::from("scale")),
+            ],
+            format!("thumbnail/{}/{}", server, media),
+        )
     } else {
-        format!("download/{}/{}", server, media)
+        (vec![], format!("download/{}/{}", server, media))
     };
 
     media_url(base, &path, &params)
@@ -277,10 +223,8 @@ pub fn resolve_media_url(base: &Url, url: &str, thumb: bool, w: i32, h: i32) -> 
 pub fn dw_media(
     base: &Url,
     url: &str,
-    thumb: bool,
+    media_type: ContentType,
     dest: Option<&str>,
-    w: i32,
-    h: i32,
 ) -> Result<String, Error> {
     let caps = globals::MATRIX_RE
         .captures(url)
@@ -288,63 +232,49 @@ pub fn dw_media(
     let server = String::from(&caps["server"]);
     let media = String::from(&caps["media"]);
 
-    let mut params: Vec<(&str, String)> = vec![];
-
-    let path = if thumb {
-        params.push(("width", format!("{}", w)));
-        params.push(("height", format!("{}", h)));
-        params.push(("method", String::from("crop")));
-        format!("thumbnail/{}/{}", server, media)
+    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
+        (
+            vec![
+                ("width", w.to_string()),
+                ("height", h.to_string()),
+                ("method", String::from("crop")),
+            ],
+            format!("thumbnail/{}/{}", server, media),
+        )
     } else {
-        format!("download/{}/{}", server, media)
+        (vec![], format!("download/{}/{}", server, media))
     };
 
     let url = media_url(base, &path, &params)?;
 
     let fname = match dest {
-        None if thumb => cache_dir_path("thumbs", &media)?,
-        None => cache_dir_path("medias", &media)?,
+        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media)?,
+        None => cache_dir_path(Some("medias"), &media)?,
         Some(d) => String::from(d),
     };
 
     download_file(url.as_str(), fname, dest)
 }
 
-pub fn media(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
-    dw_media(base, url, false, dest, 0, 0)
-}
-
-pub fn thumb(base: &Url, url: &str, dest: Option<&str>) -> Result<String, Error> {
-    dw_media(
-        base,
-        url,
-        true,
-        dest,
-        globals::THUMBNAIL_SIZE,
-        globals::THUMBNAIL_SIZE,
-    )
-}
-
 pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
-    let pathname = fname.clone();
-    let p = Path::new(&pathname);
-    if p.is_file() {
-        if dest.is_none() {
-            return Ok(fname);
-        }
+    let fpath = Path::new(&fname);
 
-        let moddate = p.metadata()?.modified()?;
-        // one minute cached
-        if moddate.elapsed()?.as_secs() < 60 {
-            return Ok(fname);
-        }
+    // If the file is already cached and recent enough, don't download it
+    if fpath.is_file()
+        && (dest.is_none() || fpath.metadata()?.modified()?.elapsed()?.as_secs() < 60)
+    {
+        Ok(fname)
+    } else {
+        HTTP_CLIENT
+            .get_client()?
+            .get(url)
+            .send()?
+            .bytes()
+            .collect::<Result<Vec<u8>, std::io::Error>>()
+            .and_then(|media| write(&fname, media))
+            .and(Ok(fname))
+            .map_err(Error::from)
     }
-
-    let mut file = File::create(&fname)?;
-    let buffer = get_media(url)?;
-    file.write_all(&buffer)?;
-
-    Ok(fname)
 }
 
 pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
@@ -409,8 +339,8 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
     let img = response
         .avatar_url
         .map(|url| {
-            let dest = cache_path(userid)?;
-            thumb(base, &url, Some(&dest))
+            let dest = cache_dir_path(None, userid)?;
+            dw_media(base, &url, ContentType::default_thumbnail(), Some(&dest))
         })
         .unwrap_or(Ok(Default::default()))?;
 
@@ -446,34 +376,17 @@ pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
     build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
-pub fn cache_path(name: &str) -> Result<String, Error> {
-    cache_dir_path("", name)
-}
-
-pub fn cache_dir_path(dir: &str, name: &str) -> Result<String, Error> {
-    let path = &ProjectDirs::from("org", "GNOME", "Fractal")
-        .as_ref()
-        .map(|project_dir| project_dir.cache_dir())
-        .unwrap_or(&std::env::temp_dir().join("fractal"))
-        .join(dir);
+pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
+    let path = CACHE_PATH.join(dir.unwrap_or_default());
 
     if !path.is_dir() {
-        create_dir_all(path)?;
+        create_dir_all(&path)?;
     }
 
     path.join(name)
         .to_str()
         .map(Into::into)
         .ok_or(Error::CacheError)
-}
-
-pub fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
-    if avatar.is_empty() {
-        return Ok(String::new());
-    }
-
-    let dest = cache_path(&userid)?;
-    thumb(baseu, &avatar, Some(&dest))
 }
 
 pub fn encode_uid(userid: &str) -> String {

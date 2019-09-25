@@ -3,16 +3,19 @@ use std::fs;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
+use crate::util::cache_dir_path;
+use crate::util::dw_media;
 use crate::util::encode_uid;
 use crate::util::get_user_avatar;
-use crate::util::get_user_avatar_img;
 use crate::util::semaphore;
+use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use reqwest::header::HeaderValue;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use url::Url;
 
 use crate::identity::r0::association::msisdn::submit_token::request as submit_phone_token_req;
 use crate::identity::r0::association::msisdn::submit_token::Body as SubmitPhoneTokenBody;
@@ -623,4 +626,18 @@ pub fn search(bk: &Backend, search_term: String) {
             }
         }
     });
+}
+
+fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
+    if avatar.is_empty() {
+        return Ok(String::new());
+    }
+
+    let dest = cache_dir_path(None, &userid)?;
+    dw_media(
+        baseu,
+        &avatar,
+        ContentType::default_thumbnail(),
+        Some(&dest),
+    )
 }

@@ -1,6 +1,7 @@
 use log::error;
 use serde_json::json;
 
+use reqwest::header::CONTENT_TYPE;
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::mpsc::Sender;
@@ -13,12 +14,13 @@ use crate::error::Error;
 use crate::globals;
 use std::thread;
 
-use crate::util;
-use crate::util::cache_path;
+use crate::util::cache_dir_path;
+use crate::util::dw_media;
+use crate::util::get_prev_batch_from;
 use crate::util::json_q;
-use crate::util::put_media;
-use crate::util::thumb;
+use crate::util::ContentType;
 use crate::util::ResultExpectLog;
+use crate::util::HTTP_CLIENT;
 use crate::util::{client_url, media_url};
 
 use crate::backend::types::BKCommand;
@@ -76,9 +78,14 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
         &url,
         |r: JsonValue| {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
-            let dest = cache_path(&roomid).ok();
+            let dest = cache_dir_path(None, &roomid).ok();
             if let Some(ref avatar) = avatar {
-                let _ = thumb(&baseu, avatar.as_str(), dest.as_ref().map(String::as_str));
+                let _ = dw_media(
+                    &baseu,
+                    avatar.as_str(),
+                    ContentType::default_thumbnail(),
+                    dest.as_ref().map(String::as_str),
+                );
             }
             tx.send(BKResponse::RoomAvatar(roomid, avatar))
                 .expect_log("Connection closed");
@@ -174,7 +181,7 @@ pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) ->
     let tx = bk.internal_tx.clone();
 
     thread::spawn(move || {
-        if let Ok(from) = util::get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
+        if let Ok(from) = get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
             if let Some(t) = tx {
                 t.send(BKCommand::GetRoomMessages(roomid, from))
                     .expect_log("Connection closed");
@@ -754,4 +761,17 @@ pub fn invite(bk: &Backend, roomid: &str, userid: &str) -> Result<(), Error> {
     });
 
     Ok(())
+}
+
+fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
+    let (mime, _) = gio::content_type_guess(None, &file);
+
+    HTTP_CLIENT
+        .get_client()?
+        .post(url)
+        .body(file)
+        .header(CONTENT_TYPE, mime.to_string())
+        .send()?
+        .json()
+        .or(Err(Error::BackendError))
 }
