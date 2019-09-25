@@ -12,6 +12,7 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use url::Url;
 
 use crate::backend::BKCommand;
 use std::sync::mpsc::TryRecvError;
@@ -20,6 +21,7 @@ use std::sync::mpsc::TryRecvError;
 pub struct Image {
     pub path: String,
     pub local_path: Arc<Mutex<Option<String>>>,
+    pub server_url: Url,
     pub max_size: Option<(i32, i32)>,
     pub widget: DrawingArea,
     pub backend: Sender<BKCommand>,
@@ -47,7 +49,7 @@ impl Image {
     ///           .size(Some((50, 50)))
     ///           .build();
     /// ```
-    pub fn new(backend: &Sender<BKCommand>, path: &str) -> Image {
+    pub fn new(backend: &Sender<BKCommand>, server_url: Url, path: &str) -> Image {
         let da = DrawingArea::new();
         da.add_events(gdk::EventMask::ENTER_NOTIFY_MASK);
         da.add_events(gdk::EventMask::LEAVE_NOTIFY_MASK);
@@ -66,6 +68,7 @@ impl Image {
         Image {
             path: path.to_string(),
             local_path: Arc::new(Mutex::new(None)),
+            server_url,
             max_size: None,
             widget: da,
             pixbuf: Arc::new(Mutex::new(None)),
@@ -262,9 +265,9 @@ impl Image {
             // asyn load
             let (tx, rx): (Sender<String>, Receiver<String>) = channel();
             let command = if self.thumb {
-                BKCommand::GetThumbAsync(self.path.to_string(), tx)
+                BKCommand::GetThumbAsync(self.server_url.clone(), self.path.to_string(), tx)
             } else {
-                BKCommand::GetMediaAsync(self.path.to_string(), tx)
+                BKCommand::GetMediaAsync(self.server_url.clone(), self.path.to_string(), tx)
             };
             self.backend.send(command).unwrap();
             let local_path = self.local_path.clone();

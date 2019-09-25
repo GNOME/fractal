@@ -159,7 +159,11 @@ impl AppOp {
         if let &Some(ref r) = &self.active_room {
             for user in &self.invite_list {
                 self.backend
-                    .send(BKCommand::Invite(r.clone(), user.0.uid.clone()))
+                    .send(BKCommand::Invite(
+                        self.server_url.clone(),
+                        r.clone(),
+                        user.0.uid.clone(),
+                    ))
                     .unwrap();
             }
         }
@@ -213,11 +217,11 @@ impl AppOp {
         if let Some(rid) = rid {
             if accept {
                 self.backend
-                    .send(BKCommand::AcceptInv(rid.clone()))
+                    .send(BKCommand::AcceptInv(self.server_url.clone(), rid.clone()))
                     .unwrap();
             } else {
                 self.backend
-                    .send(BKCommand::RejectInv(rid.clone()))
+                    .send(BKCommand::RejectInv(self.server_url.clone(), rid.clone()))
                     .unwrap();
             }
             self.remove_inv(rid);

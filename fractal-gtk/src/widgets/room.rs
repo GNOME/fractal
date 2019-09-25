@@ -119,8 +119,11 @@ impl<'a> RoomBox<'a> {
         let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
         let room_id = room.id.clone();
         let backend = self.op.backend.clone();
+        let server_url = self.op.server_url.clone();
         join_button.connect_clicked(move |_| {
-            backend.send(BKCommand::JoinRoom(room_id.clone())).unwrap();
+            backend
+                .send(BKCommand::JoinRoom(server_url.clone(), room_id.clone()))
+                .unwrap();
         });
         join_button.set_property_width_request(JOIN_BUTTON_WIDTH);
 
