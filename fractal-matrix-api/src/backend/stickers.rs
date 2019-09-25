@@ -43,11 +43,11 @@ pub fn list(bk: &Backend) -> Result<(), Error> {
                 let group = StickerGroup::from_json(sticker_group);
                 stickers.push(group);
             }
-            tx.send(BKResponse::Stickers(stickers))
+            tx.send(BKResponse::Stickers(Ok(stickers)))
                 .expect_log("Connection closed");
         },
         |err| {
-            tx.send(BKResponse::StickersError(err))
+            tx.send(BKResponse::Stickers(Err(err)))
                 .expect_log("Connection closed");
         }
     );
@@ -129,11 +129,11 @@ pub fn send(bk: &Backend, roomid: &str, sticker: &Sticker) -> Result<(), Error> 
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(id, evid.to_string()))
+            tx.send(BKResponse::SentMsg(Ok((id, evid.to_string()))))
                 .expect_log("Connection closed");
         },
         |_| {
-            tx.send(BKResponse::SendMsgError(Error::SendMsgError(id)))
+            tx.send(BKResponse::SentMsg(Err(Error::SendMsgError(id))))
                 .expect_log("Connection closed");
         }
     );
@@ -165,7 +165,7 @@ pub fn purchase(bk: &Backend, group: &StickerGroup) -> Result<(), Error> {
                 .expect_log("Connection closed");
         },
         |err| {
-            tx.send(BKResponse::StickersError(err))
+            tx.send(BKResponse::Stickers(Err(err)))
                 .expect_log("Connection closed");
         }
     );

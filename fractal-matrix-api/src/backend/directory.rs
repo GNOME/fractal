@@ -40,23 +40,16 @@ pub fn protocols(bk: &Backend) {
                     .execute(request)?
                     .json::<SupportedProtocolsResponse>()
                     .map_err(Into::into)
-            });
-
-        match query {
-            Ok(response) => {
-                let protocols = response
+            })
+            .map(|response| {
+                response
                     .into_iter()
                     .flat_map(|(_, protocol)| protocol.instances.into_iter())
-                    .collect();
+                    .collect()
+            });
 
-                tx.send(BKResponse::DirectoryProtocols(protocols))
-                    .expect_log("Connection closed");
-            }
-            Err(err) => {
-                tx.send(BKResponse::DirectoryError(err))
-                    .expect_log("Connection closed");
-            }
-        }
+        tx.send(BKResponse::DirectoryProtocols(query))
+            .expect_log("Connection closed");
     });
 }
 
@@ -119,13 +112,11 @@ pub fn room_search(
                     .execute(request)?
                     .json::<PublicRoomsResponse>()
                     .map_err(Into::into)
-            });
-
-        match query {
-            Ok(response) => {
+            })
+            .map(|response| {
                 data.lock().unwrap().rooms_since = response.next_batch.unwrap_or_default();
 
-                let rooms = response
+                response
                     .chunk
                     .into_iter()
                     .map(Into::into)
@@ -137,16 +128,11 @@ pub fn room_search(
                             }
                         }
                     })
-                    .collect();
+                    .collect()
+            });
 
-                tx.send(BKResponse::DirectorySearch(rooms))
-                    .expect_log("Connection closed");
-            }
-            Err(err) => {
-                tx.send(BKResponse::DirectoryError(err))
-                    .expect_log("Connection closed");
-            }
-        }
+        tx.send(BKResponse::DirectorySearch(query))
+            .expect_log("Connection closed");
     });
 
     Ok(())

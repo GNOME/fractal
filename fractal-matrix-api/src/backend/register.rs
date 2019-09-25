@@ -166,20 +166,17 @@ pub fn logout(bk: &Backend) {
                     .get_client()?
                     .execute(request)
                     .map_err(Into::into)
-            });
+            })
+            .and(Ok(()));
 
-        match query {
-            Ok(_) => {
-                data.lock().unwrap().user_id = Default::default();
-                data.lock().unwrap().access_token = Default::default();
-                data.lock().unwrap().since = None;
-                tx.send(BKResponse::Logout).expect_log("Connection closed");
-            }
-            Err(err) => {
-                tx.send(BKResponse::LogoutError(err))
-                    .expect_log("Connection closed");
-            }
+        if query.is_ok() {
+            data.lock().unwrap().user_id = Default::default();
+            data.lock().unwrap().access_token = Default::default();
+            data.lock().unwrap().since = None;
         }
+
+        tx.send(BKResponse::Logout(query))
+            .expect_log("Connection closed");
     });
 }
 

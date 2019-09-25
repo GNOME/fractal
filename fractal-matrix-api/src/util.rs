@@ -105,6 +105,15 @@ macro_rules! bkerror {
 }
 
 #[macro_export]
+macro_rules! bkerror2 {
+    ($result: expr, $tx: ident, $type: expr) => {
+        if let Err(e) = $result {
+            let _ = $tx.send($type(Err(e)));
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! get {
     ($($args: expr),+) => {
         query!("get", $($args),+)

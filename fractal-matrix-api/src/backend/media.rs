@@ -21,38 +21,23 @@ use crate::util::ResultExpectLog;
 use crate::r0::filter::RoomEventFilter;
 use crate::types::Message;
 
-pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match dw_media(&baseu, &media, ContentType::default_thumbnail(), None) {
-            Ok(fname) => {
-                tx.send(fname).expect_log("Connection closed");
-            }
-            Err(_) => {
-                tx.send(String::new()).expect_log("Connection closed");
-            }
-        };
+        let fname =
+            dw_media(&baseu, &media, ContentType::default_thumbnail(), None).unwrap_or_default();
+        tx.send(fname).expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
-pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match dw_media(&baseu, &media, ContentType::Download, None) {
-            Ok(fname) => {
-                tx.send(fname).expect_log("Connection closed");
-            }
-            Err(_) => {
-                tx.send(String::new()).expect_log("Connection closed");
-            }
-        };
+        let fname = dw_media(&baseu, &media, ContentType::Download, None).unwrap_or_default();
+        tx.send(fname).expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
 pub fn get_media_list_async(
@@ -61,84 +46,54 @@ pub fn get_media_list_async(
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
-) -> Result<(), Error> {
+) {
     let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let room = String::from(roomid);
 
-    semaphore(bk.limit_threads.clone(), move || match get_room_media_list(
-        &baseu,
-        &tk,
-        &room,
-        globals::PAGE_LIMIT,
-        first_media_id,
-        &prev_batch,
-    ) {
-        Ok(media_list) => {
-            tx.send(media_list).expect_log("Connection closed");
-        }
-        Err(_) => {
-            tx.send((Vec::new(), String::new()))
-                .expect_log("Connection closed");
-        }
+    semaphore(bk.limit_threads.clone(), move || {
+        let media_list = get_room_media_list(
+            &baseu,
+            &tk,
+            &room,
+            globals::PAGE_LIMIT,
+            first_media_id,
+            &prev_batch,
+        )
+        .unwrap_or_default();
+        tx.send(media_list).expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
-pub fn get_media(bk: &Backend, media: String) -> Result<(), Error> {
+pub fn get_media(bk: &Backend, media: String) {
     let baseu = bk.get_base_url();
 
     let tx = bk.tx.clone();
     thread::spawn(move || {
-        match dw_media(&baseu, &media, ContentType::Download, None) {
-            Ok(fname) => {
-                tx.send(BKResponse::Media(fname))
-                    .expect_log("Connection closed");
-            }
-            Err(err) => {
-                tx.send(BKResponse::MediaError(err))
-                    .expect_log("Connection closed");
-            }
-        };
+        let fname = dw_media(&baseu, &media, ContentType::Download, None);
+        tx.send(BKResponse::Media(fname))
+            .expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
-pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) -> Result<(), Error> {
+pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) {
     let baseu = bk.get_base_url();
 
     semaphore(bk.limit_threads.clone(), move || {
-        match resolve_media_url(&baseu, &media, ContentType::Download) {
-            Ok(uri) => {
-                tx.send(uri.to_string()).expect_log("Connection closed");
-            }
-            Err(_) => {
-                tx.send(String::new()).expect_log("Connection closed");
-            }
-        };
+        let uri = resolve_media_url(&baseu, &media, ContentType::Download)
+            .map(Url::into_string)
+            .unwrap_or_default();
+        tx.send(uri).expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
 pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
-    let fname;
-    {
-        let name = url.split('/').last().unwrap_or_default();
-        fname = cache_dir_path(Some("files"), name)?.clone();
-    }
+    let name = url.split('/').last().unwrap_or_default();
+    let fname = cache_dir_path(Some("files"), name)?;
 
     thread::spawn(move || {
-        match download_file(&url, fname, None) {
-            Ok(fname) => {
-                tx.send(fname).expect_log("Connection closed");
-            }
-            Err(_) => {
-                tx.send(String::new()).expect_log("Connection closed");
-            }
-        };
+        let fname = download_file(&url, fname, None).unwrap_or_default();
+        tx.send(fname).expect_log("Connection closed");
     });
 
     Ok(())
