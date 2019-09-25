@@ -7,6 +7,7 @@ use crate::i18n::ni18n_f;
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
+use url::Url;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
@@ -27,6 +28,7 @@ pub struct RoomSettings {
     builder: gtk::Builder,
     members_list: Option<MembersList>,
     backend: Sender<BKCommand>,
+    server_url: Url,
 }
 
 impl RoomSettings {
@@ -35,6 +37,7 @@ impl RoomSettings {
         backend: Sender<BKCommand>,
         uid: Option<String>,
         room: Room,
+        server_url: Url,
     ) -> RoomSettings {
         let builder = gtk::Builder::new();
 
@@ -46,16 +49,17 @@ impl RoomSettings {
             .get_object::<gtk::Stack>("room_settings_stack")
             .expect("Can't find room_settings_stack in ui file.");
 
-        let actions = actions::RoomSettings::new(&window, &backend);
+        let actions = actions::RoomSettings::new(&window, &backend, server_url.clone());
         stack.insert_action_group("room-settings", Some(&actions));
 
         RoomSettings {
             actions,
-            room: room,
-            uid: uid,
-            builder: builder,
+            room,
+            uid,
+            builder,
             members_list: None,
-            backend: backend,
+            backend,
+            server_url,
         }
     }
 
@@ -430,7 +434,12 @@ impl RoomSettings {
             None,
             None,
         );
-        download_to_cache(self.backend.clone(), self.room.id.clone(), data);
+        download_to_cache(
+            self.backend.clone(),
+            self.server_url.clone(),
+            self.room.id.clone(),
+            data,
+        );
 
         if edit {
             let overlay = self
@@ -483,7 +492,8 @@ impl RoomSettings {
         button.set_sensitive(false);
         entry.set_editable(false);
 
-        let command = BKCommand::SetRoomName(room.id.clone(), new_name.clone());
+        let command =
+            BKCommand::SetRoomName(self.server_url.clone(), room.id.clone(), new_name.clone());
         self.backend.send(command).unwrap();
 
         None
@@ -530,7 +540,8 @@ impl RoomSettings {
         button.set_sensitive(false);
         name.set_editable(false);
 
-        let command = BKCommand::SetRoomTopic(room.id.clone(), topic.clone());
+        let command =
+            BKCommand::SetRoomTopic(self.server_url.clone(), room.id.clone(), topic.clone());
         self.backend.send(command).unwrap();
 
         None

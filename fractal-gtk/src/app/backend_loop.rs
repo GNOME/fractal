@@ -72,9 +72,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let secret = Some(secret);
                     APPOP!(valid_phone_token, (sid, secret));
                 }
-                Ok(BKResponse::AddThreePID(Ok(list))) => {
-                    let l = Some(list);
-                    APPOP!(added_three_pid, (l));
+                Ok(BKResponse::AddThreePID(Ok(_))) => {
+                    APPOP!(added_three_pid);
                 }
                 Ok(BKResponse::DeleteThreePID(Ok(_))) => {
                     APPOP!(get_three_pid);

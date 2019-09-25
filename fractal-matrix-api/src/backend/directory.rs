@@ -24,11 +24,10 @@ use crate::r0::thirdparty::get_supported_protocols::Parameters as SupportedProto
 use crate::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
 use crate::types::Room;
 
-pub fn protocols(bk: &Backend) {
+pub fn protocols(bk: &Backend, base: Url) {
     let tx = bk.tx.clone();
     let access_token = bk.data.lock().unwrap().access_token.clone();
 
-    let base = bk.get_base_url();
     let params = SupportedProtocolsParameters { access_token };
 
     thread::spawn(move || {
@@ -55,6 +54,7 @@ pub fn protocols(bk: &Backend) {
 
 pub fn room_search(
     bk: &Backend,
+    base: Url,
     homeserver: Option<String>,
     generic_search_term: Option<String>,
     third_party: Option<String>,
@@ -78,7 +78,6 @@ pub fn room_search(
         })
         .unwrap_or(Ok(None))?;
 
-    let base = bk.get_base_url();
     let access_token = data.lock().unwrap().access_token.clone();
 
     let since = if more {

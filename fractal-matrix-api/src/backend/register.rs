@@ -27,11 +27,10 @@ use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 
 pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
-    let data = bk.data.clone();
     let tx = bk.tx.clone();
+    let data = bk.data.clone();
 
     let base = Url::parse(server)?;
-    data.lock().unwrap().server_url = base.clone();
 
     let params = RegisterParameters {
         kind: RegistrationKind::Guest,
@@ -74,11 +73,10 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
 }
 
 pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
-    let data = bk.data.clone();
     let tx = bk.tx.clone();
+    let data = bk.data.clone();
 
     let base = Url::parse(server)?;
-    data.lock().unwrap().server_url = base.clone();
 
     let body = if globals::EMAIL_RE.is_match(&user) {
         LoginBody {
@@ -137,29 +135,25 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
     Ok(())
 }
 
-pub fn set_token(bk: &Backend, token: String, uid: String, server: &str) -> Result<(), Error> {
-    bk.data.lock().unwrap().server_url = Url::parse(server)?;
+pub fn set_token(bk: &Backend, token: String, uid: String) {
     bk.data.lock().unwrap().access_token = token.clone();
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
     bk.tx
         .send(BKResponse::Token(uid, token, None))
         .expect_log("Connection closed");
-
-    Ok(())
 }
 
-pub fn logout(bk: &Backend) {
+pub fn logout(bk: &Backend, server: Url) {
     let data = bk.data.clone();
     let tx = bk.tx.clone();
 
-    let base = bk.get_base_url();
     let params = LogoutParameters {
         access_token: data.lock().unwrap().access_token.clone(),
     };
 
     thread::spawn(move || {
-        let query = logout_req(base, &params)
+        let query = logout_req(server, &params)
             .map_err(Into::into)
             .and_then(|request| {
                 HTTP_CLIENT
@@ -185,7 +179,6 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
     let tx = bk.tx.clone();
 
     let base = Url::parse(server)?;
-    data.lock().unwrap().server_url = base.clone();
     let params = Default::default();
     let body = RegisterBody {
         username: Some(user),
