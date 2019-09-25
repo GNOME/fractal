@@ -1,4 +1,3 @@
-use fractal_api::clone;
 use gtk;
 use gtk::prelude::*;
 use log::info;
@@ -21,10 +20,12 @@ impl AppOp {
     }
 
     pub fn get_three_pid(&self) {
-        self.backend.send(BKCommand::GetThreePID).unwrap();
+        self.backend
+            .send(BKCommand::GetThreePID(self.server_url.clone()))
+            .unwrap();
     }
 
-    pub fn added_three_pid(&self, _l: Option<String>) {
+    pub fn added_three_pid(&self) {
         self.get_three_pid();
     }
 
@@ -32,6 +33,7 @@ impl AppOp {
         if let Some(sid) = sid {
             if let Some(secret) = secret {
                 let _ = self.backend.send(BKCommand::AddThreePID(
+                    self.server_url.clone(),
                     self.identity_url.to_string(), // TODO: Change type to Url
                     secret.clone(),
                     sid.clone(),
@@ -86,13 +88,13 @@ impl AppOp {
         });
 
         let value = entry.clone();
-        let id_server = self.identity_url.to_string();
+        let server_url = self.server_url.clone();
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text() {
                         let _ = backend.send(BKCommand::SubmitPhoneToken(
-                            id_server.clone(), // TODO: Change type to Url
+                            server_url.clone(),
                             secret.clone(),
                             sid.clone(),
                             token.to_string(),
@@ -125,12 +127,14 @@ impl AppOp {
         );
         let backend = self.backend.clone();
         let id_server = self.identity_url.to_string();
+        let server_url = self.server_url.clone();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     let _ = backend.send(BKCommand::AddThreePID(
+                        server_url.clone(),
                         id_server.clone(), // TODO: Change type to Url
                         secret.clone(),
                         sid.clone(),
@@ -486,7 +490,12 @@ impl AppOp {
 
         let uid = self.uid.clone().unwrap_or_default();
         let data = w.circle(uid.clone(), self.username.clone(), 100, None, None);
-        download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+        download_to_cache(
+            self.backend.clone(),
+            self.server_url.clone(),
+            uid.clone(),
+            data.clone(),
+        );
 
         /* FIXME: hack to make the avatar drawing area clickable*/
         let current = stack.get_visible_child_name();
@@ -542,7 +551,9 @@ impl AppOp {
             button.set_image(Some(&spinner));
             button.set_sensitive(false);
             name.set_editable(false);
-            self.backend.send(BKCommand::SetUserName(username)).unwrap();
+            self.backend
+                .send(BKCommand::SetUserName(self.server_url.clone(), username))
+                .unwrap();
         } else {
             button.hide();
         }
@@ -599,6 +610,7 @@ impl AppOp {
                         password_btn.set_sensitive(false);
                         password_btn_stack.set_visible_child_name("spinner");
                         let _ = self.backend.send(BKCommand::ChangePassword(
+                            self.server_url.clone(),
                             mxid,
                             old.to_string(),
                             new.to_string(),
@@ -698,20 +710,25 @@ impl AppOp {
         dialog.add_button("Confirm", gtk::ResponseType::Ok.into());
         dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
 
-        let flag = mark.get_active();
+        let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
+        let server_url = self.server_url.clone();
         if let Some(password) = entry.get_text() {
             if let Some(mxid) = self.uid.clone() {
                 let backend = self.backend.clone();
                 let password = password.to_string();
-                dialog.connect_response(clone!(mxid, password, flag => move |w, r| {
+                dialog.connect_response(move |w, r| {
                     match gtk::ResponseType::from(r) {
                         gtk::ResponseType::Ok => {
-                            let _ = backend.send(BKCommand::AccountDestruction(mxid.clone(), password.clone(), flag));
-                        },
+                            let _ = backend.send(BKCommand::AccountDestruction(
+                                server_url.clone(),
+                                mxid.clone(),
+                                password.clone(),
+                            ));
+                        }
                         _ => {}
                     }
                     w.destroy();
-                }));
+                });
                 dialog.show_all();
             }
         }

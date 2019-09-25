@@ -21,7 +21,11 @@ impl AppOp {
 
         let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
         self.backend
-            .send(BKCommand::DirectChat(user.0.clone(), internal_id.clone()))
+            .send(BKCommand::DirectChat(
+                self.server_url.clone(),
+                user.0.clone(),
+                internal_id.clone(),
+            ))
             .unwrap();
         self.close_direct_chat_dialog();
 

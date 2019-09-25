@@ -72,12 +72,18 @@ impl AppOp {
             } else {
                 // Request all joined members for each new room
                 self.backend
-                    .send(BKCommand::GetRoomMembers(room.id.clone()))
+                    .send(BKCommand::GetRoomMembers(
+                        self.server_url.clone(),
+                        room.id.clone(),
+                    ))
                     .unwrap();
                 // Download the room avatar
                 // TODO: Use the avatar url returned by sync
                 self.backend
-                    .send(BKCommand::GetRoomAvatar(room.id.clone()))
+                    .send(BKCommand::GetRoomAvatar(
+                        self.server_url.clone(),
+                        room.id.clone(),
+                    ))
                     .unwrap();
                 if clear_room_list {
                     roomlist.push(room.clone());
@@ -117,9 +123,14 @@ impl AppOp {
             container.add(self.roomlist.widget());
 
             let bk = self.backend.clone();
+            let server_url = self.server_url.clone();
             self.roomlist.connect_fav(move |room, tofav| {
-                bk.send(BKCommand::AddToFav(room.id.clone(), tofav))
-                    .unwrap();
+                bk.send(BKCommand::AddToFav(
+                    server_url.clone(),
+                    room.id.clone(),
+                    tofav,
+                ))
+                .unwrap();
             });
             // Select active room in the sidebar
             if let Some(ref active_room) = self.active_room {
@@ -200,7 +211,10 @@ impl AppOp {
 
         // getting room details
         self.backend
-            .send(BKCommand::SetRoom(active_room.clone()))
+            .send(BKCommand::SetRoom(
+                self.server_url.clone(),
+                active_room.clone(),
+            ))
             .unwrap();
 
         /* create the intitial list of messages to fill the new room history */
@@ -228,7 +242,11 @@ impl AppOp {
             history.destroy();
         }
 
-        let actions = actions::RoomHistory::new(self.backend.clone(), self.ui.clone());
+        let actions = actions::RoomHistory::new(
+            self.backend.clone(),
+            self.server_url.clone(),
+            self.ui.clone(),
+        );
         let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         history.create(messages);
         self.history = Some(history);
@@ -242,7 +260,9 @@ impl AppOp {
 
     pub fn really_leave_active_room(&mut self) {
         let r = self.active_room.clone().unwrap_or_default();
-        self.backend.send(BKCommand::LeaveRoom(r.clone())).unwrap();
+        self.backend
+            .send(BKCommand::LeaveRoom(self.server_url.clone(), r.clone()))
+            .unwrap();
         self.rooms.remove(&r);
         self.active_room = None;
         self.clear_tmp_msgs();
@@ -308,7 +328,12 @@ impl AppOp {
 
         let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
         self.backend
-            .send(BKCommand::NewRoom(n.clone(), p, internal_id.clone()))
+            .send(BKCommand::NewRoom(
+                self.server_url.clone(),
+                n.clone(),
+                p,
+                internal_id.clone(),
+            ))
             .unwrap();
 
         let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
@@ -443,7 +468,9 @@ impl AppOp {
             .trim()
             .to_string();
 
-        self.backend.send(BKCommand::JoinRoom(n.clone())).unwrap();
+        self.backend
+            .send(BKCommand::JoinRoom(self.server_url.clone(), n.clone()))
+            .unwrap();
     }
 
     pub fn new_room(&mut self, r: Room, internal_id: Option<String>) {
@@ -590,7 +617,9 @@ impl AppOp {
             return;
         }
 
-        self.backend.send(BKCommand::GetRoomAvatar(roomid)).unwrap();
+        self.backend
+            .send(BKCommand::GetRoomAvatar(self.server_url.clone(), roomid))
+            .unwrap();
     }
 
     pub fn update_typing_notification(&mut self) {
@@ -635,7 +664,10 @@ impl AppOp {
             }
             self.typing.insert(active_room.clone(), now);
             self.backend
-                .send(BKCommand::SendTyping(active_room.clone()))
+                .send(BKCommand::SendTyping(
+                    self.server_url.clone(),
+                    active_room.clone(),
+                ))
                 .unwrap();
         }
     }

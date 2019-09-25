@@ -31,6 +31,7 @@ impl AppOp {
                 self.backend.clone(),
                 self.uid.clone(),
                 room.clone(),
+                self.server_url.clone(),
             );
             let (body, header) = panel.create()?;
 

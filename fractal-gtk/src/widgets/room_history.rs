@@ -20,6 +20,7 @@ use gio::SimpleActionGroup;
 use glib::source;
 use gtk;
 use gtk::prelude::*;
+use url::Url;
 
 struct List {
     list: VecDeque<Element>,
@@ -89,6 +90,7 @@ pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
     backend: Sender<BKCommand>,
+    server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
 }
@@ -116,6 +118,7 @@ impl RoomHistory {
         RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
+            server_url: op.server_url.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
         }
@@ -152,6 +155,7 @@ impl RoomHistory {
         } else {
             /* Lacy load initial messages */
             let source_id = self.source_id.clone();
+            let server_url = self.server_url.clone();
             *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
                 let mut data = queue.borrow_mut();
                 if let Some(mut item) = data.pop_front() {
@@ -189,7 +193,12 @@ impl RoomHistory {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
                     }
-                    item.widget = create_row(item.clone(), has_header, backend.clone());
+                    item.widget = create_row(
+                        item.clone(),
+                        has_header,
+                        backend.clone(),
+                        server_url.clone(),
+                    );
                     rows.borrow_mut().add_top(Element::Message(item));
                     if let Some(day_divider) = day_divider {
                         rows.borrow_mut().add_top(day_divider);
@@ -247,7 +256,12 @@ impl RoomHistory {
             rows.add_bottom(day_divider);
         }
 
-        let b = create_row(item.clone(), has_header, self.backend.clone());
+        let b = create_row(
+            item.clone(),
+            has_header,
+            self.backend.clone(),
+            self.server_url.clone(),
+        );
         item.widget = b;
         rows.add_bottom(Element::Message(item));
         None
@@ -291,10 +305,11 @@ fn create_row(
     row: MessageContent,
     has_header: bool,
     backend: Sender<BKCommand>,
+    server_url: Url,
 ) -> Option<widgets::MessageBox> {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
-    let mut mb = widgets::MessageBox::new(backend);
+    let mut mb = widgets::MessageBox::new(backend, server_url);
     mb.create(&row, has_header && row.mtype != RowType::Emote);
 
     Some(mb)

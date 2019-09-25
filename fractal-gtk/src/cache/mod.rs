@@ -1,6 +1,7 @@
 use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::types::Room;
 use crate::types::RoomList;
@@ -96,9 +97,18 @@ pub fn load() -> Result<CacheData, Error> {
 }
 
 /// this downloads a avatar and stores it in the cache folder
-pub fn download_to_cache(backend: Sender<BKCommand>, name: String, data: Rc<RefCell<AvatarData>>) {
+pub fn download_to_cache(
+    backend: Sender<BKCommand>,
+    server_url: Url,
+    name: String,
+    data: Rc<RefCell<AvatarData>>,
+) {
     let (tx, rx) = channel::<(String, String)>();
-    let _ = backend.send(BKCommand::GetUserInfoAsync(name.clone(), Some(tx)));
+    let _ = backend.send(BKCommand::GetUserInfoAsync(
+        server_url,
+        name.clone(),
+        Some(tx),
+    ));
 
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -113,13 +123,14 @@ pub fn download_to_cache(backend: Sender<BKCommand>, name: String, data: Rc<RefC
 /* Get username based on the MXID, we should cache the username */
 pub fn download_to_cache_username(
     backend: Sender<BKCommand>,
+    server_url: Url,
     uid: &str,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
     backend
-        .send(BKCommand::GetUserNameAsync(uid.to_string(), tx))
+        .send(BKCommand::GetUserNameAsync(server_url, uid.to_string(), tx))
         .unwrap();
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -140,6 +151,7 @@ pub fn download_to_cache_username(
  * FIXME: We should cache this request and do it before we need to display the username in an emote*/
 pub fn download_to_cache_username_emote(
     backend: Sender<BKCommand>,
+    server_url: Url,
     uid: &str,
     text: &str,
     label: gtk::Label,
@@ -147,7 +159,7 @@ pub fn download_to_cache_username_emote(
 ) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
     backend
-        .send(BKCommand::GetUserNameAsync(uid.to_string(), tx))
+        .send(BKCommand::GetUserNameAsync(server_url, uid.to_string(), tx))
         .unwrap();
     let text = text.to_string();
     gtk::timeout_add(50, move || match rx.try_recv() {

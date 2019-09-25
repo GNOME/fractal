@@ -11,8 +11,12 @@ use crate::widgets::AvatarExt;
 
 impl AppOp {
     pub fn get_username(&self) {
-        self.backend.send(BKCommand::GetUsername).unwrap();
-        self.backend.send(BKCommand::GetAvatar).unwrap();
+        self.backend
+            .send(BKCommand::GetUsername(self.server_url.clone()))
+            .unwrap();
+        self.backend
+            .send(BKCommand::GetAvatar(self.server_url.clone()))
+            .unwrap();
     }
 
     pub fn show_user_info(&self) {
@@ -53,7 +57,12 @@ impl AppOp {
             let w = widgets::Avatar::avatar_new(Some(40));
             let uid = self.uid.clone().unwrap_or_default();
             let data = w.circle(uid.clone(), self.username.clone(), 40, None, None);
-            download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+            download_to_cache(
+                self.backend.clone(),
+                self.server_url.clone(),
+                uid.clone(),
+                data.clone(),
+            );
 
             avatar.add(&w);
             stack.set_visible_child_name("info");
@@ -67,7 +76,12 @@ impl AppOp {
                 let w = widgets::Avatar::avatar_new(Some(24));
                 let uid = self.uid.clone().unwrap_or_default();
                 let data = w.circle(uid.clone(), self.username.clone(), 24, None, None);
-                download_to_cache(self.backend.clone(), uid.clone(), data.clone());
+                download_to_cache(
+                    self.backend.clone(),
+                    self.server_url.clone(),
+                    uid.clone(),
+                    data.clone(),
+                );
 
                 eb.add(&w);
             }

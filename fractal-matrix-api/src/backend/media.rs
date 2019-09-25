@@ -21,9 +21,7 @@ use crate::util::ResultExpectLog;
 use crate::r0::filter::RoomEventFilter;
 use crate::types::Message;
 
-pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) {
-    let baseu = bk.get_base_url();
-
+pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
     semaphore(bk.limit_threads.clone(), move || {
         let fname =
             dw_media(&baseu, &media, ContentType::default_thumbnail(), None).unwrap_or_default();
@@ -31,9 +29,7 @@ pub fn get_thumb_async(bk: &Backend, media: String, tx: Sender<String>) {
     });
 }
 
-pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) {
-    let baseu = bk.get_base_url();
-
+pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
     semaphore(bk.limit_threads.clone(), move || {
         let fname = dw_media(&baseu, &media, ContentType::Download, None).unwrap_or_default();
         tx.send(fname).expect_log("Connection closed");
@@ -42,12 +38,12 @@ pub fn get_media_async(bk: &Backend, media: String, tx: Sender<String>) {
 
 pub fn get_media_list_async(
     bk: &Backend,
+    baseu: Url,
     roomid: &str,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
-    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let room = String::from(roomid);
 
@@ -65,9 +61,7 @@ pub fn get_media_list_async(
     });
 }
 
-pub fn get_media(bk: &Backend, media: String) {
-    let baseu = bk.get_base_url();
-
+pub fn get_media(bk: &Backend, baseu: Url, media: String) {
     let tx = bk.tx.clone();
     thread::spawn(move || {
         let fname = dw_media(&baseu, &media, ContentType::Download, None);
@@ -76,9 +70,7 @@ pub fn get_media(bk: &Backend, media: String) {
     });
 }
 
-pub fn get_media_url(bk: &Backend, media: String, tx: Sender<String>) {
-    let baseu = bk.get_base_url();
-
+pub fn get_media_url(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
     semaphore(bk.limit_threads.clone(), move || {
         let uri = resolve_media_url(&baseu, &media, ContentType::Download)
             .map(Url::into_string)
