@@ -1,4 +1,4 @@
-include: 'https://gitlab.gnome.org/GNOME/citemplates/raw/master/flatpak/flatpak-ci-initiative-sdk-extensions.yml.yml'
+include: 'https://gitlab.gnome.org/GNOME/citemplates/raw/master/flatpak/flatpak-ci-initiative-sdk-extensions.yml'
 
 stages:
   - check
