@@ -41,10 +41,12 @@ pub fn sync(
     let tx = bk.tx.clone();
     let data = bk.data.clone();
 
-    let (timeout, filter) = if !initial {
-        (time::Duration::from_secs(30), Default::default())
+    let timeout = time::Duration::from_secs(30000);
+
+    let filter = if !initial {
+        Default::default()
     } else {
-        let filter = Filter {
+        Filter {
             room: Some(RoomFilter {
                 state: Some(RoomEventFilter {
                     lazy_load_members: true,
@@ -75,9 +77,7 @@ pub fn sync(
                 "unsigned",
             ]),
             ..Default::default()
-        };
-
-        (Default::default(), filter)
+        }
     };
 
     let params = SyncParameters {
