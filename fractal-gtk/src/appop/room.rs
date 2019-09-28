@@ -156,7 +156,8 @@ impl AppOp {
                     .unwrap_or(-1),
             };
 
-            if user_power >= 0 {
+            // No room admin information, assuming normal
+            if user_power >= 0 || room.admins.len() == 0 {
                 msg_entry.set_editable(true);
                 msg_entry_stack.set_visible_child_name("Text Entry");
 
