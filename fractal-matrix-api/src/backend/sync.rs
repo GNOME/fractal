@@ -42,10 +42,12 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
         .filter(|s| !s.is_empty())
         .or(new_since);
 
-    let (timeout, filter) = if !initial {
-        (time::Duration::from_secs(30), Default::default())
+    let timeout = time::Duration::from_secs(30000);
+
+    let filter = if !initial {
+        Default::default()
     } else {
-        let filter = Filter {
+        Filter {
             room: Some(RoomFilter {
                 state: Some(RoomEventFilter {
                     lazy_load_members: true,
@@ -76,9 +78,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
                 "unsigned",
             ]),
             ..Default::default()
-        };
-
-        (Default::default(), filter)
+        }
     };
 
     let base = bk.get_base_url();
