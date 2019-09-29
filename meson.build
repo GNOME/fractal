@@ -27,6 +27,7 @@ dependency('gstreamer-bad-audio-1.0', version: '>= 1.12')
 dependency('gst-editing-services-1.0', version: '>= 1.14.4')
 
 cargo = find_program('cargo', required: true)
+gresource = find_program('glib-compile-resources', required: true)
 gschemas = find_program('glib-compile-schemas', required: true)
 
 if get_option('profile') == 'development'
