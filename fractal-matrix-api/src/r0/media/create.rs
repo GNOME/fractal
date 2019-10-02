@@ -1,3 +1,4 @@
+use crate::de::url as serde_url;
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
 use reqwest::Client;
 use reqwest::Error;
@@ -13,7 +14,8 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub content_uri: String,
+    #[serde(deserialize_with = "serde_url::deserialize")]
+    pub content_uri: Url,
 }
 
 pub fn request(
