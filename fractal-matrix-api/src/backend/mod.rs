@@ -110,16 +110,19 @@ impl Backend {
             Ok(BKCommand::SetUserName(name)) => user::set_username(self, name),
             Ok(BKCommand::GetThreePID) => user::get_threepid(self),
             Ok(BKCommand::GetTokenEmail(identity, email, client_secret)) => {
-                user::get_email_token(self, identity, email, client_secret)
+                let r = user::get_email_token(self, identity, email, client_secret);
+                bkerror2!(r, tx, BKResponse::GetTokenEmail);
             }
             Ok(BKCommand::GetTokenPhone(identity, phone, client_secret)) => {
-                user::get_phone_token(self, identity, phone, client_secret)
+                let r = user::get_phone_token(self, identity, phone, client_secret);
+                bkerror2!(r, tx, BKResponse::GetTokenPhone);
             }
             Ok(BKCommand::SubmitPhoneToken(_, client_secret, sid, token)) => {
                 user::submit_phone_token(self, client_secret, sid, token)
             }
             Ok(BKCommand::AddThreePID(identity, client_secret, sid)) => {
-                user::add_threepid(self, identity, client_secret, sid)
+                let r = user::add_threepid(self, identity, client_secret, sid);
+                bkerror2!(r, tx, BKResponse::AddThreePID);
             }
             Ok(BKCommand::DeleteThreePID(medium, address)) => {
                 user::delete_three_pid(self, medium, address)

@@ -1,3 +1,4 @@
+use crate::de::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -36,8 +37,9 @@ pub struct User {
     pub user_id: String,
     #[serde(default)]
     pub display_name: Option<String>,
+    #[serde(deserialize_with = "option_url::deserialize")]
     #[serde(default)]
-    pub avatar_url: Option<String>,
+    pub avatar_url: Option<Url>,
 }
 
 fn u64_is_10(number: &u64) -> bool {

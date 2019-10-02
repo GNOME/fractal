@@ -1,7 +1,9 @@
 use crate::r0::search::user::User;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use url::Url;
 
+// TODO: Remove this and use only crate::r0::search::user::User
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
     // The mxid is either inside the json object, or outside of it.
@@ -36,7 +38,7 @@ impl From<User> for Member {
         Self {
             uid: user.user_id,
             alias: user.display_name,
-            avatar: user.avatar_url,
+            avatar: user.avatar_url.map(Url::into_string),
         }
     }
 }
