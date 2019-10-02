@@ -6,11 +6,10 @@ pub mod globals;
 pub mod backend;
 pub mod cache;
 mod client;
-mod de;
 pub mod identity;
 mod model;
 pub mod r0;
-mod ser;
+mod serde;
 pub mod types;
 
 #[cfg(test)]
