@@ -1,4 +1,4 @@
-use crate::de::option_url;
+use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -37,7 +37,7 @@ pub struct User {
     pub user_id: String,
     #[serde(default)]
     pub display_name: Option<String>,
-    #[serde(deserialize_with = "option_url::deserialize")]
+    #[serde(with = "option_url")]
     #[serde(default)]
     pub avatar_url: Option<Url>,
 }

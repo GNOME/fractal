@@ -1,4 +1,4 @@
-use crate::de::option_url;
+use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -20,7 +20,7 @@ pub struct Protocol {
     pub location_fields: Vec<String>,
     // This field is documented as "required",
     // but for some reason matrix.org does not send this
-    #[serde(deserialize_with = "option_url::deserialize")]
+    #[serde(with = "option_url")]
     #[serde(default)]
     pub icon: Option<Url>,
     pub field_types: BTreeMap<String, FieldType>,
@@ -39,7 +39,7 @@ pub struct ProtocolInstance {
     #[serde(rename = "network_id")]
     pub id: String,
     pub desc: String,
-    #[serde(deserialize_with = "option_url::deserialize")]
+    #[serde(with = "option_url")]
     #[serde(default)]
     pub icon: Option<Url>,
     pub fields: JsonValue,
