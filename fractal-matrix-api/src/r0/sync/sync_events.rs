@@ -1,5 +1,5 @@
 use crate::r0::filter::{serialize_filter_as_str, Filter};
-use crate::ser::serialize_duration_as_millis;
+use crate::serde::duration_as_millis;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -27,7 +27,7 @@ pub struct Parameters<'a> {
 #[serde(tag = "full_state", content = "timeout")]
 pub enum IncludeState {
     #[serde(rename = "false")]
-    #[serde(serialize_with = "serialize_duration_as_millis")]
+    #[serde(with = "duration_as_millis")]
     Changed(Duration),
     #[serde(rename = "true")]
     Full,
