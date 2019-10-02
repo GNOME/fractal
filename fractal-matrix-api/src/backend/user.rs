@@ -12,6 +12,7 @@ use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use reqwest::header::HeaderValue;
+use std::convert::TryInto;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -161,14 +162,19 @@ pub fn get_threepid(bk: &Backend) {
     });
 }
 
-pub fn get_email_token(bk: &Backend, identity: String, email: String, client_secret: String) {
+pub fn get_email_token(
+    bk: &Backend,
+    identity: String,
+    email: String,
+    client_secret: String,
+) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
     let base = bk.get_base_url();
     let access_token = bk.data.lock().unwrap().access_token.clone();
     let params = EmailTokenParameters { access_token };
     let body = EmailTokenBody {
-        id_server: identity[8..].into(),
+        id_server: Url::parse(&identity)?.try_into()?,
         client_secret: client_secret.clone(),
         email,
         send_attempt: 1,
@@ -198,16 +204,23 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
         tx.send(BKResponse::GetTokenEmail(query))
             .expect_log("Connection closed");
     });
+
+    Ok(())
 }
 
-pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_secret: String) {
+pub fn get_phone_token(
+    bk: &Backend,
+    identity: String,
+    phone: String,
+    client_secret: String,
+) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
     let base = bk.get_base_url();
     let access_token = bk.data.lock().unwrap().access_token.clone();
     let params = PhoneTokenParameters { access_token };
     let body = PhoneTokenBody {
-        id_server: identity[8..].into(),
+        id_server: Url::parse(&identity)?.try_into()?,
         client_secret: client_secret.clone(),
         phone_number: phone,
         country: String::new(),
@@ -238,9 +251,16 @@ pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_sec
         tx.send(BKResponse::GetTokenPhone(query))
             .expect_log("Connection closed");
     });
+
+    Ok(())
 }
 
-pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: String) {
+pub fn add_threepid(
+    bk: &Backend,
+    identity: String,
+    client_secret: String,
+    sid: String,
+) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
     let base = bk.get_base_url();
@@ -248,7 +268,7 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
     let params = AddThreePIDParameters { access_token };
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
-            id_server: identity[8..].into(),
+            id_server: Url::parse(&identity)?.try_into()?,
             sid: sid.clone(),
             client_secret,
         },
@@ -269,6 +289,8 @@ pub fn add_threepid(bk: &Backend, identity: String, client_secret: String, sid: 
         tx.send(BKResponse::AddThreePID(query))
             .expect_log("Connection closed");
     });
+
+    Ok(())
 }
 
 pub fn submit_phone_token(bk: &Backend, client_secret: String, sid: String, token: String) {

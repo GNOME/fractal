@@ -97,8 +97,10 @@ impl LoginWidget {
                     match get_well_known(&txt) {
                         Ok(response) => {
                             info!("Got well-known response from {}: {:#?}", &txt, response);
-                            homeserver_url = response.homeserver.base_url;
-                            idserver = response.identity_server.map(|ids| ids.base_url);
+                            homeserver_url = response.homeserver.base_url.into_string();
+                            idserver = response
+                                .identity_server
+                                .map(|ids| ids.base_url.into_string());
                         }
                         Err(e) => info!("Failed to .well-known request: {:#?}", e),
                     };
