@@ -1,3 +1,4 @@
+use crate::de::option_url;
 use crate::ser::serialize_option_host;
 use reqwest::Client;
 use reqwest::Error;
@@ -61,7 +62,9 @@ pub struct Response {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Chunk {
     pub aliases: Option<Vec<String>>,
-    pub avatar_url: Option<String>,
+    #[serde(deserialize_with = "option_url::deserialize")]
+    #[serde(default)]
+    pub avatar_url: Option<Url>,
     pub canonical_alias: Option<String>,
     pub guest_can_join: bool,
     pub name: Option<String>,

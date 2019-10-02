@@ -349,7 +349,12 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
         .avatar_url
         .map(|url| {
             let dest = cache_dir_path(None, userid)?;
-            dw_media(base, &url, ContentType::default_thumbnail(), Some(&dest))
+            dw_media(
+                base,
+                url.as_str(),
+                ContentType::default_thumbnail(),
+                Some(&dest),
+            )
         })
         .unwrap_or(Ok(Default::default()))?;
 
