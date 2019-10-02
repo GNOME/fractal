@@ -1,3 +1,4 @@
+use crate::de::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -6,7 +7,9 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub avatar_url: Option<String>,
+    #[serde(deserialize_with = "option_url::deserialize")]
+    #[serde(default)]
+    pub avatar_url: Option<Url>,
     pub displayname: Option<String>,
 }
 

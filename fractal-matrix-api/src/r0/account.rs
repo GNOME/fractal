@@ -5,7 +5,9 @@ pub mod logout;
 pub mod register;
 
 use crate::r0::{Medium, ThreePIDCredentials};
+use crate::ser::serialize_url;
 use serde::Serialize;
+use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
@@ -86,7 +88,10 @@ pub enum AuthenticationData {
         session: Option<String>,
     },
     #[serde(rename = "m.login.oauth2")]
-    OAuth2 { uri: String },
+    OAuth2 {
+        #[serde(serialize_with = "serialize_url")]
+        uri: Url,
+    },
     #[serde(rename = "m.login.email.identity")]
     Email {
         threepid_creds: ThreePIDCredentials,
