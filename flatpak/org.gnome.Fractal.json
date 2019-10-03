@@ -65,7 +65,7 @@
             ]
         },
         {
-            "name": "gspell",
+            "name" : "gspell",
             "config-opts" : [
                 "--disable-gtk-doc",
                 "--disable-gtk-doc-html"
