@@ -4,11 +4,10 @@ use gtk;
 use gtk::prelude::*;
 use libhandy::prelude::*;
 use std::cell::RefCell;
-use std::ops;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex, Weak as SyncWeak};
+use std::sync::{Arc, Mutex, Weak};
 
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
@@ -24,7 +23,7 @@ mod windowstate;
 
 use windowstate::WindowState;
 
-static mut OP: Option<SyncWeak<Mutex<AppOp>>> = None;
+static mut OP: Option<Weak<Mutex<AppOp>>> = None;
 #[macro_export]
 macro_rules! APPOP {
     ($fn: ident, ($($x:ident),*) ) => {{
@@ -45,11 +44,9 @@ mod backend_loop;
 
 pub use self::backend_loop::backend_loop;
 
-// Our refcounted application struct for containing all the state we have to carry around.
+// Our application struct for containing all the state we have to carry around.
 // TODO: subclass gtk::Application once possible
-pub struct App(Rc<AppInner>);
-
-pub struct AppInner {
+pub struct App {
     main_window: gtk::ApplicationWindow,
     /* Add widget directly here in place of uibuilder::UI*/
     ui: uibuilder::UI,
@@ -58,27 +55,10 @@ pub struct AppInner {
     op: Arc<Mutex<AppOp>>,
 }
 
-// Deref into the contained struct to make usage a bit more ergonomic
-impl ops::Deref for App {
-    type Target = AppInner;
-
-    fn deref(&self) -> &AppInner {
-        &*self.0
-    }
-}
-
-// Weak reference to our application struct
-pub struct AppWeak(Weak<AppInner>);
-
-impl AppWeak {
-    // Upgrade to a strong reference if it still exists
-    pub fn upgrade(&self) -> Option<App> {
-        self.0.upgrade().map(App)
-    }
-}
+pub type AppRef = Rc<App>;
 
 impl App {
-    pub fn new(gtk_app: &gtk::Application) -> App {
+    pub fn new(gtk_app: &gtk::Application) -> AppRef {
         let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
 
         let bk = Backend::new(tx);
@@ -200,33 +180,28 @@ impl App {
 
         actions::Global::new(gtk_app, &op);
 
-        let app = App(Rc::new(AppInner {
+        let app = AppRef::new(Self {
             main_window: window,
             ui,
             op,
-        }));
+        });
 
         app.connect_gtk();
 
         app
     }
 
-    // Downgrade to a weak reference
-    pub fn downgrade(&self) -> AppWeak {
-        AppWeak(Rc::downgrade(&self.0))
-    }
-
     pub fn on_startup(gtk_app: &gtk::Application) {
         // Create application
         let app = App::new(gtk_app);
 
-        let app_weak = app.downgrade();
+        let app_weak = AppRef::downgrade(&app);
         gtk_app.connect_activate(move |_| {
             let app = upgrade_weak!(app_weak);
             app.on_activate();
         });
 
-        let app_weak = app.downgrade();
+        let app_weak = AppRef::downgrade(&app);
         app.main_window
             .connect_property_has_toplevel_focus_notify(move |_| {
                 let app = upgrade_weak!(app_weak);
@@ -258,7 +233,7 @@ impl App {
         self.main_window.present()
     }
 
-    fn on_shutdown(self) {
+    fn on_shutdown(self: AppRef) {
         self.op.lock().unwrap().quit();
     }
 
