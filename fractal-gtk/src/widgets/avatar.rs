@@ -43,7 +43,7 @@ impl AvatarData {
 
     pub fn redraw_pixbuf(&mut self) {
         let path = cache_dir_path(None, &self.uid).unwrap_or_default();
-        self.cache = load_pixbuf(&path, self.size);
+        self.cache = load_pixbuf(&path, self.size * self.scale);
         self.widget.queue_draw();
     }
 }
@@ -149,8 +149,12 @@ impl AvatarExt for gtk::Overlay {
         let user_cache = avatar_cache.clone();
         da.connect_draw(move |da, g| {
             use std::f64::consts::PI;
-            let width = size as f64;
-            let height = size as f64;
+
+            let scale_f = scale as f64;
+            g.scale(1.0 / scale_f, 1.0 / scale_f);
+
+            let width = size as f64 * scale_f;
+            let height = size as f64 * scale_f;
 
             g.set_antialias(cairo::Antialias::Best);
 
@@ -166,7 +170,7 @@ impl AvatarExt for gtk::Overlay {
                 if has_badge {
                     g.clip_preserve();
                     g.new_sub_path();
-                    let badge_radius = badge_size as f64 / 2.0;
+                    let badge_radius = badge_size as f64 * scale_f / 2.;
                     g.arc(
                         width - badge_radius,
                         badge_radius,
@@ -179,21 +183,27 @@ impl AvatarExt for gtk::Overlay {
 
                 let data = user_cache.borrow();
                 if let Some(ref pb) = data.cache {
+                    g.save();
+                    g.scale(scale_f, scale_f);
                     let context = da.get_style_context();
-                    gtk::render_background(&context, g, 0.0, 0.0, width, height);
+                    gtk::render_background(
+                        &context,
+                        g,
+                        0.0,
+                        0.0,
+                        width / scale_f,
+                        height / scale_f,
+                    );
+                    g.restore();
 
                     let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
-                    g.set_source_pixbuf(&pb, 0.0, hpos);
+                    g.set_source_pixbuf(&pb, 0.0, hpos * scale_f);
                 } else {
                     /* use fallback */
                     g.set_source_surface(&data.fallback, 0f64, 0f64);
                 }
             }
-
-            let scale_f = scale as f64;
-            g.scale(1.0 / scale_f, 1.0 / scale_f);
-            g.rectangle(0.0, 0.0, width, height);
-            g.fill();
+            g.paint();
 
             Inhibit(false)
         });
