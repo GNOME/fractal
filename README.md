@@ -131,3 +131,7 @@ in relation with the Riot client name, but it's a negative name so we decide
 to change for a math one.
 
 The name Fractal was proposed by Regina Bíró.
+
+## Code of Conduct
+
+Fractal follows the official GNOME Foundation code of conduct. You can read it [here](/code-of-conduct.md).
