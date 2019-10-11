@@ -1,4 +1,5 @@
 use super::Identifier;
+use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -28,7 +29,7 @@ pub enum Auth {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub access_token: Option<String>,
+    pub access_token: Option<AccessToken>,
     pub user_id: Option<String>,
     pub device_id: Option<String>,
 }

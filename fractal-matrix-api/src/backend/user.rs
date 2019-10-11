@@ -111,7 +111,7 @@ pub fn get_username_async(base: Url, uid: String, tx: Sender<String>) {
 pub fn set_username(bk: &Backend, base: Url, name: String) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let uid = bk.data.lock().unwrap().user_id.clone();
     let params = SetDisplayNameParameters { access_token };
     let body = SetDisplayNameBody {
@@ -137,7 +137,7 @@ pub fn set_username(bk: &Backend, base: Url, name: String) {
 pub fn get_threepid(bk: &Backend, base: Url) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = ThirdPartyIDParameters { access_token };
 
     thread::spawn(move || {
@@ -166,7 +166,7 @@ pub fn get_email_token(
 ) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = EmailTokenParameters { access_token };
     let body = EmailTokenBody {
         id_server: Url::parse(&identity)?.try_into()?,
@@ -214,7 +214,7 @@ pub fn get_phone_token(
 ) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = PhoneTokenParameters { access_token };
     let body = PhoneTokenBody {
         id_server: Url::parse(&identity)?.try_into()?,
@@ -263,7 +263,7 @@ pub fn add_threepid(
 ) -> Result<(), Error> {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = AddThreePIDParameters { access_token };
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
@@ -327,7 +327,7 @@ pub fn submit_phone_token(
 pub fn delete_three_pid(bk: &Backend, base: Url, medium: Medium, address: String) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = DeleteThreePIDParameters { access_token };
     let body = DeleteThreePIDBody { address, medium };
 
@@ -356,7 +356,7 @@ pub fn change_password(
 ) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = ChangePasswordParameters { access_token };
     let body = ChangePasswordBody {
         new_password,
@@ -386,7 +386,7 @@ pub fn change_password(
 pub fn account_destruction(bk: &Backend, base: Url, user: String, password: String) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = DeactivateParameters { access_token };
     let body = DeactivateBody {
         auth: Some(AuthenticationData::Password {
@@ -441,7 +441,7 @@ pub fn set_user_avatar(bk: &Backend, base: Url, avatar: String) {
     let tx = bk.tx.clone();
 
     let id = bk.data.lock().unwrap().user_id.clone();
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params_upload = CreateContentParameters {
         access_token: access_token.clone(),
         filename: None,
@@ -522,7 +522,7 @@ pub fn get_user_info_async(
 pub fn search(bk: &Backend, base: Url, search_term: String) {
     let tx = bk.tx.clone();
 
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
     let params = UserDirectoryParameters { access_token };
     let body = UserDirectoryBody {
         search_term,

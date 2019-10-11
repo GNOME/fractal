@@ -1,3 +1,4 @@
+use crate::r0::AccessToken;
 use crate::r0::HostAndPort;
 use crate::serde::option_url;
 use reqwest::Client;
@@ -8,7 +9,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
 }
 
 #[derive(Clone, Debug, Serialize)]

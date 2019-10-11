@@ -7,6 +7,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;
 
+use crate::r0::AccessToken;
 use crate::util::cache_dir_path;
 use crate::util::client_url;
 use crate::util::download_file;
@@ -44,7 +45,7 @@ pub fn get_media_list_async(
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
-    let tk = bk.data.lock().unwrap().access_token.clone();
+    let tk = bk.get_access_token();
     let room = String::from(roomid);
 
     semaphore(bk.limit_threads.clone(), move || {
@@ -93,7 +94,7 @@ pub fn get_file_async(url: String, tx: Sender<String>) -> Result<(), Error> {
 
 fn get_room_media_list(
     baseu: &Url,
-    tk: &str,
+    tk: &AccessToken,
     roomid: &str,
     limit: i32,
     first_media_id: Option<String>,
@@ -102,7 +103,7 @@ fn get_room_media_list(
     let mut params = vec![
         ("dir", String::from("b")),
         ("limit", format!("{}", limit)),
-        ("access_token", String::from(tk)),
+        ("access_token", tk.to_string()),
         (
             "filter",
             serde_json::to_string(&RoomEventFilter {

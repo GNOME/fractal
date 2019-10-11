@@ -1,3 +1,4 @@
+use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -6,7 +7,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
 }
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {

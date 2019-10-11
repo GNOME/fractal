@@ -1,4 +1,5 @@
 use super::AuthenticationData;
+use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -53,7 +54,7 @@ pub struct Body {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
     pub user_id: String,
-    pub access_token: Option<String>,
+    pub access_token: Option<AccessToken>,
     pub device_id: Option<String>,
 }
 

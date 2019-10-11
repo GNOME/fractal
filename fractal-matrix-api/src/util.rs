@@ -22,6 +22,7 @@ use crate::client::Client;
 use crate::error::Error;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
+use crate::r0::AccessToken;
 
 use reqwest::header::CONTENT_LENGTH;
 
@@ -191,11 +192,11 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
 
 pub fn get_prev_batch_from(
     baseu: &Url,
-    tk: &str,
+    tk: &AccessToken,
     roomid: &str,
     evid: &str,
 ) -> Result<String, Error> {
-    let params = &[("access_token", String::from(tk)), ("limit", 0.to_string())];
+    let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
 
     let path = format!("rooms/{}/context/{}", roomid, evid);
     let url = client_url(baseu, &path, params)?;
