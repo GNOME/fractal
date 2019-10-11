@@ -51,7 +51,11 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
         match query {
             Ok(response) => {
                 let uid = response.user_id;
-                let tk = response.access_token.unwrap_or_default();
+                let tk = response
+                    .access_token
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default();
                 let dev = response.device_id;
 
                 data.lock().unwrap().user_id = uid.clone();
@@ -111,7 +115,11 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
         match query {
             Ok(response) => {
                 let uid = response.user_id.unwrap_or(user);
-                let tk = response.access_token.unwrap_or_default();
+                let tk = response
+                    .access_token
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default();
                 let dev = response.device_id;
 
                 if uid.is_empty() || tk.is_empty() {
@@ -147,10 +155,9 @@ pub fn set_token(bk: &Backend, token: String, uid: String) {
 pub fn logout(bk: &Backend, server: Url) {
     let data = bk.data.clone();
     let tx = bk.tx.clone();
+    let access_token = bk.get_access_token();
 
-    let params = LogoutParameters {
-        access_token: data.lock().unwrap().access_token.clone(),
-    };
+    let params = LogoutParameters { access_token };
 
     thread::spawn(move || {
         let query = logout_req(server, &params)
@@ -200,7 +207,11 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
         match query {
             Ok(response) => {
                 let uid = response.user_id;
-                let tk = response.access_token.unwrap_or_default();
+                let tk = response
+                    .access_token
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default();
                 let dev = response.device_id;
 
                 data.lock().unwrap().user_id = uid.clone();

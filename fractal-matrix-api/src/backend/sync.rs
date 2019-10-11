@@ -33,6 +33,7 @@ pub fn sync(bk: &Backend, base: Url, new_since: Option<String>, initial: bool) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
     let userid = bk.data.lock().unwrap().user_id.clone();
+    let access_token = bk.get_access_token();
 
     let since = bk
         .data
@@ -83,11 +84,11 @@ pub fn sync(bk: &Backend, base: Url, new_since: Option<String>, initial: bool) {
     };
 
     let params = SyncParameters {
-        access_token: data.lock().unwrap().access_token.clone(),
+        access_token,
         filter,
         since: since.clone(),
         include_state: IncludeState::Changed(timeout),
-        ..Default::default()
+        set_presence: Default::default(),
     };
 
     thread::spawn(move || {

@@ -26,7 +26,7 @@ use crate::types::Room;
 
 pub fn protocols(bk: &Backend, base: Url) {
     let tx = bk.tx.clone();
-    let access_token = bk.data.lock().unwrap().access_token.clone();
+    let access_token = bk.get_access_token();
 
     let params = SupportedProtocolsParameters { access_token };
 
@@ -78,8 +78,7 @@ pub fn room_search(
         })
         .unwrap_or(Ok(None))?;
 
-    let access_token = data.lock().unwrap().access_token.clone();
-
+    let access_token = bk.get_access_token();
     let since = if more {
         Some(data.lock().unwrap().rooms_since.clone())
     } else {

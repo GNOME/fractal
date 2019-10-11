@@ -13,6 +13,8 @@ use crate::error::Error;
 
 use crate::cache::CacheMap;
 
+use crate::r0::AccessToken;
+
 mod directory;
 mod media;
 pub mod register;
@@ -53,10 +55,18 @@ impl Backend {
         }
     }
 
-    fn url(&self, base: Url, path: &str, mut params: Vec<(&str, String)>) -> Result<Url, Error> {
-        let tk = self.data.lock().unwrap().access_token.clone();
+    fn get_access_token(&self) -> AccessToken {
+        AccessToken::from(self.data.lock().unwrap().access_token.clone())
+    }
 
-        params.push(("access_token", tk));
+    fn url(
+        &self,
+        base: Url,
+        tk: &AccessToken,
+        path: &str,
+        mut params: Vec<(&str, String)>,
+    ) -> Result<Url, Error> {
+        params.push(("access_token", tk.to_string()));
 
         client_url(&base, path, &params)
     }

@@ -1,3 +1,4 @@
+use crate::r0::AccessToken;
 use crate::serde::url as serde_url;
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
 use reqwest::Client;
@@ -8,7 +9,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
     pub filename: Option<String>,
 }
 

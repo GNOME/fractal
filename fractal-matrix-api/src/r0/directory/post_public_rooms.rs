@@ -1,3 +1,4 @@
+use crate::r0::AccessToken;
 use crate::serde::{option_host, option_url};
 use reqwest::Client;
 use reqwest::Error;
@@ -8,7 +9,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
     #[serde(with = "option_host")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server: Option<Host<String>>,
