@@ -63,6 +63,7 @@ pub struct AppOp {
     pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
     pub unsent_messages: HashMap<String, (String, i32)>,
+    pub typing: HashMap<String, std::time::Instant>,
 
     pub state: AppState,
     pub since: Option<String>,
@@ -107,6 +108,7 @@ impl AppOp {
             roomlist: widgets::RoomList::new(None, None),
             since: None,
             unsent_messages: HashMap::new(),
+            typing: HashMap::new(),
 
             logged_in: false,
 
