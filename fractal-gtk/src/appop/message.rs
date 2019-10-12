@@ -203,7 +203,9 @@ impl AppOp {
                 // Riot does not properly show emotes with Markdown;
                 // Emotes with markdown have a newline after the username
                 if m.mtype != "m.emote" && self.md_enabled {
-                    let mut md_parsed_msg = markdown_to_html(&msg, &ComrakOptions::default());
+                    let mut md_options = ComrakOptions::default();
+                    md_options.hardbreaks = true;
+                    let mut md_parsed_msg = markdown_to_html(&msg, &md_options);
 
                     // Removing wrap tag: <p>..</p>\n
                     let limit = md_parsed_msg.len() - 5;
