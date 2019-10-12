@@ -29,7 +29,6 @@ dependency('gst-editing-services-1.0', version: '>= 1.14.4')
 cargo = find_program('cargo', required: true)
 gresource = find_program('glib-compile-resources', required: true)
 gschemas = find_program('glib-compile-schemas', required: true)
-cargo_vendor = find_program('cargo-vendor', required: false)
 
 if get_option('profile') == 'development'
   profile = 'Devel'
@@ -49,10 +48,6 @@ endif
 application_id = 'org.gnome.Fractal@0@'.format(profile)
 
 fractal_version = meson.project_version()
-version_array = fractal_version.split('.')
-fractal_major_version = version_array[0].to_int()
-fractal_minor_version = version_array[1].to_int()
-fractal_version_micro = version_array[2].to_int()
 
 fractal_prefix = get_option('prefix')
 fractal_bindir = join_paths(fractal_prefix, get_option('bindir'))
@@ -68,9 +63,6 @@ podir = join_paths (meson.source_root (), 'fractal-gtk', 'po')
 subdir('fractal-gtk/po')
 subdir('fractal-gtk/res')
 
-cargo = find_program('cargo', required: false)
-gresource = find_program('glib-compile-resources', required: false)
-cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('scripts/cargo.sh')
 test_script = find_program('scripts/test.sh')
 doc_script = find_program('scripts/cargo-doc.sh')
