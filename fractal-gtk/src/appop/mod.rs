@@ -4,6 +4,8 @@ use std::sync::mpsc::Sender;
 use gtk;
 use gtk::prelude::*;
 
+use url::Url;
+
 use crate::backend;
 use crate::backend::BKCommand;
 use crate::globals;
@@ -52,8 +54,8 @@ pub struct AppOp {
     pub uid: Option<String>,
     pub device_id: Option<String>,
     pub avatar: Option<String>,
-    pub server_url: String,
-    pub identity_url: String,
+    pub server_url: Url,
+    pub identity_url: Url,
 
     pub active_room: Option<String>,
     pub rooms: RoomList,
@@ -96,8 +98,8 @@ impl AppOp {
             uid: None,
             device_id: None,
             avatar: None,
-            server_url: String::from(globals::DEFAULT_HOMESERVER),
-            identity_url: String::from(globals::DEFAULT_IDENTITYSERVER),
+            server_url: globals::DEFAULT_HOMESERVER.clone(),
+            identity_url: globals::DEFAULT_IDENTITYSERVER.clone(),
             syncing: false,
             msg_queue: vec![],
             sending_message: false,
@@ -133,9 +135,9 @@ impl AppOp {
 
         if let Ok(pass) = self.get_pass() {
             if let Ok((token, uid)) = self.get_token() {
-                self.set_token(Some(token), Some(uid), Some(pass.2));
+                self.set_token(Some(token), Some(uid), pass.2);
             } else {
-                self.connect(Some(pass.0), Some(pass.1), Some(pass.2), Some(pass.3));
+                self.connect(Some(pass.0), Some(pass.1), pass.2, pass.3);
             }
         } else {
             self.set_state(AppState::Login);

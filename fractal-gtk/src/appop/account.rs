@@ -32,7 +32,7 @@ impl AppOp {
         if let Some(sid) = sid {
             if let Some(secret) = secret {
                 let _ = self.backend.send(BKCommand::AddThreePID(
-                    self.identity_url.clone(),
+                    self.identity_url.to_string(), // TODO: Change type to Url
                     secret.clone(),
                     sid.clone(),
                 ));
@@ -87,13 +87,13 @@ impl AppOp {
         });
 
         let value = entry.clone();
-        let id_server = self.identity_url.clone();
+        let id_server = self.identity_url.to_string();
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text() {
                         let _ = backend.send(BKCommand::SubmitPhoneToken(
-                            id_server.clone(),
+                            id_server.clone(), // TODO: Change type to Url
                             secret.clone(),
                             sid.clone(),
                             token.to_string(),
@@ -124,14 +124,14 @@ impl AppOp {
             &msg,
         );
         let backend = self.backend.clone();
-        let id_server = self.identity_url.clone();
+        let id_server = self.identity_url.to_string();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     let _ = backend.send(BKCommand::AddThreePID(
-                        id_server.clone(),
+                        id_server.clone(), // TODO: Change type to Url
                         secret.clone(),
                         sid.clone(),
                     ));
@@ -273,7 +273,7 @@ impl AppOp {
         self.get_three_pid();
         uid.set_text(&self.uid.clone().unwrap_or_default());
         device_id.set_text(&self.device_id.clone().unwrap_or_default());
-        homeserver.set_text(&self.server_url);
+        homeserver.set_text(self.server_url.as_str());
         name.set_text(&self.username.clone().unwrap_or_default());
         name.grab_focus_without_selecting();
         name.set_position(-1);
