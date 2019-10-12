@@ -80,14 +80,12 @@ impl LoginWidget {
                     .get_text()
                     .map_or(String::new(), |gstr| gstr.to_string());
 
-                let txt = format!(
-                    "{}{}",
-                    "https://",
-                    String::from(txt)
-                        .trim()
-                        .trim_start_matches("http://")
-                        .trim_start_matches("https://")
-                );
+                let txt = String::from(txt).trim().to_string();
+                let txt = if txt.starts_with("http://") || txt.starts_with("https://") {
+                    txt
+                } else {
+                    format!("https://{}", &txt)
+                };
 
                 if !password.is_empty() && !username.is_empty() {
                     // take the user's homeserver value if the
