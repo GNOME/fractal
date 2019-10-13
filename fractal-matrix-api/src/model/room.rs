@@ -280,14 +280,14 @@ impl Room {
 impl From<PublicRoomsChunk> for Room {
     fn from(input: PublicRoomsChunk) -> Self {
         Self {
-            alias: input.canonical_alias,
+            alias: input.canonical_alias.as_ref().map(ToString::to_string),
             name: input.name,
             avatar: input.avatar_url.map(Url::into_string),
             topic: input.topic,
             n_members: input.num_joined_members,
             world_readable: input.world_readable,
             guest_can_join: input.guest_can_join,
-            ..Self::new(input.room_id, RoomMembership::None)
+            ..Self::new(input.room_id.to_string(), RoomMembership::None)
         }
     }
 }
