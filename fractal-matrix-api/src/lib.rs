@@ -12,6 +12,10 @@ pub mod r0;
 mod serde;
 pub mod types;
 
+pub mod prelude {
+    pub use ruma_identifiers::UserId;
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
