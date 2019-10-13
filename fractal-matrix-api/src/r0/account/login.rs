@@ -3,6 +3,7 @@ use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::DeviceId;
 use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -14,7 +15,7 @@ pub struct Body {
     #[serde(flatten)]
     pub auth: Auth,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<String>,
+    pub device_id: Option<DeviceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub initial_device_display_name: Option<String>,
 }
@@ -32,7 +33,7 @@ pub enum Auth {
 pub struct Response {
     pub access_token: Option<AccessToken>,
     pub user_id: Option<UserId>,
-    pub device_id: Option<String>,
+    pub device_id: Option<DeviceId>,
 }
 
 pub fn request(base: Url, body: &Body) -> Result<Request, Error> {
