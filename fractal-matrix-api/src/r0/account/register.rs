@@ -3,6 +3,7 @@ use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use std::ops::Not;
 use url::Url;
@@ -53,7 +54,7 @@ pub struct Body {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub user_id: String,
+    pub user_id: UserId,
     pub access_token: Option<AccessToken>,
     pub device_id: Option<String>,
 }
