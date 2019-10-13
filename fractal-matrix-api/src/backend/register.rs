@@ -61,7 +61,7 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().access_token = tk.clone();
                 data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId
+                tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId and DeviceId
                     .expect_log("Connection closed");
                 tx.send(BKResponse::Rooms(vec![], None))
                     .expect_log("Connection closed");
@@ -133,7 +133,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
                     data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().access_token = tk.clone();
                     data.lock().unwrap().since = None;
-                    tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId
+                    tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId and DeviceId
                         .expect_log("Connection closed");
                 }
             }
