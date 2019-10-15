@@ -2,7 +2,7 @@ use crate::app::App;
 use crate::i18n::i18n;
 use log::{error, info};
 
-use crate::actions::AppState;
+use crate::actions::{activate_action, AppState};
 
 use glib;
 use std::process::Command;
@@ -52,11 +52,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::GetTokenEmail(Err(Error::TokenUsed))) => {
                     let error = i18n("Email is already in use");
-                    APPOP!(show_three_pid_error_dialog, (error));
+                    APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::GetTokenPhone(Err(Error::TokenUsed))) => {
                     let error = i18n("Phone number is already in use");
-                    APPOP!(show_three_pid_error_dialog, (error));
+                    APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::SubmitPhoneToken(Ok((sid, secret)))) => {
                     let secret = Some(secret);
@@ -191,22 +191,30 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 Ok(BKResponse::AccountDestruction(Err(err))) => {
                     let error = i18n("Couldn’t delete the account");
                     error!("{:?}", err);
-                    APPOP!(show_error_dialog, (error));
+                    APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::ChangePassword(Err(err))) => {
                     let error = i18n("Couldn’t change the password");
                     error!("{:?}", err);
                     APPOP!(show_password_error_dialog, (error));
                 }
+                Ok(BKResponse::GetThreePID(Err(_))) => {
+                    let error = i18n("Sorry, account settings can't be loaded.");
+                    APPOP!(show_load_settings_error_dialog, (error));
+                    let ctx = glib::MainContext::default();
+                    ctx.invoke(move || {
+                        activate_action("app", "back");
+                    })
+                }
                 Ok(BKResponse::GetTokenEmail(Err(err))) => {
                     let error = i18n("Couldn’t add the email address.");
                     error!("{:?}", err);
-                    APPOP!(show_three_pid_error_dialog, (error));
+                    APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::GetTokenPhone(Err(err))) => {
                     let error = i18n("Couldn’t add the phone number.");
                     error!("{:?}", err);
-                    APPOP!(show_three_pid_error_dialog, (error));
+                    APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::NewRoom(Err(err), internal_id)) => {
                     error!("{:?}", err);

@@ -12,6 +12,7 @@ pub mod room_settings;
 
 pub use self::account_settings as AccountSettings;
 pub use self::global as Global;
+pub use self::global::activate_action;
 pub use self::global::AppState;
 pub use self::login as Login;
 pub use self::login::LoginState;
