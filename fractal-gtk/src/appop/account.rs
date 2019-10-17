@@ -38,8 +38,7 @@ impl AppOp {
                 ));
             }
         } else {
-            self.show_error_dialog(i18n("The validation code is not correct."));
-            self.get_three_pid();
+            self.show_error_dialog_in_settings(i18n("The validation code is not correct."));
         }
     }
 
@@ -143,11 +142,20 @@ impl AppOp {
         dialog.show_all();
     }
 
-    pub fn show_three_pid_error_dialog(&self, error: String) {
-        self.show_error_dialog(error);
+    pub fn show_error_dialog_in_settings(&self, error: String) {
+        let dialog = self.create_error_dialog(error);
+        dialog.connect_response(move |w, _| w.destroy());
+        self.get_three_pid();
+        dialog.show_all();
     }
 
-    pub fn show_error_dialog(&self, error: String) {
+    pub fn show_load_settings_error_dialog(&self, error: String) {
+        let dialog = self.create_error_dialog(error);
+        dialog.connect_response(move |w, _| w.destroy());
+        dialog.show_all();
+    }
+
+    pub fn create_error_dialog(&self, error: String) -> gtk::MessageDialog {
         let parent = self
             .ui
             .builder
@@ -166,12 +174,7 @@ impl AppOp {
 
         dialog.add_button(&i18n("OK"), gtk::ResponseType::Ok.into());
 
-        let backend = self.backend.clone();
-        dialog.connect_response(move |w, _| {
-            backend.send(BKCommand::GetThreePID).unwrap();
-            w.destroy();
-        });
-        dialog.show_all();
+        dialog
     }
 
     pub fn get_token_email(&mut self, sid: Option<String>, secret: Option<String>) {
@@ -630,7 +633,7 @@ impl AppOp {
             .builder
             .get_object::<gtk::Stack>("account_settings_password_stack")
             .expect("Can't find account_settings_password_stack in ui file.");
-        self.show_error_dialog(error);
+        self.show_error_dialog_in_settings(error);
         password_btn.set_sensitive(true);
         password_btn_stack.set_visible_child_name("label");
     }

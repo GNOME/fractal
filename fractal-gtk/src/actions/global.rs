@@ -344,3 +344,18 @@ fn open_viewer(data: Option<&glib::Variant>) -> Option<()> {
     op.create_media_viewer(msg);
     None
 }
+
+pub fn activate_action(action_group_name: &str, action_name: &str) {
+    if let Some(op) = App::get_op() {
+        let main_window = op
+            .lock()
+            .unwrap()
+            .ui
+            .builder
+            .get_object::<gtk::Window>("main_window")
+            .expect("Can't find main_window in ui file.");
+        if let Some(action_group) = main_window.get_action_group(action_group_name) {
+            action_group.activate_action(action_name, None);
+        }
+    }
+}
