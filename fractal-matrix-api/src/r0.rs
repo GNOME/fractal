@@ -12,7 +12,7 @@ pub mod thirdparty;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum Medium {
     Email,
     MsIsdn,
