@@ -316,7 +316,7 @@ pub fn send_typing(bk: &Backend, roomid: String) -> Result<(), Error> {
     let url = bk.url(&format!("rooms/{}/typing/{}", roomid, userid), vec![])?;
 
     let attrs = json!({
-        "timeout": 30000,
+        "timeout": 4000,
         "typing": true
     });
 

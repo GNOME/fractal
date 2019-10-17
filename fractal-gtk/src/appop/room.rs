@@ -27,6 +27,8 @@ use rand::{thread_rng, Rng};
 
 use glib::functions::markup_escape_text;
 
+use std::time::Instant;
+
 pub struct Force(pub bool);
 
 impl AppOp {
@@ -622,8 +624,16 @@ impl AppOp {
         }
     }
 
-    pub fn send_typing(&self) {
+    pub fn send_typing(&mut self) {
         if let Some(ref active_room) = self.active_room {
+            let now = Instant::now();
+            if let Some(last_typing) = self.typing.get(active_room) {
+                let time_passed = now.duration_since(*last_typing);
+                if time_passed.as_secs() < 3 {
+                    return;
+                }
+            }
+            self.typing.insert(active_room.clone(), now);
             self.backend
                 .send(BKCommand::SendTyping(active_room.clone()))
                 .unwrap();
