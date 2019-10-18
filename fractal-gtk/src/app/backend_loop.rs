@@ -54,8 +54,19 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = i18n("Email is already in use");
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
+                Ok(BKResponse::GetTokenEmail(Err(Error::Denied))) => {
+                    let error = i18n("Please enter a valid email adress.");
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
                 Ok(BKResponse::GetTokenPhone(Err(Error::TokenUsed))) => {
                     let error = i18n("Phone number is already in use");
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
+                Ok(BKResponse::GetTokenPhone(Err(Error::Denied))) => {
+                    let error = i18n(
+                        "Please enter your phone number in the format: \n 
+                        + your country code and your phone number.",
+                    );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 Ok(BKResponse::SubmitPhoneToken(Ok((sid, secret)))) => {

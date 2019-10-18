@@ -20,8 +20,21 @@ pub struct Body {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Response {
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum Response {
+    Passed(InfoPassed),
+    Failed(InfoFailed),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct InfoPassed {
     pub sid: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct InfoFailed {
+    pub errcode: String,
 }
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {

@@ -185,15 +185,17 @@ pub fn get_email_token(bk: &Backend, identity: String, email: String, client_sec
                     .json::<EmailTokenResponse>()
                     .map_err(Into::into)
             })
-            .map(|response| (response.sid, client_secret))
-            .map_err(|error| match error {
-                Error::MatrixError(ref js)
-                    if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
-                {
-                    Error::TokenUsed
+            .and_then(|response| match response {
+                EmailTokenResponse::Passed(info) => Ok(info.sid),
+                EmailTokenResponse::Failed(info) => {
+                    if info.errcode == "M_THREEPID_IN_USE" {
+                        Err(Error::TokenUsed)
+                    } else {
+                        Err(Error::Denied)
+                    }
                 }
-                err => err,
-            });
+            })
+            .map(|response| (response, client_secret));
 
         tx.send(BKResponse::GetTokenEmail(query))
             .expect_log("Connection closed");
@@ -225,15 +227,17 @@ pub fn get_phone_token(bk: &Backend, identity: String, phone: String, client_sec
                     .json::<PhoneTokenResponse>()
                     .map_err(Into::into)
             })
-            .map(|response| (response.sid, client_secret))
-            .map_err(|error| match error {
-                Error::MatrixError(ref js)
-                    if js["errcode"].as_str().unwrap_or_default() == "M_THREEPID_IN_USE" =>
-                {
-                    Error::TokenUsed
+            .and_then(|response| match response {
+                PhoneTokenResponse::Passed(info) => Ok(info.sid),
+                PhoneTokenResponse::Failed(info) => {
+                    if info.errcode == "M_THREEPID_IN_USE" {
+                        Err(Error::TokenUsed)
+                    } else {
+                        Err(Error::Denied)
+                    }
                 }
-                err => err,
-            });
+            })
+            .map(|response| (response, client_secret));
 
         tx.send(BKResponse::GetTokenPhone(query))
             .expect_log("Connection closed");

@@ -13,6 +13,7 @@ pub enum Error {
     SendMsgError(String),
     SendMsgRedactionError(String),
     TokenUsed,
+    Denied,
 }
 
 impl From<reqwest::Error> for Error {

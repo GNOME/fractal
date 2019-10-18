@@ -103,6 +103,7 @@ impl AppOp {
             }
             w.destroy();
         });
+        self.get_three_pid();
         dialog.show_all();
     }
 
@@ -139,6 +140,7 @@ impl AppOp {
             }
             w.destroy();
         });
+        self.get_three_pid();
         dialog.show_all();
     }
 
