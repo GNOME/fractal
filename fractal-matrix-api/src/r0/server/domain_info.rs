@@ -1,3 +1,4 @@
+use crate::serde::url as serde_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -14,12 +15,14 @@ pub struct Response {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct HomeserverInfo {
-    pub base_url: String,
+    #[serde(with = "serde_url")]
+    pub base_url: Url,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct IDServerInfo {
-    pub base_url: String,
+    #[serde(with = "serde_url")]
+    pub base_url: Url,
 }
 
 pub fn request(base: Url) -> Result<Request, Error> {

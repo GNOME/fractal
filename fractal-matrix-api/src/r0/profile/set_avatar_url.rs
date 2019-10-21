@@ -1,3 +1,4 @@
+use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -11,7 +12,8 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Body {
-    pub avatar_url: Option<String>,
+    #[serde(with = "option_url")]
+    pub avatar_url: Option<Url>,
 }
 
 pub fn request(

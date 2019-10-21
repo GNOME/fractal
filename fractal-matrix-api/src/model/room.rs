@@ -79,7 +79,7 @@ pub enum RoomTag {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Room {
     pub id: String,
-    pub avatar: Option<String>,
+    pub avatar: Option<String>, // TODO: Use Option<Url>
     pub name: Option<String>,
     pub topic: Option<String>,
     pub alias: Option<String>,
@@ -282,7 +282,7 @@ impl From<PublicRoomsChunk> for Room {
         Self {
             alias: input.canonical_alias,
             name: input.name,
-            avatar: input.avatar_url,
+            avatar: input.avatar_url.map(Url::into_string),
             topic: input.topic,
             n_members: input.num_joined_members,
             world_readable: input.world_readable,

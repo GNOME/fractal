@@ -94,26 +94,23 @@ impl LoginWidget {
                 if !password.is_empty() && !username.is_empty() {
                     // take the user's homeserver value if the
                     // well-known request fails
-                    let hs_url = Url::parse(&txt);
-
-                    if hs_url.is_err() {
+                    let mut homeserver_url = if let Ok(hs_url) = Url::parse(&txt) {
+                        hs_url
+                    } else {
                         let msg = i18n("Malformed server URL");
                         ErrorDialog::new(false, &msg);
                         return;
                     };
 
-                    let mut homeserver_url =
-                        hs_url.expect("hs_url must return earlier if it's Err");
                     let mut idserver = globals::DEFAULT_IDENTITYSERVER.clone();
                     match get_well_known(&txt) {
                         // TODO: Use Url everywhere
                         Ok(response) => {
                             info!("Got well-known response from {}: {:#?}", &txt, response);
-                            homeserver_url =
-                                Url::parse(&response.homeserver.base_url).unwrap_or(homeserver_url);
+                            homeserver_url = response.homeserver.base_url;
                             idserver = response
                                 .identity_server
-                                .and_then(|ids| Url::parse(&ids.base_url).ok())
+                                .map(|ids| ids.base_url)
                                 .unwrap_or(idserver);
                         }
                         Err(e) => info!("Failed to .well-known request: {:#?}", e),

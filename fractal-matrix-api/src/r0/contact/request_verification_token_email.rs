@@ -1,3 +1,5 @@
+use crate::r0::HostAndPort;
+use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -13,10 +15,11 @@ pub struct Parameters {
 pub struct Body {
     pub client_secret: String,
     pub email: String,
-    pub id_server: String,
+    pub id_server: HostAndPort<String>,
     pub send_attempt: u64,
+    #[serde(with = "option_url")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_link: Option<String>,
+    pub next_link: Option<Url>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

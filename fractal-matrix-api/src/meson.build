@@ -56,7 +56,7 @@ api_sources = files(
   'identity.rs',
   'lib.rs',
   'r0.rs',
-  'ser.rs',
+  'serde.rs',
   'types.rs',
   'util.rs'
 )
