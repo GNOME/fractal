@@ -64,8 +64,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 Ok(BKResponse::GetTokenPhone(Err(Error::Denied))) => {
                     let error = i18n(
-                        "Please enter your phone number in the format: \n 
-                        + your country code and your phone number.",
+                        "Please enter your phone number in the format: \n + your country code and your phone number.",
                     );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
@@ -210,7 +209,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_password_error_dialog, (error));
                 }
                 Ok(BKResponse::GetThreePID(Err(_))) => {
-                    let error = i18n("Sorry, account settings can't be loaded.");
+                    let error = i18n("Sorry, account settings can’t be loaded.");
                     APPOP!(show_load_settings_error_dialog, (error));
                     let ctx = glib::MainContext::default();
                     ctx.invoke(move || {
