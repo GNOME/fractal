@@ -39,16 +39,16 @@ use serde_json::Value as JsonValue;
 
 // FIXME: Remove this function, this is used only to request information we should already have
 // when opening a room
-pub fn set_room(bk: &Backend, id: String) -> Result<(), Error> {
+pub fn set_room(bk: &Backend, base: Url, id: String) -> Result<(), Error> {
     /* FIXME: remove clone and pass id by reference */
-    get_room_avatar(bk, id.clone())?;
-    get_room_detail(bk, id.clone(), String::from("m.room.topic"))?;
+    get_room_avatar(bk, base.clone(), id.clone())?;
+    get_room_detail(bk, base, id.clone(), String::from("m.room.topic"))?;
 
     Ok(())
 }
 
-pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/state/{}", roomid, key), vec![])?;
+pub fn get_room_detail(bk: &Backend, base: Url, roomid: String, key: String) -> Result<(), Error> {
+    let url = bk.url(base, &format!("rooms/{}/state/{}", roomid, key), vec![])?;
 
     let tx = bk.tx.clone();
     let keys = key.clone();
@@ -70,9 +70,12 @@ pub fn get_room_detail(bk: &Backend, roomid: String, key: String) -> Result<(), 
     Ok(())
 }
 
-pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/state/m.room.avatar", roomid), vec![])?;
-    let baseu = bk.get_base_url();
+pub fn get_room_avatar(bk: &Backend, baseu: Url, roomid: String) -> Result<(), Error> {
+    let url = bk.url(
+        baseu.clone(),
+        &format!("rooms/{}/state/m.room.avatar", roomid),
+        vec![],
+    )?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -107,8 +110,8 @@ pub fn get_room_avatar(bk: &Backend, roomid: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn get_room_members(bk: &Backend, roomid: String) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/joined_members", roomid), vec![])?;
+pub fn get_room_members(bk: &Backend, base: Url, roomid: String) -> Result<(), Error> {
+    let url = bk.url(base, &format!("rooms/{}/joined_members", roomid), vec![])?;
 
     let tx = bk.tx.clone();
     get!(
@@ -138,7 +141,12 @@ pub fn get_room_members(bk: &Backend, roomid: String) -> Result<(), Error> {
 /* Load older messages starting by prev_batch
  * https://matrix.org/docs/spec/client_server/latest.html#get-matrix-client-r0-rooms-roomid-messages
  */
-pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(), Error> {
+pub fn get_room_messages(
+    bk: &Backend,
+    base: Url,
+    roomid: String,
+    from: String,
+) -> Result<(), Error> {
     let params = vec![
         ("from", from),
         ("dir", String::from("b")),
@@ -152,7 +160,7 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
             .expect("Failed to serialize room messages request filter"),
         ),
     ];
-    let url = bk.url(&format!("rooms/{}/messages", roomid), params)?;
+    let url = bk.url(base, &format!("rooms/{}/messages", roomid), params)?;
     let tx = bk.tx.clone();
     get!(
         &url,
@@ -173,23 +181,20 @@ pub fn get_room_messages(bk: &Backend, roomid: String, from: String) -> Result<(
     Ok(())
 }
 
-pub fn get_room_messages_from_msg(bk: &Backend, roomid: String, msg: Message) -> Result<(), Error> {
+pub fn get_room_messages_from_msg(bk: &Backend, baseu: Url, roomid: String, msg: Message) {
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
-    let baseu = bk.get_base_url();
     let tk = bk.data.lock().unwrap().access_token.clone();
     let itx = bk.internal_tx.clone();
 
     thread::spawn(move || {
         if let Ok(from) = get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
             if let Some(t) = itx {
-                t.send(BKCommand::GetRoomMessages(roomid, from))
+                t.send(BKCommand::GetRoomMessages(baseu, roomid, from))
                     .expect_log("Connection closed");
             }
         }
     });
-
-    Ok(())
 }
 
 fn parse_context(
@@ -251,9 +256,8 @@ fn parse_context(
     Ok(())
 }
 
-pub fn get_message_context(bk: &Backend, msg: Message) -> Result<(), Error> {
+pub fn get_message_context(bk: &Backend, baseu: Url, msg: Message) -> Result<(), Error> {
     let tx = bk.tx.clone();
-    let baseu = bk.get_base_url();
     let roomid = msg.room.clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
 
@@ -262,10 +266,11 @@ pub fn get_message_context(bk: &Backend, msg: Message) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
+pub fn send_msg(bk: &Backend, base: Url, msg: Message) -> Result<(), Error> {
     let roomid = msg.room.clone();
 
     let url = bk.url(
+        base,
         &format!("rooms/{}/send/m.room.message/{}", roomid, msg.id),
         vec![],
     )?;
@@ -311,9 +316,9 @@ pub fn send_msg(bk: &Backend, msg: Message) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn send_typing(bk: &Backend, roomid: String) -> Result<(), Error> {
+pub fn send_typing(bk: &Backend, base: Url, roomid: String) -> Result<(), Error> {
     let userid = bk.data.lock().unwrap().user_id.clone();
-    let url = bk.url(&format!("rooms/{}/typing/{}", roomid, userid), vec![])?;
+    let url = bk.url(base, &format!("rooms/{}/typing/{}", roomid, userid), vec![])?;
 
     let attrs = json!({
         "timeout": 4000,
@@ -329,11 +334,12 @@ pub fn send_typing(bk: &Backend, roomid: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
+pub fn redact_msg(bk: &Backend, base: Url, msg: &Message) -> Result<(), Error> {
     let roomid = msg.room.clone();
     let txnid = msg.id.clone();
 
     let url = bk.url(
+        base,
         &format!("rooms/{}/redact/{}/{}", roomid, msg.id, txnid),
         vec![],
     )?;
@@ -364,8 +370,12 @@ pub fn redact_msg(bk: &Backend, msg: &Message) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn join_room(bk: &Backend, roomid: String) -> Result<(), Error> {
-    let url = bk.url(&format!("join/{}", urlencoding::encode(&roomid)), vec![])?;
+pub fn join_room(bk: &Backend, base: Url, roomid: String) -> Result<(), Error> {
+    let url = bk.url(
+        base,
+        &format!("join/{}", urlencoding::encode(&roomid)),
+        vec![],
+    )?;
 
     let tx = bk.tx.clone();
     let data = bk.data.clone();
@@ -385,8 +395,8 @@ pub fn join_room(bk: &Backend, roomid: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn leave_room(bk: &Backend, roomid: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/leave", roomid), vec![])?;
+pub fn leave_room(bk: &Backend, base: Url, roomid: &str) -> Result<(), Error> {
+    let url = bk.url(base, &format!("rooms/{}/leave", roomid), vec![])?;
 
     let tx = bk.tx.clone();
     post!(
@@ -404,8 +414,9 @@ pub fn leave_room(bk: &Backend, roomid: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn mark_as_read(bk: &Backend, roomid: &str, eventid: &str) -> Result<(), Error> {
+pub fn mark_as_read(bk: &Backend, base: Url, roomid: &str, eventid: &str) -> Result<(), Error> {
     let url = bk.url(
+        base.clone(),
         &format!("rooms/{}/receipt/m.read/{}", roomid, eventid),
         vec![],
     )?;
@@ -429,7 +440,7 @@ pub fn mark_as_read(bk: &Backend, roomid: &str, eventid: &str) -> Result<(), Err
     // This event API call isn't in the current doc but I found this in the
     // matrix-js-sdk
     // https://github.com/matrix-org/matrix-js-sdk/blob/master/src/base-apis.js#L851
-    let url = bk.url(&format!("rooms/{}/read_markers", roomid), vec![])?;
+    let url = bk.url(base, &format!("rooms/{}/read_markers", roomid), vec![])?;
     let attrs = json!({
         "m.fully_read": eventid,
         "m.read": json!(null),
@@ -439,8 +450,8 @@ pub fn mark_as_read(bk: &Backend, roomid: &str, eventid: &str) -> Result<(), Err
     Ok(())
 }
 
-pub fn set_room_name(bk: &Backend, roomid: &str, name: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/state/m.room.name", roomid), vec![])?;
+pub fn set_room_name(bk: &Backend, base: Url, roomid: &str, name: &str) -> Result<(), Error> {
+    let url = bk.url(base, &format!("rooms/{}/state/m.room.name", roomid), vec![])?;
 
     let attrs = json!({
         "name": name,
@@ -464,8 +475,12 @@ pub fn set_room_name(bk: &Backend, roomid: &str, name: &str) -> Result<(), Error
     Ok(())
 }
 
-pub fn set_room_topic(bk: &Backend, roomid: &str, topic: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/state/m.room.topic", roomid), vec![])?;
+pub fn set_room_topic(bk: &Backend, base: Url, roomid: &str, topic: &str) -> Result<(), Error> {
+    let url = bk.url(
+        base,
+        &format!("rooms/{}/state/m.room.topic", roomid),
+        vec![],
+    )?;
 
     let attrs = json!({
         "topic": topic,
@@ -489,12 +504,15 @@ pub fn set_room_topic(bk: &Backend, roomid: &str, topic: &str) -> Result<(), Err
     Ok(())
 }
 
-pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), Error> {
-    let baseu = bk.get_base_url();
+pub fn set_room_avatar(bk: &Backend, baseu: Url, roomid: &str, avatar: &str) -> Result<(), Error> {
     let tk = bk.data.lock().unwrap().access_token.clone();
     let params = &[("access_token", tk.clone())];
     let mediaurl = media_url(&baseu, "upload", params)?;
-    let roomurl = bk.url(&format!("rooms/{}/state/m.room.avatar", roomid), vec![])?;
+    let roomurl = bk.url(
+        baseu,
+        &format!("rooms/{}/state/m.room.avatar", roomid),
+        vec![],
+    )?;
 
     let mut file = File::open(&avatar)?;
     let mut contents: Vec<u8> = vec![];
@@ -529,7 +547,7 @@ pub fn set_room_avatar(bk: &Backend, roomid: &str, avatar: &str) -> Result<(), E
     Ok(())
 }
 
-pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
+pub fn attach_file(bk: &Backend, baseu: Url, mut msg: Message) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
     let mut extra_content: ExtraContent =
         serde_json::from_value(msg.clone().extra_content.unwrap()).unwrap();
@@ -537,11 +555,10 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
-    let baseu = bk.get_base_url().clone();
     let tk = bk.data.lock().unwrap().access_token.clone();
 
     if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
-        return send_msg(bk, msg);
+        return send_msg(bk, baseu, msg);
     }
 
     thread::spawn(move || {
@@ -570,7 +587,7 @@ pub fn attach_file(bk: &Backend, mut msg: Message) -> Result<(), Error> {
             Ok(uri) => {
                 msg.url = Some(uri.to_string());
                 if let Some(t) = itx {
-                    t.send(BKCommand::SendMsg(msg.clone()))
+                    t.send(BKCommand::SendMsg(baseu, msg.clone()))
                         .expect_log("Connection closed");
                 }
                 tx.send(BKResponse::AttachedFile(Ok(msg)))
@@ -598,11 +615,12 @@ fn upload_file(tk: &str, baseu: &Url, fname: &str) -> Result<String, Error> {
 
 pub fn new_room(
     bk: &Backend,
+    base: Url,
     name: &str,
     privacy: RoomType,
     internal_id: String,
 ) -> Result<(), Error> {
-    let url = bk.url("createRoom", vec![])?;
+    let url = bk.url(base, "createRoom", vec![])?;
     let attrs = json!({
         "invite": [],
         "invite_3pid": [],
@@ -673,8 +691,13 @@ pub fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user: String
     );
 }
 
-pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(), Error> {
-    let url = bk.url("createRoom", vec![])?;
+pub fn direct_chat(
+    bk: &Backend,
+    base: Url,
+    user: &Member,
+    internal_id: String,
+) -> Result<(), Error> {
+    let url = bk.url(base.clone(), "createRoom", vec![])?;
     let attrs = json!({
         "invite": [user.uid.clone()],
         "invite_3pid": [],
@@ -690,7 +713,11 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
     });
 
     let userid = bk.data.lock().unwrap().user_id.clone();
-    let direct_url = bk.url(&format!("user/{}/account_data/m.direct", userid), vec![])?;
+    let direct_url = bk.url(
+        base,
+        &format!("user/{}/account_data/m.direct", userid),
+        vec![],
+    )?;
 
     let m = user.clone();
     let tx = bk.tx.clone();
@@ -717,9 +744,10 @@ pub fn direct_chat(bk: &Backend, user: &Member, internal_id: String) -> Result<(
     Ok(())
 }
 
-pub fn add_to_fav(bk: &Backend, roomid: String, tofav: bool) -> Result<(), Error> {
+pub fn add_to_fav(bk: &Backend, base: Url, roomid: String, tofav: bool) -> Result<(), Error> {
     let userid = bk.data.lock().unwrap().user_id.clone();
     let url = bk.url(
+        base,
         &format!("user/{}/rooms/{}/tags/m.favourite", userid, roomid),
         vec![],
     )?;
@@ -747,8 +775,8 @@ pub fn add_to_fav(bk: &Backend, roomid: String, tofav: bool) -> Result<(), Error
     Ok(())
 }
 
-pub fn invite(bk: &Backend, roomid: &str, userid: &str) -> Result<(), Error> {
-    let url = bk.url(&format!("rooms/{}/invite", roomid), vec![])?;
+pub fn invite(bk: &Backend, base: Url, roomid: &str, userid: &str) -> Result<(), Error> {
+    let url = bk.url(base, &format!("rooms/{}/invite", roomid), vec![])?;
 
     let attrs = json!({
         "user_id": userid,

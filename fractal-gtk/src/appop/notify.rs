@@ -57,9 +57,11 @@ impl AppOp {
         };
 
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-        let _ = self
-            .backend
-            .send(BKCommand::GetUserInfoAsync(msg.sender.clone(), Some(tx)));
+        let _ = self.backend.send(BKCommand::GetUserInfoAsync(
+            self.server_url.clone(),
+            msg.sender.clone(),
+            Some(tx),
+        ));
 
         let room_id = room_id.to_string();
         let id = id.to_string();

@@ -12,7 +12,9 @@ use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 
 impl AppOp {
     pub fn init_protocols(&self) {
-        self.backend.send(BKCommand::DirectoryProtocols).unwrap();
+        self.backend
+            .send(BKCommand::DirectoryProtocols(self.server_url.clone()))
+            .unwrap();
     }
 
     pub fn set_protocols(&self, protocols: Vec<ProtocolInstance>) {
@@ -116,6 +118,7 @@ impl AppOp {
 
         self.backend
             .send(BKCommand::DirectorySearch(
+                self.server_url.clone(),
                 homeserver,
                 q.get_text().unwrap().to_string(),
                 protocol,

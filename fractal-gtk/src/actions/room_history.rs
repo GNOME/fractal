@@ -14,13 +14,14 @@ use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
+use url::Url;
 
 use crate::widgets::ErrorDialog;
 use crate::widgets::FileDialog::save;
 use crate::widgets::SourceDialog;
 
 /* This creates all actions the room history can perform */
-pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
+pub fn new(backend: Sender<BKCommand>, server_url: Url, ui: UI) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     /* Action for each message */
     let reply = SimpleAction::new("reply", glib::VariantTy::new("s").ok());
@@ -83,22 +84,22 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
     });
 
     let b = backend.clone();
-    open_with.connect_activate(move |_, data| {
+    open_with.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
-            let _ = b.send(BKCommand::GetMedia(url));
+            let _ = b.send(BKCommand::GetMedia(server_url.clone(), url));
         }
-    });
+    }));
 
     let b = backend.clone();
     let parent_weak = parent.downgrade();
-    save_as.connect_activate(move |_, data| {
+    save_as.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let name = m.body;
             let url = m.url.unwrap_or_default();
 
             let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-            let _ = b.send(BKCommand::GetMediaAsync(url, tx));
+            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url, tx));
 
             let parent_weak = parent_weak.clone();
             gtk::timeout_add(
@@ -124,16 +125,16 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                 }),
             );
         }
-    });
+    }));
 
     let b = backend.clone();
-    copy_image.connect_activate(move |_, data| {
+    copy_image.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
 
             let (tx, rx): (Sender<String>, Receiver<String>) = channel();
 
-            let _ = b.send(BKCommand::GetMediaAsync(url.clone(), tx));
+            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url.clone(), tx));
 
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -155,7 +156,7 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
                 }
             });
         }
-    });
+    }));
 
     copy_text.connect_activate(move |_, data| {
         if let Some(m) = get_message(data) {
@@ -166,10 +167,10 @@ pub fn new(backend: Sender<BKCommand>, ui: UI) -> gio::SimpleActionGroup {
         }
     });
 
-    load_more_messages.connect_activate(move |_, data| {
+    load_more_messages.connect_activate(clone!(server_url => move |_, data| {
         let id = get_room_id(data);
-        request_more_messages(&backend, id);
-    });
+        request_more_messages(&backend, server_url.clone(), id);
+    }));
 
     actions
 }
@@ -190,23 +191,33 @@ fn get_room_id(data: Option<&glib::Variant>) -> Option<String> {
     data.as_ref()?.get_str().map(|s| s.to_string())
 }
 
-fn request_more_messages(backend: &Sender<BKCommand>, id: Option<String>) -> Option<()> {
+fn request_more_messages(
+    backend: &Sender<BKCommand>,
+    server_url: Url,
+    id: Option<String>,
+) -> Option<()> {
     let op = App::get_op()?;
     let op = op.lock().unwrap();
     let id = id?;
     let r = op.rooms.get(&id)?;
     if let Some(prev_batch) = r.prev_batch.clone() {
         backend
-            .send(BKCommand::GetRoomMessages(id, prev_batch))
+            .send(BKCommand::GetRoomMessages(server_url, id, prev_batch))
             .unwrap();
     } else if let Some(msg) = r.messages.iter().next() {
         // no prev_batch so we use the last message to calculate that in the backend
         backend
-            .send(BKCommand::GetRoomMessagesFromMsg(id, msg.clone()))
+            .send(BKCommand::GetRoomMessagesFromMsg(
+                server_url,
+                id,
+                msg.clone(),
+            ))
             .unwrap();
     } else if let Some(from) = op.since.clone() {
         // no messages and no prev_batch so we use the last since
-        backend.send(BKCommand::GetRoomMessages(id, from)).unwrap();
+        backend
+            .send(BKCommand::GetRoomMessages(server_url, id, from))
+            .unwrap();
     }
     None
 }

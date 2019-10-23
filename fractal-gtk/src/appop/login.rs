@@ -185,9 +185,8 @@ impl AppOp {
     ) -> Option<()> {
         self.server_url = server;
 
-        let ser = self.server_url.to_string();
         self.backend
-            .send(BKCommand::SetToken(token?, uid?, ser))  // TODO: Change command type to url
+            .send(BKCommand::SetToken(token?, uid?))
             .unwrap();
         Some(())
     }
@@ -207,7 +206,9 @@ impl AppOp {
 
     pub fn logout(&mut self) {
         let _ = self.delete_pass("fractal");
-        self.backend.send(BKCommand::Logout).unwrap();
+        self.backend
+            .send(BKCommand::Logout(self.server_url.clone()))
+            .unwrap();
         self.bk_logout();
     }
 }

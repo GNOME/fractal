@@ -27,8 +27,9 @@ use std::{
     thread,
     time::{self, Duration},
 };
+use url::Url;
 
-pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
+pub fn sync(bk: &Backend, base: Url, new_since: Option<String>, initial: bool) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
     let userid = bk.data.lock().unwrap().user_id.clone();
@@ -81,7 +82,6 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
         (Default::default(), filter)
     };
 
-    let base = bk.get_base_url();
     let params = SyncParameters {
         access_token: data.lock().unwrap().access_token.clone(),
         filter,
@@ -254,7 +254,7 @@ pub fn sync(bk: &Backend, new_since: Option<String>, initial: bool) {
     });
 }
 
-pub fn force_sync(bk: &Backend) {
+pub fn force_sync(bk: &Backend, base: Url) {
     bk.data.lock().unwrap().since = None;
-    sync(bk, None, true)
+    sync(bk, base, None, true)
 }

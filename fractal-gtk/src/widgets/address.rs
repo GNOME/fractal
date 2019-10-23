@@ -5,6 +5,7 @@ use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
+use url::Url;
 
 use crate::appop::AppOp;
 use crate::backend::BKCommand;
@@ -159,6 +160,7 @@ impl<'a> Address<'a> {
         let action = self.action.clone();
         let entry = self.entry.clone();
         let address = self.address.clone();
+        let server_url = self.op.server_url.clone();
         let id_server = self.op.identity_url.to_string();
         let backend = self.op.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
@@ -179,7 +181,7 @@ impl<'a> Address<'a> {
 
             match action {
                 Some(AddressAction::Delete) => {
-                    delete_address(&backend, medium, address.clone());
+                    delete_address(&backend, medium, address.clone(), server_url.clone());
                 }
                 Some(AddressAction::Add) => {
                     add_address(
@@ -187,6 +189,7 @@ impl<'a> Address<'a> {
                         medium,
                         id_server.clone(), // TODO: Change type to Url
                         entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
+                        server_url.clone(),
                     );
                 }
                 _ => {}
@@ -199,9 +202,10 @@ fn delete_address(
     backend: &Sender<BKCommand>,
     medium: Medium,
     address: Option<String>,
+    server_url: Url,
 ) -> Option<String> {
     backend
-        .send(BKCommand::DeleteThreePID(medium, address?))
+        .send(BKCommand::DeleteThreePID(server_url, medium, address?))
         .unwrap();
     None
 }
@@ -211,17 +215,22 @@ fn add_address(
     medium: Medium,
     id_server: String,
     address: Option<String>,
+    server_url: Url,
 ) -> Option<String> {
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
     match medium {
         Medium::MsIsdn => {
             backend
-                .send(BKCommand::GetTokenPhone(id_server, address?, secret))
+                .send(BKCommand::GetTokenPhone(
+                    server_url, id_server, address?, secret,
+                ))
                 .unwrap();
         }
         Medium::Email => {
             backend
-                .send(BKCommand::GetTokenEmail(id_server, address?, secret))
+                .send(BKCommand::GetTokenEmail(
+                    server_url, id_server, address?, secret,
+                ))
                 .unwrap();
         }
     }

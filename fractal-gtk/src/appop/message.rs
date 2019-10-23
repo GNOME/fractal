@@ -58,7 +58,8 @@ impl AppOp {
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
             let backend = self.backend.clone();
-            let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
+            let mb =
+                widgets::MessageBox::new(backend, self.server_url.clone()).tmpwidget(&ui_msg)?;
             let m = mb.get_listbox_row()?;
             messages.add(m);
 
@@ -92,7 +93,8 @@ impl AppOp {
         for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                 let backend = self.backend.clone();
-                let mb = widgets::MessageBox::new(backend).tmpwidget(&ui_msg)?;
+                let mb = widgets::MessageBox::new(backend, self.server_url.clone())
+                    .tmpwidget(&ui_msg)?;
                 let m = mb.get_listbox_row()?;
                 messages.add(m);
 
@@ -129,6 +131,7 @@ impl AppOp {
 
             self.backend
                 .send(BKCommand::MarkAsRead(
+                    self.server_url.clone(),
                     last_message.room.clone(),
                     last_message.id.clone(),
                 ))
@@ -172,10 +175,14 @@ impl AppOp {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" | "m.audio" => {
-                    self.backend.send(BKCommand::AttachFile(msg)).unwrap();
+                    self.backend
+                        .send(BKCommand::AttachFile(self.server_url.clone(), msg))
+                        .unwrap();
                 }
                 _ => {
-                    self.backend.send(BKCommand::SendMsg(msg)).unwrap();
+                    self.backend
+                        .send(BKCommand::SendMsg(self.server_url.clone(), msg))
+                        .unwrap();
                 }
             }
         } else {
