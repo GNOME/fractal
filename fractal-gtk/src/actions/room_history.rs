@@ -167,6 +167,14 @@ pub fn new(backend: Sender<BKCommand>, server_url: Url, ui: UI) -> gio::SimpleAc
         }
     });
 
+    let b = backend.clone();
+    let u = server_url.clone();
+    delete.connect_activate(move |_, data| {
+        if let Some(m) = get_message(data) {
+            let _ = b.send(BKCommand::SendMsgRedaction(u.clone(), m));
+        }
+    });
+
     load_more_messages.connect_activate(clone!(server_url => move |_, data| {
         let id = get_room_id(data);
         request_more_messages(&backend, server_url.clone(), id);
