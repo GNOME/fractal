@@ -104,6 +104,7 @@ pub fn get_sticker_widget_id(bk: &Backend, then: BKCommand) -> Result<(), Error>
 }
 
 pub fn send(bk: &Backend, base: Url, roomid: &str, sticker: &Sticker) -> Result<(), Error> {
+    let access_token = bk.get_access_token();
     let now = Local::now();
     let msg = format!("{}{}{}", roomid, sticker.name, now.to_string());
     let digest = md5::compute(msg.as_bytes());
@@ -112,6 +113,7 @@ pub fn send(bk: &Backend, base: Url, roomid: &str, sticker: &Sticker) -> Result<
 
     let url = bk.url(
         base,
+        &access_token,
         &format!("rooms/{}/send/m.sticker/{}", roomid, id),
         vec![],
     )?;

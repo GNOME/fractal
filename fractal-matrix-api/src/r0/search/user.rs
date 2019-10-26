@@ -1,13 +1,15 @@
+use crate::r0::AccessToken;
 use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -34,7 +36,7 @@ pub struct Response {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct User {
-    pub user_id: String,
+    pub user_id: UserId,
     #[serde(default)]
     pub display_name: Option<String>,
     #[serde(with = "option_url")]

@@ -1,17 +1,19 @@
 use crate::r0::filter::{serialize_filter_as_str, Filter};
+use crate::r0::AccessToken;
 use crate::serde::duration_as_millis;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Parameters<'a> {
-    pub access_token: String,
+    pub access_token: AccessToken,
     #[serde(serialize_with = "serialize_filter_as_str")]
     #[serde(skip_serializing_if = "Filter::is_default")]
     pub filter: Filter<'a>,
@@ -182,9 +184,9 @@ pub struct ToDevice {
 #[derive(Clone, Debug, Deserialize)]
 pub struct DeviceLists {
     #[serde(default)]
-    pub changed: Vec<String>,
+    pub changed: Vec<UserId>,
     #[serde(default)]
-    pub left: Vec<String>,
+    pub left: Vec<UserId>,
 }
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {

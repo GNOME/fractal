@@ -1,14 +1,17 @@
+use crate::r0::AccessToken;
 use crate::serde::{option_host, option_url};
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::RoomAliasId;
+use ruma_identifiers::RoomId;
 use serde::{Deserialize, Serialize};
 use url::Host;
 use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    pub access_token: String,
+    pub access_token: AccessToken,
     #[serde(with = "option_host")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server: Option<Host<String>>,
@@ -60,15 +63,15 @@ pub struct Response {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Chunk {
-    pub aliases: Option<Vec<String>>,
+    pub aliases: Option<Vec<RoomAliasId>>, // TODO: Change Vec to Set?
     #[serde(with = "option_url")]
     #[serde(default)]
     pub avatar_url: Option<Url>,
-    pub canonical_alias: Option<String>,
+    pub canonical_alias: Option<RoomAliasId>,
     pub guest_can_join: bool,
     pub name: Option<String>,
     pub num_joined_members: i32,
-    pub room_id: String,
+    pub room_id: RoomId,
     pub topic: Option<String>,
     pub world_readable: bool,
 }

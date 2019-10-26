@@ -1,4 +1,5 @@
 use super::AuthenticationData;
+use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -7,8 +8,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub access_token: String,
+    pub access_token: AccessToken,
 }
 
 #[derive(Clone, Debug, Serialize)]

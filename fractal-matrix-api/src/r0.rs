@@ -68,3 +68,26 @@ impl<T: AsRef<str>> Serialize for HostAndPort<T> {
         ser.serialize_str(&self.to_string())
     }
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AccessToken(String);
+
+impl AccessToken {
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+impl Display for AccessToken {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+// TODO: Remove this constructor when AccessToken is everywhere.
+// It should not be manually created from the client
+impl From<String> for AccessToken {
+    fn from(token: String) -> Self {
+        Self(token)
+    }
+}

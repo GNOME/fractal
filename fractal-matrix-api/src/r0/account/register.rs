@@ -1,7 +1,10 @@
 use super::AuthenticationData;
+use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::DeviceId;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use std::ops::Not;
 use url::Url;
@@ -43,7 +46,7 @@ pub struct Body {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<String>,
+    pub device_id: Option<DeviceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub initial_device_display_name: Option<String>,
     #[serde(skip_serializing_if = "Not::not")]
@@ -52,9 +55,9 @@ pub struct Body {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub user_id: String,
-    pub access_token: Option<String>,
-    pub device_id: Option<String>,
+    pub user_id: UserId,
+    pub access_token: Option<AccessToken>,
+    pub device_id: Option<DeviceId>,
 }
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
