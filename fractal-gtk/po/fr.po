@@ -139,12 +139,12 @@ msgstr ""
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:13
 msgid "Type of password and token storage"
-msgstr "Type de stockage de mots de passe et de jetons"
+msgstr "Type de stockage de mot de passe et de jetons"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:14
 msgid "Type of password and token storage, default value is: Secret Service"
 msgstr ""
-"Type de stockage de mots de passe et de jetons, la valeur par défaut est : "
+"Type de stockage de mot de passe et de jetons, la valeur par défaut est : "
 "Secret Service"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:21
@@ -779,7 +779,7 @@ msgstr ""
 
 #: fractal-gtk/src/app/backend_loop.rs:202
 msgid "Couldn’t delete the account"
-msgstr "Impossible du supprimer le compte"
+msgstr "Impossible de supprimer le compte"
 
 #: fractal-gtk/src/app/backend_loop.rs:207
 msgid "Couldn’t change the password"
@@ -891,12 +891,12 @@ msgstr "Rejoindre {room_name} ?"
 msgid ""
 "You’ve been invited to join <b>{room_name}</b> room by <b>{sender_name}</b>"
 msgstr ""
-"Vous avez été invité·e par <b>{sender_name}</b> à rejoindre <b>{room_name}</"
+"Vous avez été invité par <b>{sender_name}</b> à rejoindre <b>{room_name}</"
 "b>"
 
 #: fractal-gtk/src/appop/invite.rs:248
 msgid "You’ve been invited to join <b>{room_name}</b>"
-msgstr "Vous avez été invité·e à rejoindre <b>{room_name}</b>"
+msgstr "Vous avez été invité à rejoindre <b>{room_name}</b>"
 
 #: fractal-gtk/src/appop/login.rs:117
 msgid "Passwords didn’t match, try again"
