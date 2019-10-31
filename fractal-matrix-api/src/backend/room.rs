@@ -604,9 +604,15 @@ pub fn set_room_avatar(bk: &Backend, baseu: Url, roomid: &str, avatar: &str) -> 
 
 pub fn attach_file(bk: &Backend, baseu: Url, mut msg: Message) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
-    let mut extra_content: ExtraContent =
-        serde_json::from_value(msg.clone().extra_content.unwrap()).unwrap();
-    let thumb = extra_content.info.thumbnail_url.clone().unwrap_or_default();
+    let extra_content: Option<ExtraContent> = {
+        msg.clone()
+            .extra_content
+            .map_or(None, |c| Some(serde_json::from_value(c).unwrap()))
+    };
+
+    let thumb = extra_content
+        .clone()
+        .map_or(String::new(), |c| c.info.thumbnail_url.unwrap_or_default());
 
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
@@ -625,7 +631,7 @@ pub fn attach_file(bk: &Backend, baseu: Url, mut msg: Message) -> Result<(), Err
                 }
                 Ok(thumb_uri) => {
                     msg.thumb = Some(thumb_uri.to_string());
-                    extra_content.info.thumbnail_url = Some(thumb_uri);
+                    extra_content.clone().unwrap().info.thumbnail_url = Some(thumb_uri);
                     msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
                 }
             }
