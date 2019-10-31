@@ -43,8 +43,7 @@ impl AppOp {
     pub fn notify(&self, app: gtk::Application, room_id: &str, id: &str) -> Option<()> {
         let msg = self.get_message_by_id(room_id, id)?;
         let r = self.rooms.get(room_id)?;
-        let mut body = msg.body.clone();
-        body.truncate(80);
+        let short_body = dirty_truncate(&msg.body, 80).to_string();
 
         let title = if r.direct {
             i18n(" (direct message)")
@@ -72,7 +71,7 @@ impl AppOp {
             Ok((name, avatar_path)) => {
                 let title = format!("{}{}", name, title);
                 let app = upgrade_weak!(app_weak, gtk::Continue(false));
-                let n = create_notification(&room_id, &title, &body, &avatar_path);
+                let n = create_notification(&room_id, &title, &short_body, &avatar_path);
                 app.send_notification(Some(id.as_str()), &n);
                 gtk::Continue(false)
             }
@@ -83,6 +82,20 @@ impl AppOp {
 
     pub fn show_error(&self, msg: String) {
         ErrorDialog::new(false, &msg);
+    }
+}
+
+fn dirty_truncate(s: &str, num_chars: usize) -> &str {
+    let l = s.len();
+
+    if l <= num_chars {
+        s
+    } else {
+        if let Some((idx, _ch)) = s.char_indices().find(|(idx, _ch)| *idx >= num_chars) {
+            s.get(0..idx).unwrap()
+        } else {
+            s
+        }
     }
 }
 
@@ -99,4 +112,31 @@ fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> 
     let data = glib::Variant::from(room_id);
     notification.set_default_action_and_target_value("app.open-room", Some(&data));
     notification
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dirty_truncate_works() {
+        assert_eq!(dirty_truncate("hello", 80), "hello");
+
+        assert_eq!(
+            dirty_truncate(
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678áéíóú",
+                80
+            ),
+            "0123456789012345678901234567890123456789012345678901234567890123456789012345678á"
+        );
+
+        // len 82, max index 79 for the ideograph
+        assert_eq!(
+            dirty_truncate(
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678㈨",
+                80
+            ),
+            "0123456789012345678901234567890123456789012345678901234567890123456789012345678㈨"
+        );
+    }
 }
