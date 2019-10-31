@@ -43,8 +43,7 @@ impl AppOp {
     pub fn notify(&self, app: gtk::Application, room_id: &str, id: &str) -> Option<()> {
         let msg = self.get_message_by_id(room_id, id)?;
         let r = self.rooms.get(room_id)?;
-        let mut body = msg.body.clone();
-        body.truncate(80);
+        let body = dirty_truncate(msg.body, 80);
 
         let title = if r.direct {
             i18n(" (direct message)")
@@ -86,6 +85,24 @@ impl AppOp {
     }
 }
 
+fn dirty_truncate(s: &str, num_chars: usize) -> &str {
+    let l = s.len();
+
+    println!("len: {}", l);
+    if l <= num_chars {
+        s
+    } else {
+        for (idx, ch) in s.char_indices() {
+            println!("idx {} ch {}", idx, ch);
+        }
+        if let Some((idx, _ch)) = s.char_indices().find(|(idx, _ch)| *idx >= num_chars) {
+            s.get(0..idx).unwrap()
+        } else {
+            s
+        }
+    }
+}
+
 fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> Notification {
     let notification = Notification::new(title);
     notification.set_body(Some(body));
@@ -99,4 +116,31 @@ fn create_notification(room_id: &str, title: &str, body: &str, avatar: &str) -> 
     let data = glib::Variant::from(room_id);
     notification.set_default_action_and_target_value("app.open-room", Some(&data));
     notification
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dirty_truncate_works() {
+        assert_eq!(dirty_truncate("hello", 80), "hello");
+
+        assert_eq!(
+            dirty_truncate(
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678áéíóú",
+                80
+            ),
+            "0123456789012345678901234567890123456789012345678901234567890123456789012345678á"
+        );
+        
+        // len 82, max index 79 for the ideograph
+        assert_eq!(
+            dirty_truncate(
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678㈨",
+                80
+            ),
+            "0123456789012345678901234567890123456789012345678901234567890123456789012345678㈨"
+        );
+    }
 }
