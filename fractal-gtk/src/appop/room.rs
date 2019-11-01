@@ -39,104 +39,113 @@ impl AppOp {
     }
 
     pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
-        if clear_room_list {
-            self.rooms.clear();
-        }
-        let mut roomlist = vec![];
-        while let Some(room) = rooms.pop() {
-            if room.membership.is_left() {
-                // removing left rooms
-                if let RoomMembership::Left(kicked) = room.membership.clone() {
-                    if let Reason::Kicked(reason, kicker) = kicked {
-                        if let Some(r) = self.rooms.get(&room.id) {
-                            let room_name = r.name.clone().unwrap_or_default();
-                            self.kicked_room(room_name, reason, kicker.alias.unwrap_or_default());
+        if let Some(access_token) = self.access_token.clone() {
+            if clear_room_list {
+                self.rooms.clear();
+            }
+            let mut roomlist = vec![];
+            while let Some(room) = rooms.pop() {
+                if room.membership.is_left() {
+                    // removing left rooms
+                    if let RoomMembership::Left(kicked) = room.membership.clone() {
+                        if let Reason::Kicked(reason, kicker) = kicked {
+                            if let Some(r) = self.rooms.get(&room.id) {
+                                let room_name = r.name.clone().unwrap_or_default();
+                                self.kicked_room(
+                                    room_name,
+                                    reason,
+                                    kicker.alias.unwrap_or_default(),
+                                );
+                            }
                         }
                     }
-                }
-                if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
-                    self.really_leave_active_room();
+                    if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
+                        self.really_leave_active_room();
+                    } else {
+                        self.remove_room(room.id);
+                    }
+                } else if self.rooms.contains_key(&room.id) {
+                    // TODO: update the existing rooms
+                    let update_room = self.rooms.get_mut(&room.id).unwrap();
+                    let typing_users: Vec<Member> = room
+                        .typing_users
+                        .iter()
+                        .map(|u| update_room.members.get(&u.uid).unwrap_or(&u).to_owned())
+                        .collect();
+                    update_room.typing_users = typing_users;
+                    self.update_typing_notification();
                 } else {
-                    self.remove_room(room.id);
+                    // Request all joined members for each new room
+                    self.backend
+                        .send(BKCommand::GetRoomMembers(
+                            self.server_url.clone(),
+                            access_token.clone(),
+                            room.id.clone(),
+                        ))
+                        .unwrap();
+                    // Download the room avatar
+                    // TODO: Use the avatar url returned by sync
+                    self.backend
+                        .send(BKCommand::GetRoomAvatar(
+                            self.server_url.clone(),
+                            access_token.clone(),
+                            room.id.clone(),
+                        ))
+                        .unwrap();
+                    if clear_room_list {
+                        roomlist.push(room.clone());
+                    } else {
+                        self.roomlist.add_room(room.clone());
+                        self.roomlist.moveup(room.id.clone());
+                    }
+                    self.rooms.insert(room.id.clone(), room);
                 }
-            } else if self.rooms.contains_key(&room.id) {
-                // TODO: update the existing rooms
-                let update_room = self.rooms.get_mut(&room.id).unwrap();
-                let typing_users: Vec<Member> = room
-                    .typing_users
-                    .iter()
-                    .map(|u| update_room.members.get(&u.uid).unwrap_or(&u).to_owned())
-                    .collect();
-                update_room.typing_users = typing_users;
-                self.update_typing_notification();
-            } else {
-                // Request all joined members for each new room
-                self.backend
-                    .send(BKCommand::GetRoomMembers(
-                        self.server_url.clone(),
-                        room.id.clone(),
-                    ))
-                    .unwrap();
-                // Download the room avatar
-                // TODO: Use the avatar url returned by sync
-                self.backend
-                    .send(BKCommand::GetRoomAvatar(
-                        self.server_url.clone(),
-                        room.id.clone(),
-                    ))
-                    .unwrap();
-                if clear_room_list {
-                    roomlist.push(room.clone());
-                } else {
-                    self.roomlist.add_room(room.clone());
-                    self.roomlist.moveup(room.id.clone());
-                }
-                self.rooms.insert(room.id.clone(), room);
-            }
-        }
-
-        if clear_room_list {
-            let container: gtk::Box = self
-                .ui
-                .builder
-                .get_object("room_container")
-                .expect("Couldn't find room_container in ui file.");
-
-            for ch in container.get_children().iter() {
-                container.remove(ch);
             }
 
-            let scrolledwindow: gtk::ScrolledWindow = self
-                .ui
-                .builder
-                .get_object("roomlist_scroll")
-                .expect("Couldn't find room_container in ui file.");
-            let adj = scrolledwindow.get_vadjustment();
-            scrolledwindow.get_child().map(|child| {
-                child.downcast_ref::<gtk::Container>().map(|container| {
-                    adj.clone().map(|a| container.set_focus_vadjustment(&a));
+            if clear_room_list {
+                let container: gtk::Box = self
+                    .ui
+                    .builder
+                    .get_object("room_container")
+                    .expect("Couldn't find room_container in ui file.");
+
+                for ch in container.get_children().iter() {
+                    container.remove(ch);
+                }
+
+                let scrolledwindow: gtk::ScrolledWindow = self
+                    .ui
+                    .builder
+                    .get_object("roomlist_scroll")
+                    .expect("Couldn't find room_container in ui file.");
+                let adj = scrolledwindow.get_vadjustment();
+                scrolledwindow.get_child().map(|child| {
+                    child.downcast_ref::<gtk::Container>().map(|container| {
+                        adj.clone().map(|a| container.set_focus_vadjustment(&a));
+                    });
                 });
-            });
 
-            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.to_string()));
-            self.roomlist.add_rooms(roomlist);
-            container.add(self.roomlist.widget());
+                self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.to_string()));
+                self.roomlist.add_rooms(roomlist);
+                container.add(self.roomlist.widget());
 
-            let bk = self.backend.clone();
-            let server_url = self.server_url.clone();
-            self.roomlist.connect_fav(move |room, tofav| {
-                bk.send(BKCommand::AddToFav(
-                    server_url.clone(),
-                    room.id.clone(),
-                    tofav,
-                ))
-                .unwrap();
-            });
-            // Select active room in the sidebar
-            if let Some(ref active_room) = self.active_room {
-                self.set_active_room_by_id(active_room.clone());
+                let bk = self.backend.clone();
+                let server_url = self.server_url.clone();
+                self.roomlist.connect_fav(move |room, tofav| {
+                    bk.send(BKCommand::AddToFav(
+                        server_url.clone(),
+                        access_token.clone(),
+                        room.id.clone(),
+                        tofav,
+                    ))
+                    .unwrap();
+                });
+                // Select active room in the sidebar
+                if let Some(ref active_room) = self.active_room {
+                    self.set_active_room_by_id(active_room.clone());
+                }
+                self.cache_rooms();
             }
-            self.cache_rooms();
         }
     }
 
@@ -145,130 +154,140 @@ impl AppOp {
     }
 
     pub fn set_active_room_by_id(&mut self, id: String) {
-        if let Some(room) = self.rooms.get(&id) {
-            if let RoomMembership::Invited(ref sender) = room.membership {
-                self.show_inv_dialog(Some(sender), room.name.as_ref());
-                self.invitation_roomid = Some(room.id.clone());
-                return;
-            }
+        if let Some(access_token) = self.access_token.clone() {
+            if let Some(room) = self.rooms.get(&id) {
+                if let RoomMembership::Invited(ref sender) = room.membership {
+                    self.show_inv_dialog(Some(sender), room.name.as_ref());
+                    self.invitation_roomid = Some(room.id.clone());
+                    return;
+                }
 
-            let msg_entry = self.ui.sventry.view.clone();
-            let msg_entry_stack = self
-                .ui
-                .sventry_box
-                .clone()
-                .downcast::<gtk::Stack>()
-                .unwrap();
+                let msg_entry = self.ui.sventry.view.clone();
+                let msg_entry_stack = self
+                    .ui
+                    .sventry_box
+                    .clone()
+                    .downcast::<gtk::Stack>()
+                    .unwrap();
 
-            let user_power = match room.admins.get(&self.uid.clone().unwrap_or_default()) {
-                Some(p) => *p,
-                None => room
-                    .power_levels
-                    .get("users_default")
-                    .map(|x| *x)
-                    .unwrap_or(-1),
-            };
+                let user_power = match room.admins.get(&self.uid.clone().unwrap_or_default()) {
+                    Some(p) => *p,
+                    None => room
+                        .power_levels
+                        .get("users_default")
+                        .map(|x| *x)
+                        .unwrap_or(-1),
+                };
 
-            // No room admin information, assuming normal
-            if user_power >= 0 || room.admins.len() == 0 {
-                msg_entry.set_editable(true);
-                msg_entry_stack.set_visible_child_name("Text Entry");
+                // No room admin information, assuming normal
+                if user_power >= 0 || room.admins.len() == 0 {
+                    msg_entry.set_editable(true);
+                    msg_entry_stack.set_visible_child_name("Text Entry");
 
-                if let Some(buffer) = msg_entry.get_buffer() {
-                    let start = buffer.get_start_iter();
-                    let end = buffer.get_end_iter();
+                    if let Some(buffer) = msg_entry.get_buffer() {
+                        let start = buffer.get_start_iter();
+                        let end = buffer.get_end_iter();
 
-                    if let Some(msg) = buffer.get_text(&start, &end, false) {
-                        if let Some(ref active_room) = self.active_room {
-                            if msg.len() > 0 {
-                                if let Some(mark) = buffer.get_insert() {
-                                    let iter = buffer.get_iter_at_mark(&mark);
-                                    let msg_position = iter.get_offset();
+                        if let Some(msg) = buffer.get_text(&start, &end, false) {
+                            if let Some(ref active_room) = self.active_room {
+                                if msg.len() > 0 {
+                                    if let Some(mark) = buffer.get_insert() {
+                                        let iter = buffer.get_iter_at_mark(&mark);
+                                        let msg_position = iter.get_offset();
 
-                                    self.unsent_messages.insert(
-                                        active_room.clone(),
-                                        (msg.to_string(), msg_position),
-                                    );
+                                        self.unsent_messages.insert(
+                                            active_room.clone(),
+                                            (msg.to_string(), msg_position),
+                                        );
+                                    }
+                                } else {
+                                    self.unsent_messages.remove(active_room);
                                 }
-                            } else {
-                                self.unsent_messages.remove(active_room);
                             }
                         }
                     }
+                } else {
+                    msg_entry.set_editable(false);
+                    msg_entry_stack.set_visible_child_name("Disabled Entry");
                 }
-            } else {
-                msg_entry.set_editable(false);
-                msg_entry_stack.set_visible_child_name("Disabled Entry");
             }
-        }
 
-        self.clear_tmp_msgs();
+            self.clear_tmp_msgs();
 
-        /* Transform id into the active_room */
-        let active_room = id;
-        // Select new active room in the sidebar
-        self.roomlist.select(&active_room);
+            /* Transform id into the active_room */
+            let active_room = id;
+            // Select new active room in the sidebar
+            self.roomlist.select(&active_room);
 
-        // getting room details
-        self.backend
-            .send(BKCommand::SetRoom(
-                self.server_url.clone(),
-                active_room.clone(),
-            ))
-            .unwrap();
+            // getting room details
+            self.backend
+                .send(BKCommand::SetRoom(
+                    self.server_url.clone(),
+                    access_token.clone(),
+                    active_room.clone(),
+                ))
+                .unwrap();
 
-        /* create the intitial list of messages to fill the new room history */
-        let mut messages = vec![];
-        if let Some(room) = self.rooms.get(&active_room) {
-            for msg in room.messages.iter() {
-                /* Make sure the message is from this room and not redacted */
-                if msg.room == active_room && !msg.redacted {
-                    let row = self.create_new_room_message(msg);
-                    if let Some(row) = row {
-                        messages.push(row);
+            /* create the intitial list of messages to fill the new room history */
+            let mut messages = vec![];
+            if let Some(room) = self.rooms.get(&active_room) {
+                for msg in room.messages.iter() {
+                    /* Make sure the message is from this room and not redacted */
+                    if msg.room == active_room && !msg.redacted {
+                        let row = self.create_new_room_message(msg);
+                        if let Some(row) = row {
+                            messages.push(row);
+                        }
                     }
                 }
+
+                self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
+                self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
             }
 
-            self.set_current_room_detail(String::from("m.room.name"), room.name.clone());
-            self.set_current_room_detail(String::from("m.room.topic"), room.topic.clone());
+            self.append_tmp_msgs();
+
+            /* make sure we remove the old room history first, because the lazy loading could try to
+             * load messages */
+            if let Some(history) = self.history.take() {
+                history.destroy();
+            }
+
+            let actions = actions::RoomHistory::new(
+                self.backend.clone(),
+                self.server_url.clone(),
+                access_token,
+                self.ui.clone(),
+            );
+            let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
+            history.create(messages);
+            self.history = Some(history);
+
+            self.active_room = Some(active_room);
+            self.set_state(AppState::Room);
+            /* Mark the new active room as read */
+            self.mark_last_message_as_read(Force(false));
+            self.update_typing_notification();
         }
-
-        self.append_tmp_msgs();
-
-        /* make sure we remove the old room history first, because the lazy loading could try to
-         * load messages */
-        if let Some(history) = self.history.take() {
-            history.destroy();
-        }
-
-        let actions = actions::RoomHistory::new(
-            self.backend.clone(),
-            self.server_url.clone(),
-            self.ui.clone(),
-        );
-        let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
-        history.create(messages);
-        self.history = Some(history);
-
-        self.active_room = Some(active_room);
-        self.set_state(AppState::Room);
-        /* Mark the new active room as read */
-        self.mark_last_message_as_read(Force(false));
-        self.update_typing_notification();
     }
 
     pub fn really_leave_active_room(&mut self) {
-        let r = self.active_room.clone().unwrap_or_default();
-        self.backend
-            .send(BKCommand::LeaveRoom(self.server_url.clone(), r.clone()))
-            .unwrap();
-        self.rooms.remove(&r);
-        self.active_room = None;
-        self.clear_tmp_msgs();
-        self.set_state(AppState::NoRoom);
+        if let Some(access_token) = self.access_token.clone() {
+            let r = self.active_room.clone().unwrap_or_default();
+            self.backend
+                .send(BKCommand::LeaveRoom(
+                    self.server_url.clone(),
+                    access_token,
+                    r.clone(),
+                ))
+                .unwrap();
+            self.rooms.remove(&r);
+            self.active_room = None;
+            self.clear_tmp_msgs();
+            self.set_state(AppState::NoRoom);
 
-        self.roomlist.remove_room(r);
+            self.roomlist.remove_room(r);
+        }
     }
 
     pub fn leave_active_room(&self) {
@@ -305,42 +324,46 @@ impl AppOp {
     }
 
     pub fn create_new_room(&mut self) {
-        let name = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("new_room_name")
-            .expect("Can't find new_room_name in ui file.");
-        let private = self
-            .ui
-            .builder
-            .get_object::<gtk::ToggleButton>("private_visibility_button")
-            .expect("Can't find private_visibility_button in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let name = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("new_room_name")
+                .expect("Can't find new_room_name in ui file.");
+            let private = self
+                .ui
+                .builder
+                .get_object::<gtk::ToggleButton>("private_visibility_button")
+                .expect("Can't find private_visibility_button in ui file.");
 
-        let n = name
-            .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string());
-        // Since the switcher
-        let p = if private.get_active() {
-            backend::RoomType::Private
-        } else {
-            backend::RoomType::Public
-        };
+            let n = name
+                .get_text()
+                .map_or(String::new(), |gstr| gstr.to_string());
+            // Since the switcher
+            let p = if private.get_active() {
+                backend::RoomType::Private
+            } else {
+                backend::RoomType::Public
+            };
 
-        let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
-        self.backend
-            .send(BKCommand::NewRoom(
-                self.server_url.clone(),
-                n.clone(),
-                p,
-                internal_id.clone(),
-            ))
-            .unwrap();
+            let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
+            self.backend
+                .send(BKCommand::NewRoom(
+                    self.server_url.clone(),
+                    access_token,
+                    n.clone(),
+                    p,
+                    internal_id.clone(),
+                ))
+                .unwrap();
 
-        let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
-        fakeroom.name = Some(n);
-        self.new_room(fakeroom, None);
-        self.set_active_room_by_id(internal_id);
-        self.set_state(AppState::Room);
+            let mut fakeroom =
+                Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
+            fakeroom.name = Some(n);
+            self.new_room(fakeroom, None);
+            self.set_active_room_by_id(internal_id);
+            self.set_state(AppState::Room);
+        }
     }
 
     pub fn cache_rooms(&self) {
@@ -456,21 +479,27 @@ impl AppOp {
     }
 
     pub fn join_to_room(&mut self) {
-        let name = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("join_room_name")
-            .expect("Can't find join_room_name in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let name = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("join_room_name")
+                .expect("Can't find join_room_name in ui file.");
 
-        let n = name
-            .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string())
-            .trim()
-            .to_string();
+            let n = name
+                .get_text()
+                .map_or(String::new(), |gstr| gstr.to_string())
+                .trim()
+                .to_string();
 
-        self.backend
-            .send(BKCommand::JoinRoom(self.server_url.clone(), n.clone()))
-            .unwrap();
+            self.backend
+                .send(BKCommand::JoinRoom(
+                    self.server_url.clone(),
+                    access_token,
+                    n.clone(),
+                ))
+                .unwrap();
+        }
     }
 
     pub fn new_room(&mut self, r: Room, internal_id: Option<String>) {
@@ -613,13 +642,19 @@ impl AppOp {
     }
 
     pub fn new_room_avatar(&self, roomid: String) {
-        if !self.rooms.contains_key(&roomid) {
-            return;
-        }
+        if let Some(access_token) = self.access_token.clone() {
+            if !self.rooms.contains_key(&roomid) {
+                return;
+            }
 
-        self.backend
-            .send(BKCommand::GetRoomAvatar(self.server_url.clone(), roomid))
-            .unwrap();
+            self.backend
+                .send(BKCommand::GetRoomAvatar(
+                    self.server_url.clone(),
+                    access_token,
+                    roomid,
+                ))
+                .unwrap();
+        }
     }
 
     pub fn update_typing_notification(&mut self) {
@@ -654,21 +689,24 @@ impl AppOp {
     }
 
     pub fn send_typing(&mut self) {
-        if let Some(ref active_room) = self.active_room {
-            let now = Instant::now();
-            if let Some(last_typing) = self.typing.get(active_room) {
-                let time_passed = now.duration_since(*last_typing);
-                if time_passed.as_secs() < 3 {
-                    return;
+        if let Some(access_token) = self.access_token.clone() {
+            if let Some(ref active_room) = self.active_room {
+                let now = Instant::now();
+                if let Some(last_typing) = self.typing.get(active_room) {
+                    let time_passed = now.duration_since(*last_typing);
+                    if time_passed.as_secs() < 3 {
+                        return;
+                    }
                 }
+                self.typing.insert(active_room.clone(), now);
+                self.backend
+                    .send(BKCommand::SendTyping(
+                        self.server_url.clone(),
+                        access_token,
+                        active_room.clone(),
+                    ))
+                    .unwrap();
             }
-            self.typing.insert(active_room.clone(), now);
-            self.backend
-                .send(BKCommand::SendTyping(
-                    self.server_url.clone(),
-                    active_room.clone(),
-                ))
-                .unwrap();
         }
     }
 }

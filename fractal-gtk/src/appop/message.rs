@@ -111,31 +111,34 @@ impl AppOp {
     }
 
     pub fn mark_last_message_as_read(&mut self, Force(force): Force) -> Option<()> {
-        let window: gtk::Window = self
-            .ui
-            .builder
-            .get_object("main_window")
-            .expect("Can't find main_window in ui file.");
-        if window.is_active() || force {
-            /* Move the last viewed mark to the last message */
-            let active_room_id = self.active_room.as_ref()?;
-            let room = self.rooms.get_mut(active_room_id)?;
-            let uid = self.uid.clone()?;
-            room.messages.iter_mut().for_each(|msg| {
-                if msg.receipt.contains_key(&uid) {
-                    msg.receipt.remove(&uid);
-                }
-            });
-            let last_message = room.messages.last_mut()?;
-            last_message.receipt.insert(self.uid.clone()?, 0);
+        if let Some(access_token) = self.access_token.clone() {
+            let window: gtk::Window = self
+                .ui
+                .builder
+                .get_object("main_window")
+                .expect("Can't find main_window in ui file.");
+            if window.is_active() || force {
+                /* Move the last viewed mark to the last message */
+                let active_room_id = self.active_room.as_ref()?;
+                let room = self.rooms.get_mut(active_room_id)?;
+                let uid = self.uid.clone()?;
+                room.messages.iter_mut().for_each(|msg| {
+                    if msg.receipt.contains_key(&uid) {
+                        msg.receipt.remove(&uid);
+                    }
+                });
+                let last_message = room.messages.last_mut()?;
+                last_message.receipt.insert(self.uid.clone()?, 0);
 
-            self.backend
-                .send(BKCommand::MarkAsRead(
-                    self.server_url.clone(),
-                    last_message.room.clone(),
-                    last_message.id.clone(),
-                ))
-                .unwrap();
+                self.backend
+                    .send(BKCommand::MarkAsRead(
+                        self.server_url.clone(),
+                        access_token,
+                        last_message.room.clone(),
+                        last_message.id.clone(),
+                    ))
+                    .unwrap();
+            }
         }
         None
     }
@@ -165,29 +168,40 @@ impl AppOp {
         self.dequeue_message();
     }
 
-    pub fn dequeue_message(&mut self) {
-        if self.sending_message {
-            return;
-        }
-
-        self.sending_message = true;
-        if let Some(next) = self.msg_queue.last() {
-            let msg = next.msg.clone();
-            match &next.msg.mtype[..] {
-                "m.image" | "m.file" | "m.audio" => {
-                    self.backend
-                        .send(BKCommand::AttachFile(self.server_url.clone(), msg))
-                        .unwrap();
-                }
-                _ => {
-                    self.backend
-                        .send(BKCommand::SendMsg(self.server_url.clone(), msg))
-                        .unwrap();
-                }
+    pub fn dequeue_message(&mut self) -> Option<()> {
+        if let Some(access_token) = self.access_token.clone() {
+            if self.sending_message {
+                return None;
             }
-        } else {
-            self.sending_message = false;
+
+            self.sending_message = true;
+            if let Some(next) = self.msg_queue.last() {
+                let msg = next.msg.clone();
+                match &next.msg.mtype[..] {
+                    "m.image" | "m.file" | "m.audio" => {
+                        self.backend
+                            .send(BKCommand::AttachFile(
+                                self.server_url.clone(),
+                                access_token,
+                                msg,
+                            ))
+                            .unwrap();
+                    }
+                    _ => {
+                        self.backend
+                            .send(BKCommand::SendMsg(
+                                self.server_url.clone(),
+                                access_token,
+                                msg,
+                            ))
+                            .unwrap();
+                    }
+                }
+            } else {
+                self.sending_message = false;
+            }
         }
+        None
     }
 
     pub fn send_message(&mut self, msg: String) {

@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::r0::AccessToken;
 use gdk;
 
 use std::cell::RefCell;
@@ -42,6 +43,7 @@ struct Data {
     main_window: gtk::Window,
     backend: Sender<BKCommand>,
     server_url: Url,
+    access_token: AccessToken,
 
     pub image: Option<image::Image>,
     media_list: Vec<Message>,
@@ -58,6 +60,7 @@ impl Data {
     pub fn new(
         backend: Sender<BKCommand>,
         server_url: Url,
+        access_token: AccessToken,
         media_list: Vec<Message>,
         current_media_index: usize,
         main_window: gtk::Window,
@@ -74,6 +77,7 @@ impl Data {
             builder,
             backend,
             server_url,
+            access_token,
             main_window,
             signal_id: None,
         }
@@ -260,6 +264,7 @@ impl MediaViewer {
         room: &Room,
         current_media_msg: &Message,
         server_url: Url,
+        access_token: AccessToken,
     ) -> MediaViewer {
         let builder = gtk::Builder::new();
         builder
@@ -285,6 +290,7 @@ impl MediaViewer {
             data: Rc::new(RefCell::new(Data::new(
                 backend.clone(),
                 server_url,
+                access_token,
                 media_list,
                 current_media_index,
                 main_window,
@@ -594,6 +600,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     let first_media_id = Some(msg.id.clone());
     let prev_batch = data.borrow().prev_batch.clone();
     let server_url = data.borrow().server_url.clone();
+    let access_token = data.borrow().access_token.clone();
 
     let (tx, rx): (
         Sender<(Vec<Message>, String)>,
@@ -602,6 +609,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     backend
         .send(BKCommand::GetMediaListAsync(
             server_url,
+            access_token,
             roomid,
             first_media_id,
             prev_batch,

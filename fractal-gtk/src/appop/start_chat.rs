@@ -13,29 +13,33 @@ use rand::{thread_rng, Rng};
 
 impl AppOp {
     pub fn start_chat(&mut self) {
-        if self.invite_list.len() != 1 {
-            return;
+        if let Some(token) = self.access_token.clone() {
+            if self.invite_list.len() != 1 {
+                return;
+            }
+
+            let user = self.invite_list[0].clone();
+
+            let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
+            self.backend
+                .send(BKCommand::DirectChat(
+                    self.server_url.clone(),
+                    token.clone(),
+                    user.0.clone(),
+                    internal_id.clone(),
+                ))
+                .unwrap();
+            self.close_direct_chat_dialog();
+
+            let mut fakeroom =
+                Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
+            fakeroom.name = user.0.alias;
+            fakeroom.direct = true;
+
+            self.new_room(fakeroom, None);
+            self.set_active_room_by_id(internal_id);
+            self.set_state(AppState::Room);
         }
-
-        let user = self.invite_list[0].clone();
-
-        let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
-        self.backend
-            .send(BKCommand::DirectChat(
-                self.server_url.clone(),
-                user.0.clone(),
-                internal_id.clone(),
-            ))
-            .unwrap();
-        self.close_direct_chat_dialog();
-
-        let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
-        fakeroom.name = user.0.alias;
-        fakeroom.direct = true;
-
-        self.new_room(fakeroom, None);
-        self.set_active_room_by_id(internal_id);
-        self.set_state(AppState::Room);
     }
 
     pub fn show_direct_chat_dialog(&mut self) {

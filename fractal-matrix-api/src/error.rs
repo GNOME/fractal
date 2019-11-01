@@ -14,6 +14,7 @@ pub enum Error {
     SendMsgRedactionError(String),
     TokenUsed,
     Denied,
+    NotLoggedIn,
 }
 
 impl From<reqwest::Error> for Error {

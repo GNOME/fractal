@@ -1,3 +1,4 @@
+use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use glib::signal;
 use gtk;
@@ -130,71 +131,80 @@ impl<'a> Address<'a> {
     }
 
     fn connect(&mut self) {
-        let button = self.button.clone();
-        let medium = self.medium.clone();
-        self.entry.connect_property_text_notify(move |w| {
-            if let Some(text) = w.get_text() {
-                if text != "" {
-                    /* FIXME: use better validation */
-                    match medium {
-                        AddressType::Email => {
-                            button.set_sensitive(text.contains("@") && text.contains("."));
-                        }
-                        AddressType::Phone => {}
-                    };
-                    button.show();
-                } else {
-                    button.hide();
+        if let Some(access_token) = self.op.access_token.clone() {
+            let button = self.button.clone();
+            let medium = self.medium.clone();
+            self.entry.connect_property_text_notify(move |w| {
+                if let Some(text) = w.get_text() {
+                    if text != "" {
+                        /* FIXME: use better validation */
+                        match medium {
+                            AddressType::Email => {
+                                button.set_sensitive(text.contains("@") && text.contains("."));
+                            }
+                            AddressType::Phone => {}
+                        };
+                        button.show();
+                    } else {
+                        button.hide();
+                    }
                 }
-            }
-        });
+            });
 
-        let button = self.button.clone();
-        self.entry.connect_activate(move |w| {
-            if w.get_editable() {
-                let _ = button.emit("clicked", &[]);
-            }
-        });
-
-        let medium = self.medium.clone();
-        let action = self.action.clone();
-        let entry = self.entry.clone();
-        let address = self.address.clone();
-        let server_url = self.op.server_url.clone();
-        let id_server = self.op.identity_url.to_string();
-        let backend = self.op.backend.clone();
-        self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
-            if !w.get_sensitive() || !w.is_visible() {
-                return;
-            }
-
-            let spinner = gtk::Spinner::new();
-            spinner.start();
-            w.set_image(Some(&spinner));
-            w.set_sensitive(false);
-            entry.set_editable(false);
-
-            let medium = match medium {
-                AddressType::Email => Medium::Email,
-                AddressType::Phone => Medium::MsIsdn,
-            };
-
-            match action {
-                Some(AddressAction::Delete) => {
-                    delete_address(&backend, medium, address.clone(), server_url.clone());
+            let button = self.button.clone();
+            self.entry.connect_activate(move |w| {
+                if w.get_editable() {
+                    let _ = button.emit("clicked", &[]);
                 }
-                Some(AddressAction::Add) => {
-                    add_address(
-                        &backend,
-                        medium,
-                        id_server.clone(), // TODO: Change type to Url
-                        entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
-                        server_url.clone(),
-                    );
+            });
+
+            let medium = self.medium.clone();
+            let action = self.action.clone();
+            let entry = self.entry.clone();
+            let address = self.address.clone();
+            let server_url = self.op.server_url.clone();
+            let id_server = self.op.identity_url.to_string();
+            let backend = self.op.backend.clone();
+            self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
+                if !w.get_sensitive() || !w.is_visible() {
+                    return;
                 }
-                _ => {}
-            }
-        }));
+
+                let spinner = gtk::Spinner::new();
+                spinner.start();
+                w.set_image(Some(&spinner));
+                w.set_sensitive(false);
+                entry.set_editable(false);
+
+                let medium = match medium {
+                    AddressType::Email => Medium::Email,
+                    AddressType::Phone => Medium::MsIsdn,
+                };
+
+                match action {
+                    Some(AddressAction::Delete) => {
+                        delete_address(
+                            &backend,
+                            medium,
+                            address.clone(),
+                            server_url.clone(),
+                            access_token.clone(),
+                        );
+                    }
+                    Some(AddressAction::Add) => {
+                        add_address(
+                            &backend,
+                            medium,
+                            id_server.clone(), // TODO: Change type to Url
+                            entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
+                            server_url.clone(),
+                            access_token.clone(),
+                        );
+                    }
+                    _ => {}
+                }
+            }));
+        }
     }
 }
 
@@ -203,9 +213,15 @@ fn delete_address(
     medium: Medium,
     address: Option<String>,
     server_url: Url,
+    access_token: AccessToken,
 ) -> Option<String> {
     backend
-        .send(BKCommand::DeleteThreePID(server_url, medium, address?))
+        .send(BKCommand::DeleteThreePID(
+            server_url,
+            access_token,
+            medium,
+            address?,
+        ))
         .unwrap();
     None
 }
@@ -216,20 +232,29 @@ fn add_address(
     id_server: String,
     address: Option<String>,
     server_url: Url,
+    access_token: AccessToken,
 ) -> Option<String> {
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
     match medium {
         Medium::MsIsdn => {
             backend
                 .send(BKCommand::GetTokenPhone(
-                    server_url, id_server, address?, secret,
+                    server_url,
+                    access_token,
+                    id_server,
+                    address?,
+                    secret,
                 ))
                 .unwrap();
         }
         Medium::Email => {
             backend
                 .send(BKCommand::GetTokenEmail(
-                    server_url, id_server, address?, secret,
+                    server_url,
+                    access_token,
+                    id_server,
+                    address?,
+                    secret,
                 ))
                 .unwrap();
         }

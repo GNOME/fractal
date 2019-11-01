@@ -20,9 +20,14 @@ impl AppOp {
     }
 
     pub fn get_three_pid(&self) {
-        self.backend
-            .send(BKCommand::GetThreePID(self.server_url.clone()))
-            .unwrap();
+        if let Some(access_token) = self.access_token.clone() {
+            self.backend
+                .send(BKCommand::GetThreePID(
+                    self.server_url.clone(),
+                    access_token,
+                ))
+                .unwrap();
+        }
     }
 
     pub fn added_three_pid(&self) {
@@ -30,17 +35,20 @@ impl AppOp {
     }
 
     pub fn valid_phone_token(&self, sid: Option<String>, secret: Option<String>) {
-        if let Some(sid) = sid {
-            if let Some(secret) = secret {
-                let _ = self.backend.send(BKCommand::AddThreePID(
-                    self.server_url.clone(),
-                    self.identity_url.to_string(), // TODO: Change type to Url
-                    secret.clone(),
-                    sid.clone(),
-                ));
+        if let Some(access_token) = self.access_token.clone() {
+            if let Some(sid) = sid {
+                if let Some(secret) = secret {
+                    let _ = self.backend.send(BKCommand::AddThreePID(
+                        self.server_url.clone(),
+                        access_token,
+                        self.identity_url.to_string(), // TODO: Change type to Url
+                        secret.clone(),
+                        sid.clone(),
+                    ));
+                }
+            } else {
+                self.show_error_dialog_in_settings(i18n("The validation code is not correct."));
             }
-        } else {
-            self.show_error_dialog_in_settings(i18n("The validation code is not correct."));
         }
     }
 
@@ -110,42 +118,45 @@ impl AppOp {
     }
 
     pub fn show_email_dialog(&self, sid: String, secret: String) {
-        let parent = self
-            .ui
-            .builder
-            .get_object::<gtk::Window>("main_window")
-            .expect("Can't find main_window in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let parent = self
+                .ui
+                .builder
+                .get_object::<gtk::Window>("main_window")
+                .expect("Can't find main_window in ui file.");
 
-        let msg = i18n("In order to add this email address, go to your inbox and follow the link you received. Once you’ve done that, click Continue.");
-        let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
-        let dialog = gtk::MessageDialog::new(
-            Some(&parent),
-            flags,
-            gtk::MessageType::Error,
-            gtk::ButtonsType::None,
-            &msg,
-        );
-        let backend = self.backend.clone();
-        let id_server = self.identity_url.to_string();
-        let server_url = self.server_url.clone();
-        dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
-        dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
-        dialog.connect_response(move |w, r| {
-            match gtk::ResponseType::from(r) {
-                gtk::ResponseType::Ok => {
-                    let _ = backend.send(BKCommand::AddThreePID(
-                        server_url.clone(),
-                        id_server.clone(), // TODO: Change type to Url
-                        secret.clone(),
-                        sid.clone(),
-                    ));
+            let msg = i18n("In order to add this email address, go to your inbox and follow the link you received. Once you’ve done that, click Continue.");
+            let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+            let dialog = gtk::MessageDialog::new(
+                Some(&parent),
+                flags,
+                gtk::MessageType::Error,
+                gtk::ButtonsType::None,
+                &msg,
+            );
+            let backend = self.backend.clone();
+            let id_server = self.identity_url.to_string();
+            let server_url = self.server_url.clone();
+            dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
+            dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
+            dialog.connect_response(move |w, r| {
+                match gtk::ResponseType::from(r) {
+                    gtk::ResponseType::Ok => {
+                        let _ = backend.send(BKCommand::AddThreePID(
+                            server_url.clone(),
+                            access_token.clone(),
+                            id_server.clone(), // TODO: Change type to Url
+                            secret.clone(),
+                            sid.clone(),
+                        ));
+                    }
+                    _ => {}
                 }
-                _ => {}
-            }
-            w.destroy();
-        });
-        self.get_three_pid();
-        dialog.show_all();
+                w.destroy();
+            });
+            self.get_three_pid();
+            dialog.show_all();
+        }
     }
 
     pub fn show_error_dialog_in_settings(&self, error: String) {
@@ -529,33 +540,39 @@ impl AppOp {
     }
 
     pub fn update_username_account_settings(&self) {
-        let name = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("account_settings_name")
-            .expect("Can't find account_settings_name in ui file.");
-        let button = self
-            .ui
-            .builder
-            .get_object::<gtk::Button>("account_settings_name_button")
-            .expect("Can't find account_settings_name_button in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let name = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("account_settings_name")
+                .expect("Can't find account_settings_name in ui file.");
+            let button = self
+                .ui
+                .builder
+                .get_object::<gtk::Button>("account_settings_name_button")
+                .expect("Can't find account_settings_name_button in ui file.");
 
-        let old_username = self.username.clone().unwrap_or_default();
-        let username = name
-            .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string());
+            let old_username = self.username.clone().unwrap_or_default();
+            let username = name
+                .get_text()
+                .map_or(String::new(), |gstr| gstr.to_string());
 
-        if old_username != username {
-            let spinner = gtk::Spinner::new();
-            spinner.start();
-            button.set_image(Some(&spinner));
-            button.set_sensitive(false);
-            name.set_editable(false);
-            self.backend
-                .send(BKCommand::SetUserName(self.server_url.clone(), username))
-                .unwrap();
-        } else {
-            button.hide();
+            if old_username != username {
+                let spinner = gtk::Spinner::new();
+                spinner.start();
+                button.set_image(Some(&spinner));
+                button.set_sensitive(false);
+                name.set_editable(false);
+                self.backend
+                    .send(BKCommand::SetUserName(
+                        self.server_url.clone(),
+                        access_token,
+                        username,
+                    ))
+                    .unwrap();
+            } else {
+                button.hide();
+            }
         }
     }
 
@@ -582,39 +599,42 @@ impl AppOp {
     }
 
     pub fn set_new_password(&mut self) {
-        let old_password = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("password-dialog-old-entry")
-            .expect("Can't find password-dialog-old-entry in ui file.");
-        let new_password = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("password-dialog-entry")
-            .expect("Can't find password-dialog-entry in ui file.");
-        let password_btn = self
-            .ui
-            .builder
-            .get_object::<gtk::Button>("account_settings_password")
-            .expect("Can't find account_settings_password in ui file.");
-        let password_btn_stack = self
-            .ui
-            .builder
-            .get_object::<gtk::Stack>("account_settings_password_stack")
-            .expect("Can't find account_settings_password_stack in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let old_password = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("password-dialog-old-entry")
+                .expect("Can't find password-dialog-old-entry in ui file.");
+            let new_password = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("password-dialog-entry")
+                .expect("Can't find password-dialog-entry in ui file.");
+            let password_btn = self
+                .ui
+                .builder
+                .get_object::<gtk::Button>("account_settings_password")
+                .expect("Can't find account_settings_password in ui file.");
+            let password_btn_stack = self
+                .ui
+                .builder
+                .get_object::<gtk::Stack>("account_settings_password_stack")
+                .expect("Can't find account_settings_password_stack in ui file.");
 
-        if let Some(old) = old_password.get_text() {
-            if let Some(new) = new_password.get_text() {
-                if let Some(mxid) = self.uid.clone() {
-                    if old != "" && new != "" {
-                        password_btn.set_sensitive(false);
-                        password_btn_stack.set_visible_child_name("spinner");
-                        let _ = self.backend.send(BKCommand::ChangePassword(
-                            self.server_url.clone(),
-                            mxid,
-                            old.to_string(),
-                            new.to_string(),
-                        ));
+            if let Some(old) = old_password.get_text() {
+                if let Some(new) = new_password.get_text() {
+                    if let Some(mxid) = self.uid.clone() {
+                        if old != "" && new != "" {
+                            password_btn.set_sensitive(false);
+                            password_btn_stack.set_visible_child_name("spinner");
+                            let _ = self.backend.send(BKCommand::ChangePassword(
+                                self.server_url.clone(),
+                                access_token,
+                                mxid,
+                                old.to_string(),
+                                new.to_string(),
+                            ));
+                        }
                     }
                 }
             }
@@ -681,39 +701,39 @@ impl AppOp {
     }
 
     pub fn account_destruction(&self) {
-        let entry = self
-            .ui
-            .builder
-            .get_object::<gtk::Entry>("account_settings_delete_password_confirm")
-            .expect("Can't find account_settings_delete_password_confirm in ui file.");
-        let mark = self
-            .ui
-            .builder
-            .get_object::<gtk::CheckButton>("account_settings_delete_check")
-            .expect("Can't find account_settings_delete_check in ui file.");
-        let parent = self
-            .ui
-            .builder
-            .get_object::<gtk::Window>("main_window")
-            .expect("Can't find main_window in ui file.");
+        if let Some(access_token) = self.access_token.clone() {
+            let entry = self
+                .ui
+                .builder
+                .get_object::<gtk::Entry>("account_settings_delete_password_confirm")
+                .expect("Can't find account_settings_delete_password_confirm in ui file.");
+            let mark = self
+                .ui
+                .builder
+                .get_object::<gtk::CheckButton>("account_settings_delete_check")
+                .expect("Can't find account_settings_delete_check in ui file.");
+            let parent = self
+                .ui
+                .builder
+                .get_object::<gtk::Window>("main_window")
+                .expect("Can't find main_window in ui file.");
 
-        let msg = i18n("Are you sure you want to delete your account?");
-        let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
-        let dialog = gtk::MessageDialog::new(
-            Some(&parent),
-            flags,
-            gtk::MessageType::Warning,
-            gtk::ButtonsType::None,
-            &msg,
-        );
+            let msg = i18n("Are you sure you want to delete your account?");
+            let flags = gtk::DialogFlags::MODAL | gtk::DialogFlags::DESTROY_WITH_PARENT;
+            let dialog = gtk::MessageDialog::new(
+                Some(&parent),
+                flags,
+                gtk::MessageType::Warning,
+                gtk::ButtonsType::None,
+                &msg,
+            );
 
-        dialog.add_button("Confirm", gtk::ResponseType::Ok.into());
-        dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
+            dialog.add_button("Confirm", gtk::ResponseType::Ok.into());
+            dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
 
-        let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
-        let server_url = self.server_url.clone();
-        if let Some(password) = entry.get_text() {
-            if let Some(mxid) = self.uid.clone() {
+            let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
+            let server_url = self.server_url.clone();
+            if let (Some(password), Some(mxid)) = (entry.get_text(), self.uid.clone()) {
                 let backend = self.backend.clone();
                 let password = password.to_string();
                 dialog.connect_response(move |w, r| {
@@ -721,6 +741,7 @@ impl AppOp {
                         gtk::ResponseType::Ok => {
                             let _ = backend.send(BKCommand::AccountDestruction(
                                 server_url.clone(),
+                                access_token.clone(),
                                 mxid.clone(),
                                 password.clone(),
                             ));

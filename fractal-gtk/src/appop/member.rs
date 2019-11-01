@@ -190,9 +190,9 @@ impl AppOp {
     }
 
     pub fn search_invite_user(&self, term: Option<String>) {
-        if let Some(t) = term {
+        if let (Some(t), Some(token)) = (term, self.access_token.clone()) {
             self.backend
-                .send(BKCommand::UserSearch(self.server_url.clone(), t))
+                .send(BKCommand::UserSearch(self.server_url.clone(), token, t))
                 .unwrap();
         }
     }

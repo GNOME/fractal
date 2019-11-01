@@ -1,4 +1,5 @@
 use crate::i18n::i18n;
+use fractal_api::r0::AccessToken;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
@@ -19,6 +20,7 @@ pub fn new(
     window: &gtk::Window,
     backend: &Sender<BKCommand>,
     server_url: Url,
+    access_token: AccessToken,
 ) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     // TODO create two stats loading interaction and connect it to the avatar box
@@ -39,6 +41,7 @@ pub fn new(
                 a.change_state(&ButtonState::Insensitive.into());
                 let _ = backend.send(BKCommand::SetUserAvatar(
                     server_url.clone(),
+                    access_token.clone(),
                     file.to_string(),
                 ));
             } else {

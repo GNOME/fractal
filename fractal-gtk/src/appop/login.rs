@@ -1,6 +1,8 @@
 use crate::i18n::i18n;
 use log::error;
 
+use fractal_api::r0::AccessToken;
+
 use gtk;
 use gtk::prelude::*;
 
@@ -24,9 +26,9 @@ use crate::actions::AppState;
 use crate::widgets::ErrorDialog;
 
 impl AppOp {
-    pub fn bk_login(&mut self, uid: String, token: String, device: Option<String>) {
+    pub fn bk_login(&mut self, uid: String, token: Option<AccessToken>, device: Option<String>) {
         self.logged_in = true;
-        if let Err(_) = self.store_token(uid.clone(), token) {
+        if let Err(_) = self.store_token(uid.clone(), token.clone()) {
             error!("Can't store the token using libsecret");
         }
 
@@ -38,6 +40,8 @@ impl AppOp {
         /* Do we need to set the username to uid
         self.set_username(Some(uid));*/
         self.get_username();
+
+        self.set_access_token(token);
 
         // initial sync, we're shoing some feedback to the user
         self.initial_sync(true);
@@ -179,15 +183,13 @@ impl AppOp {
 
     pub fn set_token(
         &mut self,
-        token: Option<String>,
+        token: AccessToken,
         uid: Option<String>,
         server: Url,
     ) -> Option<()> {
         self.server_url = server;
 
-        self.backend
-            .send(BKCommand::SetToken(token?, uid?))
-            .unwrap();
+        self.backend.send(BKCommand::SetToken(token, uid?)).unwrap();
         Some(())
     }
 
@@ -205,10 +207,12 @@ impl AppOp {
     }
 
     pub fn logout(&mut self) {
-        let _ = self.delete_pass("fractal");
-        self.backend
-            .send(BKCommand::Logout(self.server_url.clone()))
-            .unwrap();
-        self.bk_logout();
+        if let Some(token) = self.access_token.clone() {
+            let _ = self.delete_pass("fractal");
+            self.backend
+                .send(BKCommand::Logout(self.server_url.clone(), token.clone()))
+                .unwrap();
+            self.bk_logout();
+        }
     }
 }

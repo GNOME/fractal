@@ -1,4 +1,3 @@
-use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
@@ -40,34 +39,23 @@ pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Strin
 pub fn get_media_list_async(
     bk: &Backend,
     baseu: Url,
-    roomid: &str,
+    access_token: AccessToken,
+    roomid: String,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
-    let tk = bk.get_access_token();
-    let room = String::from(roomid);
-
     semaphore(bk.limit_threads.clone(), move || {
         let media_list = get_room_media_list(
             &baseu,
-            &tk,
-            &room,
+            &access_token,
+            &roomid,
             globals::PAGE_LIMIT,
             first_media_id,
             &prev_batch,
         )
         .unwrap_or_default();
         tx.send(media_list).expect_log("Connection closed");
-    });
-}
-
-pub fn get_media(bk: &Backend, baseu: Url, media: String) {
-    let tx = bk.tx.clone();
-    thread::spawn(move || {
-        let fname = dw_media(&baseu, &media, ContentType::Download, None);
-        tx.send(BKResponse::Media(fname))
-            .expect_log("Connection closed");
     });
 }
 

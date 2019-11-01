@@ -1,3 +1,5 @@
+use fractal_api::r0::AccessToken;
+
 use gtk;
 use gtk::prelude::*;
 
@@ -94,6 +96,10 @@ impl AppOp {
         };
 
         eb.connect_button_press_event(move |_, _| Inhibit(false));
+    }
+
+    pub fn set_access_token(&mut self, access_token: Option<AccessToken>) {
+        self.access_token = access_token;
     }
 
     pub fn set_username(&mut self, username: Option<String>) {

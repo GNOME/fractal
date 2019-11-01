@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::r0::AccessToken;
 use std::fs;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
@@ -21,7 +22,12 @@ use crate::widgets::FileDialog::save;
 use crate::widgets::SourceDialog;
 
 /* This creates all actions the room history can perform */
-pub fn new(backend: Sender<BKCommand>, server_url: Url, ui: UI) -> gio::SimpleActionGroup {
+pub fn new(
+    backend: Sender<BKCommand>,
+    server_url: Url,
+    access_token: AccessToken,
+    ui: UI,
+) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     /* Action for each message */
     let reply = SimpleAction::new("reply", glib::VariantTy::new("s").ok());
@@ -169,15 +175,16 @@ pub fn new(backend: Sender<BKCommand>, server_url: Url, ui: UI) -> gio::SimpleAc
 
     let b = backend.clone();
     let u = server_url.clone();
+    let tk = access_token.clone();
     delete.connect_activate(move |_, data| {
         if let Some(m) = get_message(data) {
-            let _ = b.send(BKCommand::SendMsgRedaction(u.clone(), m));
+            let _ = b.send(BKCommand::SendMsgRedaction(u.clone(), tk.clone(), m));
         }
     });
 
-    load_more_messages.connect_activate(clone!(server_url => move |_, data| {
+    load_more_messages.connect_activate(clone!(server_url, access_token => move |_, data| {
         let id = get_room_id(data);
-        request_more_messages(&backend, server_url.clone(), id);
+        request_more_messages(&backend, server_url.clone(), access_token.clone(), id);
     }));
 
     actions
@@ -202,6 +209,7 @@ fn get_room_id(data: Option<&glib::Variant>) -> Option<String> {
 fn request_more_messages(
     backend: &Sender<BKCommand>,
     server_url: Url,
+    access_token: AccessToken,
     id: Option<String>,
 ) -> Option<()> {
     let op = App::get_op()?;
@@ -210,13 +218,19 @@ fn request_more_messages(
     let r = op.rooms.get(&id)?;
     if let Some(prev_batch) = r.prev_batch.clone() {
         backend
-            .send(BKCommand::GetRoomMessages(server_url, id, prev_batch))
+            .send(BKCommand::GetRoomMessages(
+                server_url,
+                access_token,
+                id,
+                prev_batch,
+            ))
             .unwrap();
     } else if let Some(msg) = r.messages.iter().next() {
         // no prev_batch so we use the last message to calculate that in the backend
         backend
             .send(BKCommand::GetRoomMessagesFromMsg(
                 server_url,
+                access_token,
                 id,
                 msg.clone(),
             ))
@@ -224,7 +238,12 @@ fn request_more_messages(
     } else if let Some(from) = op.since.clone() {
         // no messages and no prev_batch so we use the last since
         backend
-            .send(BKCommand::GetRoomMessages(server_url, id, from))
+            .send(BKCommand::GetRoomMessages(
+                server_url,
+                access_token,
+                id,
+                from,
+            ))
             .unwrap();
     }
     None
