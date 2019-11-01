@@ -96,7 +96,7 @@ m.location        |                     |
 m.video           | Done                | Done
 m.audio           | Done                | Done
 
-Full reference in: <https://matrix.org/docs/spec/client\_server/r0.2.0.html#m-room-message-msgtypes>
+Full reference in: <https://matrix.org/docs/spec/client_server/r0.2.0.html#m-room-message-msgtypes>
 
 ## Frequently Asked Questions
 
