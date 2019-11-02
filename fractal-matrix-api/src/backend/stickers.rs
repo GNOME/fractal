@@ -41,7 +41,7 @@ pub fn list(bk: &Backend, access_token: AccessToken) -> Result<(), Error> {
 
     let tx = bk.tx.clone();
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let mut stickers = vec![];
             for sticker_group in r["assets"].as_array().unwrap_or(&vec![]).iter() {
@@ -74,7 +74,7 @@ pub fn get_sticker_widget_id(
 
     let url = vurl(&d, &access_token, "widgets/request", vec![]).unwrap();
     post!(
-        &url,
+        url,
         &data,
         |r: JsonValue| {
             let mut id = String::new();
@@ -145,7 +145,7 @@ pub fn send(
     let tx = bk.tx.clone();
     query!(
         "put",
-        &url,
+        url,
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
@@ -183,7 +183,7 @@ pub fn purchase(bk: &Backend, access_token: AccessToken, group: StickerGroup) ->
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
     get!(
-        &url,
+        url,
         |_| if let Some(t) = itx {
             t.send(BKCommand::ListStickers(access_token))
                 .expect_log("Connection closed");
@@ -207,12 +207,12 @@ fn get_scalar_token(
     let params = &[("access_token", access_token.to_string())];
     let path = &format!("user/{}/openid/request_token", uid);
     let url = client_url(&base, path, params)?;
-    let js = json_q("post", &url, &json!({}))?;
+    let js = json_q("post", url, &json!({}))?;
 
     let vurl = base
         .join("/api/register")
         .expect("Wrong URL in get_scalar_token()");
-    let js = json_q("post", &vurl, &js)?;
+    let js = json_q("post", vurl, &js)?;
 
     match js["scalar_token"].as_str() {
         Some(st) => {

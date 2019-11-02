@@ -103,8 +103,7 @@ impl LoginWidget {
                     };
 
                     let mut idserver = globals::DEFAULT_IDENTITYSERVER.clone();
-                    match get_well_known(&txt) {
-                        // TODO: Use Url everywhere
+                    match get_well_known(homeserver_url.clone()) {
                         Ok(response) => {
                             info!("Got well-known response from {}: {:#?}", &txt, response);
                             homeserver_url = response.homeserver.base_url;

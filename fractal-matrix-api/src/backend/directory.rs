@@ -50,7 +50,7 @@ pub fn room_search(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    homeserver: Option<String>, // TODO: Use Url or HostAndPort?
+    homeserver: Option<String>, // TODO: Use HostAndPort?
     generic_search_term: Option<String>,
     third_party: Option<String>,
     more: bool,

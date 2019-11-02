@@ -152,13 +152,13 @@ pub fn get_threepid(
 pub fn get_email_token(
     base: Url,
     access_token: AccessToken,
-    identity: String,
+    identity: Url,
     email: String,
     client_secret: String,
 ) -> Result<(String, String), Error> {
     let params = EmailTokenParameters { access_token };
     let body = EmailTokenBody {
-        id_server: Url::parse(&identity)?.try_into()?,
+        id_server: identity.try_into()?,
         client_secret: client_secret.clone(),
         email,
         send_attempt: 1,
@@ -190,13 +190,13 @@ pub fn get_email_token(
 pub fn get_phone_token(
     base: Url,
     access_token: AccessToken,
-    identity: String,
+    identity: Url,
     phone: String,
     client_secret: String,
 ) -> Result<(String, String), Error> {
     let params = PhoneTokenParameters { access_token };
     let body = PhoneTokenBody {
-        id_server: Url::parse(&identity)?.try_into()?,
+        id_server: identity.try_into()?,
         client_secret: client_secret.clone(),
         phone_number: phone,
         country: String::new(),
@@ -229,14 +229,14 @@ pub fn get_phone_token(
 pub fn add_threepid(
     base: Url,
     access_token: AccessToken,
-    identity: String,
+    identity: Url,
     client_secret: String,
     sid: String,
 ) -> Result<(), Error> {
     let params = AddThreePIDParameters { access_token };
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
-            id_server: Url::parse(&identity)?.try_into()?,
+            id_server: identity.try_into()?,
             sid: sid.clone(),
             client_secret,
         },

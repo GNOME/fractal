@@ -27,11 +27,9 @@ use crate::util::HTTP_CLIENT;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 
-pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
+pub fn guest(bk: &Backend, base: Url) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-
-    let base = Url::parse(server)?;
 
     let params = RegisterParameters {
         kind: RegistrationKind::Guest,
@@ -68,15 +66,11 @@ pub fn guest(bk: &Backend, server: &str) -> Result<(), Error> {
             }
         }
     });
-
-    Ok(())
 }
 
-pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
+pub fn login(bk: &Backend, user: String, password: String, base: Url) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-
-    let base = Url::parse(server)?;
 
     let body = if globals::EMAIL_RE.is_match(&user) {
         LoginBody {
@@ -134,8 +128,6 @@ pub fn login(bk: &Backend, user: String, password: String, server: &str) -> Resu
             }
         }
     });
-
-    Ok(())
 }
 
 pub fn set_token(bk: &Backend, token: AccessToken, uid: String) {
@@ -173,11 +165,10 @@ pub fn logout(bk: &Backend, server: Url, access_token: AccessToken) {
     });
 }
 
-pub fn register(bk: &Backend, user: String, password: String, server: &str) -> Result<(), Error> {
+pub fn register(bk: &Backend, user: String, password: String, base: Url) {
     let data = bk.data.clone();
     let tx = bk.tx.clone();
 
-    let base = Url::parse(server)?;
     let params = Default::default();
     let body = RegisterBody {
         username: Some(user),
@@ -213,18 +204,14 @@ pub fn register(bk: &Backend, user: String, password: String, server: &str) -> R
             }
         }
     });
-
-    Ok(())
 }
 
-pub fn get_well_known(domain: &str) -> Result<DomainInfoResponse, Error> {
-    domain_info(Url::parse(domain)?)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<DomainInfoResponse>()
-                .map_err(Into::into)
-        })
+pub fn get_well_known(domain: Url) -> Result<DomainInfoResponse, Error> {
+    domain_info(domain).map_err(Into::into).and_then(|request| {
+        HTTP_CLIENT
+            .get_client()?
+            .execute(request)?
+            .json::<DomainInfoResponse>()
+            .map_err(Into::into)
+    })
 }

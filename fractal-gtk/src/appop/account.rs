@@ -41,7 +41,7 @@ impl AppOp {
                     let _ = self.backend.send(BKCommand::AddThreePID(
                         self.server_url.clone(),
                         access_token,
-                        self.identity_url.to_string(), // TODO: Change type to Url
+                        self.identity_url.clone(),
                         secret.clone(),
                         sid.clone(),
                     ));
@@ -135,7 +135,7 @@ impl AppOp {
                 &msg,
             );
             let backend = self.backend.clone();
-            let id_server = self.identity_url.to_string();
+            let id_server = self.identity_url.clone();
             let server_url = self.server_url.clone();
             dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
             dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
@@ -145,7 +145,7 @@ impl AppOp {
                         let _ = backend.send(BKCommand::AddThreePID(
                             server_url.clone(),
                             access_token.clone(),
-                            id_server.clone(), // TODO: Change type to Url
+                            id_server.clone(),
                             secret.clone(),
                             sid.clone(),
                         ));

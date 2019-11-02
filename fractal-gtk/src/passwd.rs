@@ -27,8 +27,8 @@ pub trait PasswordStorage {
         &self,
         username: String,
         password: String,
-        server: String,
-        identity: String,
+        server: Url,
+        identity: Url,
     ) -> Result<(), Error> {
         ss_storage::store_pass(username, password, server, identity)
     }
@@ -133,8 +133,8 @@ mod ss_storage {
     pub fn store_pass(
         username: String,
         password: String,
-        server: String,
-        identity: String,
+        server: Url,
+        identity: Url,
     ) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
@@ -149,8 +149,8 @@ mod ss_storage {
             key, // label
             vec![
                 ("username", &username),
-                ("server", &server),
-                ("identity", &identity),
+                ("server", server.as_str()),
+                ("identity", identity.as_str()),
             ], // properties
             password.as_bytes(), //secret
             true, // replace item with same attributes
@@ -188,7 +188,7 @@ mod ss_storage {
             .iter()
             .find(|&ref x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
-        let server = attr.1.clone();
+        let server = Url::parse(&attr.1)?;
         let pwd = String::from_utf8(secret).unwrap();
 
         // removing old
@@ -196,7 +196,7 @@ mod ss_storage {
             p.delete()?;
         }
         /* Fallback to default identity server if there is none */
-        let identity = globals::DEFAULT_IDENTITYSERVER.to_string();
+        let identity = globals::DEFAULT_IDENTITYSERVER.clone();
 
         store_pass(username, pwd, server, identity)?;
 

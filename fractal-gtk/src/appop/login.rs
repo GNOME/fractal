@@ -145,9 +145,9 @@ impl AppOp {
 
         let uname = username.clone();
         let pass = password.clone();
-        let ser = self.server_url.to_string();
+        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Register(uname, pass, ser))  // TODO: Change command type to url
+            .send(BKCommand::Register(uname, pass, ser))
             .unwrap();
     }
 
@@ -164,8 +164,8 @@ impl AppOp {
         self.store_pass(
             username.clone()?,
             password.clone()?,
-            self.server_url.to_string(),
-            self.identity_url.to_string(),
+            self.server_url.clone(),
+            self.identity_url.clone(),
         )
         .unwrap_or_else(|_| {
             // TODO: show an error
@@ -174,9 +174,9 @@ impl AppOp {
 
         let uname = username?;
         let pass = password?;
-        let ser = self.server_url.to_string();
+        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Login(uname, pass, ser))  // TODO: Change command type to url
+            .send(BKCommand::Login(uname, pass, ser))
             .unwrap();
         Some(())
     }
@@ -198,7 +198,7 @@ impl AppOp {
         self.server_url = server;
 
         self.backend
-            .send(BKCommand::Guest(self.server_url.to_string()))  // TODO: Change command type to url
+            .send(BKCommand::Guest(self.server_url.clone()))
             .unwrap();
     }
 

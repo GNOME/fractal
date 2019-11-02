@@ -163,7 +163,7 @@ impl<'a> Address<'a> {
             let entry = self.entry.clone();
             let address = self.address.clone();
             let server_url = self.op.server_url.clone();
-            let id_server = self.op.identity_url.to_string();
+            let id_server = self.op.identity_url.clone();
             let backend = self.op.backend.clone();
             self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
                 if !w.get_sensitive() || !w.is_visible() {
@@ -195,7 +195,7 @@ impl<'a> Address<'a> {
                         add_address(
                             &backend,
                             medium,
-                            id_server.clone(), // TODO: Change type to Url
+                            id_server.clone(),
                             entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
                             server_url.clone(),
                             access_token.clone(),
@@ -229,7 +229,7 @@ fn delete_address(
 fn add_address(
     backend: &Sender<BKCommand>,
     medium: Medium,
-    id_server: String,
+    id_server: Url,
     address: Option<String>,
     server_url: Url,
     access_token: AccessToken,

@@ -70,7 +70,7 @@ pub fn get_room_detail(
     let tx = bk.tx.clone();
     let keys = key.clone();
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let k = keys.split('.').last().unwrap();
 
@@ -101,7 +101,7 @@ pub fn get_room_avatar(
     )?;
     let tx = bk.tx.clone();
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
             let dest = cache_dir_path(None, &roomid).ok();
@@ -148,7 +148,7 @@ pub fn get_room_members(
 
     let tx = bk.tx.clone();
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let joined = r["joined"].as_object().unwrap();
             let ms: Vec<Member> = joined
@@ -202,7 +202,7 @@ pub fn get_room_messages(
     )?;
     let tx = bk.tx.clone();
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let array = r["chunk"].as_array();
             let evs = array.unwrap().iter().rev();
@@ -259,7 +259,7 @@ fn parse_context(
     )?;
 
     get!(
-        &url,
+        url,
         |r: JsonValue| {
             let mut id: Option<String> = None;
 
@@ -354,7 +354,7 @@ pub fn send_msg(
     let tx = bk.tx.clone();
     query!(
         "put",
-        &url,
+        url,
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
@@ -390,7 +390,7 @@ pub fn send_typing(
     });
 
     let tx = bk.tx.clone();
-    query!("put", &url, &attrs, move |_| {}, |err| {
+    query!("put", url, &attrs, move |_| {}, |err| {
         tx.send(BKResponse::SendTypingError(err))
             .expect_log("Connection closed");
     });
@@ -422,7 +422,7 @@ pub fn redact_msg(
     let tx = bk.tx.clone();
     query!(
         "put",
-        &url,
+        url,
         &attrs,
         move |js: JsonValue| {
             let evid = js["event_id"].as_str().unwrap_or_default();
@@ -456,7 +456,7 @@ pub fn join_room(
     let tx = bk.tx.clone();
     let data = bk.data.clone();
     post!(
-        &url,
+        url,
         move |_: JsonValue| {
             data.lock().unwrap().join_to_room = roomid.clone();
             tx.send(BKResponse::JoinRoom(Ok(())))
@@ -486,7 +486,7 @@ pub fn leave_room(
 
     let tx = bk.tx.clone();
     post!(
-        &url,
+        url,
         move |_: JsonValue| {
             tx.send(BKResponse::LeaveRoom(Ok(())))
                 .expect_log("Connection closed");
@@ -518,7 +518,7 @@ pub fn mark_as_read(
     let e = eventid.clone();
     let tx = bk.tx.clone();
     post!(
-        &url,
+        url,
         move |_: JsonValue| {
             tx.send(BKResponse::MarkedAsRead(Ok((r, e))))
                 .expect_log("Connection closed");
@@ -543,7 +543,7 @@ pub fn mark_as_read(
         "m.fully_read": eventid,
         "m.read": json!(null),
     });
-    post!(&url, &attrs, |_| {}, |_| {});
+    post!(url, &attrs, |_| {}, |_| {});
 
     Ok(())
 }
@@ -569,7 +569,7 @@ pub fn set_room_name(
     let tx = bk.tx.clone();
     query!(
         "put",
-        &url,
+        url,
         &attrs,
         |_| {
             tx.send(BKResponse::SetRoomName(Ok(())))
@@ -605,7 +605,7 @@ pub fn set_room_topic(
     let tx = bk.tx.clone();
     query!(
         "put",
-        &url,
+        url,
         &attrs,
         |_| {
             tx.send(BKResponse::SetRoomTopic(Ok(())))
@@ -651,7 +651,7 @@ pub fn set_room_avatar(
                 let uri = js["content_uri"].as_str().unwrap_or_default();
                 let attrs = json!({ "url": uri });
                 put!(
-                    &roomurl,
+                    roomurl,
                     &attrs,
                     |_| {
                         tx.send(BKResponse::SetRoomAvatar(Ok(())))
@@ -765,7 +765,7 @@ pub fn new_room(
 
     let tx = bk.tx.clone();
     post!(
-        &url,
+        url,
         &attrs,
         move |r: JsonValue| {
             let id = String::from(r["room_id"].as_str().unwrap_or_default());
@@ -784,7 +784,7 @@ pub fn new_room(
 
 pub fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user: String, room: String) {
     get!(
-        &url,
+        url.clone(),
         |r: JsonValue| {
             let mut directs: HashMap<String, Vec<String>> = HashMap::new();
             let direct_obj = r.as_object().unwrap();
@@ -809,7 +809,7 @@ pub fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user: String
             data.lock().unwrap().m_direct = directs.clone();
 
             let attrs = json!(directs.clone());
-            put!(&url, &attrs, |_| {}, |err| error!("{:?}", err));
+            put!(url, &attrs, |_| {}, |err| error!("{:?}", err));
         },
         |err| {
             error!("Can't set m.direct: {:?}", err);
@@ -850,7 +850,7 @@ pub fn direct_chat(
     let tx = bk.tx.clone();
     let data = bk.data.clone();
     post!(
-        &url,
+        url,
         &attrs,
         move |r: JsonValue| {
             let id = String::from(r["room_id"].as_str().unwrap_or_default());
@@ -894,7 +894,7 @@ pub fn add_to_fav(
     let method = if tofav { "put" } else { "delete" };
     query!(
         method,
-        &url,
+        url,
         &attrs,
         |_| {
             tx.send(BKResponse::AddedToFav(Ok((roomid.clone(), tofav))))
@@ -928,7 +928,7 @@ pub fn invite(
     });
 
     let tx = bk.tx.clone();
-    post!(&url, &attrs, |_| {}, |err| {
+    post!(url, &attrs, |_| {}, |err| {
         tx.send(BKResponse::InviteError(err))
             .expect_log("Connection closed");
     });

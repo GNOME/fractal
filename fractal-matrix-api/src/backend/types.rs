@@ -20,20 +20,20 @@ use url::Url;
 
 #[derive(Debug)]
 pub enum BKCommand {
-    Login(String, String, String),
+    Login(String, String, Url),
     SetToken(AccessToken, String),
     Logout(Url, AccessToken),
     #[allow(dead_code)]
-    Register(String, String, String),
+    Register(String, String, Url),
     #[allow(dead_code)]
-    Guest(String),
+    Guest(Url),
     GetUsername(Url),
     SetUserName(Url, AccessToken, String),
     GetThreePID(Url, AccessToken),
-    GetTokenEmail(Url, AccessToken, String, String, String),
-    GetTokenPhone(Url, AccessToken, String, String, String),
+    GetTokenEmail(Url, AccessToken, Url, String, String),
+    GetTokenPhone(Url, AccessToken, Url, String, String),
     SubmitPhoneToken(Url, String, String, String),
-    AddThreePID(Url, AccessToken, String, String, String),
+    AddThreePID(Url, AccessToken, Url, String, String),
     DeleteThreePID(Url, AccessToken, Medium, String),
     ChangePassword(Url, AccessToken, String, String, String),
     AccountDestruction(Url, AccessToken, String, String),
@@ -56,7 +56,7 @@ pub enum BKCommand {
         Option<String>,
         Sender<(Vec<Message>, String)>,
     ),
-    GetFileAsync(String, Sender<String>),
+    GetFileAsync(Url, Sender<String>),
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
     GetMedia(Url, String),
     GetMediaUrl(Url, String, Sender<String>),
