@@ -5,6 +5,7 @@ mod directory;
 mod headerbar;
 mod invite;
 mod join_room;
+mod language;
 mod leave_room;
 mod markdown;
 mod new_room;
@@ -20,6 +21,7 @@ impl App {
         self.connect_send();
         self.connect_markdown();
         self.connect_autocomplete();
+        self.connect_language();
 
         self.connect_directory();
         self.connect_leave_room_dialog();

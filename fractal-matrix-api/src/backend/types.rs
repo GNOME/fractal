@@ -84,6 +84,7 @@ pub enum BKCommand {
     ListStickers,
     SendSticker(Url, String, Sticker),
     PurchaseSticker(StickerGroup),
+    ChangeLanguage(Url, String, String),
 }
 
 #[derive(Debug)]
@@ -142,6 +143,7 @@ pub enum BKResponse {
     SetRoomError(Error),
     GetFileAsyncError(Error),
     InviteError(Error),
+    ChangeLanguage(Result<(), Error>),
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -30,6 +30,7 @@ use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
 use crate::r0::filter::RoomEventFilter;
+use crate::r0::sync::sync_events::Language;
 use crate::r0::AccessToken;
 use crate::types::ExtraContent;
 use crate::types::Member;
@@ -868,4 +869,35 @@ fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
         .send()?
         .json()
         .or(Err(Error::BackendError))
+}
+
+pub fn set_language(
+    bk: &Backend,
+    server: Url,
+    roomid: &str,
+    language_code: &str,
+) -> Result<(), Error> {
+    let userid = bk.data.lock().unwrap().user_id.clone();
+    let access_token = bk.get_access_token();
+    let url = bk.url(
+        server,
+        &access_token,
+        &format!(
+            "user/{}/rooms/{}/account_data/org.gnome.fractal.language",
+            userid,
+            roomid.clone()
+        ),
+        vec![],
+    )?;
+    let body = json!(Language {
+        input_language: language_code.to_string(),
+    });
+
+    put!(&url, &body, |_| {}, |err| {
+        error!(
+            "Matrix failed to set room language with error code: {:?}",
+            err
+        )
+    });
+    Ok(())
 }

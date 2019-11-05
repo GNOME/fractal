@@ -94,6 +94,7 @@ pub struct Room {
     pub direct: bool,
     pub prev_batch: Option<String>,
     pub typing_users: Vec<Member>,
+    pub language: Option<String>,
 
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
@@ -131,6 +132,11 @@ impl Room {
                 .find_map(|tag| tag["content"]["tags"]["m.favourite"].as_object())
                 .and(Some(RoomTag::Favourite))
                 .unwrap_or(RoomTag::None);
+            let room_lang = dataevs
+                .iter()
+                .filter(|x| x["type"] == "org.gnome.fractal.language")
+                .find_map(|entry| entry["content"]["input_language"].as_str())
+                .map(|lang| lang.to_string());
 
             let mut r = Self {
                 name: calculate_room_name(stevents, userid),
@@ -150,6 +156,7 @@ impl Room {
                     .filter_map(parse_room_member)
                     .map(|m| (m.uid.clone(), m))
                     .collect(),
+                language: room_lang,
                 ..Self::new(k.clone(), RoomMembership::Joined(room_tag))
             };
 

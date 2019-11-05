@@ -27,6 +27,9 @@ use rand::{thread_rng, Rng};
 
 use glib::functions::markup_escape_text;
 
+// The TextBufferExt alias is necessary to avoid conflict with gtk's TextBufferExt
+use gspell::{CheckerExt, TextBuffer, TextBufferExt as GspellTextBufferExt};
+
 use std::time::Instant;
 
 pub struct Force(pub bool);
@@ -62,6 +65,10 @@ impl AppOp {
             } else if self.rooms.contains_key(&room.id) {
                 // TODO: update the existing rooms
                 let update_room = self.rooms.get_mut(&room.id).unwrap();
+                if room.language.is_some() {
+                    update_room.language = room.language.clone();
+                };
+
                 let typing_users: Vec<Member> = room
                     .typing_users
                     .iter()
@@ -146,6 +153,9 @@ impl AppOp {
 
     pub fn set_active_room_by_id(&mut self, id: String) {
         if let Some(room) = self.rooms.get(&id) {
+            if let Some(language) = room.language.clone() {
+                self.set_language(language);
+            }
             if let RoomMembership::Invited(ref sender) = room.membership {
                 self.show_inv_dialog(Some(sender), room.name.as_ref());
                 self.invitation_roomid = Some(room.id.clone());
@@ -669,6 +679,19 @@ impl AppOp {
                     active_room.clone(),
                 ))
                 .unwrap();
+        }
+    }
+
+    pub fn set_language(&self, lang_code: String) {
+        if let Some(language) = &gspell::Language::lookup(&lang_code) {
+            let textview = self.ui.sventry.view.upcast_ref::<gtk::TextView>();
+            if let Some(gs_checker) = textview
+                .get_buffer()
+                .and_then(|gtk_buffer| TextBuffer::get_from_gtk_text_buffer(&gtk_buffer))
+                .and_then(|gs_buffer| GspellTextBufferExt::get_spell_checker(&gs_buffer))
+            {
+                CheckerExt::set_language(&gs_checker, Some(language))
+            }
         }
     }
 }
