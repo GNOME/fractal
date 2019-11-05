@@ -243,6 +243,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
+                Ok(BKResponse::ChangeLanguage(Err(err))) => {
+                    error!("Error forming url to set room language: {:?}", err);
+                }
                 Ok(BKResponse::LoginError(_)) => {
                     let error = i18n("Can’t login, try again");
                     let st = AppState::Login;

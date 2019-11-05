@@ -32,7 +32,7 @@ mod member;
 mod message;
 mod notifications;
 mod notify;
-mod room;
+pub mod room;
 mod room_settings;
 mod start_chat;
 pub mod state;
