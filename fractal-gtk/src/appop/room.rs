@@ -132,9 +132,10 @@ impl AppOp {
                 ))
                 .unwrap();
             });
+
             // Select active room in the sidebar
-            if let Some(ref active_room) = self.active_room {
-                self.set_active_room_by_id(active_room.clone());
+            if let Some(active_room) = self.active_room.clone() {
+                self.set_active_room_by_id(active_room);
             }
             self.cache_rooms();
         }
