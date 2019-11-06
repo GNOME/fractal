@@ -20,8 +20,12 @@ impl AppOp {
     }
 
     pub fn get_three_pid(&self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         self.backend
-            .send(BKCommand::GetThreePID(self.server_url.clone()))
+            .send(BKCommand::GetThreePID(
+                self.server_url.clone(),
+                access_token,
+            ))
             .unwrap();
     }
 
@@ -30,11 +34,13 @@ impl AppOp {
     }
 
     pub fn valid_phone_token(&self, sid: Option<String>, secret: Option<String>) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if let Some(sid) = sid {
             if let Some(secret) = secret {
                 let _ = self.backend.send(BKCommand::AddThreePID(
                     self.server_url.clone(),
-                    self.identity_url.to_string(), // TODO: Change type to Url
+                    access_token,
+                    self.identity_url.clone(),
                     secret.clone(),
                     sid.clone(),
                 ));
@@ -110,6 +116,7 @@ impl AppOp {
     }
 
     pub fn show_email_dialog(&self, sid: String, secret: String) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let parent = self
             .ui
             .builder
@@ -126,7 +133,7 @@ impl AppOp {
             &msg,
         );
         let backend = self.backend.clone();
-        let id_server = self.identity_url.to_string();
+        let id_server = self.identity_url.clone();
         let server_url = self.server_url.clone();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
@@ -135,7 +142,8 @@ impl AppOp {
                 gtk::ResponseType::Ok => {
                     let _ = backend.send(BKCommand::AddThreePID(
                         server_url.clone(),
-                        id_server.clone(), // TODO: Change type to Url
+                        access_token.clone(),
+                        id_server.clone(),
                         secret.clone(),
                         sid.clone(),
                     ));
@@ -529,6 +537,7 @@ impl AppOp {
     }
 
     pub fn update_username_account_settings(&self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let name = self
             .ui
             .builder
@@ -552,7 +561,11 @@ impl AppOp {
             button.set_sensitive(false);
             name.set_editable(false);
             self.backend
-                .send(BKCommand::SetUserName(self.server_url.clone(), username))
+                .send(BKCommand::SetUserName(
+                    self.server_url.clone(),
+                    access_token,
+                    username,
+                ))
                 .unwrap();
         } else {
             button.hide();
@@ -582,6 +595,7 @@ impl AppOp {
     }
 
     pub fn set_new_password(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let old_password = self
             .ui
             .builder
@@ -611,6 +625,7 @@ impl AppOp {
                         password_btn_stack.set_visible_child_name("spinner");
                         let _ = self.backend.send(BKCommand::ChangePassword(
                             self.server_url.clone(),
+                            access_token,
                             mxid,
                             old.to_string(),
                             new.to_string(),
@@ -681,6 +696,7 @@ impl AppOp {
     }
 
     pub fn account_destruction(&self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let entry = self
             .ui
             .builder
@@ -712,25 +728,24 @@ impl AppOp {
 
         let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
         let server_url = self.server_url.clone();
-        if let Some(password) = entry.get_text() {
-            if let Some(mxid) = self.uid.clone() {
-                let backend = self.backend.clone();
-                let password = password.to_string();
-                dialog.connect_response(move |w, r| {
-                    match gtk::ResponseType::from(r) {
-                        gtk::ResponseType::Ok => {
-                            let _ = backend.send(BKCommand::AccountDestruction(
-                                server_url.clone(),
-                                mxid.clone(),
-                                password.clone(),
-                            ));
-                        }
-                        _ => {}
+        if let (Some(password), Some(mxid)) = (entry.get_text(), self.uid.clone()) {
+            let backend = self.backend.clone();
+            let password = password.to_string();
+            dialog.connect_response(move |w, r| {
+                match gtk::ResponseType::from(r) {
+                    gtk::ResponseType::Ok => {
+                        let _ = backend.send(BKCommand::AccountDestruction(
+                            server_url.clone(),
+                            access_token.clone(),
+                            mxid.clone(),
+                            password.clone(),
+                        ));
                     }
-                    w.destroy();
-                });
-                dialog.show_all();
-            }
+                    _ => {}
+                }
+                w.destroy();
+            });
+            dialog.show_all();
         }
     }
     pub fn account_destruction_logoff(&self) {

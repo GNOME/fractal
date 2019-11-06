@@ -88,3 +88,12 @@ macro_rules! upgrade_weak {
         upgrade_weak!($x, ())
     };
 }
+
+macro_rules! unwrap_or_unit_return {
+    ($x:expr) => {
+        match $x {
+            Some(a) => a,
+            None => return,
+        }
+    };
+}

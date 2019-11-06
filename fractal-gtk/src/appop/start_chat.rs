@@ -13,6 +13,7 @@ use rand::{thread_rng, Rng};
 
 impl AppOp {
     pub fn start_chat(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if self.invite_list.len() != 1 {
             return;
         }
@@ -23,6 +24,7 @@ impl AppOp {
         self.backend
             .send(BKCommand::DirectChat(
                 self.server_url.clone(),
+                access_token,
                 user.0.clone(),
                 internal_id.clone(),
             ))

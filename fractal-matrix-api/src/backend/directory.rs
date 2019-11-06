@@ -21,41 +21,36 @@ use crate::r0::directory::post_public_rooms::Response as PublicRoomsResponse;
 use crate::r0::directory::post_public_rooms::ThirdPartyNetworks;
 use crate::r0::thirdparty::get_supported_protocols::request as get_supported_protocols;
 use crate::r0::thirdparty::get_supported_protocols::Parameters as SupportedProtocolsParameters;
+use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use crate::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
+use crate::r0::AccessToken;
 use crate::types::Room;
 
-pub fn protocols(bk: &Backend, base: Url) {
-    let tx = bk.tx.clone();
-    let access_token = bk.get_access_token();
-
+pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolInstance>, Error> {
     let params = SupportedProtocolsParameters { access_token };
 
-    thread::spawn(move || {
-        let query = get_supported_protocols(base, &params)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)?
-                    .json::<SupportedProtocolsResponse>()
-                    .map_err(Into::into)
-            })
-            .map(|response| {
-                response
-                    .into_iter()
-                    .flat_map(|(_, protocol)| protocol.instances.into_iter())
-                    .collect()
-            });
-
-        tx.send(BKResponse::DirectoryProtocols(query))
-            .expect_log("Connection closed");
-    });
+    get_supported_protocols(base, &params)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<SupportedProtocolsResponse>()
+                .map_err(Into::into)
+        })
+        .map(|response| {
+            response
+                .into_iter()
+                .flat_map(|(_, protocol)| protocol.instances.into_iter())
+                .collect()
+        })
 }
 
 pub fn room_search(
     bk: &Backend,
     base: Url,
-    homeserver: Option<String>,
+    access_token: AccessToken,
+    homeserver: Option<String>, // TODO: Use HostAndPort?
     generic_search_term: Option<String>,
     third_party: Option<String>,
     more: bool,
@@ -78,7 +73,6 @@ pub fn room_search(
         })
         .unwrap_or(Ok(None))?;
 
-    let access_token = bk.get_access_token();
     let since = if more {
         Some(data.lock().unwrap().rooms_since.clone())
     } else {

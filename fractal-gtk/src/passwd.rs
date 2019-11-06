@@ -1,4 +1,5 @@
 use fractal_api::derror;
+use fractal_api::r0::AccessToken;
 use secret_service;
 use url::ParseError;
 use url::Url;
@@ -26,8 +27,8 @@ pub trait PasswordStorage {
         &self,
         username: String,
         password: String,
-        server: String,
-        identity: String,
+        server: Url,
+        identity: Url,
     ) -> Result<(), Error> {
         ss_storage::store_pass(username, password, server, identity)
     }
@@ -36,17 +37,18 @@ pub trait PasswordStorage {
         ss_storage::get_pass()
     }
 
-    fn store_token(&self, uid: String, token: String) -> Result<(), Error> {
+    fn store_token(&self, uid: String, token: Option<AccessToken>) -> Result<(), Error> {
         ss_storage::store_token(uid, token)
     }
 
-    fn get_token(&self) -> Result<(String, String), Error> {
+    fn get_token(&self) -> Result<(Option<AccessToken>, String), Error> {
         ss_storage::get_token()
     }
 }
 
 mod ss_storage {
     use super::Error;
+    use fractal_api::r0::AccessToken;
     use url::Url;
 
     use super::secret_service::EncryptionType;
@@ -71,7 +73,7 @@ mod ss_storage {
         Ok(())
     }
 
-    pub fn store_token(uid: String, token: String) -> Result<(), Error> {
+    pub fn store_token(uid: String, token: Option<AccessToken>) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
         let key = "fractal-token";
@@ -84,7 +86,12 @@ mod ss_storage {
         collection.create_item(
             key,                 // label
             vec![("uid", &uid)], // properties
-            token.as_bytes(),    //secret
+            token
+                .as_ref()
+                .map(ToString::to_string)
+                .as_ref()
+                .map(String::as_bytes)
+                .unwrap_or_default(), //secret
             true,                // replace item with same attributes
             "text/plain",        // secret content type
         )?;
@@ -92,7 +99,7 @@ mod ss_storage {
         Ok(())
     }
 
-    pub fn get_token() -> Result<(String, String), Error> {
+    pub fn get_token() -> Result<(Option<AccessToken>, String), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
         let allpass = collection.get_all_items()?;
@@ -110,7 +117,9 @@ mod ss_storage {
         p.unlock()?;
         let attrs = p.get_attributes()?;
         let secret = p.get_secret()?;
-        let token = String::from_utf8(secret).unwrap();
+        let token = Some(String::from_utf8(secret).unwrap())
+            .filter(|tk| !tk.is_empty())
+            .map(AccessToken::from);
 
         let attr = attrs
             .iter()
@@ -124,8 +133,8 @@ mod ss_storage {
     pub fn store_pass(
         username: String,
         password: String,
-        server: String,
-        identity: String,
+        server: Url,
+        identity: Url,
     ) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
@@ -140,8 +149,8 @@ mod ss_storage {
             key, // label
             vec![
                 ("username", &username),
-                ("server", &server),
-                ("identity", &identity),
+                ("server", server.as_str()),
+                ("identity", identity.as_str()),
             ], // properties
             password.as_bytes(), //secret
             true, // replace item with same attributes
@@ -179,7 +188,7 @@ mod ss_storage {
             .iter()
             .find(|&ref x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
-        let server = attr.1.clone();
+        let server = Url::parse(&attr.1)?;
         let pwd = String::from_utf8(secret).unwrap();
 
         // removing old
@@ -187,7 +196,7 @@ mod ss_storage {
             p.delete()?;
         }
         /* Fallback to default identity server if there is none */
-        let identity = globals::DEFAULT_IDENTITYSERVER.to_string();
+        let identity = globals::DEFAULT_IDENTITYSERVER.clone();
 
         store_pass(username, pwd, server, identity)?;
 

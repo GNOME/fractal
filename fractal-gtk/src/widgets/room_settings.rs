@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::r0::AccessToken;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -29,6 +30,7 @@ pub struct RoomSettings {
     members_list: Option<MembersList>,
     backend: Sender<BKCommand>,
     server_url: Url,
+    access_token: AccessToken,
 }
 
 impl RoomSettings {
@@ -38,6 +40,7 @@ impl RoomSettings {
         uid: Option<String>,
         room: Room,
         server_url: Url,
+        access_token: AccessToken,
     ) -> RoomSettings {
         let builder = gtk::Builder::new();
 
@@ -49,7 +52,8 @@ impl RoomSettings {
             .get_object::<gtk::Stack>("room_settings_stack")
             .expect("Can't find room_settings_stack in ui file.");
 
-        let actions = actions::RoomSettings::new(&window, &backend, server_url.clone());
+        let actions =
+            actions::RoomSettings::new(&window, &backend, server_url.clone(), access_token.clone());
         stack.insert_action_group("room-settings", Some(&actions));
 
         RoomSettings {
@@ -60,6 +64,7 @@ impl RoomSettings {
             members_list: None,
             backend,
             server_url,
+            access_token,
         }
     }
 
@@ -492,8 +497,12 @@ impl RoomSettings {
         button.set_sensitive(false);
         entry.set_editable(false);
 
-        let command =
-            BKCommand::SetRoomName(self.server_url.clone(), room.id.clone(), new_name.clone());
+        let command = BKCommand::SetRoomName(
+            self.server_url.clone(),
+            self.access_token.clone(),
+            room.id.clone(),
+            new_name.clone(),
+        );
         self.backend.send(command).unwrap();
 
         None
@@ -540,8 +549,12 @@ impl RoomSettings {
         button.set_sensitive(false);
         name.set_editable(false);
 
-        let command =
-            BKCommand::SetRoomTopic(self.server_url.clone(), room.id.clone(), topic.clone());
+        let command = BKCommand::SetRoomTopic(
+            self.server_url.clone(),
+            self.access_token.clone(),
+            room.id.clone(),
+            topic.clone(),
+        );
         self.backend.send(command).unwrap();
 
         None

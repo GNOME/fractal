@@ -466,12 +466,9 @@ macro_rules! run_in_group {
 }
 
 impl RoomList {
-    // TODO: Change url to Url
-    pub fn new(adj: Option<gtk::Adjustment>, url: Option<String>) -> RoomList {
+    pub fn new(adj: Option<gtk::Adjustment>, url: Option<Url>) -> RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let baseu = url
-            .and_then(|u| Url::parse(&u).ok())
-            .unwrap_or(globals::DEFAULT_HOMESERVER.clone());
+        let baseu = url.unwrap_or(globals::DEFAULT_HOMESERVER.clone());
 
         let inv = RGroup::new(
             &baseu,

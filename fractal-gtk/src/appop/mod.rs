@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
+use fractal_api::r0::AccessToken;
+
 use gtk;
 use gtk::prelude::*;
 
@@ -50,6 +52,7 @@ pub struct AppOp {
     pub msg_queue: Vec<TmpMsg>,
     pub sending_message: bool,
 
+    pub access_token: Option<AccessToken>,
     pub username: Option<String>,
     pub uid: Option<String>,
     pub device_id: Option<String>,
@@ -95,6 +98,7 @@ impl AppOp {
             rooms: HashMap::new(),
             room_settings: None,
             history: None,
+            access_token: None,
             username: None,
             uid: None,
             device_id: None,
@@ -136,8 +140,8 @@ impl AppOp {
         }
 
         if let Ok(pass) = self.get_pass() {
-            if let Ok((token, uid)) = self.get_token() {
-                self.set_token(Some(token), Some(uid), pass.2);
+            if let Ok((Some(token), uid)) = self.get_token() {
+                self.set_token(token, Some(uid), pass.2);
             } else {
                 self.connect(Some(pass.0), Some(pass.1), pass.2, pass.3);
             }

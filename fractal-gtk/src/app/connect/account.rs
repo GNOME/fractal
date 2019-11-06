@@ -11,6 +11,7 @@ use crate::actions::{AccountSettings, StateExt};
 impl App {
     pub fn connect_account_settings(&self) {
         let op = &self.op;
+        let access_token = unwrap_or_unit_return!(op.lock().unwrap().access_token.clone());
         let builder = &self.ui.builder;
         let cancel_password = self
             .ui
@@ -77,7 +78,7 @@ impl App {
         let backend = self.op.lock().unwrap().backend.clone();
         let window = self.main_window.upcast_ref::<gtk::Window>();
         let server_url = self.op.lock().unwrap().server_url.clone();
-        let actions = AccountSettings::new(&window, &backend, server_url);
+        let actions = AccountSettings::new(&window, &backend, server_url, access_token);
         let container = self
             .ui
             .builder

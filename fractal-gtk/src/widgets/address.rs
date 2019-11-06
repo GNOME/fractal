@@ -1,3 +1,4 @@
+use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use glib::signal;
 use gtk;
@@ -130,6 +131,7 @@ impl<'a> Address<'a> {
     }
 
     fn connect(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.op.access_token.clone());
         let button = self.button.clone();
         let medium = self.medium.clone();
         self.entry.connect_property_text_notify(move |w| {
@@ -161,7 +163,7 @@ impl<'a> Address<'a> {
         let entry = self.entry.clone();
         let address = self.address.clone();
         let server_url = self.op.server_url.clone();
-        let id_server = self.op.identity_url.to_string();
+        let id_server = self.op.identity_url.clone();
         let backend = self.op.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
             if !w.get_sensitive() || !w.is_visible() {
@@ -181,15 +183,22 @@ impl<'a> Address<'a> {
 
             match action {
                 Some(AddressAction::Delete) => {
-                    delete_address(&backend, medium, address.clone(), server_url.clone());
+                    delete_address(
+                        &backend,
+                        medium,
+                        address.clone(),
+                        server_url.clone(),
+                        access_token.clone(),
+                    );
                 }
                 Some(AddressAction::Add) => {
                     add_address(
                         &backend,
                         medium,
-                        id_server.clone(), // TODO: Change type to Url
+                        id_server.clone(),
                         entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
                         server_url.clone(),
+                        access_token.clone(),
                     );
                 }
                 _ => {}
@@ -203,9 +212,15 @@ fn delete_address(
     medium: Medium,
     address: Option<String>,
     server_url: Url,
+    access_token: AccessToken,
 ) -> Option<String> {
     backend
-        .send(BKCommand::DeleteThreePID(server_url, medium, address?))
+        .send(BKCommand::DeleteThreePID(
+            server_url,
+            access_token,
+            medium,
+            address?,
+        ))
         .unwrap();
     None
 }
@@ -213,23 +228,32 @@ fn delete_address(
 fn add_address(
     backend: &Sender<BKCommand>,
     medium: Medium,
-    id_server: String,
+    id_server: Url,
     address: Option<String>,
     server_url: Url,
+    access_token: AccessToken,
 ) -> Option<String> {
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
     match medium {
         Medium::MsIsdn => {
             backend
                 .send(BKCommand::GetTokenPhone(
-                    server_url, id_server, address?, secret,
+                    server_url,
+                    access_token,
+                    id_server,
+                    address?,
+                    secret,
                 ))
                 .unwrap();
         }
         Medium::Email => {
             backend
                 .send(BKCommand::GetTokenEmail(
-                    server_url, id_server, address?, secret,
+                    server_url,
+                    access_token,
+                    id_server,
+                    address?,
+                    secret,
                 ))
                 .unwrap();
         }

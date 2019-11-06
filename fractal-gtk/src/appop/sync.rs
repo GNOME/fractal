@@ -14,7 +14,7 @@ impl AppOp {
     }
 
     pub fn sync(&mut self, initial: bool) {
-        if !self.syncing && self.logged_in {
+        if let (Some(token), true) = (self.access_token.clone(), !self.syncing && self.logged_in) {
             self.syncing = true;
             // for the initial sync we set the since to None to avoid long syncing
             // the since can be a very old value and following the spec we should
@@ -22,7 +22,12 @@ impl AppOp {
             // https://matrix.org/docs/spec/client_server/latest.html#syncing
             let since = if initial { None } else { self.since.clone() };
             self.backend
-                .send(BKCommand::Sync(self.server_url.clone(), since, initial))
+                .send(BKCommand::Sync(
+                    self.server_url.clone(),
+                    token.clone(),
+                    since,
+                    initial,
+                ))
                 .unwrap();
         }
     }

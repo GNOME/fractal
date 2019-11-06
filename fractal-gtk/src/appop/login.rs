@@ -1,6 +1,8 @@
 use crate::i18n::i18n;
 use log::error;
 
+use fractal_api::r0::AccessToken;
+
 use gtk;
 use gtk::prelude::*;
 
@@ -24,9 +26,9 @@ use crate::actions::AppState;
 use crate::widgets::ErrorDialog;
 
 impl AppOp {
-    pub fn bk_login(&mut self, uid: String, token: String, device: Option<String>) {
+    pub fn bk_login(&mut self, uid: String, token: Option<AccessToken>, device: Option<String>) {
         self.logged_in = true;
-        if let Err(_) = self.store_token(uid.clone(), token) {
+        if let Err(_) = self.store_token(uid.clone(), token.clone()) {
             error!("Can't store the token using libsecret");
         }
 
@@ -38,6 +40,8 @@ impl AppOp {
         /* Do we need to set the username to uid
         self.set_username(Some(uid));*/
         self.get_username();
+
+        self.set_access_token(token);
 
         // initial sync, we're shoing some feedback to the user
         self.initial_sync(true);
@@ -141,9 +145,9 @@ impl AppOp {
 
         let uname = username.clone();
         let pass = password.clone();
-        let ser = self.server_url.to_string();
+        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Register(uname, pass, ser))  // TODO: Change command type to url
+            .send(BKCommand::Register(uname, pass, ser))
             .unwrap();
     }
 
@@ -160,8 +164,8 @@ impl AppOp {
         self.store_pass(
             username.clone()?,
             password.clone()?,
-            self.server_url.to_string(),
-            self.identity_url.to_string(),
+            self.server_url.clone(),
+            self.identity_url.clone(),
         )
         .unwrap_or_else(|_| {
             // TODO: show an error
@@ -170,24 +174,22 @@ impl AppOp {
 
         let uname = username?;
         let pass = password?;
-        let ser = self.server_url.to_string();
+        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Login(uname, pass, ser))  // TODO: Change command type to url
+            .send(BKCommand::Login(uname, pass, ser))
             .unwrap();
         Some(())
     }
 
     pub fn set_token(
         &mut self,
-        token: Option<String>,
+        token: AccessToken,
         uid: Option<String>,
         server: Url,
     ) -> Option<()> {
         self.server_url = server;
 
-        self.backend
-            .send(BKCommand::SetToken(token?, uid?))
-            .unwrap();
+        self.backend.send(BKCommand::SetToken(token, uid?)).unwrap();
         Some(())
     }
 
@@ -196,7 +198,7 @@ impl AppOp {
         self.server_url = server;
 
         self.backend
-            .send(BKCommand::Guest(self.server_url.to_string()))  // TODO: Change command type to url
+            .send(BKCommand::Guest(self.server_url.clone()))
             .unwrap();
     }
 
@@ -205,9 +207,10 @@ impl AppOp {
     }
 
     pub fn logout(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let _ = self.delete_pass("fractal");
         self.backend
-            .send(BKCommand::Logout(self.server_url.clone()))
+            .send(BKCommand::Logout(self.server_url.clone(), access_token))
             .unwrap();
         self.bk_logout();
     }

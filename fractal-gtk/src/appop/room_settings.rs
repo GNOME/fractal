@@ -8,6 +8,7 @@ use crate::widgets;
 
 impl AppOp {
     pub fn create_room_settings(&mut self) -> Option<()> {
+        let access_token = self.access_token.clone()?;
         let window = self
             .ui
             .builder
@@ -32,6 +33,7 @@ impl AppOp {
                 self.uid.clone(),
                 room.clone(),
                 self.server_url.clone(),
+                access_token,
             );
             let (body, header) = panel.create()?;
 

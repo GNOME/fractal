@@ -111,6 +111,7 @@ impl AppOp {
     }
 
     pub fn mark_last_message_as_read(&mut self, Force(force): Force) -> Option<()> {
+        let access_token = self.access_token.clone()?;
         let window: gtk::Window = self
             .ui
             .builder
@@ -132,6 +133,7 @@ impl AppOp {
             self.backend
                 .send(BKCommand::MarkAsRead(
                     self.server_url.clone(),
+                    access_token,
                     last_message.room.clone(),
                     last_message.id.clone(),
                 ))
@@ -165,9 +167,10 @@ impl AppOp {
         self.dequeue_message();
     }
 
-    pub fn dequeue_message(&mut self) {
+    pub fn dequeue_message(&mut self) -> Option<()> {
+        let access_token = self.access_token.clone()?;
         if self.sending_message {
-            return;
+            return None;
         }
 
         self.sending_message = true;
@@ -176,18 +179,27 @@ impl AppOp {
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" | "m.audio" => {
                     self.backend
-                        .send(BKCommand::AttachFile(self.server_url.clone(), msg))
+                        .send(BKCommand::AttachFile(
+                            self.server_url.clone(),
+                            access_token,
+                            msg,
+                        ))
                         .unwrap();
                 }
                 _ => {
                     self.backend
-                        .send(BKCommand::SendMsg(self.server_url.clone(), msg))
+                        .send(BKCommand::SendMsg(
+                            self.server_url.clone(),
+                            access_token,
+                            msg,
+                        ))
                         .unwrap();
                 }
             }
         } else {
             self.sending_message = false;
         }
+        None
     }
 
     pub fn send_message(&mut self, msg: String) {

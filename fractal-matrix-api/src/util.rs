@@ -201,7 +201,7 @@ pub fn get_prev_batch_from(
     let path = format!("rooms/{}/context/{}", roomid, evid);
     let url = client_url(baseu, &path, params)?;
 
-    let r = json_q("get", &url, &json!(null))?;
+    let r = json_q("get", url, &json!(null))?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
 
     Ok(prev_batch)
@@ -263,10 +263,10 @@ pub fn dw_media(
         Some(d) => String::from(d),
     };
 
-    download_file(url.as_str(), fname, dest)
+    download_file(url, fname, dest)
 }
 
-pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<String, Error> {
+pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<String, Error> {
     let fpath = Path::new(&fname);
 
     // If the file is already cached and recent enough, don't download it
@@ -287,12 +287,12 @@ pub fn download_file(url: &str, fname: String, dest: Option<&str>) -> Result<Str
     }
 }
 
-pub fn json_q(method: &str, url: &Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
+pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
     let mut conn = match method {
-        "post" => HTTP_CLIENT.get_client()?.post(url.as_str()),
-        "put" => HTTP_CLIENT.get_client()?.put(url.as_str()),
-        "delete" => HTTP_CLIENT.get_client()?.delete(url.as_str()),
-        _ => HTTP_CLIENT.get_client()?.get(url.as_str()),
+        "post" => HTTP_CLIENT.get_client()?.post(url),
+        "put" => HTTP_CLIENT.get_client()?.put(url),
+        "delete" => HTTP_CLIENT.get_client()?.delete(url),
+        _ => HTTP_CLIENT.get_client()?.get(url),
     };
 
     if !attrs.is_null() {

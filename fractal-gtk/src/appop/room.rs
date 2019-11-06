@@ -39,6 +39,7 @@ impl AppOp {
     }
 
     pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if clear_room_list {
             self.rooms.clear();
         }
@@ -74,6 +75,7 @@ impl AppOp {
                 self.backend
                     .send(BKCommand::GetRoomMembers(
                         self.server_url.clone(),
+                        access_token.clone(),
                         room.id.clone(),
                     ))
                     .unwrap();
@@ -82,6 +84,7 @@ impl AppOp {
                 self.backend
                     .send(BKCommand::GetRoomAvatar(
                         self.server_url.clone(),
+                        access_token.clone(),
                         room.id.clone(),
                     ))
                     .unwrap();
@@ -118,7 +121,7 @@ impl AppOp {
                 });
             });
 
-            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.to_string()));
+            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.clone()));
             self.roomlist.add_rooms(roomlist);
             container.add(self.roomlist.widget());
 
@@ -127,6 +130,7 @@ impl AppOp {
             self.roomlist.connect_fav(move |room, tofav| {
                 bk.send(BKCommand::AddToFav(
                     server_url.clone(),
+                    access_token.clone(),
                     room.id.clone(),
                     tofav,
                 ))
@@ -146,6 +150,7 @@ impl AppOp {
     }
 
     pub fn set_active_room_by_id(&mut self, id: String) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if let Some(room) = self.rooms.get(&id) {
             if let RoomMembership::Invited(ref sender) = room.membership {
                 self.show_inv_dialog(Some(sender), room.name.as_ref());
@@ -214,6 +219,7 @@ impl AppOp {
         self.backend
             .send(BKCommand::SetRoom(
                 self.server_url.clone(),
+                access_token.clone(),
                 active_room.clone(),
             ))
             .unwrap();
@@ -246,6 +252,7 @@ impl AppOp {
         let actions = actions::RoomHistory::new(
             self.backend.clone(),
             self.server_url.clone(),
+            access_token,
             self.ui.clone(),
         );
         let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
@@ -260,9 +267,14 @@ impl AppOp {
     }
 
     pub fn really_leave_active_room(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let r = self.active_room.clone().unwrap_or_default();
         self.backend
-            .send(BKCommand::LeaveRoom(self.server_url.clone(), r.clone()))
+            .send(BKCommand::LeaveRoom(
+                self.server_url.clone(),
+                access_token,
+                r.clone(),
+            ))
             .unwrap();
         self.rooms.remove(&r);
         self.active_room = None;
@@ -306,6 +318,7 @@ impl AppOp {
     }
 
     pub fn create_new_room(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let name = self
             .ui
             .builder
@@ -331,6 +344,7 @@ impl AppOp {
         self.backend
             .send(BKCommand::NewRoom(
                 self.server_url.clone(),
+                access_token,
                 n.clone(),
                 p,
                 internal_id.clone(),
@@ -457,6 +471,7 @@ impl AppOp {
     }
 
     pub fn join_to_room(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         let name = self
             .ui
             .builder
@@ -470,7 +485,11 @@ impl AppOp {
             .to_string();
 
         self.backend
-            .send(BKCommand::JoinRoom(self.server_url.clone(), n.clone()))
+            .send(BKCommand::JoinRoom(
+                self.server_url.clone(),
+                access_token,
+                n.clone(),
+            ))
             .unwrap();
     }
 
@@ -614,12 +633,17 @@ impl AppOp {
     }
 
     pub fn new_room_avatar(&self, roomid: String) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if !self.rooms.contains_key(&roomid) {
             return;
         }
 
         self.backend
-            .send(BKCommand::GetRoomAvatar(self.server_url.clone(), roomid))
+            .send(BKCommand::GetRoomAvatar(
+                self.server_url.clone(),
+                access_token,
+                roomid,
+            ))
             .unwrap();
     }
 
@@ -655,6 +679,7 @@ impl AppOp {
     }
 
     pub fn send_typing(&mut self) {
+        let access_token = unwrap_or_unit_return!(self.access_token.clone());
         if let Some(ref active_room) = self.active_room {
             let now = Instant::now();
             if let Some(last_typing) = self.typing.get(active_room) {
@@ -667,6 +692,7 @@ impl AppOp {
             self.backend
                 .send(BKCommand::SendTyping(
                     self.server_url.clone(),
+                    access_token,
                     active_room.clone(),
                 ))
                 .unwrap();

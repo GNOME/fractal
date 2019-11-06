@@ -11,6 +11,7 @@ use crate::types::Message;
 impl AppOp {
     /* FIXME: take msg by reference and maybe create an action for this */
     pub fn create_media_viewer(&mut self, msg: Message) -> Option<()> {
+        let access_token = self.access_token.clone()?;
         let stack = self
             .ui
             .builder
@@ -37,6 +38,7 @@ impl AppOp {
                 room,
                 &msg,
                 self.server_url.clone(),
+                access_token,
             );
             panel.display_media_viewer(msg);
             let (body, header) = panel.create()?;

@@ -11,6 +11,7 @@ use crate::r0::sync::sync_events::IncludeState;
 use crate::r0::sync::sync_events::Parameters as SyncParameters;
 use crate::r0::sync::sync_events::Response as SyncResponse;
 use crate::r0::sync::sync_events::UnreadNotificationsCount;
+use crate::r0::AccessToken;
 use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
@@ -29,11 +30,16 @@ use std::{
 };
 use url::Url;
 
-pub fn sync(bk: &Backend, base: Url, new_since: Option<String>, initial: bool) {
+pub fn sync(
+    bk: &Backend,
+    base: Url,
+    access_token: AccessToken,
+    new_since: Option<String>,
+    initial: bool,
+) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
     let userid = bk.data.lock().unwrap().user_id.clone();
-    let access_token = bk.get_access_token();
 
     let since = bk
         .data
@@ -255,7 +261,7 @@ pub fn sync(bk: &Backend, base: Url, new_since: Option<String>, initial: bool) {
     });
 }
 
-pub fn force_sync(bk: &Backend, base: Url) {
+pub fn force_sync(bk: &Backend, base: Url, access_token: AccessToken) {
     bk.data.lock().unwrap().since = None;
-    sync(bk, base, None, true)
+    sync(bk, base, access_token, None, true)
 }
