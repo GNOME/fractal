@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Info {
     pub thumbnail_url: Option<String>,
     pub thumbnail_info: Option<JsonValue>,
@@ -12,7 +12,7 @@ pub struct Info {
     pub orientation: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExtraContent {
     pub info: Info,
 }
