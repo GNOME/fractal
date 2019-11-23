@@ -27,7 +27,7 @@ First you need to make sure you have the GNOME SDK and Rust toolchain installed.
 ```
 # Add Flathub and the gnome-nightly repo
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak remote-add --user --if-not-exists gnome-nightly https://sdk.gnome.org/gnome-nightly.flatpakrepo
+flatpak remote-add --user --if-not-exists gnome-nightly https://nightly.gnome.org/gnome-nightly.flatpakrepo
 
 # Install the gnome-nightly Sdk and Platform runtime
 flatpak install --user gnome-nightly org.gnome.Sdk org.gnome.Platform
