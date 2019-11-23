@@ -16,7 +16,6 @@ pub mod prelude {
     pub use ruma_identifiers::DeviceId;
     pub use ruma_identifiers::RoomAliasId;
     pub use ruma_identifiers::RoomId;
-    pub use ruma_identifiers::UserId;
 }
 
 #[cfg(test)]

@@ -49,13 +49,13 @@ pub fn guest(bk: &Backend, base: Url) {
 
         match query {
             Ok(response) => {
-                let uid = response.user_id.to_string();
+                let uid = response.user_id;
                 let tk = response.access_token;
                 let dev = response.device_id;
 
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId and DeviceId
+                tx.send(BKResponse::Token(uid, tk, dev))
                     .expect_log("Connection closed");
                 tx.send(BKResponse::Rooms(vec![], None))
                     .expect_log("Connection closed");
@@ -104,11 +104,7 @@ pub fn login(bk: &Backend, user: String, password: String, base: Url) {
 
         match query {
             Ok(response) => {
-                let uid = response
-                    .user_id
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or(user);
+                let uid = response.user_id.unwrap_or(user);
                 let tk = response.access_token;
                 let dev = response.device_id;
 
@@ -118,7 +114,7 @@ pub fn login(bk: &Backend, user: String, password: String, base: Url) {
                 } else {
                     data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().since = None;
-                    tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId and DeviceId
+                    tx.send(BKResponse::Token(uid, tk, dev))
                         .expect_log("Connection closed");
                 }
             }
@@ -189,13 +185,13 @@ pub fn register(bk: &Backend, user: String, password: String, base: Url) {
 
         match query {
             Ok(response) => {
-                let uid = response.user_id.to_string();
+                let uid = response.user_id;
                 let tk = response.access_token;
                 let dev = response.device_id;
 
                 data.lock().unwrap().user_id = uid.clone();
                 data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev))  // TODO: Use UserId
+                tx.send(BKResponse::Token(uid, tk, dev))
                     .expect_log("Connection closed");
             }
             Err(err) => {

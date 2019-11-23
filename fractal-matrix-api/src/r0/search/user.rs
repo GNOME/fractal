@@ -3,7 +3,6 @@ use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -36,7 +35,7 @@ pub struct Response {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct User {
-    pub user_id: UserId,
+    pub user_id: String,
     #[serde(default)]
     pub display_name: Option<String>,
     #[serde(with = "option_url")]

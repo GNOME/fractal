@@ -4,7 +4,6 @@ use crate::serde::duration_as_millis;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
@@ -184,9 +183,9 @@ pub struct ToDevice {
 #[derive(Clone, Debug, Deserialize)]
 pub struct DeviceLists {
     #[serde(default)]
-    pub changed: Vec<UserId>,
+    pub changed: Vec<String>,
     #[serde(default)]
-    pub left: Vec<UserId>,
+    pub left: Vec<String>,
 }
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {

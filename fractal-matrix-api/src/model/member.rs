@@ -36,7 +36,7 @@ impl PartialEq for Member {
 impl From<User> for Member {
     fn from(user: User) -> Self {
         Self {
-            uid: user.user_id.to_string(),
+            uid: user.user_id,
             alias: user.display_name,
             avatar: user.avatar_url.map(Url::into_string),
         }
