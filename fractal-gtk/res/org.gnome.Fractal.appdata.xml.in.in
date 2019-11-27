@@ -18,13 +18,34 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="4.2.2" type="stable" date="2019-11-27" urgency="high">
+      <description>
+        <p>This new minor release is the result of 2 months of hard work.</p>
+        <p>New features:</p>
+        <ul>
+          <li>Translation strings have been updated</li>
+        </ul>
+        <p>Bugfixes:</p>
+        <ul>
+          <li>Newlines now work when markdown is enabled</li>
+          <li>Account settings can be accessed again</li>
+          <li>Redaction is working again</li>
+          <li>Compatibility with HTTP-only (non HTTPS) servers has been restored</li>
+          <li>Some crashes fixed</li>
+        </ul>
+        <p>Under the hood:</p>
+        <ul>
+          <li>Code refactor is still going</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.2.1" type="stable" date="2019-09-21" urgency="high">
       <description>
         <p>This new minor release is the result of 2 months of hard work.</p>
         <p>New features:</p>
         <ul>
           <li>Autocompletion popover position fix</li>
-          <li>Translation string has been updated</li>
+          <li>Translation strings have been updated</li>
           <li>Disable the textbox when there are no write permissions</li>
         </ul>
         <p>Bugfixes:</p>
