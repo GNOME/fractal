@@ -42,7 +42,7 @@ impl AppOp {
     }
 
     pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if clear_room_list {
             self.rooms.clear();
         }
@@ -81,8 +81,8 @@ impl AppOp {
                 // Request all joined members for each new room
                 self.backend
                     .send(BKCommand::GetRoomMembers(
-                        self.server_url.clone(),
-                        access_token.clone(),
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
                         room.id.clone(),
                     ))
                     .unwrap();
@@ -90,8 +90,8 @@ impl AppOp {
                 // TODO: Use the avatar url returned by sync
                 self.backend
                     .send(BKCommand::GetRoomAvatar(
-                        self.server_url.clone(),
-                        access_token.clone(),
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
                         room.id.clone(),
                     ))
                     .unwrap();
@@ -128,16 +128,15 @@ impl AppOp {
                 });
             });
 
-            self.roomlist = widgets::RoomList::new(adj, Some(self.server_url.clone()));
+            self.roomlist = widgets::RoomList::new(adj, Some(login_data.server_url.clone()));
             self.roomlist.add_rooms(roomlist);
             container.add(self.roomlist.widget());
 
             let bk = self.backend.clone();
-            let server_url = self.server_url.clone();
             self.roomlist.connect_fav(move |room, tofav| {
                 bk.send(BKCommand::AddToFav(
-                    server_url.clone(),
-                    access_token.clone(),
+                    login_data.server_url.clone(),
+                    login_data.access_token.clone(),
                     room.id.clone(),
                     tofav,
                 ))
@@ -157,7 +156,7 @@ impl AppOp {
     }
 
     pub fn set_active_room_by_id(&mut self, id: String) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(room) = self.rooms.get(&id) {
             if let Some(language) = room.language.clone() {
                 self.set_language(language);
@@ -176,7 +175,7 @@ impl AppOp {
                 .downcast::<gtk::Stack>()
                 .unwrap();
 
-            let user_power = match room.admins.get(&self.uid.clone().unwrap_or_default()) {
+            let user_power = match room.admins.get(&login_data.uid) {
                 Some(p) => *p,
                 None => room
                     .power_levels
@@ -228,8 +227,8 @@ impl AppOp {
         // getting room details
         self.backend
             .send(BKCommand::SetRoom(
-                self.server_url.clone(),
-                access_token.clone(),
+                login_data.server_url.clone(),
+                login_data.access_token.clone(),
                 active_room.clone(),
             ))
             .unwrap();
@@ -261,13 +260,17 @@ impl AppOp {
 
         let actions = actions::RoomHistory::new(
             self.backend.clone(),
-            self.server_url.clone(),
-            access_token,
+            login_data.server_url,
+            login_data.access_token,
             self.ui.clone(),
         );
-        let mut history = widgets::RoomHistory::new(actions, active_room.clone(), self);
-        history.create(messages);
-        self.history = Some(history);
+        let history = widgets::RoomHistory::new(actions, active_room.clone(), self);
+        self.history = if let Some(mut history) = history {
+            history.create(messages);
+            Some(history)
+        } else {
+            None
+        };
 
         self.active_room = Some(active_room);
         self.set_state(AppState::Room);
@@ -277,12 +280,12 @@ impl AppOp {
     }
 
     pub fn really_leave_active_room(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let r = self.active_room.clone().unwrap_or_default();
         self.backend
             .send(BKCommand::LeaveRoom(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
                 r.clone(),
             ))
             .unwrap();
@@ -328,7 +331,7 @@ impl AppOp {
     }
 
     pub fn create_new_room(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let name = self
             .ui
             .builder
@@ -353,8 +356,8 @@ impl AppOp {
         let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
         self.backend
             .send(BKCommand::NewRoom(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
                 n.clone(),
                 p,
                 internal_id.clone(),
@@ -369,11 +372,12 @@ impl AppOp {
     }
 
     pub fn cache_rooms(&self) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         // serializing rooms
         let rooms = self.rooms.clone();
         let since = self.since.clone();
-        let username = self.username.clone().unwrap_or_default();
-        let uid = self.uid.clone().unwrap_or_default();
+        let username = login_data.username.unwrap_or_default();
+        let uid = login_data.uid;
         let device_id = self.device_id.clone().unwrap_or_default();
 
         if let Err(_) = cache::store(&rooms, since, username, uid, device_id) {
@@ -401,6 +405,7 @@ impl AppOp {
     }
 
     pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<Url>) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if avatar.is_none() {
             if let Ok(dest) = cache_dir_path(None, &roomid) {
                 let _ = remove_file(dest);
@@ -408,15 +413,13 @@ impl AppOp {
         }
         if let Some(r) = self.rooms.get_mut(&roomid) {
             if avatar.is_none() && r.members.len() == 2 {
-                if let Some(ref uid) = self.uid {
-                    for m in r.members.keys() {
-                        if m != uid {
-                            //FIXME: Find a better solution
-                            // create a symlink from user avatar to room avatar (works only on unix)
-                            if let Ok(source) = cache_dir_path(None, m) {
-                                if let Ok(dest) = cache_dir_path(None, &roomid) {
-                                    let _ = fs::symlink(source, dest);
-                                }
+                for m in r.members.keys() {
+                    if *m != login_data.uid {
+                        //FIXME: Find a better solution
+                        // create a symlink from user avatar to room avatar (works only on unix)
+                        if let Ok(source) = cache_dir_path(None, m) {
+                            if let Ok(dest) = cache_dir_path(None, &roomid) {
+                                let _ = fs::symlink(source, dest);
                             }
                         }
                     }
@@ -481,7 +484,7 @@ impl AppOp {
     }
 
     pub fn join_to_room(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let name = self
             .ui
             .builder
@@ -496,8 +499,8 @@ impl AppOp {
 
         self.backend
             .send(BKCommand::JoinRoom(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
                 n.clone(),
             ))
             .unwrap();
@@ -533,6 +536,7 @@ impl AppOp {
     /// For this we use the members in the room. If there's only one member we'll return that
     /// member name, if there's more than one we'll return the first one and others
     pub fn recalculate_room_name(&mut self, roomid: String) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if !self.rooms.contains_key(&roomid) {
             return;
         }
@@ -547,7 +551,7 @@ impl AppOp {
 
             // removing one because the user should be in the room
             let n = r.members.len() - 1;
-            let suid = self.uid.clone().unwrap_or_default();
+            let suid = login_data.uid;
             let mut members = r.members.iter().filter(|&(uid, _)| uid != &suid);
 
             let m1 = match members.next() {
@@ -643,15 +647,15 @@ impl AppOp {
     }
 
     pub fn new_room_avatar(&self, roomid: String) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if !self.rooms.contains_key(&roomid) {
             return;
         }
 
         self.backend
             .send(BKCommand::GetRoomAvatar(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
                 roomid,
             ))
             .unwrap();
@@ -689,7 +693,7 @@ impl AppOp {
     }
 
     pub fn send_typing(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(ref active_room) = self.active_room {
             let now = Instant::now();
             if let Some(last_typing) = self.typing.get(active_room) {
@@ -701,8 +705,8 @@ impl AppOp {
             self.typing.insert(active_room.clone(), now);
             self.backend
                 .send(BKCommand::SendTyping(
-                    self.server_url.clone(),
-                    access_token,
+                    login_data.server_url,
+                    login_data.access_token,
                     active_room.clone(),
                 ))
                 .unwrap();

@@ -26,7 +26,6 @@ impl<'a> MemberBox<'a> {
     }
 
     pub fn widget(&self, show_uid: bool) -> gtk::EventBox {
-        let backend = self.op.backend.clone();
         let username = gtk::Label::new(None);
         let uid = gtk::Label::new(None);
         let event_box = gtk::EventBox::new();
@@ -62,13 +61,11 @@ impl<'a> MemberBox<'a> {
             badge,
             None,
         );
+        let backend = self.op.backend.clone();
         let member_id = self.member.uid.clone();
-        download_to_cache(
-            backend.clone(),
-            self.op.server_url.clone(),
-            member_id.clone(),
-            data.clone(),
-        );
+        if let Some(login_data) = self.op.login_data.clone() {
+            download_to_cache(backend, login_data.server_url, member_id, data);
+        };
 
         avatar.set_margin_start(3);
         avatar.set_valign(gtk::Align::Center);
@@ -88,7 +85,6 @@ impl<'a> MemberBox<'a> {
     }
 
     pub fn pill(&self) -> gtk::Box {
-        let backend = self.op.backend.clone();
         let pill = gtk::Box::new(gtk::Orientation::Horizontal, 3);
 
         let username = gtk::Label::new(None);
@@ -105,13 +101,11 @@ impl<'a> MemberBox<'a> {
             None,
             None,
         );
+        let backend = self.op.backend.clone();
         let member_id = self.member.uid.clone();
-        download_to_cache(
-            backend.clone(),
-            self.op.server_url.clone(),
-            member_id.clone(),
-            data.clone(),
-        );
+        if let Some(login_data) = self.op.login_data.clone() {
+            download_to_cache(backend, login_data.server_url, member_id, data);
+        };
 
         avatar.set_margin_start(3);
 

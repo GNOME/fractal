@@ -25,7 +25,7 @@ use fractal_api::types::Room;
 pub struct RoomSettings {
     actions: gio::SimpleActionGroup,
     room: Room,
-    uid: Option<String>,
+    uid: String,
     builder: gtk::Builder,
     members_list: Option<MembersList>,
     backend: Sender<BKCommand>,
@@ -37,7 +37,7 @@ impl RoomSettings {
     pub fn new(
         window: &gtk::Window,
         backend: Sender<BKCommand>,
-        uid: Option<String>,
+        uid: String,
         room: Room,
         server_url: Url,
         access_token: AccessToken,
@@ -189,13 +189,13 @@ impl RoomSettings {
         }
     }
 
-    fn init_room_settings(&mut self) -> Option<()> {
+    fn init_room_settings(&mut self) {
         let name = self.room.name.clone();
         let topic = self.room.topic.clone();
         let mut is_room = true;
         let mut is_group = false;
         let members: Vec<Member> = self.room.members.values().cloned().collect();
-        let power = *self.room.admins.get(&self.uid.clone()?).unwrap_or(&0);
+        let power = *self.room.admins.get(&self.uid.clone()).unwrap_or(&0);
 
         let edit = power >= 50 && !self.room.direct;
 
@@ -228,20 +228,15 @@ impl RoomSettings {
         self.room_settings_show_admin_groupe(is_group && edit);
         self.room_settings_show_admin_room(is_room && edit);
         self.room_settings_hide_not_implemented_widgets();
-
-        None
     }
 
     /* returns the uid of the fisrt member in the room, ignoring the current user */
     fn get_direct_partner_uid(&self, members: Vec<Member>) -> Option<String> {
-        let mut uid = None;
-        for member in members {
-            if member.uid != self.uid.clone()? {
-                uid = Some(member.uid);
-                break;
-            }
-        }
-        uid
+        members
+            .iter()
+            .map(|m| m.uid.clone())
+            .filter(|uid| *uid != self.uid)
+            .nth(0)
     }
 
     pub fn room_settings_show_room_name(&self, text: Option<String>, edit: bool) -> Option<()> {
