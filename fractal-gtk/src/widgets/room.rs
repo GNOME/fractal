@@ -44,7 +44,7 @@ impl<'a> RoomBox<'a> {
     fn build_room_box(&self) -> gtk::Box {
         let widget_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        if let Some(access_token) = self.op.access_token.clone() {
+        if let Some(login_data) = self.op.login_data.clone() {
             let room = self.room;
 
             let avatar = widgets::Avatar::avatar_new(Some(AVATAR_SIZE));
@@ -120,12 +120,11 @@ impl<'a> RoomBox<'a> {
             let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
             let room_id = room.id.clone();
             let backend = self.op.backend.clone();
-            let server_url = self.op.server_url.clone();
             join_button.connect_clicked(move |_| {
                 backend
                     .send(BKCommand::JoinRoom(
-                        server_url.clone(),
-                        access_token.clone(),
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
                         room_id.clone(),
                     ))
                     .unwrap();

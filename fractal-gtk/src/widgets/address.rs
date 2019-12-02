@@ -131,7 +131,7 @@ impl<'a> Address<'a> {
     }
 
     fn connect(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.op.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.op.login_data.clone());
         let button = self.button.clone();
         let medium = self.medium.clone();
         self.entry.connect_property_text_notify(move |w| {
@@ -162,8 +162,9 @@ impl<'a> Address<'a> {
         let action = self.action.clone();
         let entry = self.entry.clone();
         let address = self.address.clone();
-        let server_url = self.op.server_url.clone();
-        let id_server = self.op.identity_url.clone();
+        let access_token = login_data.access_token;
+        let server_url = login_data.server_url;
+        let id_server = login_data.identity_url;
         let backend = self.op.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
             if !w.get_sensitive() || !w.is_visible() {

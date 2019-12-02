@@ -55,11 +55,11 @@ impl AppOp {
     }
 
     pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
+        let login_data = self.login_data.clone()?;
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
             let backend = self.backend.clone();
-            let mb =
-                widgets::MessageBox::new(backend, self.server_url.clone()).tmpwidget(&ui_msg)?;
+            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(&ui_msg)?;
             let m = mb.get_listbox_row()?;
             messages.add(m);
 
@@ -86,6 +86,7 @@ impl AppOp {
     }
 
     pub fn append_tmp_msgs(&mut self) -> Option<()> {
+        let login_data = self.login_data.clone()?;
         let messages = self.history.as_ref()?.get_listbox();
 
         let r = self.rooms.get(self.active_room.as_ref()?)?;
@@ -93,7 +94,7 @@ impl AppOp {
         for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                 let backend = self.backend.clone();
-                let mb = widgets::MessageBox::new(backend, self.server_url.clone())
+                let mb = widgets::MessageBox::new(backend, login_data.server_url.clone())
                     .tmpwidget(&ui_msg)?;
                 let m = mb.get_listbox_row()?;
                 messages.add(m);
@@ -111,7 +112,7 @@ impl AppOp {
     }
 
     pub fn mark_last_message_as_read(&mut self, Force(force): Force) -> Option<()> {
-        let access_token = self.access_token.clone()?;
+        let login_data = self.login_data.clone()?;
         let window: gtk::Window = self
             .ui
             .builder
@@ -121,19 +122,19 @@ impl AppOp {
             /* Move the last viewed mark to the last message */
             let active_room_id = self.active_room.as_ref()?;
             let room = self.rooms.get_mut(active_room_id)?;
-            let uid = self.uid.clone()?;
+            let uid = login_data.uid;
             room.messages.iter_mut().for_each(|msg| {
                 if msg.receipt.contains_key(&uid) {
                     msg.receipt.remove(&uid);
                 }
             });
             let last_message = room.messages.last_mut()?;
-            last_message.receipt.insert(self.uid.clone()?, 0);
+            last_message.receipt.insert(uid, 0);
 
             self.backend
                 .send(BKCommand::MarkAsRead(
-                    self.server_url.clone(),
-                    access_token,
+                    login_data.server_url,
+                    login_data.access_token,
                     last_message.room.clone(),
                     last_message.id.clone(),
                 ))
@@ -168,7 +169,7 @@ impl AppOp {
     }
 
     pub fn dequeue_message(&mut self) -> Option<()> {
-        let access_token = self.access_token.clone()?;
+        let login_data = self.login_data.clone()?;
         if self.sending_message {
             return None;
         }
@@ -180,8 +181,8 @@ impl AppOp {
                 "m.image" | "m.file" | "m.audio" => {
                     self.backend
                         .send(BKCommand::AttachFile(
-                            self.server_url.clone(),
-                            access_token,
+                            login_data.server_url,
+                            login_data.access_token,
                             msg,
                         ))
                         .unwrap();
@@ -189,8 +190,8 @@ impl AppOp {
                 _ => {
                     self.backend
                         .send(BKCommand::SendMsg(
-                            self.server_url.clone(),
-                            access_token,
+                            login_data.server_url,
+                            login_data.access_token,
                             msg,
                         ))
                         .unwrap();
@@ -209,7 +210,7 @@ impl AppOp {
         }
 
         if let Some(room) = self.active_room.clone() {
-            if let Some(sender) = self.uid.clone() {
+            if let Some(sender) = self.login_data.as_ref().map(|ld| ld.uid.clone()) {
                 let body = msg.clone();
                 let mtype = String::from("m.text");
                 let mut m = Message::new(room, sender, body, mtype);
@@ -257,7 +258,7 @@ impl AppOp {
 
     pub fn attach_message(&mut self, path: PathBuf) {
         if let Some(room) = self.active_room.clone() {
-            if let Some(sender) = self.uid.clone() {
+            if let Some(sender) = self.login_data.as_ref().map(|ld| ld.uid.clone()) {
                 if let Ok(info) = gio::File::new_for_path(&path).query_info(
                     &gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                     gio::FileQueryInfoFlags::NONE,
@@ -342,10 +343,11 @@ impl AppOp {
         }
 
         let mut msg_in_active = false;
-        let uid = self.uid.clone()?;
+        let login_data = self.login_data.clone()?;
+        let uid = login_data.uid;
         for msg in msgs.iter() {
             let should_notify = msg.sender != uid
-                && (msg.body.contains(&self.username.clone()?)
+                && (msg.body.contains(&login_data.username.clone()?)
                     || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
 
             if should_notify {
@@ -408,6 +410,7 @@ impl AppOp {
 
     /* parese a backend Message into a Message for the UI */
     pub fn create_new_room_message(&self, msg: &Message) -> Option<MessageContent> {
+        let login_data = self.login_data.clone()?;
         let mut highlights = vec![];
         lazy_static! {
             static ref EMOJI_REGEX: regex::Regex = regex::Regex::new(r"(?x)
@@ -430,19 +433,17 @@ impl AppOp {
             _ => {
                 /* set message type to mention if the body contains the username, we should
                  * also match for MXID */
-                let is_mention = if let Some(user) = self.username.clone() {
-                    msg.sender != self.uid.clone()? && msg.body.contains(&user)
+                let is_mention = if let Some(user) = login_data.username.clone() {
+                    msg.sender != login_data.uid.clone() && msg.body.contains(&user)
                 } else {
                     false
                 };
 
                 if is_mention {
-                    if let Some(user) = self.username.clone() {
+                    if let Some(user) = login_data.username {
                         highlights.push(user);
                     }
-                    if let Some(mxid) = self.uid.clone() {
-                        highlights.push(mxid);
-                    }
+                    highlights.push(login_data.uid.clone());
                     highlights.push(String::from("message_menu"));
 
                     RowType::Mention
@@ -461,14 +462,14 @@ impl AppOp {
             None
         };
 
-        let uid = self.uid.clone().unwrap_or_default();
-        let admin = match self.uid.clone().and_then(|uid| room.admins.get(&uid)) {
-            Some(&pl) => pl,
-            None => 0,
-        };
-        let redactable = admin != 0 || uid == msg.sender;
+        let admin = room
+            .admins
+            .get(&login_data.uid)
+            .map(|n| *n)
+            .unwrap_or_default();
+        let redactable = admin != 0 || login_data.uid.clone() == msg.sender;
 
-        let is_last_viewed = msg.receipt.contains_key(&uid);
+        let is_last_viewed = msg.receipt.contains_key(&login_data.uid);
         Some(create_ui_message(
             msg.clone(),
             name,

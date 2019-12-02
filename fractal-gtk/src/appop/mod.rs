@@ -44,21 +44,26 @@ mod user;
 use self::member::SearchType;
 use self::message::TmpMsg;
 
+#[derive(Clone, Debug)]
+pub struct LoginData {
+    pub access_token: AccessToken,
+    pub uid: String,
+    pub username: Option<String>,
+    pub avatar: Option<String>,
+    pub server_url: Url,
+    pub identity_url: Url,
+}
+
 pub struct AppOp {
     pub ui: uibuilder::UI,
     pub backend: Sender<backend::BKCommand>,
 
-    pub syncing: bool,
+    pub syncing: bool, // TODO: Replace with a Mutex
     pub msg_queue: Vec<TmpMsg>,
     pub sending_message: bool,
 
-    pub access_token: Option<AccessToken>,
-    pub username: Option<String>,
-    pub uid: Option<String>,
+    pub login_data: Option<LoginData>,
     pub device_id: Option<String>,
-    pub avatar: Option<String>,
-    pub server_url: Url,
-    pub identity_url: Url,
 
     pub active_room: Option<String>,
     pub rooms: RoomList,
@@ -70,8 +75,6 @@ pub struct AppOp {
 
     pub state: AppState,
     pub since: Option<String>,
-
-    pub logged_in: bool,
 
     pub invitation_roomid: Option<String>,
     pub md_enabled: bool,
@@ -98,13 +101,8 @@ impl AppOp {
             rooms: HashMap::new(),
             room_settings: None,
             history: None,
-            access_token: None,
-            username: None,
-            uid: None,
+            login_data: None,
             device_id: None,
-            avatar: None,
-            server_url: globals::DEFAULT_HOMESERVER.clone(),
-            identity_url: globals::DEFAULT_IDENTITYSERVER.clone(),
             syncing: false,
             msg_queue: vec![],
             sending_message: false,
@@ -113,8 +111,6 @@ impl AppOp {
             since: None,
             unsent_messages: HashMap::new(),
             typing: HashMap::new(),
-
-            logged_in: false,
 
             md_enabled: false,
             invitation_roomid: None,
@@ -129,21 +125,25 @@ impl AppOp {
     pub fn init(&mut self) {
         self.set_state(AppState::Loading);
 
+        // FIXME: Username and uid should not be duplicated in cache.
         if let Ok(data) = cache::load() {
             let r: Vec<Room> = data.rooms.values().cloned().collect();
             self.set_rooms(r, true);
             /* Make sure that since is never an empty string */
             self.since = data.since.filter(|s| !s.is_empty());
-            self.username = Some(data.username);
-            self.uid = Some(data.uid);
             self.device_id = Some(data.device_id);
         }
 
-        if let Ok(pass) = self.get_pass() {
-            if let Ok((Some(token), uid)) = self.get_token() {
-                self.set_token(token, Some(uid), pass.2);
+        // FIXME: Storing and getting the password is insecure.
+        //        Only the access token should be used.
+        if let Ok((username, password, server, id_url)) = self.get_pass() {
+            if let Ok((Some(access_token), uid)) = self.get_token() {
+                self.backend
+                    .send(BKCommand::SetUserID(uid.clone()))
+                    .unwrap();
+                self.bk_login(uid, access_token, self.device_id.clone(), server, id_url);
             } else {
-                self.connect(Some(pass.0), Some(pass.1), pass.2, pass.3);
+                self.connect(username, password, server, id_url);
             }
         } else {
             self.set_state(AppState::Login);
