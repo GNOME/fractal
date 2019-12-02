@@ -14,7 +14,7 @@ impl AppOp {
     }
 
     pub fn sync(&mut self, initial: bool) {
-        if let (Some(token), true) = (self.access_token.clone(), !self.syncing && self.logged_in) {
+        if let (Some(login_data), true) = (self.login_data.clone(), !self.syncing) {
             self.syncing = true;
             // for the initial sync we set the since to None to avoid long syncing
             // the since can be a very old value and following the spec we should
@@ -23,8 +23,8 @@ impl AppOp {
             let since = if initial { None } else { self.since.clone() };
             self.backend
                 .send(BKCommand::Sync(
-                    self.server_url.clone(),
-                    token.clone(),
+                    login_data.server_url,
+                    login_data.access_token,
                     since,
                     initial,
                 ))

@@ -1,5 +1,3 @@
-use fractal_api::r0::AccessToken;
-
 use gtk;
 use gtk::prelude::*;
 
@@ -11,17 +9,21 @@ use crate::backend::BKCommand;
 use crate::widgets;
 use crate::widgets::AvatarExt;
 
+use super::LoginData;
+
 impl AppOp {
     pub fn get_username(&self) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         self.backend
-            .send(BKCommand::GetUsername(self.server_url.clone()))
+            .send(BKCommand::GetUsername(login_data.server_url.clone()))
             .unwrap();
         self.backend
-            .send(BKCommand::GetAvatar(self.server_url.clone()))
+            .send(BKCommand::GetAvatar(login_data.server_url))
             .unwrap();
     }
 
     pub fn show_user_info(&self) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let stack = self
             .ui
             .builder
@@ -29,7 +31,7 @@ impl AppOp {
             .expect("Can't find user_info_avatar in ui file.");
 
         /* Show user infos inside the popover but wait for all data to arrive */
-        if self.avatar.is_some() && self.username.is_some() && self.uid.is_some() {
+        if login_data.avatar.is_some() && login_data.username.is_some() {
             let avatar = self
                 .ui
                 .builder
@@ -48,8 +50,8 @@ impl AppOp {
                 .get_object::<gtk::Label>("user_info_uid")
                 .expect("Can't find user_info_avatar in ui file.");
 
-            uid.set_text(&self.uid.clone().unwrap_or_default());
-            name.set_text(&self.username.clone().unwrap_or_default());
+            uid.set_text(&login_data.uid);
+            name.set_text(&login_data.username.clone().unwrap_or_default());
 
             /* remove all old avatar from the popover */
             for w in avatar.get_children().iter() {
@@ -57,12 +59,17 @@ impl AppOp {
             }
 
             let w = widgets::Avatar::avatar_new(Some(40));
-            let uid = self.uid.clone().unwrap_or_default();
-            let data = w.circle(uid.clone(), self.username.clone(), 40, None, None);
+            let data = w.circle(
+                login_data.uid.clone(),
+                login_data.username.clone(),
+                40,
+                None,
+                None,
+            );
             download_to_cache(
                 self.backend.clone(),
-                self.server_url.clone(),
-                uid.clone(),
+                login_data.server_url.clone(),
+                login_data.uid.clone(),
                 data.clone(),
             );
 
@@ -73,15 +80,14 @@ impl AppOp {
         }
 
         let eb = gtk::EventBox::new();
-        match self.avatar.clone() {
+        match login_data.avatar.clone() {
             Some(_) => {
                 let w = widgets::Avatar::avatar_new(Some(24));
-                let uid = self.uid.clone().unwrap_or_default();
-                let data = w.circle(uid.clone(), self.username.clone(), 24, None, None);
+                let data = w.circle(login_data.uid.clone(), login_data.username, 24, None, None);
                 download_to_cache(
                     self.backend.clone(),
-                    self.server_url.clone(),
-                    uid.clone(),
+                    login_data.server_url.clone(),
+                    login_data.uid.clone(),
                     data.clone(),
                 );
 
@@ -98,26 +104,24 @@ impl AppOp {
         eb.connect_button_press_event(move |_, _| Inhibit(false));
     }
 
-    pub fn set_access_token(&mut self, access_token: Option<AccessToken>) {
-        self.access_token = access_token;
+    pub fn set_login_data(&mut self, login_data: LoginData) {
+        self.login_data = Some(login_data);
+        self.show_user_info();
     }
 
     pub fn set_username(&mut self, username: Option<String>) {
-        self.username = username;
-        self.show_user_info();
-    }
-
-    pub fn set_uid(&mut self, uid: Option<String>) {
-        self.uid = uid;
-        self.show_user_info();
-    }
-
-    pub fn set_device(&mut self, device: Option<String>) {
-        self.device_id = device;
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
+        self.set_login_data(LoginData {
+            username,
+            ..login_data
+        });
     }
 
     pub fn set_avatar(&mut self, fname: Option<String>) {
-        self.avatar = fname;
-        self.show_user_info();
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
+        self.set_login_data(LoginData {
+            avatar: fname,
+            ..login_data
+        });
     }
 }

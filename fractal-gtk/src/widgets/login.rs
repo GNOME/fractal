@@ -118,12 +118,9 @@ impl LoginWidget {
                     err_label.hide();
                     op.lock().unwrap().set_state(AppState::Loading);
                     op.lock().unwrap().since = None;
-                    op.lock().unwrap().connect(
-                        Some(username),
-                        Some(password),
-                        homeserver_url,
-                        idserver,
-                    );
+                    op.lock()
+                        .unwrap()
+                        .connect(username, password, homeserver_url, idserver);
                 } else {
                     err_label.show();
                 }

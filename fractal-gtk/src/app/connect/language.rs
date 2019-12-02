@@ -25,11 +25,11 @@ impl App {
                     due to the user switching rooms, the op mutex is locked already.
                     If the checker is modified by gtk due to the user switching the language, the op mutex is unlocked. */
                     if let Ok(op) = op.try_lock() {
-                        if let Some(active_room) = &op.active_room {
-                            let server = &op.server_url;
-                            let access_token = unwrap_or_unit_return!(op.access_token.clone());
+                        if let (Some(active_room), Some(login_data)) = (&op.active_room, &op.login_data) {
+                            let server = login_data.server_url.clone();
+                            let access_token = login_data.access_token.clone();
                             op.backend
-                                .send(BKCommand::ChangeLanguage(access_token, server.clone(), lang_code, active_room.clone()))
+                                .send(BKCommand::ChangeLanguage(access_token, server, lang_code, active_room.clone()))
                                 .unwrap();
                         }
                     }

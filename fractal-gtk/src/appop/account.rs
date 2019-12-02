@@ -14,17 +14,19 @@ use crate::cache::download_to_cache;
 use fractal_api::r0::contact::get_identifiers::ThirdPartyIdentifier;
 use fractal_api::r0::Medium;
 
+use super::LoginData;
+
 impl AppOp {
     pub fn set_three_pid(&self, data: Option<Vec<ThirdPartyIdentifier>>) {
         self.update_address(data);
     }
 
     pub fn get_three_pid(&self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         self.backend
             .send(BKCommand::GetThreePID(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
             ))
             .unwrap();
     }
@@ -34,13 +36,13 @@ impl AppOp {
     }
 
     pub fn valid_phone_token(&self, sid: Option<String>, secret: Option<String>) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(sid) = sid {
             if let Some(secret) = secret {
                 let _ = self.backend.send(BKCommand::AddThreePID(
-                    self.server_url.clone(),
-                    access_token,
-                    self.identity_url.clone(),
+                    login_data.server_url,
+                    login_data.access_token,
+                    login_data.identity_url,
                     secret.clone(),
                     sid.clone(),
                 ));
@@ -51,6 +53,7 @@ impl AppOp {
     }
 
     pub fn show_phone_dialog(&self, sid: String, secret: String) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let parent = self
             .ui
             .builder
@@ -94,13 +97,12 @@ impl AppOp {
         });
 
         let value = entry.clone();
-        let server_url = self.server_url.clone();
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text() {
                         let _ = backend.send(BKCommand::SubmitPhoneToken(
-                            server_url.clone(),
+                            login_data.server_url.clone(),
                             secret.clone(),
                             sid.clone(),
                             token.to_string(),
@@ -116,7 +118,7 @@ impl AppOp {
     }
 
     pub fn show_email_dialog(&self, sid: String, secret: String) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let parent = self
             .ui
             .builder
@@ -133,17 +135,15 @@ impl AppOp {
             &msg,
         );
         let backend = self.backend.clone();
-        let id_server = self.identity_url.clone();
-        let server_url = self.server_url.clone();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
                     let _ = backend.send(BKCommand::AddThreePID(
-                        server_url.clone(),
-                        access_token.clone(),
-                        id_server.clone(),
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
+                        login_data.identity_url.clone(),
                         secret.clone(),
                         sid.clone(),
                     ));
@@ -208,6 +208,7 @@ impl AppOp {
     }
 
     pub fn show_account_settings_dialog(&mut self) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         // Reset view before displaying it
         self.close_account_settings_dialog();
         let avatar_spinner = self
@@ -288,10 +289,10 @@ impl AppOp {
 
         stack.set_visible_child_name("loading");
         self.get_three_pid();
-        uid.set_text(&self.uid.clone().unwrap_or_default());
+        uid.set_text(&login_data.uid);
         device_id.set_text(&self.device_id.clone().unwrap_or_default());
-        homeserver.set_text(self.server_url.as_str());
-        name.set_text(&self.username.clone().unwrap_or_default());
+        homeserver.set_text(login_data.server_url.as_str());
+        name.set_text(&login_data.username.unwrap_or_default());
         name.grab_focus_without_selecting();
         name.set_position(-1);
 
@@ -452,6 +453,7 @@ impl AppOp {
     }
 
     pub fn show_new_avatar(&mut self, path: Option<String>) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let avatar_spinner = self
             .ui
             .builder
@@ -464,13 +466,17 @@ impl AppOp {
             .expect("Can't find account_settings_avatar_button in ui file.");
 
         info!("Request finished");
-        self.set_avatar(path.clone());
+        self.set_login_data(LoginData {
+            avatar: path,
+            ..login_data
+        });
         avatar_spinner.hide();
         avatar_btn.set_sensitive(true);
         self.show_avatar();
     }
 
     pub fn show_avatar(&self) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let stack = self
             .ui
             .builder
@@ -496,12 +502,11 @@ impl AppOp {
         let w = widgets::Avatar::avatar_new(Some(100));
         avatar.add(&w);
 
-        let uid = self.uid.clone().unwrap_or_default();
-        let data = w.circle(uid.clone(), self.username.clone(), 100, None, None);
+        let data = w.circle(login_data.uid.clone(), login_data.username, 100, None, None);
         download_to_cache(
             self.backend.clone(),
-            self.server_url.clone(),
-            uid.clone(),
+            login_data.server_url,
+            login_data.uid,
             data.clone(),
         );
 
@@ -514,6 +519,7 @@ impl AppOp {
     }
 
     pub fn show_new_username(&mut self, name: Option<String>) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let entry = self
             .ui
             .builder
@@ -533,11 +539,14 @@ impl AppOp {
             entry.set_editable(true);
             entry.set_text(&name);
         }
-        self.set_username(name);
+        self.set_login_data(LoginData {
+            username: name,
+            ..login_data
+        });
     }
 
     pub fn update_username_account_settings(&self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let name = self
             .ui
             .builder
@@ -549,7 +558,7 @@ impl AppOp {
             .get_object::<gtk::Button>("account_settings_name_button")
             .expect("Can't find account_settings_name_button in ui file.");
 
-        let old_username = self.username.clone().unwrap_or_default();
+        let old_username = login_data.username.unwrap_or_default();
         let username = name
             .get_text()
             .map_or(String::new(), |gstr| gstr.to_string());
@@ -562,8 +571,8 @@ impl AppOp {
             name.set_editable(false);
             self.backend
                 .send(BKCommand::SetUserName(
-                    self.server_url.clone(),
-                    access_token,
+                    login_data.server_url,
+                    login_data.access_token,
                     username,
                 ))
                 .unwrap();
@@ -595,7 +604,7 @@ impl AppOp {
     }
 
     pub fn set_new_password(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let old_password = self
             .ui
             .builder
@@ -619,18 +628,16 @@ impl AppOp {
 
         if let Some(old) = old_password.get_text() {
             if let Some(new) = new_password.get_text() {
-                if let Some(mxid) = self.uid.clone() {
-                    if old != "" && new != "" {
-                        password_btn.set_sensitive(false);
-                        password_btn_stack.set_visible_child_name("spinner");
-                        let _ = self.backend.send(BKCommand::ChangePassword(
-                            self.server_url.clone(),
-                            access_token,
-                            mxid,
-                            old.to_string(),
-                            new.to_string(),
-                        ));
-                    }
+                if old != "" && new != "" {
+                    password_btn.set_sensitive(false);
+                    password_btn_stack.set_visible_child_name("spinner");
+                    let _ = self.backend.send(BKCommand::ChangePassword(
+                        login_data.server_url,
+                        login_data.access_token,
+                        login_data.uid,
+                        old.to_string(),
+                        new.to_string(),
+                    ));
                 }
             }
         }
@@ -696,7 +703,7 @@ impl AppOp {
     }
 
     pub fn account_destruction(&self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let entry = self
             .ui
             .builder
@@ -727,18 +734,16 @@ impl AppOp {
         dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
 
         let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
-        let server_url = self.server_url.clone();
-        if let (Some(password), Some(mxid)) = (entry.get_text(), self.uid.clone()) {
+        if let Some(password) = entry.get_text() {
             let backend = self.backend.clone();
-            let password = password.to_string();
             dialog.connect_response(move |w, r| {
                 match gtk::ResponseType::from(r) {
                     gtk::ResponseType::Ok => {
                         let _ = backend.send(BKCommand::AccountDestruction(
-                            server_url.clone(),
-                            access_token.clone(),
-                            mxid.clone(),
-                            password.clone(),
+                            login_data.server_url.clone(),
+                            login_data.access_token.clone(),
+                            login_data.uid.clone(),
+                            password.to_string(),
                         ));
                     }
                     _ => {}

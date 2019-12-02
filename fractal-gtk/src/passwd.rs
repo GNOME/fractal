@@ -37,7 +37,7 @@ pub trait PasswordStorage {
         ss_storage::get_pass()
     }
 
-    fn store_token(&self, uid: String, token: Option<AccessToken>) -> Result<(), Error> {
+    fn store_token(&self, uid: String, token: AccessToken) -> Result<(), Error> {
         ss_storage::store_token(uid, token)
     }
 
@@ -73,7 +73,7 @@ mod ss_storage {
         Ok(())
     }
 
-    pub fn store_token(uid: String, token: Option<AccessToken>) -> Result<(), Error> {
+    pub fn store_token(uid: String, token: AccessToken) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
         let key = "fractal-token";
@@ -84,16 +84,11 @@ mod ss_storage {
         // create new item
         collection.unlock()?;
         collection.create_item(
-            key,                 // label
-            vec![("uid", &uid)], // properties
-            token
-                .as_ref()
-                .map(ToString::to_string)
-                .as_ref()
-                .map(String::as_bytes)
-                .unwrap_or_default(), //secret
-            true,                // replace item with same attributes
-            "text/plain",        // secret content type
+            key,                          // label
+            vec![("uid", &uid)],          // properties
+            token.to_string().as_bytes(), // secret
+            true,                         // replace item with same attributes
+            "text/plain",                 // secret content type
         )?;
 
         Ok(())

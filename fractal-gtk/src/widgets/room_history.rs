@@ -96,7 +96,7 @@ pub struct RoomHistory {
 }
 
 impl RoomHistory {
-    pub fn new(actions: SimpleActionGroup, room_id: String, op: &AppOp) -> RoomHistory {
+    pub fn new(actions: SimpleActionGroup, room_id: String, op: &AppOp) -> Option<RoomHistory> {
         let history_container = op
             .ui
             .builder
@@ -115,13 +115,13 @@ impl RoomHistory {
         /* Add the action groupe to the room_history */
         listbox.insert_action_group("room_history", Some(&actions));
 
-        RoomHistory {
+        Some(RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
-            server_url: op.server_url.clone(),
+            server_url: op.login_data.clone()?.server_url.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
-        }
+        })
     }
 
     pub fn create(&mut self, mut messages: Vec<MessageContent>) -> Option<()> {

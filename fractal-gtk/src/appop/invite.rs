@@ -156,13 +156,13 @@ impl AppOp {
     }
 
     pub fn invite(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let &Some(ref r) = &self.active_room {
             for user in &self.invite_list {
                 self.backend
                     .send(BKCommand::Invite(
-                        self.server_url.clone(),
-                        access_token.clone(),
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
                         r.clone(),
                         user.0.uid.clone(),
                     ))
@@ -215,22 +215,22 @@ impl AppOp {
     }
 
     pub fn accept_inv(&mut self, accept: bool) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let rid = self.invitation_roomid.clone();
         if let Some(rid) = rid {
             if accept {
                 self.backend
                     .send(BKCommand::AcceptInv(
-                        self.server_url.clone(),
-                        access_token,
+                        login_data.server_url,
+                        login_data.access_token,
                         rid.clone(),
                     ))
                     .unwrap();
             } else {
                 self.backend
                     .send(BKCommand::RejectInv(
-                        self.server_url.clone(),
-                        access_token,
+                        login_data.server_url,
+                        login_data.access_token,
                         rid.clone(),
                     ))
                     .unwrap();
