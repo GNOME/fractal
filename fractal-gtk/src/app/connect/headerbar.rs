@@ -37,12 +37,12 @@ impl App {
                     let decor_split: Vec<String> = decor.splitn(2,':').map(|s| s.to_string()).collect();
                     // Change the headerbar controls depending on position
                     // of close
-                    if !decor_split[1].contains("close") {
-                        right_header.set_show_close_button(false);
-                        left_header.set_show_close_button(true);
-                    } else {
+                    if decor_split[1].contains("close") {
                         left_header.set_show_close_button(false);
                         right_header.set_show_close_button(true);
+                    } else {
+                        right_header.set_show_close_button(false);
+                        left_header.set_show_close_button(true);
                     }
                 };
             }));

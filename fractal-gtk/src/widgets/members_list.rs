@@ -235,11 +235,11 @@ fn filter_rows(
     let mut empty = true;
     for (index, member) in members.iter().enumerate() {
         let alias_lower = member.get_alias().to_lowercase();
-        if !alias_lower.contains(search) {
-            container.get_row_at_index(index as i32)?.hide();
-        } else {
+        if alias_lower.contains(search) {
             container.get_row_at_index(index as i32)?.show();
             empty = false;
+        } else {
+            container.get_row_at_index(index as i32)?.hide();
         }
     }
     label.set_visible(empty);

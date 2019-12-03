@@ -178,12 +178,12 @@ impl RoomSettings {
             let spinner = avatar_spinner.downgrade();
             avatar_btn.connect_property_sensitive_notify(move |w| {
                 let spinner = upgrade_weak!(spinner);
-                if !w.get_sensitive() {
-                    spinner.start();
-                    spinner.show();
-                } else {
+                if w.get_sensitive() {
                     spinner.hide();
                     spinner.stop();
+                } else {
+                    spinner.start();
+                    spinner.show();
                 }
             });
         }

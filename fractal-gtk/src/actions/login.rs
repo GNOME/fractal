@@ -99,13 +99,13 @@ pub fn new(
         let err_label = upgrade_weak!(err_weak);
 
         server_entry.get_text().map(|txt| {
-            if !txt.is_empty() {
+            if txt.is_empty() {
+                err_label.show();
+            } else {
                 err_label.hide();
                 let state = LoginState::Credentials;
                 stack.set_visible_child_name(&state.to_string());
                 back.borrow_mut().push(state);
-            } else {
-                err_label.show();
             }
         });
     });
