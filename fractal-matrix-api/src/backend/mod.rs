@@ -308,6 +308,10 @@ impl Backend {
                 let r = room::invite(self, server, access_token, room, userid);
                 bkerror!(r, tx, BKResponse::InviteError);
             }
+            Ok(BKCommand::ChangeLanguage(access_token, server, lang, room)) => {
+                let r = room::set_language(self, access_token, server, &room, &lang);
+                bkerror2!(r, tx, BKResponse::ChangeLanguage);
+            }
 
             // Media module
             Ok(BKCommand::GetThumbAsync(server, media, ctx)) => {

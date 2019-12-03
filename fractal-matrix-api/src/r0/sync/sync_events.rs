@@ -173,6 +173,11 @@ pub struct AccountData {
     pub events: Vec<JsonValue>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct Language {
+    pub input_language: String,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct ToDevice {
     // TODO: Implement Event
