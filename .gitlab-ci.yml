@@ -30,6 +30,7 @@ check:
         - rustc -Vv && cargo -Vv
         - cargo --version
         - cargo fmt --all -- --check
+        - cargo clippy -- -D warnings
 
 flatpak:
   extends: '.flatpak'
