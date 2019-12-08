@@ -25,6 +25,7 @@ impl AppOp {
             .send(BKCommand::DirectChat(
                 login_data.server_url,
                 login_data.access_token,
+                login_data.uid,
                 user.0.clone(),
                 internal_id.clone(),
             ))

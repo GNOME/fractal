@@ -34,12 +34,12 @@ pub fn sync(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
+    userid: String,
     new_since: Option<String>,
     initial: bool,
 ) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-    let userid = bk.data.lock().unwrap().user_id.clone();
 
     let since = bk
         .data
@@ -271,7 +271,7 @@ pub fn sync(
     });
 }
 
-pub fn force_sync(bk: &Backend, base: Url, access_token: AccessToken) {
+pub fn force_sync(bk: &Backend, base: Url, access_token: AccessToken, user_id: String) {
     bk.data.lock().unwrap().since = None;
-    sync(bk, base, access_token, None, true)
+    sync(bk, base, access_token, user_id, None, true)
 }

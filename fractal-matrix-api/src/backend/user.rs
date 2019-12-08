@@ -1,7 +1,6 @@
 use std::fs;
 use url::Url;
 
-use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::util::cache_dir_path;
@@ -68,25 +67,17 @@ use crate::r0::Medium;
 use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
 
-pub fn get_username(bk: &Backend, base: Url) {
-    let tx = bk.tx.clone();
-    let uid = bk.data.lock().unwrap().user_id.clone();
-
-    thread::spawn(move || {
-        let query = get_display_name(base, &encode_uid(&uid))
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)?
-                    .json::<GetDisplayNameResponse>()
-                    .map_err(Into::into)
-            })
-            .map(|response| response.displayname.unwrap_or(uid));
-
-        tx.send(BKResponse::Name(query))
-            .expect_log("Connection closed");
-    });
+pub fn get_username(base: Url, uid: String) -> Result<Option<String>, Error> {
+    get_display_name(base, &encode_uid(&uid))
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<GetDisplayNameResponse>()
+                .map_err(Into::into)
+        })
+        .map(|response| response.displayname)
 }
 
 // FIXME: This function manages errors *really* wrong and isn't more async
@@ -106,29 +97,26 @@ pub fn get_username_async(base: Url, uid: String) -> String {
         .unwrap_or(uid)
 }
 
-pub fn set_username(bk: &Backend, base: Url, access_token: AccessToken, name: String) {
-    let tx = bk.tx.clone();
-
-    let uid = bk.data.lock().unwrap().user_id.clone();
+pub fn set_username(
+    base: Url,
+    access_token: AccessToken,
+    uid: String,
+    username: String,
+) -> Result<String, Error> {
     let params = SetDisplayNameParameters { access_token };
     let body = SetDisplayNameBody {
-        displayname: Some(name.clone()),
+        displayname: Some(username.clone()),
     };
 
-    thread::spawn(move || {
-        let query = set_display_name(base, &params, &body, &encode_uid(&uid))
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            })
-            .and(Ok(name));
-
-        tx.send(BKResponse::SetUserName(query))
-            .expect_log("Connection closed");
-    });
+    set_display_name(base, &params, &body, &encode_uid(&uid))
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)
+                .map_err(Into::into)
+        })
+        .and(Ok(username))
 }
 
 pub fn get_threepid(
@@ -352,15 +340,8 @@ pub fn account_destruction(
         .and(Ok(()))
 }
 
-pub fn get_avatar(bk: &Backend, base: Url) {
-    let userid = bk.data.lock().unwrap().user_id.clone();
-
-    let tx = bk.tx.clone();
-    thread::spawn(move || {
-        let query = get_user_avatar(&base, &userid).map(|(_, fname)| fname);
-        tx.send(BKResponse::Avatar(query))
-            .expect_log("Connection closed");
-    });
+pub fn get_avatar(base: Url, userid: String) -> Result<String, Error> {
+    get_user_avatar(&base, &userid).map(|(_, fname)| fname)
 }
 
 pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sender<String>) {
@@ -377,51 +358,48 @@ pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sen
     }
 }
 
-pub fn set_user_avatar(bk: &Backend, base: Url, access_token: AccessToken, avatar: String) {
-    let tx = bk.tx.clone();
-
-    let id = bk.data.lock().unwrap().user_id.clone();
+pub fn set_user_avatar(
+    base: Url,
+    access_token: AccessToken,
+    id: String,
+    avatar: String,
+) -> Result<String, Error> {
     let params_upload = CreateContentParameters {
         access_token: access_token.clone(),
         filename: None,
     };
 
-    thread::spawn(move || {
-        let query = fs::read(&avatar)
-            .map_err(Into::into)
-            .and_then(|contents| {
-                let (mime, _) = gio::content_type_guess(None, &contents);
-                let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
-                let upload_response =
-                    create_content(base.clone(), &params_upload, contents, Some(mime_value))
-                        .map_err::<Error, _>(Into::into)
-                        .and_then(|request| {
-                            HTTP_CLIENT
-                                .get_client()?
-                                .execute(request)?
-                                .json::<CreateContentResponse>()
-                                .map_err(Into::into)
-                        })?;
-
-                let params_avatar = SetAvatarUrlParameters { access_token };
-                let body = SetAvatarUrlBody {
-                    avatar_url: Some(upload_response.content_uri),
-                };
-
-                set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
-                    .map_err(Into::into)
+    fs::read(&avatar)
+        .map_err(Into::into)
+        .and_then(|contents| {
+            let (mime, _) = gio::content_type_guess(None, &contents);
+            let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
+            let upload_response =
+                create_content(base.clone(), &params_upload, contents, Some(mime_value))
+                    .map_err::<Error, _>(Into::into)
                     .and_then(|request| {
                         HTTP_CLIENT
                             .get_client()?
-                            .execute(request)
+                            .execute(request)?
+                            .json::<CreateContentResponse>()
                             .map_err(Into::into)
-                    })
-            })
-            .and(Ok(avatar));
+                    })?;
 
-        tx.send(BKResponse::SetUserAvatar(query))
-            .expect_log("Connection closed");
-    });
+            let params_avatar = SetAvatarUrlParameters { access_token };
+            let body = SetAvatarUrlBody {
+                avatar_url: Some(upload_response.content_uri),
+            };
+
+            set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
+                .map_err(Into::into)
+                .and_then(|request| {
+                    HTTP_CLIENT
+                        .get_client()?
+                        .execute(request)
+                        .map_err(Into::into)
+                })
+        })
+        .and(Ok(avatar))
 }
 
 pub fn get_user_info_async(

@@ -53,7 +53,6 @@ pub fn guest(bk: &Backend, server: Url, id_url: Url) {
                 let dev = response.device_id;
 
                 if let Some(tk) = response.access_token {
-                    data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().since = None;
                     tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
                         .expect_log("Connection closed");
@@ -112,7 +111,6 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
                 let dev = response.device_id;
 
                 if let (Some(tk), false) = (response.access_token, uid.is_empty()) {
-                    data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().since = None;
                     tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
                         .expect_log("Connection closed");
@@ -129,8 +127,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
     });
 }
 
-pub fn set_uid(bk: &Backend, uid: String) {
-    bk.data.lock().unwrap().user_id = uid.clone();
+pub fn set_uid(bk: &Backend) {
     bk.data.lock().unwrap().since = None;
 }
 
@@ -152,7 +149,6 @@ pub fn logout(bk: &Backend, server: Url, access_token: AccessToken) {
             .and(Ok(()));
 
         if query.is_ok() {
-            data.lock().unwrap().user_id = Default::default();
             data.lock().unwrap().since = None;
         }
 
@@ -189,7 +185,6 @@ pub fn register(bk: &Backend, user: String, password: String, server: Url, id_ur
                 let dev = response.device_id;
 
                 if let Some(tk) = response.access_token {
-                    data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().since = None;
                     tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId
                         .expect_log("Connection closed");

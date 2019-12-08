@@ -137,6 +137,7 @@ impl AppOp {
                 bk.send(BKCommand::AddToFav(
                     login_data.server_url.clone(),
                     login_data.access_token.clone(),
+                    login_data.uid.clone(),
                     room.id.clone(),
                     tofav,
                 ))
@@ -707,6 +708,7 @@ impl AppOp {
                 .send(BKCommand::SendTyping(
                     login_data.server_url,
                     login_data.access_token,
+                    login_data.uid,
                     active_room.clone(),
                 ))
                 .unwrap();

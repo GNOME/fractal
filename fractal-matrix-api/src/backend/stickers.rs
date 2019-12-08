@@ -20,49 +20,50 @@ use crate::types::StickerGroup;
 use serde_json::Value as JsonValue;
 
 /// Queries scalar.vector.im to list all the stickers
-pub fn list(bk: &Backend, access_token: AccessToken) -> Result<(), Error> {
-    let widget = bk.data.lock().unwrap().sticker_widget.clone();
-    if widget.is_none() {
+pub fn list(bk: &Backend, access_token: AccessToken, uid: String) -> Result<(), Error> {
+    if let Some(widget_id) = bk.data.lock().unwrap().sticker_widget.clone() {
+        let data = vec![
+            ("widget_type", "m.stickerpicker".to_string()),
+            ("widget_id", widget_id),
+            ("filter_unpurchased", "true".to_string()),
+        ];
+        let url = vurl(&bk.data, &access_token, uid, "widgets/assets", data)?;
+
+        let tx = bk.tx.clone();
+        get!(
+            url,
+            |r: JsonValue| {
+                let mut stickers = vec![];
+                for sticker_group in r["assets"].as_array().unwrap_or(&vec![]).iter() {
+                    let group = StickerGroup::from_json(sticker_group);
+                    stickers.push(group);
+                }
+                tx.send(BKResponse::Stickers(Ok(stickers)))
+                    .expect_log("Connection closed");
+            },
+            |err| {
+                tx.send(BKResponse::Stickers(Err(err)))
+                    .expect_log("Connection closed");
+            }
+        );
+
+        Ok(())
+    } else {
         get_sticker_widget_id(
             bk,
             access_token.clone(),
-            BKCommand::ListStickers(access_token),
+            uid.clone(),
+            BKCommand::ListStickers(access_token, uid),
         )?;
-        return Ok(());
+
+        Ok(())
     }
-
-    let widget_id = widget.unwrap();
-    let data = vec![
-        ("widget_type", "m.stickerpicker".to_string()),
-        ("widget_id", widget_id),
-        ("filter_unpurchased", "true".to_string()),
-    ];
-    let url = vurl(&bk.data, &access_token, "widgets/assets", data)?;
-
-    let tx = bk.tx.clone();
-    get!(
-        url,
-        |r: JsonValue| {
-            let mut stickers = vec![];
-            for sticker_group in r["assets"].as_array().unwrap_or(&vec![]).iter() {
-                let group = StickerGroup::from_json(sticker_group);
-                stickers.push(group);
-            }
-            tx.send(BKResponse::Stickers(Ok(stickers)))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::Stickers(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
-
-    Ok(())
 }
 
 pub fn get_sticker_widget_id(
     bk: &Backend,
     access_token: AccessToken,
+    uid: String,
     then: BKCommand,
 ) -> Result<(), Error> {
     let data = json!({
@@ -72,7 +73,7 @@ pub fn get_sticker_widget_id(
     let d = bk.data.clone();
     let itx = bk.internal_tx.clone();
 
-    let url = vurl(&d, &access_token, "widgets/request", vec![]).unwrap();
+    let url = vurl(&d, &access_token, uid, "widgets/request", vec![]).unwrap();
     post!(
         url,
         &data,
@@ -161,48 +162,59 @@ pub fn send(
     Ok(())
 }
 
-pub fn purchase(bk: &Backend, access_token: AccessToken, group: StickerGroup) -> Result<(), Error> {
-    let widget = bk.data.lock().unwrap().sticker_widget.clone();
-    if widget.is_none() {
+pub fn purchase(
+    bk: &Backend,
+    access_token: AccessToken,
+    uid: String,
+    group: StickerGroup,
+) -> Result<(), Error> {
+    if let Some(widget_id) = bk.data.lock().unwrap().sticker_widget.clone() {
+        let asset = group.asset.clone();
+        let data = vec![
+            ("asset_type", asset.clone()),
+            ("widget_id", widget_id.clone()),
+            ("widget_type", "m.stickerpicker".to_string()),
+        ];
+        let url = vurl(
+            &bk.data,
+            &access_token,
+            uid.clone(),
+            "widgets/purchase_asset",
+            data,
+        )?;
+        let tx = bk.tx.clone();
+        let itx = bk.internal_tx.clone();
+        get!(
+            url,
+            |_| if let Some(t) = itx {
+                t.send(BKCommand::ListStickers(access_token, uid))
+                    .expect_log("Connection closed");
+            },
+            |err| {
+                tx.send(BKResponse::Stickers(Err(err)))
+                    .expect_log("Connection closed");
+            }
+        );
+
+        Ok(())
+    } else {
         get_sticker_widget_id(
             bk,
             access_token.clone(),
-            BKCommand::PurchaseSticker(access_token, group.clone()),
+            uid.clone(),
+            BKCommand::PurchaseSticker(access_token, uid, group.clone()),
         )?;
-        return Ok(());
+
+        Ok(())
     }
-
-    let widget_id = widget.unwrap();
-    let asset = group.asset.clone();
-    let data = vec![
-        ("asset_type", asset.clone()),
-        ("widget_id", widget_id.clone()),
-        ("widget_type", "m.stickerpicker".to_string()),
-    ];
-    let url = vurl(&bk.data, &access_token, "widgets/purchase_asset", data)?;
-    let tx = bk.tx.clone();
-    let itx = bk.internal_tx.clone();
-    get!(
-        url,
-        |_| if let Some(t) = itx {
-            t.send(BKCommand::ListStickers(access_token))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::Stickers(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
-
-    Ok(())
 }
 
 fn get_scalar_token(
     data: &Arc<Mutex<BackendData>>,
     access_token: &AccessToken,
+    uid: String,
 ) -> Result<String, Error> {
     let base = data.lock().unwrap().scalar_url.clone();
-    let uid = data.lock().unwrap().user_id.clone();
 
     let params = &[("access_token", access_token.to_string())];
     let path = &format!("user/{}/openid/request_token", uid);
@@ -226,6 +238,7 @@ fn get_scalar_token(
 fn vurl(
     data: &Arc<Mutex<BackendData>>,
     access_token: &AccessToken,
+    uid: String,
     path: &str,
     mut params: Vec<(&str, String)>,
 ) -> Result<Url, Error> {
@@ -235,7 +248,7 @@ fn vurl(
         .unwrap()
         .scalar_token
         .clone()
-        .unwrap_or(get_scalar_token(data, access_token)?);
+        .unwrap_or(get_scalar_token(data, access_token, uid)?);
 
     params.push(("scalar_token", tk));
 

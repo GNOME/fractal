@@ -21,14 +21,14 @@ use url::Url;
 #[derive(Debug)]
 pub enum BKCommand {
     Login(String, String, Url, Url),
-    SetUserID(String),
+    SetUserID,
     Logout(Url, AccessToken),
     #[allow(dead_code)]
     Register(String, String, Url, Url),
     #[allow(dead_code)]
     Guest(Url, Url),
-    GetUsername(Url),
-    SetUserName(Url, AccessToken, String),
+    GetUsername(Url, String),
+    SetUserName(Url, AccessToken, String, String),
     GetThreePID(Url, AccessToken),
     GetTokenEmail(Url, AccessToken, Url, String, String),
     GetTokenPhone(Url, AccessToken, Url, String, String),
@@ -37,10 +37,10 @@ pub enum BKCommand {
     DeleteThreePID(Url, AccessToken, Medium, String),
     ChangePassword(Url, AccessToken, String, String, String),
     AccountDestruction(Url, AccessToken, String, String),
-    GetAvatar(Url),
-    SetUserAvatar(Url, AccessToken, String),
-    Sync(Url, AccessToken, Option<String>, bool),
-    SyncForced(Url, AccessToken),
+    GetAvatar(Url, String),
+    SetUserAvatar(Url, AccessToken, String, String),
+    Sync(Url, AccessToken, String, Option<String>, bool),
+    SyncForced(Url, AccessToken, String),
     GetRoomMembers(Url, AccessToken, String),
     GetRoomMessages(Url, AccessToken, String, String),
     GetRoomMessagesFromMsg(Url, AccessToken, String, Message),
@@ -64,7 +64,7 @@ pub enum BKCommand {
     GetUserNameAsync(Url, String, Sender<String>),
     SendMsg(Url, AccessToken, Message),
     SendMsgRedaction(Url, AccessToken, Message),
-    SendTyping(Url, AccessToken, String),
+    SendTyping(Url, AccessToken, String, String),
     SetRoom(Url, AccessToken, String),
     ShutDown,
     DirectoryProtocols(Url, AccessToken),
@@ -77,16 +77,16 @@ pub enum BKCommand {
     SetRoomAvatar(Url, AccessToken, String, String),
     AttachFile(Url, AccessToken, Message),
     NewRoom(Url, AccessToken, String, RoomType, String),
-    DirectChat(Url, AccessToken, Member, String),
-    AddToFav(Url, AccessToken, String, bool),
+    DirectChat(Url, AccessToken, String, Member, String),
+    AddToFav(Url, AccessToken, String, String, bool),
     AcceptInv(Url, AccessToken, String),
     RejectInv(Url, AccessToken, String),
     UserSearch(Url, AccessToken, String),
     Invite(Url, AccessToken, String, String),
-    ListStickers(AccessToken),
+    ListStickers(AccessToken, String),
     SendSticker(Url, AccessToken, String, Sticker),
-    PurchaseSticker(AccessToken, StickerGroup),
-    ChangeLanguage(AccessToken, Url, String, String),
+    PurchaseSticker(AccessToken, String, StickerGroup),
+    ChangeLanguage(AccessToken, Url, String, String, String),
 }
 
 #[derive(Debug)]
@@ -94,7 +94,7 @@ pub enum BKResponse {
     ShutDown,
     Token(String, AccessToken, Option<String>, Url, Url),
     Logout(Result<(), Error>),
-    Name(Result<String, Error>),
+    Name(Result<Option<String>, Error>),
     SetUserName(Result<String, Error>),
     GetThreePID(Result<Vec<ThirdPartyIdentifier>, Error>),
     GetTokenEmail(Result<(String, String), Error>),
@@ -156,7 +156,6 @@ pub enum RoomType {
 }
 
 pub struct BackendData {
-    pub user_id: String,
     pub scalar_token: Option<String>,
     pub scalar_url: Url,
     pub sticker_widget: Option<String>,
