@@ -46,6 +46,7 @@ impl AppOp {
 
         self.set_state(AppState::NoRoom);
         self.device_id = self.device_id.clone().or(device);
+        self.since = None;
         self.get_username();
 
         // initial sync, we're shoing some feedback to the user

@@ -138,7 +138,6 @@ impl AppOp {
         //        Only the access token should be used.
         if let Ok((username, password, server, id_url)) = self.get_pass() {
             if let Ok((Some(access_token), uid)) = self.get_token() {
-                self.backend.send(BKCommand::SetUserID).unwrap();
                 self.bk_login(uid, access_token, self.device_id.clone(), server, id_url);
             } else {
                 self.connect(username, password, server, id_url);

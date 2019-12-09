@@ -21,7 +21,6 @@ use url::Url;
 #[derive(Debug)]
 pub enum BKCommand {
     Login(String, String, Url, Url),
-    SetUserID,
     Logout(Url, AccessToken),
     #[allow(dead_code)]
     Register(String, String, Url, Url),
@@ -40,7 +39,6 @@ pub enum BKCommand {
     GetAvatar(Url, String),
     SetUserAvatar(Url, AccessToken, String, String),
     Sync(Url, AccessToken, String, Option<String>, bool),
-    SyncForced(Url, AccessToken, String),
     GetRoomMembers(Url, AccessToken, String),
     GetRoomMessages(Url, AccessToken, String, String),
     GetRoomMessagesFromMsg(Url, AccessToken, String, Message),
@@ -159,7 +157,6 @@ pub struct BackendData {
     pub scalar_token: Option<String>,
     pub scalar_url: Url,
     pub sticker_widget: Option<String>,
-    pub since: Option<String>,
     pub rooms_since: String,
     pub join_to_room: String,
     pub m_direct: HashMap<String, Vec<String>>,

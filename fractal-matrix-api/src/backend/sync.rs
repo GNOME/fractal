@@ -35,20 +35,11 @@ pub fn sync(
     base: Url,
     access_token: AccessToken,
     userid: String,
-    new_since: Option<String>,
+    since: Option<String>,
     initial: bool,
 ) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-
-    let since = bk
-        .data
-        .lock()
-        .unwrap()
-        .since
-        .clone()
-        .filter(|s| !s.is_empty())
-        .or(new_since);
 
     let (timeout, filter) = if !initial {
         (time::Duration::from_secs(30), Default::default())
@@ -255,7 +246,6 @@ pub fn sync(
                 }
 
                 let next_batch = response.next_batch;
-                data.lock().unwrap().since = Some(next_batch.clone()).filter(|s| !s.is_empty());
                 tx.send(BKResponse::Sync(Ok(next_batch)))
                     .expect_log("Connection closed");
             }
@@ -269,9 +259,4 @@ pub fn sync(
             }
         }
     });
-}
-
-pub fn force_sync(bk: &Backend, base: Url, access_token: AccessToken, user_id: String) {
-    bk.data.lock().unwrap().since = None;
-    sync(bk, base, access_token, user_id, None, true)
 }

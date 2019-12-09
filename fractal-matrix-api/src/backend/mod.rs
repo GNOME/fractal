@@ -41,7 +41,6 @@ impl Backend {
             scalar_url: Url::parse("https://scalar.vector.im")
                 .expect("Wrong scalar_url value in BackendData"),
             sticker_widget: None,
-            since: None,
             rooms_since: String::new(),
             join_to_room: String::new(),
             m_direct: HashMap::new(),
@@ -90,13 +89,16 @@ impl Backend {
                 register::login(self, user, passwd, server, id_url)
             }
             Ok(BKCommand::Logout(server, access_token)) => {
-                register::logout(self, server, access_token)
+                thread::spawn(move || {
+                    let query = register::logout(server, access_token);
+                    tx.send(BKResponse::Logout(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::Register(user, passwd, server, id_url)) => {
                 register::register(self, user, passwd, server, id_url)
             }
             Ok(BKCommand::Guest(server, id_url)) => register::guest(self, server, id_url),
-            Ok(BKCommand::SetUserID) => register::set_uid(self),
 
             // User module
             Ok(BKCommand::GetUsername(server, uid)) => {
@@ -221,9 +223,6 @@ impl Backend {
             // Sync module
             Ok(BKCommand::Sync(server, access_token, uid, since, initial)) => {
                 sync::sync(self, server, access_token, uid, since, initial)
-            }
-            Ok(BKCommand::SyncForced(server, access_token, uid)) => {
-                sync::force_sync(self, server, access_token, uid)
             }
 
             // Room module
