@@ -81,9 +81,9 @@ pub enum BKCommand {
     RejectInv(Url, AccessToken, String),
     UserSearch(Url, AccessToken, String),
     Invite(Url, AccessToken, String, String),
-    ListStickers(AccessToken, String),
+    ListStickers(AccessToken, String, Url, Option<String>),
     SendSticker(Url, AccessToken, String, Sticker),
-    PurchaseSticker(AccessToken, String, StickerGroup),
+    PurchaseSticker(AccessToken, String, StickerGroup, Url, Option<String>),
     ChangeLanguage(AccessToken, Url, String, String, String),
 }
 
@@ -154,8 +154,6 @@ pub enum RoomType {
 }
 
 pub struct BackendData {
-    pub scalar_token: Option<String>,
-    pub scalar_url: Url,
     pub sticker_widget: Option<String>,
     pub rooms_since: String,
     pub join_to_room: String,

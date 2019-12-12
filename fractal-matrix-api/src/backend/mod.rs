@@ -37,9 +37,9 @@ pub use self::types::RoomType;
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
-            scalar_token: None,
-            scalar_url: Url::parse("https://scalar.vector.im")
-                .expect("Wrong scalar_url value in BackendData"),
+            // scalar_token: None,
+            // scalar_url: Url::parse("https://scalar.vector.im")
+            //     .expect("Wrong scalar_url value in BackendData"),
             sticker_widget: None,
             rooms_since: String::new(),
             join_to_room: String::new(),
@@ -399,16 +399,17 @@ impl Backend {
             }
 
             // Stickers module
-            Ok(BKCommand::ListStickers(access_token, uid)) => {
-                let r = stickers::list(self, access_token, uid);
+            Ok(BKCommand::ListStickers(access_token, uid, scalar_url, scalar_token)) => {
+                let r = stickers::list(self, access_token, uid, scalar_url, scalar_token);
                 bkerror2!(r, tx, BKResponse::Stickers);
             }
             Ok(BKCommand::SendSticker(server, access_token, room, sticker)) => {
                 let r = stickers::send(self, server, access_token, room, sticker);
                 bkerror2!(r, tx, BKResponse::Stickers);
             }
-            Ok(BKCommand::PurchaseSticker(access_token, uid, group)) => {
-                let r = stickers::purchase(self, access_token, uid, group);
+            Ok(BKCommand::PurchaseSticker(access_token, uid, group, scalar_url, scalar_token)) => {
+                let r =
+                    stickers::purchase(self, access_token, uid, group, scalar_url, scalar_token);
                 bkerror2!(r, tx, BKResponse::Stickers);
             }
 
