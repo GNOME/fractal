@@ -59,7 +59,6 @@ pub enum BKCommand {
     GetFileAsync(Url, Sender<String>),
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
     GetMedia(Url, String),
-    GetMediaUrl(Url, String, Sender<String>),
     GetUserInfoAsync(Url, String, Option<Sender<(String, String)>>),
     GetUserNameAsync(Url, String, Sender<String>),
     SendMsg(Url, AccessToken, Message),

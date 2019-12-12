@@ -8,6 +8,7 @@ use chrono::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
+use gtk::WidgetExt;
 use pango;
 use url::Url;
 
@@ -28,6 +29,7 @@ use crate::uitypes::MessageContent as Message;
 use crate::uitypes::RowType;
 use crate::widgets;
 use crate::widgets::message_menu::MessageMenu;
+use crate::widgets::AudioPlayerWidget;
 use crate::widgets::AvatarExt;
 
 /* A message row in the room history */
@@ -352,13 +354,14 @@ impl MessageBox {
     fn build_room_audio_player(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         let player = widgets::AudioPlayerWidget::new();
+        bx.set_opacity(0.3);
 
         let url = msg.url.clone().unwrap_or_default();
         let backend = self.backend.clone();
 
         let (tx, rx): (Sender<String>, Receiver<String>) = channel();
         backend
-            .send(BKCommand::GetMediaUrl(
+            .send(BKCommand::GetMediaAsync(
                 self.server_url.clone(),
                 url.clone(),
                 tx,
@@ -367,7 +370,7 @@ impl MessageBox {
 
         gtk::timeout_add(
             50,
-            clone!(player => move || {
+            clone!(player, bx => move || {
                 match rx.try_recv() {
                     Err(TryRecvError::Empty) => gtk::Continue(true),
                     Err(TryRecvError::Disconnected) => {
@@ -376,9 +379,12 @@ impl MessageBox {
                         APPOP!(show_error, (msg));
                         gtk::Continue(true)
                     },
-                    Ok(uri) => {
-                        info!("AUDIO URI: {}", &uri);
+                    Ok(directory) => {
+                        info!("AUDIO DIRECTORY: {}", &directory);
+                        let uri = format!("file://{}", directory);
                         player.initialize_stream(&uri);
+                        AudioPlayerWidget::init(&player);
+                        bx.set_opacity(1.0);
                         gtk::Continue(false)
                     }
                 }
