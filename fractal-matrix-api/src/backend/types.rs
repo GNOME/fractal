@@ -12,8 +12,6 @@ use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
-use crate::types::Sticker;
-use crate::types::StickerGroup;
 
 use crate::cache::CacheMap;
 use url::Url;
@@ -81,9 +79,6 @@ pub enum BKCommand {
     RejectInv(Url, AccessToken, String),
     UserSearch(Url, AccessToken, String),
     Invite(Url, AccessToken, String, String),
-    ListStickers(AccessToken, String, Url, Option<String>),
-    SendSticker(Url, AccessToken, String, Sticker),
-    PurchaseSticker(AccessToken, String, StickerGroup, Url, Option<String>),
     ChangeLanguage(AccessToken, Url, String, String, String),
 }
 
@@ -135,7 +130,6 @@ pub enum BKResponse {
     AddedToFav(Result<(String, bool), Error>),
     RoomNotifications(String, i32, i32),
     UserSearch(Result<Vec<Member>, Error>),
-    Stickers(Result<Vec<StickerGroup>, Error>),
 
     //errors
     LoginError(Error),
@@ -154,7 +148,6 @@ pub enum RoomType {
 }
 
 pub struct BackendData {
-    pub sticker_widget: Option<String>,
     pub rooms_since: String,
     pub join_to_room: String,
     pub m_direct: HashMap<String, Vec<String>>,

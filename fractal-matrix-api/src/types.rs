@@ -9,5 +9,3 @@ pub use crate::model::room::Room;
 pub use crate::model::room::RoomList;
 pub use crate::model::room::RoomMembership;
 pub use crate::model::room::RoomTag;
-pub use crate::model::stickers::Sticker;
-pub use crate::model::stickers::StickerGroup;

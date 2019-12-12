@@ -21,7 +21,6 @@ mod directory;
 mod media;
 pub mod register;
 mod room;
-mod stickers;
 mod sync;
 mod types;
 mod user;
@@ -37,10 +36,6 @@ pub use self::types::RoomType;
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
-            // scalar_token: None,
-            // scalar_url: Url::parse("https://scalar.vector.im")
-            //     .expect("Wrong scalar_url value in BackendData"),
-            sticker_widget: None,
             rooms_since: String::new(),
             join_to_room: String::new(),
             m_direct: HashMap::new(),
@@ -396,21 +391,6 @@ impl Backend {
 
                 let r = directory::room_search(self, server, access_token, hs, q, tp, more);
                 bkerror2!(r, tx, BKResponse::DirectorySearch);
-            }
-
-            // Stickers module
-            Ok(BKCommand::ListStickers(access_token, uid, scalar_url, scalar_token)) => {
-                let r = stickers::list(self, access_token, uid, scalar_url, scalar_token);
-                bkerror2!(r, tx, BKResponse::Stickers);
-            }
-            Ok(BKCommand::SendSticker(server, access_token, room, sticker)) => {
-                let r = stickers::send(self, server, access_token, room, sticker);
-                bkerror2!(r, tx, BKResponse::Stickers);
-            }
-            Ok(BKCommand::PurchaseSticker(access_token, uid, group, scalar_url, scalar_token)) => {
-                let r =
-                    stickers::purchase(self, access_token, uid, group, scalar_url, scalar_token);
-                bkerror2!(r, tx, BKResponse::Stickers);
             }
 
             // Internal commands
