@@ -180,7 +180,6 @@ impl Default for AudioPlayerWidget {
 impl AudioPlayerWidget {
     pub fn new() -> Rc<Self> {
         let w = Rc::new(Self::default());
-        Self::init(&w);
 
         // When the widget is attached to a parent,
         // since it's a rust struct and not a widget the
@@ -204,7 +203,7 @@ impl AudioPlayerWidget {
     }
 
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn init(s: &Rc<Self>) {
+    pub fn init(s: &Rc<Self>) {
         Self::connect_control_buttons(s);
         Self::connect_gst_signals(s);
     }

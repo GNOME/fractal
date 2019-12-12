@@ -357,9 +357,6 @@ impl Backend {
                         .expect_log("Connection closed");
                 });
             }
-            Ok(BKCommand::GetMediaUrl(server, media, ctx)) => {
-                media::get_media_url(self, server, media, ctx)
-            }
             Ok(BKCommand::GetFileAsync(url, ctx)) => {
                 let r = media::get_file_async(url, ctx);
                 bkerror!(r, tx, BKResponse::GetFileAsyncError);
