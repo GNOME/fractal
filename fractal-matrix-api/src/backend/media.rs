@@ -14,7 +14,6 @@ use crate::util::download_file;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::json_q;
-use crate::util::resolve_media_url;
 use crate::util::semaphore;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
@@ -57,15 +56,6 @@ pub fn get_media_list_async(
         )
         .unwrap_or_default();
         tx.send(media_list).expect_log("Connection closed");
-    });
-}
-
-pub fn get_media_url(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
-    semaphore(bk.limit_threads.clone(), move || {
-        let uri = resolve_media_url(&baseu, &media, ContentType::Download)
-            .map(Url::into_string)
-            .unwrap_or_default();
-        tx.send(uri).expect_log("Connection closed");
     });
 }
 
