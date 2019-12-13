@@ -11,7 +11,6 @@ use crate::util::semaphore;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
-use reqwest::header::HeaderValue;
 use std::convert::TryInto;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -372,18 +371,15 @@ pub fn set_user_avatar(
     fs::read(&avatar)
         .map_err(Into::into)
         .and_then(|contents| {
-            let (mime, _) = gio::content_type_guess(None, &contents);
-            let mime_value = HeaderValue::from_str(&mime).or(Err(Error::BackendError))?;
-            let upload_response =
-                create_content(base.clone(), &params_upload, contents, Some(mime_value))
-                    .map_err::<Error, _>(Into::into)
-                    .and_then(|request| {
-                        HTTP_CLIENT
-                            .get_client()?
-                            .execute(request)?
-                            .json::<CreateContentResponse>()
-                            .map_err(Into::into)
-                    })?;
+            let upload_response = create_content(base.clone(), &params_upload, contents)
+                .map_err::<Error, _>(Into::into)
+                .and_then(|request| {
+                    HTTP_CLIENT
+                        .get_client()?
+                        .execute(request)?
+                        .json::<CreateContentResponse>()
+                        .map_err(Into::into)
+                })?;
 
             let params_avatar = SetAvatarUrlParameters { access_token };
             let body = SetAvatarUrlBody {

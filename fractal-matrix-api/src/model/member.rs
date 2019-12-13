@@ -1,9 +1,10 @@
 use crate::r0::search::user::User;
+use crate::r0::sync::get_joined_members::RoomMember;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;
 
-// TODO: Remove this and use only crate::r0::search::user::User
+// TODO: Make this non-(de)serializable
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
     // The mxid is either inside the json object, or outside of it.
@@ -39,6 +40,20 @@ impl From<User> for Member {
             uid: user.user_id,
             alias: user.display_name,
             avatar: user.avatar_url.map(Url::into_string),
+        }
+    }
+}
+
+impl From<(String, RoomMember)> for Member {
+    fn from(uid_roommember: (String, RoomMember)) -> Self {
+        Member {
+            uid: uid_roommember.0,
+            alias: uid_roommember.1.display_name,
+            avatar: uid_roommember
+                .1
+                .avatar_url
+                .as_ref()
+                .map(ToString::to_string),
         }
     }
 }
