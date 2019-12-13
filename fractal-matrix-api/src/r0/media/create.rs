@@ -1,6 +1,6 @@
 use crate::r0::AccessToken;
 use crate::serde::url as serde_url;
-use reqwest::header::{HeaderValue, CONTENT_TYPE};
+use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
@@ -19,16 +19,8 @@ pub struct Response {
     pub content_uri: Url,
 }
 
-pub fn request(
-    base: Url,
-    params: &Parameters,
-    file: Vec<u8>,
-    content_type: Option<HeaderValue>,
-) -> Result<Request, Error> {
-    let header = content_type
-        .map(|mime| (CONTENT_TYPE, mime))
-        .into_iter()
-        .collect();
+pub fn request(base: Url, params: &Parameters, contents: Vec<u8>) -> Result<Request, Error> {
+    let (mime, _) = gio::content_type_guess(None, &contents);
 
     let url = base
         .join("/_matrix/media/r0/upload")
@@ -37,7 +29,7 @@ pub fn request(
     Client::new()
         .post(url)
         .query(params)
-        .body(file)
-        .headers(header)
+        .body(contents)
+        .header(CONTENT_TYPE, mime.to_string())
         .build()
 }
