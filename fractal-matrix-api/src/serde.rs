@@ -109,15 +109,26 @@ pub mod option_host {
     }
 }
 
+pub mod host_list {
+    use serde::ser::Serializer;
+    use url::Host;
+
+    pub fn serialize<S>(host_list: &[Host], ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        ser.collect_seq(host_list.iter().map(ToString::to_string))
+    }
+}
+
 pub mod duration_as_millis {
     use serde::Serializer;
     use std::time::Duration;
 
-    // TODO: use as_millis when duration_as_u128 is stable
     pub fn serialize<S>(duration: &Duration, ser: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        ser.serialize_u64(duration.as_secs() * 1000 + (duration.subsec_millis() as u64))
+        ser.serialize_u64(duration.as_millis() as u64)
     }
 }

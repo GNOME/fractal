@@ -1,27 +1,29 @@
 use log::error;
 use serde_json::json;
 
-use reqwest::header::CONTENT_TYPE;
-use std::fs::File;
-use std::io::prelude::*;
+use ruma_identifiers::RoomId;
+use ruma_identifiers::RoomIdOrAliasId;
+use std::convert::TryFrom;
+use std::fs;
 use std::sync::mpsc::Sender;
 use url::Url;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use crate::error::Error;
 use crate::globals;
 use std::thread;
 
 use crate::util::cache_dir_path;
+use crate::util::client_url;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::json_q;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
-use crate::util::{client_url, media_url};
 
 use crate::backend::types::BKCommand;
 use crate::backend::types::BKResponse;
@@ -30,7 +32,28 @@ use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
 use crate::r0::filter::RoomEventFilter;
+use crate::r0::media::create::request as create_content;
+use crate::r0::media::create::Parameters as CreateContentParameters;
+use crate::r0::media::create::Response as CreateContentResponse;
+use crate::r0::membership::invite_user::request as invite_user;
+use crate::r0::membership::invite_user::Body as InviteUserBody;
+use crate::r0::membership::invite_user::Parameters as InviteUserParameters;
+use crate::r0::membership::join_room_by_id_or_alias::request as join_room_req;
+use crate::r0::membership::join_room_by_id_or_alias::Parameters as JoinRoomParameters;
+use crate::r0::membership::leave_room::request as leave_room_req;
+use crate::r0::membership::leave_room::Parameters as LeaveRoomParameters;
+use crate::r0::sync::get_joined_members::request as get_joined_members;
+use crate::r0::sync::get_joined_members::Parameters as JoinedMembersParameters;
+use crate::r0::sync::get_joined_members::Response as JoinedMembersResponse;
 use crate::r0::sync::sync_events::Language;
+use crate::r0::tag::create_tag::request as create_tag;
+use crate::r0::tag::create_tag::Body as CreateTagBody;
+use crate::r0::tag::create_tag::Parameters as CreateTagParameters;
+use crate::r0::tag::delete_tag::request as delete_tag;
+use crate::r0::tag::delete_tag::Parameters as DeleteTagParameters;
+use crate::r0::typing::request as send_typing_notification;
+use crate::r0::typing::Body as TypingNotificationBody;
+use crate::r0::typing::Parameters as TypingNotificationParameters;
 use crate::r0::AccessToken;
 use crate::types::ExtraContent;
 use crate::types::Member;
@@ -59,24 +82,23 @@ pub fn get_room_detail(
     base: Url,
     access_token: AccessToken,
     roomid: String,
-    key: String,
+    keys: String,
 ) -> Result<(), Error> {
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/state/{}", roomid, key),
+        &format!("rooms/{}/state/{}", roomid, keys),
         vec![],
     )?;
 
     let tx = bk.tx.clone();
-    let keys = key.clone();
     get!(
         url,
         |r: JsonValue| {
             let k = keys.split('.').last().unwrap();
 
-            let value = String::from(r[&k].as_str().unwrap_or_default());
-            tx.send(BKResponse::RoomDetail(Ok((roomid, key, value))))
+            let value = r[&k].as_str().map(Into::into).unwrap_or_default();
+            tx.send(BKResponse::RoomDetail(Ok((roomid, keys, value))))
                 .expect_log("Connection closed");
         },
         |err| {
@@ -140,34 +162,30 @@ pub fn get_room_members(
     access_token: AccessToken,
     roomid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/joined_members", roomid),
-        vec![],
-    )?;
-
     let tx = bk.tx.clone();
-    get!(
-        url,
-        |r: JsonValue| {
-            let joined = r["joined"].as_object().unwrap();
-            let ms: Vec<Member> = joined
-                .iter()
-                .map(|(mxid, member_data)| {
-                    let mut member: Member = serde_json::from_value(member_data.clone()).unwrap();
-                    member.uid = mxid.to_string();
-                    member
-                })
-                .collect();
-            tx.send(BKResponse::RoomMembers(Ok((roomid, ms))))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::RoomMembers(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+
+    let room_id = RoomId::try_from(roomid.as_str())?;
+    let params = JoinedMembersParameters { access_token };
+
+    thread::spawn(move || {
+        let query = get_joined_members(base, &room_id, &params)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)?
+                    .json::<JoinedMembersResponse>()
+                    .map_err(Into::into)
+            })
+            .map(|response| {
+                let ms = response.joined.into_iter().map(Member::from).collect();
+
+                (room_id.to_string(), ms)
+            });
+
+        tx.send(BKResponse::RoomMembers(query))
+            .expect_log("Connection closed");
+    });
 
     Ok(())
 }
@@ -378,22 +396,29 @@ pub fn send_typing(
     userid: String,
     roomid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/typing/{}", roomid, userid),
-        vec![],
-    )?;
-
-    let attrs = json!({
-        "timeout": 4000,
-        "typing": true
-    });
-
     let tx = bk.tx.clone();
-    query!("put", url, &attrs, move |_| {}, |err| {
-        tx.send(BKResponse::SendTypingError(err))
-            .expect_log("Connection closed");
+
+    let room_id = RoomId::try_from(roomid.as_str())?;
+    let params = TypingNotificationParameters { access_token };
+    let body = TypingNotificationBody::Typing(Duration::from_secs(4));
+
+    thread::spawn(move || {
+        let query = send_typing_notification(base, &room_id, &userid, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Err(err) => {
+                tx.send(BKResponse::SendTypingError(err))
+                    .expect_log("Connection closed");
+            }
+            _ => (),
+        }
     });
 
     Ok(())
@@ -447,27 +472,31 @@ pub fn join_room(
     access_token: AccessToken,
     roomid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("join/{}", urlencoding::encode(&roomid)),
-        vec![],
-    )?;
-
     let tx = bk.tx.clone();
     let data = bk.data.clone();
-    post!(
-        url,
-        move |_: JsonValue| {
-            data.lock().unwrap().join_to_room = roomid.clone();
-            tx.send(BKResponse::JoinRoom(Ok(())))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::JoinRoom(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+
+    let room_id_or_alias_id = RoomIdOrAliasId::try_from(roomid.as_str())?;
+    let params = JoinRoomParameters {
+        access_token,
+        server_name: Default::default(),
+    };
+
+    thread::spawn(move || {
+        let query = join_room_req(base, &room_id_or_alias_id, &params)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            })
+            .map(|_| {
+                data.lock().unwrap().join_to_room = room_id_or_alias_id.to_string();
+            });
+
+        tx.send(BKResponse::JoinRoom(query))
+            .expect_log("Connection closed");
+    });
 
     Ok(())
 }
@@ -478,25 +507,25 @@ pub fn leave_room(
     access_token: AccessToken,
     roomid: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/leave", roomid),
-        vec![],
-    )?;
-
     let tx = bk.tx.clone();
-    post!(
-        url,
-        move |_: JsonValue| {
-            tx.send(BKResponse::LeaveRoom(Ok(())))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::LeaveRoom(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+
+    let room_id = RoomId::try_from(roomid.as_str())?;
+    let params = LeaveRoomParameters { access_token };
+
+    thread::spawn(move || {
+        let query = leave_room_req(base, &room_id, &params)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            })
+            .and(Ok(()));
+
+        tx.send(BKResponse::LeaveRoom(query))
+            .expect_log("Connection closed");
+    });
 
     Ok(())
 }
@@ -628,43 +657,29 @@ pub fn set_room_avatar(
     roomid: String,
     avatar: String,
 ) -> Result<(), Error> {
-    let params = &[("access_token", tk.to_string())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
     let roomurl = bk.url(
-        baseu,
+        baseu.clone(),
         &tk,
         &format!("rooms/{}/state/m.room.avatar", roomid),
         vec![],
     )?;
 
-    let mut file = File::open(&avatar)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
-
     let tx = bk.tx.clone();
     thread::spawn(move || {
-        match put_media(mediaurl.as_str(), contents) {
-            Err(err) => {
-                tx.send(BKResponse::SetRoomAvatar(Err(err)))
-                    .expect_log("Connection closed");
-            }
-            Ok(js) => {
-                let uri = js["content_uri"].as_str().unwrap_or_default();
-                let attrs = json!({ "url": uri });
-                put!(
-                    roomurl,
-                    &attrs,
-                    |_| {
-                        tx.send(BKResponse::SetRoomAvatar(Ok(())))
-                            .expect_log("Connection closed");
-                    },
-                    |err| {
-                        tx.send(BKResponse::SetRoomAvatar(Err(err)))
-                            .expect_log("Connection closed");
-                    }
-                );
-            }
-        };
+        let query = upload_file(baseu, tk, &avatar).and_then(|response| {
+            let js = json!({ "url": response.content_uri.as_str() });
+
+            HTTP_CLIENT
+                .get_client()?
+                .put(roomurl)
+                .json(&js)
+                .send()
+                .map_err(Into::into)
+                .and(Ok(()))
+        });
+
+        tx.send(BKResponse::SetRoomAvatar(query))
+            .expect_log("Connection closed");
     });
 
     Ok(())
@@ -677,15 +692,15 @@ pub fn attach_file(
     mut msg: Message,
 ) -> Result<(), Error> {
     let fname = msg.url.clone().unwrap_or_default();
-    let extra_content: Option<ExtraContent> = {
-        msg.clone()
-            .extra_content
-            .map_or(None, |c| Some(serde_json::from_value(c).unwrap()))
-    };
+    let extra_content: Option<ExtraContent> = msg
+        .clone()
+        .extra_content
+        .map(|c| serde_json::from_value(c).unwrap());
 
     let thumb = extra_content
         .clone()
-        .map_or(String::new(), |c| c.info.thumbnail_url.unwrap_or_default());
+        .and_then(|c| c.info.thumbnail_url)
+        .unwrap_or_default();
 
     let tx = bk.tx.clone();
     let itx = bk.internal_tx.clone();
@@ -695,55 +710,63 @@ pub fn attach_file(
     }
 
     thread::spawn(move || {
-        if thumb != "" {
-            match upload_file(&baseu, &tk, &thumb) {
+        if !thumb.is_empty() {
+            match upload_file(baseu.clone(), tk.clone(), &thumb) {
                 Err(err) => {
                     tx.send(BKResponse::AttachedFile(Err(err)))
                         .expect_log("Connection closed");
                 }
-                Ok(thumb_uri) => {
-                    msg.thumb = Some(thumb_uri.to_string());
+                Ok(response) => {
+                    let thumb_uri = response.content_uri.to_string();
+                    msg.thumb = Some(thumb_uri.clone());
                     extra_content.clone().unwrap().info.thumbnail_url = Some(thumb_uri);
                     msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
                 }
             }
+
             if let Err(_e) = std::fs::remove_file(&thumb) {
                 error!("Can't remove thumbnail: {}", thumb);
             }
         }
 
-        match upload_file(&baseu, &tk, &fname) {
-            Err(err) => {
-                tx.send(BKResponse::AttachedFile(Err(err)))
+        let query = upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
+            msg.url = Some(response.content_uri.to_string());
+            if let Some(t) = itx {
+                t.send(BKCommand::SendMsg(baseu, tk, msg.clone()))
                     .expect_log("Connection closed");
             }
-            Ok(uri) => {
-                msg.url = Some(uri.to_string());
-                if let Some(t) = itx {
-                    t.send(BKCommand::SendMsg(baseu, tk, msg.clone()))
-                        .expect_log("Connection closed");
-                }
-                tx.send(BKResponse::AttachedFile(Ok(msg)))
-                    .expect_log("Connection closed");
-            }
-        };
+
+            msg
+        });
+
+        tx.send(BKResponse::AttachedFile(query))
+            .expect_log("Connection closed");
     });
 
     Ok(())
 }
 
-fn upload_file(baseu: &Url, tk: &AccessToken, fname: &str) -> Result<String, Error> {
-    let mut file = File::open(fname)?;
-    let mut contents: Vec<u8> = vec![];
-    file.read_to_end(&mut contents)?;
+fn upload_file(
+    base: Url,
+    access_token: AccessToken,
+    fname: &str,
+) -> Result<CreateContentResponse, Error> {
+    let params_upload = CreateContentParameters {
+        access_token,
+        filename: None,
+    };
 
-    let params = &[("access_token", tk.to_string())];
-    let mediaurl = media_url(&baseu, "upload", params)?;
+    let contents = fs::read(fname)?;
 
-    match put_media(mediaurl.as_str(), contents) {
-        Err(err) => Err(err),
-        Ok(js) => Ok(js["content_uri"].as_str().unwrap_or_default().to_string()),
-    }
+    create_content(base, &params_upload, contents)
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<CreateContentResponse>()
+                .map_err(Into::into)
+        })
 }
 
 pub fn new_room(
@@ -886,32 +909,33 @@ pub fn add_to_fav(
     roomid: String,
     tofav: bool,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("user/{}/rooms/{}/tags/m.favourite", userid, roomid),
-        vec![],
-    )?;
-
-    let attrs = json!({
-        "order": 0.5,
-    });
-
     let tx = bk.tx.clone();
-    let method = if tofav { "put" } else { "delete" };
-    query!(
-        method,
-        url,
-        &attrs,
-        |_| {
-            tx.send(BKResponse::AddedToFav(Ok((roomid.clone(), tofav))))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::AddedToFav(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+
+    let room_id = RoomId::try_from(roomid.as_str())?;
+
+    thread::spawn(move || {
+        let request_res = if tofav {
+            let params = CreateTagParameters { access_token };
+            let body = CreateTagBody { order: Some(0.5) };
+            create_tag(base, &userid, &room_id, "m.favourite", &params, &body)
+        } else {
+            let params = DeleteTagParameters { access_token };
+            delete_tag(base, &userid, &room_id, "m.favourite", &params)
+        };
+
+        let query = request_res
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            })
+            .and(Ok((room_id.to_string(), tofav)));
+
+        tx.send(BKResponse::AddedToFav(query))
+            .expect_log("Connection closed");
+    });
 
     Ok(())
 }
@@ -921,39 +945,33 @@ pub fn invite(
     base: Url,
     access_token: AccessToken,
     roomid: String,
-    userid: String,
+    user_id: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/invite", roomid),
-        vec![],
-    )?;
-
-    let attrs = json!({
-        "user_id": userid,
-    });
-
     let tx = bk.tx.clone();
-    post!(url, &attrs, |_| {}, |err| {
-        tx.send(BKResponse::InviteError(err))
-            .expect_log("Connection closed");
+
+    let room_id = RoomId::try_from(roomid.as_str())?;
+    let params = InviteUserParameters { access_token };
+    let body = InviteUserBody { user_id };
+
+    thread::spawn(move || {
+        let query = invite_user(base, &room_id, &params, &body)
+            .map_err(Into::into)
+            .and_then(|request| {
+                HTTP_CLIENT
+                    .get_client()?
+                    .execute(request)
+                    .map_err(Into::into)
+            });
+
+        match query {
+            Err(err) => {
+                let _ = tx.send(BKResponse::InviteError(err));
+            }
+            _ => (),
+        }
     });
 
     Ok(())
-}
-
-fn put_media(url: &str, file: Vec<u8>) -> Result<JsonValue, Error> {
-    let (mime, _) = gio::content_type_guess(None, &file);
-
-    HTTP_CLIENT
-        .get_client()?
-        .post(url)
-        .body(file)
-        .header(CONTENT_TYPE, mime.to_string())
-        .send()?
-        .json()
-        .or(Err(Error::BackendError))
 }
 
 pub fn set_language(
