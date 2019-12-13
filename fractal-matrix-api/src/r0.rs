@@ -3,11 +3,14 @@ pub mod contact;
 pub mod directory;
 pub mod filter;
 pub mod media;
+pub mod membership;
 pub mod profile;
 pub mod search;
 pub mod server;
 pub mod sync;
+pub mod tag;
 pub mod thirdparty;
+pub mod typing;
 
 use serde::{Deserialize, Serialize, Serializer};
 use std::convert::TryFrom;

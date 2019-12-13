@@ -27,6 +27,7 @@ derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(gio::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
+derror!(ruma_identifiers::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
 derror!(serde_json::Error, Error::CacheError);
