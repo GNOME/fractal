@@ -2,6 +2,8 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Local;
 use chrono::Timelike;
+use fragile::Fragile;
+use log::warn;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -15,16 +17,21 @@ use crate::uitypes::RowType;
 
 use crate::globals;
 use crate::widgets;
+use crate::widgets::MediaPlayerWidget;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
 use glib::source;
+use glib::SignalHandlerId;
+use glib::Source;
 use gtk;
 use gtk::prelude::*;
 use url::Url;
 
 struct List {
     list: VecDeque<Element>,
+    playing_videos: Vec<(Rc<MediaPlayerWidget>, SignalHandlerId)>,
     listbox: gtk::ListBox,
+    video_scroll_debounce: Option<source::SourceId>,
     view: widgets::ScrollWidget,
 }
 
@@ -32,7 +39,9 @@ impl List {
     pub fn new(view: widgets::ScrollWidget, listbox: gtk::ListBox) -> List {
         List {
             list: VecDeque::new(),
+            playing_videos: Vec::new(),
             listbox,
+            video_scroll_debounce: None,
             view,
         }
     }
@@ -75,6 +84,126 @@ impl List {
         self.list.push_front(element);
         None
     }
+
+    fn update_videos(&mut self) {
+        let visible = self.find_visible_videos();
+        let mut new_looped: Vec<(Rc<MediaPlayerWidget>, SignalHandlerId)> =
+            Vec::with_capacity(visible.len());
+
+        /* Once drain_filter is not nightly-only anymore, we can use drain_filter. */
+        for (player, handler_id) in self.playing_videos.drain(..) {
+            if visible.contains(&player) {
+                new_looped.push((player, handler_id));
+            } else {
+                player.stop_loop(handler_id);
+            }
+        }
+        for player in visible {
+            if !new_looped.iter().any(|(widget, _)| widget == &player) {
+                let handler_id = player.play_in_loop();
+                new_looped.push((player, handler_id));
+            }
+        }
+        self.playing_videos = new_looped;
+    }
+
+    fn find_visible_videos(&self) -> Vec<Rc<MediaPlayerWidget>> {
+        let len = self.list.len();
+        if len == 0 {
+            return Vec::new();
+        }
+        let index = self.find_visible_index((0, len)).unwrap();
+        self.find_all_visible_indices(index)
+            .iter()
+            .filter_map(|&index| match self.list.get(index)? {
+                Element::Message(content) => match content.mtype {
+                    RowType::Video => {
+                        Some(content
+                            .get_widget()
+                            .expect("The content of every message element must have widget.")
+                            .get_player_widget()
+                            .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player."))
+                    }
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn find_visible_index(&self, range: (usize, usize)) -> Option<usize> {
+        let middle_index = (range.0 + range.1) / 2;
+        let element = self.list.get(middle_index)?;
+        let scrolled_window = self.view.get_scrolled_window();
+        let index = match get_rel_position(&scrolled_window, element) {
+            RelativePosition::AboveSight => self.find_visible_index((range.0, middle_index)),
+            RelativePosition::InSight => Some(middle_index),
+            RelativePosition::BelowSight => self.find_visible_index((middle_index, range.1)),
+        };
+        index
+    }
+
+    fn find_all_visible_indices(&self, visible_index: usize) -> Vec<usize> {
+        let mut indices = Vec::new();
+        indices.push(visible_index);
+        let upper = self.list.iter().enumerate().skip(visible_index + 1);
+        self.add_visible_indices(&mut indices, upper);
+        let lower = self
+            .list
+            .iter()
+            .enumerate()
+            .rev()
+            .skip(self.list.len() - visible_index);
+        self.add_visible_indices(&mut indices, lower);
+        indices
+    }
+
+    fn add_visible_indices<'a, T>(&self, indices: &mut Vec<usize>, iterator: T)
+    where
+        T: Iterator<Item = (usize, &'a Element)>,
+    {
+        let scrolled_window = self.view.get_scrolled_window();
+        for (index, element) in iterator {
+            match get_rel_position(&scrolled_window, element) {
+                RelativePosition::InSight => {
+                    indices.push(index);
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+fn get_rel_position(scrolled_window: &gtk::ScrolledWindow, element: &Element) -> RelativePosition {
+    let widget = match element {
+        Element::Message(content) => content
+            .get_widget()
+            .expect("The content of every message element must have widget.")
+            .get_listbox_row(),
+        Element::NewDivider(widgets) => widgets.get_widget(),
+        Element::DayDivider(widget) => widget,
+    };
+    let height_visible_area = gtk::WidgetExt::get_allocated_height(scrolled_window);
+    let height_widget = gtk::WidgetExt::get_allocated_height(widget);
+    let rel_y = gtk::WidgetExt::translate_coordinates(widget, scrolled_window, 0, 0)
+        .expect("Both scrolled_window and widget should be realized and share a common toplevel.")
+        .1;
+    if rel_y <= -height_widget {
+        RelativePosition::AboveSight
+    } else if rel_y < height_visible_area {
+        RelativePosition::InSight
+    } else {
+        RelativePosition::BelowSight
+    }
+}
+
+#[derive(Clone, Debug)]
+enum RelativePosition {
+    InSight,
+    AboveSight,
+    BelowSight,
 }
 
 /* These Enum contains all differnet types of rows the room history can have, e.g room message, new
@@ -114,14 +243,18 @@ impl RoomHistory {
 
         /* Add the action groupe to the room_history */
         listbox.insert_action_group("room_history", Some(&actions));
-
-        RoomHistory {
+        let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
             server_url: op.server_url.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
-        }
+        };
+
+        rh.connect_video_auto_play();
+        rh.connect_video_focus();
+
+        rh
     }
 
     pub fn create(&mut self, mut messages: Vec<MessageContent>) -> Option<()> {
@@ -138,7 +271,113 @@ impl RoomHistory {
         /* Add the rest of the messages after the new message divider */
         self.add_new_messages_in_batch(bottom);
 
+        let weak_rows = Rc::downgrade(&self.rows);
+        let id = timeout_add(250, move || {
+            weak_rows.upgrade().map(|rows| {
+                rows.borrow_mut().update_videos();
+            });
+            Continue(false)
+        });
+        self.rows.borrow_mut().video_scroll_debounce = Some(id);
+
         None
+    }
+
+    fn connect_video_auto_play(&self) {
+        let scrollbar = self
+            .rows
+            .borrow()
+            .view
+            .get_scrolled_window()
+            .get_vscrollbar()
+            .expect("The scrolled window must have a vertical scrollbar.")
+            .downcast::<gtk::Scrollbar>()
+            .unwrap();
+        let weak_rows = Rc::downgrade(&self.rows);
+        scrollbar.connect_value_changed(move |_| {
+            weak_rows.upgrade().map(|rows| {
+                match rows.borrow_mut().video_scroll_debounce.take() {
+                    Some(id) => {
+                        let _ = Source::remove(id);
+                    }
+                    None => {}
+                }
+                let weak_rows_inner = weak_rows.clone();
+                let new_id = timeout_add(250, move || {
+                    weak_rows_inner.upgrade().map(|rows| {
+                        rows.borrow_mut().update_videos();
+                        rows.borrow_mut().video_scroll_debounce = None;
+                    });
+                    Continue(false)
+                });
+                rows.borrow_mut().video_scroll_debounce = Some(new_id);
+            });
+        });
+    }
+
+    fn connect_video_focus(&mut self) {
+        let scrolled_window = self.rows.borrow().view.get_scrolled_window();
+        let weak_rows = Rc::downgrade(&self.rows);
+        scrolled_window.connect_map(move |_| {
+            weak_rows.upgrade().map(|rows| {
+                let len = rows.borrow().playing_videos.len();
+                if len != 0 {
+                    warn!(
+                        "{:?} videos were playing while Fractal was focussed out.",
+                        len
+                    );
+                    for (player, hander_id) in rows.borrow_mut().playing_videos.drain(..) {
+                        player.stop_loop(hander_id);
+                    }
+                }
+                let visible_videos = rows.borrow().find_visible_videos();
+                let mut videos = Vec::new();
+                for player in visible_videos {
+                    let handler_id = player.play_in_loop();
+                    videos.push((player, handler_id));
+                }
+                rows.borrow_mut().playing_videos = videos;
+            });
+        });
+
+        let weak_rows = Rc::downgrade(&self.rows);
+        scrolled_window.connect_unmap(move |_| {
+            weak_rows.upgrade().map(|rows| {
+                for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
+                    player.stop_loop(handler_id);
+                }
+            });
+        });
+
+        let weak_rows = Rc::downgrade(&self.rows);
+        scrolled_window.connect_state_flags_changed(move |_, flag| {
+            weak_rows.upgrade().map(|rows| {
+                let backdrop = gtk::StateFlags::from_bits(64).unwrap();
+                if flag.contains(backdrop) {
+                    let len = rows.borrow().playing_videos.len();
+                    if len != 0 {
+                        warn!(
+                            "{:?} videos were playing while the room history was not displayed.",
+                            len
+                        );
+                        for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
+                            player.stop_loop(handler_id);
+                        }
+                    }
+                    let visible_videos = rows.borrow().find_visible_videos();
+                    let mut videos = Vec::new();
+                    for player in visible_videos {
+                        let handler_id = player.play_in_loop();
+                        videos.push((player, handler_id));
+                    }
+                    rows.borrow_mut().playing_videos = videos;
+                } else {
+                    for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
+                        player.stop_loop(handler_id);
+                    }
+                }
+            });
+        });
     }
 
     fn run_queue(&mut self) -> Option<()> {
@@ -193,12 +432,33 @@ impl RoomHistory {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
                     }
-                    item.widget = Some(create_row(
+
+                    let widget = create_row(
                         item.clone(),
                         has_header,
                         backend.clone(),
                         server_url.clone(),
-                    ));
+                    );
+                    match item.mtype {
+                        RowType::Video => {
+                            /* The following callback requires `Send` but is handled by the gtk main loop */
+                            let fragile_rows = Fragile::new(Rc::downgrade(&rows));
+                            widget
+                                .get_video_player()
+                                .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player.")
+                                .connect_uri_loaded(move |player, _| {
+                                    fragile_rows.get().upgrade().map(|rows| {
+                                        if rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
+                                                &player_widget.get_player() == player
+                                            }) {
+                                            player.play();
+                                        }
+                                    });
+                                });
+                        }
+                        _ => {}
+                    }
+                    item.widget = Some(widget);
                     rows.borrow_mut().add_top(Element::Message(item));
                     if let Some(day_divider) = day_divider {
                         rows.borrow_mut().add_top(day_divider);
@@ -256,13 +516,32 @@ impl RoomHistory {
             rows.add_bottom(day_divider);
         }
 
-        let b = create_row(
+        let widget = create_row(
             item.clone(),
             has_header,
             self.backend.clone(),
             self.server_url.clone(),
         );
-        item.widget = Some(b);
+        match item.mtype {
+            RowType::Video => {
+                /* The followign callback requires `Send` but is handled by the gtk main loop */
+                let fragile_rows = Fragile::new(Rc::downgrade(&self.rows));
+                widget
+                .get_video_player()
+                .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player.")
+                .connect_uri_loaded(move |player, _| {
+                    fragile_rows.get().upgrade().map(|rows| {
+                        if rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
+                            &player_widget.get_player() == player
+                        }) {
+                            player.play();
+                        }
+                    });
+                });
+            }
+            _ => {}
+        }
+        item.widget = Some(widget);
         rows.add_bottom(Element::Message(item));
         None
     }

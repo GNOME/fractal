@@ -21,7 +21,7 @@ use fractal_api::clone;
 use gst::prelude::*;
 use gst::ClockTime;
 use gst_player;
-use log::{error, warn};
+use log::{error, info, warn};
 
 use gtk;
 use gtk::prelude::*;
@@ -36,7 +36,17 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-trait PlayerExt {
+use std::sync::mpsc::channel;
+use std::sync::mpsc::TryRecvError;
+use std::sync::mpsc::{Receiver, Sender};
+
+use url::Url;
+
+use crate::app::App;
+use crate::backend::BKCommand;
+use crate::i18n::i18n;
+
+pub trait PlayerExt {
     fn play(&self);
     fn pause(&self);
     fn stop(&self);
@@ -44,6 +54,12 @@ trait PlayerExt {
 }
 
 #[derive(Debug, Clone)]
+pub enum MediaType {
+    Audio,
+    Video,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 struct PlayerTimes {
     container: gtk::Box,
     progressed: gtk::Label,
@@ -106,22 +122,22 @@ fn format_duration(seconds: u32) -> String {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct PlayerControls {
     container: gtk::Box,
     play: gtk::Button,
     pause: gtk::Button,
 }
 
-#[derive(Debug, Clone)]
-pub struct AudioPlayerWidget {
+#[derive(Debug, Clone, PartialEq)]
+pub struct MediaPlayerWidget {
     pub container: gtk::Box,
     player: gst_player::Player,
     controls: PlayerControls,
     timer: PlayerTimes,
 }
 
-impl Default for AudioPlayerWidget {
+impl Default for MediaPlayerWidget {
     fn default() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
@@ -168,7 +184,7 @@ impl Default for AudioPlayerWidget {
             slider_update,
         };
 
-        AudioPlayerWidget {
+        MediaPlayerWidget {
             container,
             player,
             controls,
@@ -177,9 +193,20 @@ impl Default for AudioPlayerWidget {
     }
 }
 
-impl AudioPlayerWidget {
-    pub fn new() -> Rc<Self> {
-        let w = Rc::new(Self::default());
+impl MediaPlayerWidget {
+    pub fn new(media_type: MediaType) -> Rc<Self> {
+        let player_widget = Self::default();
+
+        match media_type {
+            MediaType::Video => {
+                let sink = gst::ElementFactory::make("gtksink", None).unwrap();
+                let pipeline = player_widget.player.get_pipeline();
+                pipeline.set_property("video-sink", &sink).unwrap();
+            }
+            MediaType::Audio => player_widget.player.set_video_track_enabled(false),
+        }
+
+        let w = Rc::new(player_widget);
 
         // When the widget is attached to a parent,
         // since it's a rust struct and not a widget the
@@ -255,9 +282,94 @@ impl AudioPlayerWidget {
             player.seek(ClockTime::from_seconds(value));
         }))
     }
+
+    pub fn backend_set_up(
+        player: &Rc<Self>,
+        backend: &Sender<BKCommand>,
+        media_url: String,
+        server_url: &Url,
+        bx: &gtk::Box,
+    ) {
+        bx.set_opacity(0.3);
+        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        backend
+            .send(BKCommand::GetMediaAsync(
+                server_url.clone(),
+                media_url.clone(),
+                tx,
+            ))
+            .unwrap();
+        gtk::timeout_add(
+            50,
+            clone!(player, bx => move || {
+                match rx.try_recv() {
+                    Err(TryRecvError::Empty) => gtk::Continue(true),
+                    Err(TryRecvError::Disconnected) => {
+                        let msg = i18n("Could not retrieve file URI");
+                        /* FIXME: don't use APPOP! */
+                        APPOP!(show_error, (msg));
+                        gtk::Continue(true)
+                    },
+                    Ok(path) => {
+                        info!("MEDIA PATH: {}", &path);
+                        let uri = format!("file://{}", path);
+                        player.initialize_stream(&uri);
+                        MediaPlayerWidget::init(&player);
+                        bx.set_opacity(1.0);
+                        gtk::Continue(false)
+                    }
+                }
+            }),
+        );
+    }
+
+    pub fn create_control_box(&self, msg_id: &str) -> gtk::Box {
+        let control_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let download_btn = gtk::Button::new_from_icon_name(
+            Some("document-save-symbolic"),
+            gtk::IconSize::Button.into(),
+        );
+        download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
+        let data = glib::Variant::from(msg_id);
+        download_btn.set_action_target_value(Some(&data));
+        download_btn.set_action_name(Some("room_history.save_as"));
+        control_box.pack_start(&self.container, false, true, 0);
+        control_box.pack_start(&download_btn, false, false, 3);
+        control_box
+    }
+
+    pub fn get_video_widget(&self) -> Option<gtk::Widget> {
+        let pipeline = self.player.get_pipeline();
+        pipeline
+            .get_property("video-sink")
+            .unwrap()
+            .get::<gst::Element>()?
+            .get_property("widget")
+            .unwrap()
+            .get::<gtk::Widget>()
+    }
+
+    pub fn play_in_loop(&self) -> SignalHandlerId {
+        self.player.set_mute(true);
+        self.player.play();
+        self.player.connect_end_of_stream(|player| {
+            player.stop();
+            player.play();
+        })
+    }
+
+    pub fn stop_loop(&self, id: SignalHandlerId) {
+        self.player.set_mute(false);
+        self.player.stop();
+        self.player.disconnect(id);
+    }
+
+    pub fn get_player(&self) -> gst_player::Player {
+        self.player.clone()
+    }
 }
 
-impl PlayerExt for AudioPlayerWidget {
+impl PlayerExt for MediaPlayerWidget {
     fn play(&self) {
         self.controls.pause.show();
         self.controls.play.hide();
