@@ -2,7 +2,7 @@ use crate::app::App;
 use crate::i18n::i18n;
 use fractal_api::clone;
 use itertools::Itertools;
-use log::info;
+use log::{info, warn};
 
 use chrono::prelude::*;
 use glib;
@@ -16,6 +16,7 @@ use crate::backend::BKCommand;
 
 use crate::util::markup_text;
 
+use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -29,8 +30,9 @@ use crate::uitypes::MessageContent as Message;
 use crate::uitypes::RowType;
 use crate::widgets;
 use crate::widgets::message_menu::MessageMenu;
-use crate::widgets::AudioPlayerWidget;
 use crate::widgets::AvatarExt;
+use crate::widgets::MediaPlayerWidget;
+use crate::widgets::MediaType;
 
 /* A message row in the room history */
 #[derive(Clone, Debug)]
@@ -158,7 +160,8 @@ impl MessageBox {
             RowType::Image => self.build_room_msg_image(msg),
             RowType::Emote => self.build_room_msg_emote(msg),
             RowType::Audio => self.build_room_audio_player(msg),
-            RowType::Video | RowType::File => self.build_room_msg_file(msg),
+            RowType::Video => self.build_room_video_player(msg),
+            RowType::File => self.build_room_msg_file(msg),
             _ => self.build_room_msg_body(msg),
         };
 
@@ -352,8 +355,48 @@ impl MessageBox {
     }
 
     fn build_room_audio_player(&self, msg: &Message) -> gtk::Box {
-        let bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        let player = widgets::AudioPlayerWidget::new();
+        // unwrapping is safe: new() can only return None if MediaType is Video
+        let player = MediaPlayerWidget::new(MediaType::Audio).unwrap();
+        let control_box = create_control_box(&msg, &player);
+        self.initialize_media_player(&player, msg, &control_box);
+        control_box
+    }
+
+    fn build_room_video_player(&self, msg: &Message) -> gtk::Box {
+        match MediaPlayerWidget::new(MediaType::Video) {
+            Ok(player) => {
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+                self.initialize_media_player(&player, msg, &bx);
+                // If MediaPlayerWidget::new() returns Ok, the video sink element has been set.
+                // Therefore, get_video_widget() won't return None
+                let video_widget = player.get_video_widget().unwrap();
+                video_widget.set_size_request(-1, 390); //FIXME
+                let control_box = create_control_box(&msg, &player);
+                bx.pack_start(&video_widget, true, true, 0);
+                bx.pack_start(&control_box, false, false, 1);
+                bx
+            }
+            Err(err) => {
+                warn!(
+                    "Video player doesn’t work: the sink element couldn’t be set due to: {}",
+                    err
+                );
+                let bx = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                let file_box = self.build_room_msg_file(msg);
+                let notification = gtk::Label::new(Some("Video cannot be played here."));
+                bx.pack_start(&file_box, false, false, 0);
+                bx.pack_start(&notification, false, false, 0);
+                bx
+            }
+        }
+    }
+
+    fn initialize_media_player(
+        &self,
+        player: &Rc<widgets::MediaPlayerWidget>,
+        msg: &Message,
+        bx: &gtk::Box,
+    ) {
         bx.set_opacity(0.3);
 
         let url = msg.url.clone().unwrap_or_default();
@@ -383,27 +426,13 @@ impl MessageBox {
                         info!("AUDIO DIRECTORY: {}", &directory);
                         let uri = format!("file://{}", directory);
                         player.initialize_stream(&uri);
-                        AudioPlayerWidget::init(&player);
+                        MediaPlayerWidget::init(&player);
                         bx.set_opacity(1.0);
                         gtk::Continue(false)
                     }
                 }
             }),
         );
-
-        let download_btn = gtk::Button::new_from_icon_name(
-            Some("document-save-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
-        download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
-
-        let data = glib::Variant::from(msg.id.as_str());
-        download_btn.set_action_target_value(Some(&data));
-        download_btn.set_action_name(Some("room_history.save_as"));
-
-        bx.pack_start(&player.container, false, true, 0);
-        bx.pack_start(&download_btn, false, false, 3);
-        bx
     }
 
     fn build_room_msg_file(&self, msg: &Message) -> gtk::Box {
@@ -555,6 +584,25 @@ impl MessageBox {
         self.row.set_action_target_value(Some(&data));
         None
     }
+}
+
+fn create_control_box(msg: &Message, player: &Rc<widgets::MediaPlayerWidget>) -> gtk::Box {
+    let control_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+
+    let download_btn = gtk::Button::new_from_icon_name(
+        Some("document-save-symbolic"),
+        gtk::IconSize::Button.into(),
+    );
+    download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
+
+    let data = glib::Variant::from(msg.id.as_str());
+    download_btn.set_action_target_value(Some(&data));
+    download_btn.set_action_name(Some("room_history.save_as"));
+
+    control_box.pack_start(&player.container, false, true, 0);
+    control_box.pack_start(&download_btn, false, false, 3);
+
+    control_box
 }
 
 fn highlight_username(
