@@ -23,6 +23,8 @@ use std::fs;
 use crate::backend::BKCommand;
 use crate::widgets::image;
 use crate::widgets::ErrorDialog;
+use crate::widgets::MediaPlayerWidget;
+use crate::widgets::MediaType;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -38,6 +40,13 @@ pub struct MediaViewer {
 }
 
 #[derive(Debug)]
+enum Widget {
+    Image(image::Image),
+    Video(Rc<MediaPlayerWidget>),
+    None,
+}
+
+#[derive(Debug)]
 struct Data {
     builder: gtk::Builder,
     main_window: gtk::Window,
@@ -45,7 +54,7 @@ struct Data {
     server_url: Url,
     access_token: AccessToken,
 
-    pub image: Option<image::Image>,
+    widget: Widget,
     media_list: Vec<Message>,
     current_media_index: usize,
 
@@ -73,7 +82,7 @@ impl Data {
             loading_more_media: false,
             loading_error: false,
             no_more_media: false,
-            image: None,
+            widget: Widget::None,
             builder,
             backend,
             server_url,
@@ -83,14 +92,21 @@ impl Data {
         }
     }
 
-    pub fn save_media(&self) -> Option<()> {
-        let image = self.image.clone()?;
-        save_file_as(
-            &self.main_window,
-            image.local_path.lock().unwrap().clone().unwrap_or_default(),
-            self.media_list[self.current_media_index].body.clone(),
-        );
-        None
+    pub fn save_media(&self) {
+        let local_path = match &self.widget {
+            Widget::Image(image) => image.local_path.lock().unwrap().clone(),
+            Widget::Video(player) => player.local_path.borrow().clone(),
+            Widget::None => None,
+        };
+        if let Some(local_path) = local_path {
+            save_file_as(
+                &self.main_window,
+                local_path,
+                self.media_list[self.current_media_index].body.clone(),
+            );
+        } else {
+            //todo: make popup: Media is not loaded yet.
+        }
     }
 
     pub fn enter_full_screen(&mut self) {
@@ -238,22 +254,40 @@ impl Data {
             media_viewport.remove(&child);
         }
 
-        let url = self.media_list[self.current_media_index]
-            .url
-            .clone()
-            .unwrap_or_default();
-
-        let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
-            .fit_to_width(true)
-            .center(true)
-            .build();
-
-        media_viewport.add(&image.widget);
-        image.widget.show();
-
+        let msg = &self.media_list[self.current_media_index];
+        let url = msg.url.clone().unwrap_or_default();
+        match msg.mtype.as_ref() {
+            "m.image" => {
+                let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
+                    .fit_to_width(true)
+                    .center(true)
+                    .build();
+                media_viewport.add(&image.widget);
+                image.widget.show();
+                self.widget = Widget::Image(image);
+            }
+            "m.video" => {
+                let player = MediaPlayerWidget::new(MediaType::Video);
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+                MediaPlayerWidget::backend_set_up(
+                    &player,
+                    &self.backend,
+                    url,
+                    &self.server_url.clone(),
+                    &bx,
+                );
+                /* We can unwrap: the sink has been set in MediaPlayerWidget::new() */
+                let video_widget = player.get_video_widget().unwrap();
+                let control_box = player.create_control_box();
+                bx.pack_start(&video_widget, true, true, 0);
+                bx.pack_start(&control_box, false, false, 1);
+                media_viewport.add(&bx);
+                media_viewport.show_all();
+                self.widget = Widget::Video(player);
+            }
+            _ => {}
+        }
         self.set_nav_btn_visibility();
-
-        self.image = Some(image);
     }
 }
 
@@ -278,7 +312,7 @@ impl MediaViewer {
             .messages
             .clone()
             .into_iter()
-            .filter(|msg| msg.mtype == "m.image")
+            .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
             .collect();
 
         let current_media_index = media_list
@@ -336,20 +370,44 @@ impl MediaViewer {
             .get_object::<gtk::Viewport>("media_viewport")
             .expect("Cant find media_viewport in ui file.");
 
-        let image = image::Image::new(
-            &self.backend,
-            self.data.borrow().server_url.clone(),
-            &media_msg.url.clone().unwrap_or_default(),
-        )
-        .fit_to_width(true)
-        .center(true)
-        .build();
+        //FIXME: don't duplicate this with line 245
+        let url = media_msg.url.clone().unwrap_or_default();
+        match media_msg.mtype.as_ref() {
+            "m.image" => {
+                let image =
+                    image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
+                        .fit_to_width(true)
+                        .center(true)
+                        .build();
 
-        media_viewport.add(&image.widget);
-        media_viewport.show_all();
+                media_viewport.add(&image.widget);
+                media_viewport.show_all();
 
-        self.data.borrow_mut().image = Some(image);
-        self.data.borrow_mut().set_nav_btn_visibility();
+                self.data.borrow_mut().widget = Widget::Image(image);
+                self.data.borrow_mut().set_nav_btn_visibility();
+            }
+            "m.video" => {
+                let player = MediaPlayerWidget::new(MediaType::Video);
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
+                MediaPlayerWidget::backend_set_up(
+                    &player,
+                    &self.backend,
+                    url,
+                    &self.data.borrow().server_url.clone(),
+                    &bx,
+                );
+                /* Sink has been set in MediaPlayerWidget::new(), so get_video_widget() won't return None */
+                let video_widget = player.get_video_widget().unwrap();
+                let control_box = player.create_control_box();
+                bx.pack_start(&video_widget, true, true, 0);
+                bx.pack_start(&control_box, false, false, 1);
+                media_viewport.add(&bx);
+                media_viewport.show_all();
+
+                self.data.borrow_mut().widget = Widget::Video(player);
+            }
+            _ => {}
+        }
     }
 
     /* connect media viewer headerbar */
@@ -637,7 +695,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
             let media_list = data.borrow().media_list.clone();
             let img_msgs: Vec<Message> = msgs
                 .into_iter()
-                .filter(|msg| msg.mtype == "m.image")
+                .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
                 .collect();
             let img_msgs_count = img_msgs.len();
             let new_media_list: Vec<Message> =
