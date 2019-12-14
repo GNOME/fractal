@@ -44,6 +44,12 @@ trait PlayerExt {
 }
 
 #[derive(Debug, Clone)]
+pub enum MediaType {
+    Audio,
+    Video,
+}
+
+#[derive(Debug, Clone)]
 struct PlayerTimes {
     container: gtk::Box,
     progressed: gtk::Label,
@@ -114,14 +120,14 @@ struct PlayerControls {
 }
 
 #[derive(Debug, Clone)]
-pub struct AudioPlayerWidget {
+pub struct MediaPlayerWidget {
     pub container: gtk::Box,
     player: gst_player::Player,
     controls: PlayerControls,
     timer: PlayerTimes,
 }
 
-impl Default for AudioPlayerWidget {
+impl Default for MediaPlayerWidget {
     fn default() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let player = gst_player::Player::new(
@@ -168,7 +174,7 @@ impl Default for AudioPlayerWidget {
             slider_update,
         };
 
-        AudioPlayerWidget {
+        MediaPlayerWidget {
             container,
             player,
             controls,
@@ -177,9 +183,23 @@ impl Default for AudioPlayerWidget {
     }
 }
 
-impl AudioPlayerWidget {
-    pub fn new() -> Rc<Self> {
-        let w = Rc::new(Self::default());
+impl MediaPlayerWidget {
+    pub fn new(media_type: MediaType) -> Rc<Self> {
+        let player_widget = Self::default();
+
+        match media_type {
+            MediaType::Video => {
+                let sink = gst::ElementFactory::make("gtksink", None)
+                    .expect("The sink element is necessary for video reproduction.");
+                let pipeline = player_widget.player.get_pipeline();
+                pipeline
+                    .set_property("video-sink", &sink)
+                    .expect("Setting the video sink element is necessary for video reproduction");
+            }
+            MediaType::Audio => {}
+        }
+
+        let w = Rc::new(player_widget);
 
         // When the widget is attached to a parent,
         // since it's a rust struct and not a widget the
@@ -255,9 +275,19 @@ impl AudioPlayerWidget {
             player.seek(ClockTime::from_seconds(value));
         }))
     }
+
+    pub fn get_video_widget(&self) -> Option<gtk::Widget> {
+        let pipeline = self.player.get_pipeline();
+        pipeline
+            .get_property("video-sink")
+            .ok()
+            .and_then(|value| value.get::<gst::Element>())
+            .and_then(|element| element.get_property("widget").ok())
+            .and_then(|value| value.get::<gtk::Widget>())
+    }
 }
 
-impl PlayerExt for AudioPlayerWidget {
+impl PlayerExt for MediaPlayerWidget {
     fn play(&self) {
         self.controls.pause.show();
         self.controls.play.hide();
