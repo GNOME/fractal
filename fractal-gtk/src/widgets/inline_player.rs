@@ -196,7 +196,9 @@ impl MediaPlayerWidget {
                     .set_property("video-sink", &sink)
                     .expect("Setting the video sink element is necessary for video reproduction");
             }
-            MediaType::Audio => {}
+            // A few audio files have a video track of the thumbnail,
+            // which GStreamer displays in a new window. Make sure it doesn't do that.            
+            MediaType::Audio => player.set_video_track_enabled(false);
         }
 
         let w = Rc::new(player_widget);
