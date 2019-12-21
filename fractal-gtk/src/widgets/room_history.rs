@@ -267,6 +267,55 @@ impl RoomHistory {
         None
     }
 
+    pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
+        let mut rows = self.rows.borrow_mut();
+        let (i, ref mut msg) = rows
+            .list
+            .iter_mut()
+            .enumerate()
+            .find_map(|(i, e)| match e {
+                Element::Message(ref mut itermessage) if itermessage.id == item.id => {
+                    Some((i, itermessage))
+                }
+                _ => None,
+            })?;
+
+        let msg_widget = msg.widget.clone()?;
+        let msg_sender = msg.sender.clone();
+        msg.msg.redacted = true;
+        rows.listbox.remove(msg_widget.get_listbox_row()?);
+
+        // If the redacted message was a header message let's set
+        // the header on the next non-redacted message instead.
+        if msg_widget.header {
+            let rows_list_len = rows.list.len();
+            if let Some((msg_next_cloned, msg_widget)) = rows
+                .list
+                .iter_mut()
+                .rev()
+                .skip(rows_list_len - i)
+                .filter_map(|message_next| match message_next {
+                    Element::Message(ref mut msg_next) => {
+                        let msg_next_cloned = msg_next.clone();
+                        msg_next
+                            .widget
+                            .as_mut()
+                            .filter(|_| !msg_next_cloned.msg.redacted)
+                            .map(|msg_widet| (msg_next_cloned, msg_widet))
+                    }
+                    _ => None,
+                })
+                .next()
+                .filter(|(msg_next_cloned, _)| {
+                    msg_next_cloned.redactable && msg_next_cloned.sender == msg_sender
+                })
+            {
+                msg_widget.update_header(msg_next_cloned, true);
+            }
+        }
+        None
+    }
+
     pub fn add_new_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
         /* TODO: use lazy loading */
         for item in messages {
@@ -317,7 +366,7 @@ fn create_row(
 
 /* returns if two messages should have only a single header or not */
 fn should_group_message(msg: &MessageContent, prev: &MessageContent) -> bool {
-    if msg.sender == prev.sender {
+    if msg.sender == prev.sender && !prev.msg.redacted {
         let diff = msg.date.signed_duration_since(prev.date);
         let minutes = diff.num_minutes();
         minutes < globals::MINUTES_TO_SPLIT_MSGS
