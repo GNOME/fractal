@@ -34,7 +34,9 @@ use loggerv;
 fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     {
-        let clap_args = clap::App::new("app")
+        let clap_args = clap::App::new("fractal")
+            .version(env!("CARGO_PKG_VERSION"))
+            .about("Matrix group messaging app")
             .arg(
                 clap::Arg::with_name("v")
                     .short("v")
