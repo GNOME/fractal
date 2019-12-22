@@ -52,7 +52,7 @@ impl<'a> MemberBox<'a> {
         let avatar = widgets::Avatar::avatar_new(Some(globals::USERLIST_ICON_SIZE));
         let badge = match self.op.member_level(self.member) {
             100 => Some(widgets::AvatarBadgeColor::Gold),
-            50..=100 => Some(widgets::AvatarBadgeColor::Silver),
+            50..=99 => Some(widgets::AvatarBadgeColor::Silver),
             _ => None,
         };
         let data = avatar.circle(
