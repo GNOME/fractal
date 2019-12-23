@@ -1,10 +1,6 @@
-use crate::i18n::i18n;
 use log::error;
 
 use fractal_api::r0::AccessToken;
-
-use gtk;
-use gtk::prelude::*;
 
 use url::Url;
 
@@ -23,31 +19,38 @@ use crate::app::backend_loop;
 use crate::passwd::PasswordStorage;
 
 use crate::actions::AppState;
-use crate::widgets::ErrorDialog;
+
+use super::LoginData;
 
 impl AppOp {
-    pub fn bk_login(&mut self, uid: String, token: Option<AccessToken>, device: Option<String>) {
-        self.logged_in = true;
-        if let Err(_) = self.store_token(uid.clone(), token.clone()) {
+    pub fn bk_login(
+        &mut self,
+        uid: String,
+        access_token: AccessToken,
+        device: Option<String>,
+        server_url: Url,
+        identity_url: Url,
+    ) {
+        if let Err(_) = self.store_token(uid.clone(), access_token.clone()) {
             error!("Can't store the token using libsecret");
         }
 
-        self.set_state(AppState::NoRoom);
-        self.set_uid(Some(uid.clone()));
-        if self.device_id == None {
-            self.set_device(device);
-        }
-        /* Do we need to set the username to uid
-        self.set_username(Some(uid));*/
-        self.get_username();
+        self.set_login_data(LoginData {
+            access_token,
+            uid,
+            username: None,
+            avatar: None,
+            server_url,
+            identity_url,
+        });
 
-        self.set_access_token(token);
+        self.set_state(AppState::NoRoom);
+        self.device_id = self.device_id.clone().or(device);
+        self.get_username();
 
         // initial sync, we're shoing some feedback to the user
         self.initial_sync(true);
-
         self.sync(true);
-
         self.init_protocols();
     }
 
@@ -57,14 +60,11 @@ impl AppOp {
             error!("Error removing cache file");
         }
 
-        self.logged_in = false;
         self.syncing = false;
 
         self.set_state(AppState::Login);
-        self.set_uid(None);
-        self.set_device(None);
-        self.set_username(None);
-        self.set_avatar(None);
+        self.login_data = None;
+        self.device_id = None;
 
         // stoping the backend and starting again, we don't want to receive more messages from
         // backend
@@ -77,6 +77,8 @@ impl AppOp {
     }
 
     #[allow(dead_code)]
+    // TODO
+    /*
     pub fn register(&mut self) {
         let user_entry: gtk::Entry = self
             .ui
@@ -123,19 +125,20 @@ impl AppOp {
             return;
         }
 
-        if let Some(s) = server_entry.get_text() {
-            match Url::parse(&s) {
-                Ok(u) => {
-                    self.server_url = u;
-                }
-                Err(_) => {
-                    let msg = i18n("Malformed server URL");
-                    ErrorDialog::new(false, &msg);
-                    return;
-                }
+        let server = match server_entry
+            .get_text()
+            .as_ref()
+            .map(Url::parse)
+            .unwrap_or(Ok(globals::DEFAULT_HOMESERVER))
+        {
+            Ok(u) => u,
+            Err(_) => {
+                let msg = i18n("Malformed server URL");
+                ErrorDialog::new(false, &msg);
+                return;
             }
         }
-        /* FIXME ask also for the identity server */
+        // FIXME: ask also for the identity server
 
         //self.store_pass(username.clone(), password.clone(), server_url.clone())
         //    .unwrap_or_else(|_| {
@@ -143,62 +146,26 @@ impl AppOp {
         //        error!("Can't store the password using libsecret");
         //    });
 
-        let uname = username.clone();
-        let pass = password.clone();
-        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Register(uname, pass, ser))
+            .send(BKCommand::Register(username, password, server, id_s))
             .unwrap();
     }
+    */
 
-    pub fn connect(
-        &mut self,
-        username: Option<String>,
-        password: Option<String>,
-        server: Url,
-        identity: Url,
-    ) -> Option<()> {
-        self.server_url = server;
-        self.identity_url = identity;
-
+    pub fn connect(&mut self, username: String, password: String, server: Url, identity: Url) {
         self.store_pass(
-            username.clone()?,
-            password.clone()?,
-            self.server_url.clone(),
-            self.identity_url.clone(),
+            username.clone(),
+            password.clone(),
+            server.clone(),
+            identity.clone(),
         )
         .unwrap_or_else(|_| {
             // TODO: show an error
             error!("Can't store the password using libsecret");
         });
 
-        let uname = username?;
-        let pass = password?;
-        let ser = self.server_url.clone();
         self.backend
-            .send(BKCommand::Login(uname, pass, ser))
-            .unwrap();
-        Some(())
-    }
-
-    pub fn set_token(
-        &mut self,
-        token: AccessToken,
-        uid: Option<String>,
-        server: Url,
-    ) -> Option<()> {
-        self.server_url = server;
-
-        self.backend.send(BKCommand::SetToken(token, uid?)).unwrap();
-        Some(())
-    }
-
-    #[allow(dead_code)]
-    pub fn connect_guest(&mut self, server: Url) {
-        self.server_url = server;
-
-        self.backend
-            .send(BKCommand::Guest(self.server_url.clone()))
+            .send(BKCommand::Login(username, password, server, identity))
             .unwrap();
     }
 
@@ -207,10 +174,13 @@ impl AppOp {
     }
 
     pub fn logout(&mut self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let _ = self.delete_pass("fractal");
         self.backend
-            .send(BKCommand::Logout(self.server_url.clone(), access_token))
+            .send(BKCommand::Logout(
+                login_data.server_url,
+                login_data.access_token,
+            ))
             .unwrap();
         self.bk_logout();
     }

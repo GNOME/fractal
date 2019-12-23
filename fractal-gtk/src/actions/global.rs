@@ -271,7 +271,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
             debug!("There is no state to go back to. Go back to state NoRoom");
             if let Some(op) = App::get_op() {
                 let mut op = op.lock().unwrap();
-                if op.logged_in {
+                if op.login_data.is_some() {
                     op.set_state(AppState::NoRoom);
                 }
             }

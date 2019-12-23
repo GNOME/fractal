@@ -20,13 +20,13 @@ use url::Url;
 
 #[derive(Debug)]
 pub enum BKCommand {
-    Login(String, String, Url),
-    SetToken(AccessToken, String),
+    Login(String, String, Url, Url),
+    SetUserID(String),
     Logout(Url, AccessToken),
     #[allow(dead_code)]
-    Register(String, String, Url),
+    Register(String, String, Url, Url),
     #[allow(dead_code)]
-    Guest(Url),
+    Guest(Url, Url),
     GetUsername(Url),
     SetUserName(Url, AccessToken, String),
     GetThreePID(Url, AccessToken),
@@ -92,7 +92,7 @@ pub enum BKCommand {
 #[derive(Debug)]
 pub enum BKResponse {
     ShutDown,
-    Token(String, Option<AccessToken>, Option<String>),
+    Token(String, AccessToken, Option<String>, Url, Url),
     Logout(Result<(), Error>),
     Name(Result<String, Error>),
     SetUserName(Result<String, Error>),

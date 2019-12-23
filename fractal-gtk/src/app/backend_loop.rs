@@ -21,8 +21,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::ShutDown => {
                     break;
                 }
-                BKResponse::Token(uid, tk, dev) => {
-                    APPOP!(bk_login, (uid, tk, dev));
+                BKResponse::Token(uid, tk, dev, server_url, id_url) => {
+                    APPOP!(bk_login, (uid, tk, dev, server_url, id_url));
                 }
                 BKResponse::Logout(Ok(_)) => {
                     APPOP!(bk_logout);

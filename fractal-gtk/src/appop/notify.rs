@@ -41,6 +41,7 @@ impl AppOp {
     }
 
     pub fn notify(&self, app: gtk::Application, room_id: &str, id: &str) -> Option<()> {
+        let server_url = self.login_data.clone()?.server_url;
         let msg = self.get_message_by_id(room_id, id)?;
         let r = self.rooms.get(room_id)?;
         let short_body = dirty_truncate(&msg.body, 80).to_string();
@@ -57,7 +58,7 @@ impl AppOp {
 
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
         let _ = self.backend.send(BKCommand::GetUserInfoAsync(
-            self.server_url.clone(),
+            server_url,
             msg.sender.clone(),
             Some(tx),
         ));

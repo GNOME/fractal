@@ -27,7 +27,7 @@ use crate::util::HTTP_CLIENT;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 
-pub fn guest(bk: &Backend, base: Url) {
+pub fn guest(bk: &Backend, server: Url, id_url: Url) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
 
@@ -37,7 +37,7 @@ pub fn guest(bk: &Backend, base: Url) {
     let body = Default::default();
 
     thread::spawn(move || {
-        let query = register_req(base, &params, &body)
+        let query = register_req(server.clone(), &params, &body)
             .map_err(Into::into)
             .and_then(|request| {
                 HTTP_CLIENT
@@ -50,15 +50,19 @@ pub fn guest(bk: &Backend, base: Url) {
         match query {
             Ok(response) => {
                 let uid = response.user_id;
-                let tk = response.access_token;
                 let dev = response.device_id;
 
-                data.lock().unwrap().user_id = uid.clone();
-                data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev))
-                    .expect_log("Connection closed");
-                tx.send(BKResponse::Rooms(vec![], None))
-                    .expect_log("Connection closed");
+                if let Some(tk) = response.access_token {
+                    data.lock().unwrap().user_id = uid.clone();
+                    data.lock().unwrap().since = None;
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
+                        .expect_log("Connection closed");
+                    tx.send(BKResponse::Rooms(vec![], None))
+                        .expect_log("Connection closed");
+                } else {
+                    tx.send(BKResponse::GuestLoginError(Error::BackendError))
+                        .expect_log("Connection closed");
+                }
             }
             Err(err) => {
                 tx.send(BKResponse::GuestLoginError(err))
@@ -68,7 +72,7 @@ pub fn guest(bk: &Backend, base: Url) {
     });
 }
 
-pub fn login(bk: &Backend, user: String, password: String, base: Url) {
+pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: Url) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
 
@@ -92,7 +96,7 @@ pub fn login(bk: &Backend, user: String, password: String, base: Url) {
     };
 
     thread::spawn(move || {
-        let query = login_req(base, &body)
+        let query = login_req(server.clone(), &body)
             .map_err(Into::into)
             .and_then(|request| {
                 HTTP_CLIENT
@@ -105,16 +109,15 @@ pub fn login(bk: &Backend, user: String, password: String, base: Url) {
         match query {
             Ok(response) => {
                 let uid = response.user_id.unwrap_or(user);
-                let tk = response.access_token;
                 let dev = response.device_id;
 
-                if uid.is_empty() || tk.is_none() {
-                    tx.send(BKResponse::LoginError(Error::BackendError))
-                        .expect_log("Connection closed");
-                } else {
+                if let (Some(tk), false) = (response.access_token, uid.is_empty()) {
                     data.lock().unwrap().user_id = uid.clone();
                     data.lock().unwrap().since = None;
-                    tx.send(BKResponse::Token(uid, tk, dev))
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
+                        .expect_log("Connection closed");
+                } else {
+                    tx.send(BKResponse::LoginError(Error::BackendError))
                         .expect_log("Connection closed");
                 }
             }
@@ -126,12 +129,9 @@ pub fn login(bk: &Backend, user: String, password: String, base: Url) {
     });
 }
 
-pub fn set_token(bk: &Backend, token: AccessToken, uid: String) {
+pub fn set_uid(bk: &Backend, uid: String) {
     bk.data.lock().unwrap().user_id = uid.clone();
     bk.data.lock().unwrap().since = None;
-    bk.tx
-        .send(BKResponse::Token(uid, Some(token), None))
-        .expect_log("Connection closed");
 }
 
 pub fn logout(bk: &Backend, server: Url, access_token: AccessToken) {
@@ -161,7 +161,7 @@ pub fn logout(bk: &Backend, server: Url, access_token: AccessToken) {
     });
 }
 
-pub fn register(bk: &Backend, user: String, password: String, base: Url) {
+pub fn register(bk: &Backend, user: String, password: String, server: Url, id_url: Url) {
     let data = bk.data.clone();
     let tx = bk.tx.clone();
 
@@ -173,7 +173,7 @@ pub fn register(bk: &Backend, user: String, password: String, base: Url) {
     };
 
     thread::spawn(move || {
-        let query = register_req(base, &params, &body)
+        let query = register_req(server.clone(), &params, &body)
             .map_err(Into::into)
             .and_then(|request| {
                 HTTP_CLIENT
@@ -186,13 +186,14 @@ pub fn register(bk: &Backend, user: String, password: String, base: Url) {
         match query {
             Ok(response) => {
                 let uid = response.user_id;
-                let tk = response.access_token;
                 let dev = response.device_id;
 
-                data.lock().unwrap().user_id = uid.clone();
-                data.lock().unwrap().since = None;
-                tx.send(BKResponse::Token(uid, tk, dev))
-                    .expect_log("Connection closed");
+                if let Some(tk) = response.access_token {
+                    data.lock().unwrap().user_id = uid.clone();
+                    data.lock().unwrap().since = None;
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId
+                        .expect_log("Connection closed");
+                }
             }
             Err(err) => {
                 tx.send(BKResponse::LoginError(err))

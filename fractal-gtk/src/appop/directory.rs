@@ -12,11 +12,11 @@ use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 
 impl AppOp {
     pub fn init_protocols(&self) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         self.backend
             .send(BKCommand::DirectoryProtocols(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
             ))
             .unwrap();
     }
@@ -35,7 +35,7 @@ impl AppOp {
     }
 
     pub fn search_rooms(&mut self, more: bool) {
-        let access_token = unwrap_or_unit_return!(self.access_token.clone());
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let other_protocol_radio = self
             .ui
             .builder
@@ -123,8 +123,8 @@ impl AppOp {
 
         self.backend
             .send(BKCommand::DirectorySearch(
-                self.server_url.clone(),
-                access_token,
+                login_data.server_url,
+                login_data.access_token,
                 homeserver,
                 q.get_text().unwrap().to_string(),
                 protocol,

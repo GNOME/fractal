@@ -11,7 +11,7 @@ use crate::actions::{AccountSettings, StateExt};
 impl App {
     pub fn connect_account_settings(&self) {
         let op = &self.op;
-        let access_token = unwrap_or_unit_return!(op.lock().unwrap().access_token.clone());
+        let login_data = unwrap_or_unit_return!(op.lock().unwrap().login_data.clone());
         let builder = &self.ui.builder;
         let cancel_password = self
             .ui
@@ -77,8 +77,12 @@ impl App {
         // FIXME: don't clone the backend
         let backend = self.op.lock().unwrap().backend.clone();
         let window = self.main_window.upcast_ref::<gtk::Window>();
-        let server_url = self.op.lock().unwrap().server_url.clone();
-        let actions = AccountSettings::new(&window, &backend, server_url, access_token);
+        let actions = AccountSettings::new(
+            &window,
+            &backend,
+            login_data.server_url,
+            login_data.access_token,
+        );
         let container = self
             .ui
             .builder
@@ -110,21 +114,14 @@ impl App {
 
         let button = name_btn.clone();
         name_entry.connect_property_text_notify(clone!(op => move |w| {
-            if let Some(text) = w.get_text() {
-                if text != "" {
-                    let lock = op.try_lock();
-                    let username = if let Ok(guard) = lock {
-                        guard.username.clone()
-                    }
-                    else {
-                        None
-                    };
-                    if let Some(username) = username {
-                        if username == text {
-                            button.hide();
-                            return;
-                        }
-                    }
+            if let Some(text) = w.get_text().filter(|text| !text.is_empty()) {
+                if op.try_lock()
+                    .ok()
+                    .and_then(|guard| guard.login_data.clone())
+                    .and_then(|login_data| login_data.username)
+                    .filter(|username| *username != text)
+                    .is_some()
+                {
                     button.show();
                     return;
                 }
