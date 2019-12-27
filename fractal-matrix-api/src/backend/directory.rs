@@ -114,7 +114,7 @@ pub fn room_search(
                     .map(Into::into)
                     .inspect(|r: &Room| {
                         if let Some(avatar) = r.avatar.clone() {
-                            if let Ok(dest) = cache_dir_path(None, &r.id) {
+                            if let Ok(dest) = cache_dir_path(None, &r.id.to_string()) {
                                 let _ =
                                     dw_media(&base, &avatar, ContentType::Download, Some(&dest));
                             }

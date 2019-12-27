@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
+use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 
 use gtk;
@@ -66,20 +67,20 @@ pub struct AppOp {
     pub login_data: Option<LoginData>,
     pub device_id: Option<String>,
 
-    pub active_room: Option<String>,
+    pub active_room: Option<RoomId>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
-    pub unsent_messages: HashMap<String, (String, i32)>,
-    pub typing: HashMap<String, std::time::Instant>,
+    pub unsent_messages: HashMap<RoomId, (String, i32)>,
+    pub typing: HashMap<RoomId, std::time::Instant>,
 
     pub media_viewer: Rc<RefCell<Option<widgets::MediaViewer>>>,
 
     pub state: AppState,
     pub since: Option<String>,
 
-    pub invitation_roomid: Option<String>,
+    pub invitation_roomid: Option<RoomId>,
     pub md_enabled: bool,
     pub invite_list: Vec<(Member, gtk::TextChildAnchor)>,
     search_type: SearchType,

@@ -8,6 +8,7 @@ use crate::r0::sync::sync_events::Response as SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
 use log::{debug, info};
+use ruma_identifiers::RoomId;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use url::Url;
@@ -76,9 +77,9 @@ pub enum RoomTag {
     Custom(String),
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
-    pub id: String,
+    pub id: RoomId,
     pub avatar: Option<String>, // TODO: Use Option<Url>
     pub name: Option<String>,
     pub topic: Option<String>,
@@ -103,13 +104,27 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(id: String, membership: RoomMembership) -> Room {
+    pub fn new(id: RoomId, membership: RoomMembership) -> Room {
         Room {
             id,
             membership,
             guest_can_join: true,
             world_readable: true,
-            ..Default::default()
+            avatar: Default::default(),
+            name: Default::default(),
+            topic: Default::default(),
+            alias: Default::default(),
+            n_members: Default::default(),
+            members: Default::default(),
+            notifications: Default::default(),
+            highlight: Default::default(),
+            messages: Default::default(),
+            direct: Default::default(),
+            prev_batch: Default::default(),
+            typing_users: Default::default(),
+            language: Default::default(),
+            admins: Default::default(),
+            power_levels: Default::default(),
         }
     }
 
@@ -143,7 +158,7 @@ impl Room {
                 avatar: evc(stevents, "m.room.avatar", "url"),
                 alias: evc(stevents, "m.room.canonical_alias", "alias"),
                 topic: evc(stevents, "m.room.topic", "topic"),
-                direct: direct.contains(k),
+                direct: direct.contains(&k.to_string()),
                 notifications: room.unread_notifications.notification_count,
                 highlight: room.unread_notifications.highlight_count,
                 prev_batch: timeline.prev_batch.clone(),
@@ -228,7 +243,7 @@ impl Room {
                     avatar: evc(stevents, "m.room.avatar", "url"),
                     alias: evc(stevents, "m.room.canonical_alias", "alias"),
                     topic: evc(stevents, "m.room.topic", "topic"),
-                    direct: direct.contains(k),
+                    direct: direct.contains(&k.to_string()),
                     ..Self::new(k.clone(), RoomMembership::Invited(inv_sender))
                 })
             } else {
@@ -294,7 +309,7 @@ impl From<PublicRoomsChunk> for Room {
             n_members: input.num_joined_members,
             world_readable: input.world_readable,
             guest_can_join: input.guest_can_join,
-            ..Self::new(input.room_id.to_string(), RoomMembership::None)
+            ..Self::new(input.room_id, RoomMembership::None)
         }
     }
 }
@@ -305,7 +320,7 @@ impl PartialEq for Room {
     }
 }
 
-pub type RoomList = HashMap<String, Room>;
+pub type RoomList = HashMap<RoomId, Room>;
 
 fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
     events
