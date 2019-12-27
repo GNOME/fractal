@@ -1,6 +1,7 @@
 use fractal_api::clone;
 use log::{debug, info};
 use std::cell::RefCell;
+use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -8,6 +9,7 @@ use crate::appop::AppOp;
 use crate::i18n::i18n;
 use crate::widgets::FileDialog::open;
 use crate::App;
+use fractal_api::identifiers::RoomId;
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
@@ -224,7 +226,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let back_weak = Rc::downgrade(&back_history);
     open_room.connect_activate(clone!(op => move |_, data| {
         if let Some(id) = get_room_id(data) {
-            op.lock().unwrap().set_active_room_by_id(id.to_string());
+            op.lock().unwrap().set_active_room_by_id(id);
            /* This does nothing if fractal is already in focus */
             op.lock().unwrap().activate();
         }
@@ -321,8 +323,8 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     //op.lock().unwrap().mark_active_room_messages();
 }
 
-fn get_room_id(data: Option<&glib::Variant>) -> Option<&str> {
-    data?.get_str()
+fn get_room_id(data: Option<&glib::Variant>) -> Option<RoomId> {
+    data?.get_str().and_then(|rid| rid.try_into().ok())
 }
 
 fn get_message(data: Option<&glib::Variant>) -> Option<Message> {

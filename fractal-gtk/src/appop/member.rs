@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::identifiers::RoomId;
 use gtk;
 use gtk::prelude::*;
 
@@ -23,8 +24,9 @@ pub enum SearchType {
 impl AppOp {
     pub fn member_level(&self, member: &Member) -> i32 {
         if let Some(r) = self
-            .rooms
-            .get(&self.active_room.clone().unwrap_or_default())
+            .active_room
+            .as_ref()
+            .and_then(|a_room| self.rooms.get(a_room))
         {
             if let Some(level) = r.admins.get(&member.uid) {
                 return *level;
@@ -33,15 +35,15 @@ impl AppOp {
         0
     }
 
-    pub fn set_room_members(&mut self, roomid: String, members: Vec<Member>) {
-        if let Some(r) = self.rooms.get_mut(&roomid) {
+    pub fn set_room_members(&mut self, room_id: RoomId, members: Vec<Member>) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             r.members = HashMap::new();
             for m in members {
                 r.members.insert(m.uid.clone(), m);
             }
         }
 
-        self.recalculate_room_name(roomid.clone());
+        self.recalculate_room_name(room_id.clone());
 
         /* FIXME: update the current room settings insteat of creating a new one */
         if self.room_settings.is_some() && self.state == AppState::RoomSettings {

@@ -63,7 +63,7 @@ impl RoomRow {
             notifications.hide();
         }
 
-        icon.circle(room.id.clone(), Some(name), ICON_SIZE, None, None);
+        icon.circle(room.id.to_string(), Some(name), ICON_SIZE, None, None);
 
         let rr = RoomRow {
             room,
@@ -126,7 +126,7 @@ impl RoomRow {
         let name = self.room.name.clone().unwrap_or("...".to_string());
 
         self.icon
-            .circle(self.room.id.clone(), Some(name), ICON_SIZE, None, None);
+            .circle(self.room.id.to_string(), Some(name), ICON_SIZE, None, None);
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {
@@ -155,7 +155,7 @@ impl RoomRow {
 
         let row = gtk::ListBoxRow::new();
         row.add(&self.widget);
-        let data = glib::Variant::from(&self.room.id);
+        let data = glib::Variant::from(&self.room.id.to_string());
         row.set_action_target_value(Some(&data));
         row.set_action_name(Some("app.open-room"));
 
@@ -186,7 +186,7 @@ impl RoomRow {
             ctx.drag_set_icon_surface(&image);
         });
 
-        let id = self.room.id.clone();
+        let id = self.room.id.to_string();
         self.widget
             .connect_drag_data_get(move |_w, _, data, _x, _y| {
                 data.set_text(&id);

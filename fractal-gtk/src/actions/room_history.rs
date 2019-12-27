@@ -1,6 +1,8 @@
 use fractal_api::clone;
+use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use log::error;
+use std::convert::TryFrom;
 use std::fs;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
@@ -215,15 +217,17 @@ fn get_message_by_id(id: &str) -> Option<Message> {
     op.get_message_by_id(room_id, id)
 }
 
-fn get_room_id(data: Option<&glib::Variant>) -> Option<String> {
-    data.as_ref()?.get_str().map(|s| s.to_string())
+fn get_room_id(data: Option<&glib::Variant>) -> Option<RoomId> {
+    data.as_ref()?
+        .get_str()
+        .and_then(|rid| RoomId::try_from(rid).ok())
 }
 
 fn request_more_messages(
     backend: &Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
-    id: Option<String>,
+    id: Option<RoomId>,
 ) -> Option<()> {
     let op = App::get_op()?;
     let op = op.lock().unwrap();

@@ -1,3 +1,4 @@
+use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use gio::prelude::*;
@@ -6,6 +7,7 @@ use gio::SimpleActionGroup;
 use glib;
 use gtk;
 use gtk::prelude::*;
+use std::convert::TryFrom;
 use std::sync::mpsc::Sender;
 
 use crate::backend::BKCommand;
@@ -36,7 +38,10 @@ pub fn new(
     let window_weak = window.downgrade();
     let backend = backend.clone();
     change_avatar.connect_activate(move |a, data| {
-        if let Some(id) = data.as_ref().and_then(|x| x.get_str()) {
+        if let Some(id) = data
+            .and_then(|x| x.get_str())
+            .and_then(|rid| RoomId::try_from(rid).ok())
+        {
             let window = upgrade_weak!(window_weak);
             let filter = gtk::FileFilter::new();
             filter.set_name(Some(i18n("Images").as_str()));
@@ -47,7 +52,7 @@ pub fn new(
                     let _ = backend.send(BKCommand::SetRoomAvatar(
                         server_url.clone(),
                         access_token.clone(),
-                        id.to_string(),
+                        id,
                         file.to_string(),
                     ));
                 } else {

@@ -237,12 +237,12 @@ pub fn sync(
                     data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
 
                     let rooms = Room::from_sync_response(&response, &userid, &base);
-                    let jtr = data.lock().unwrap().join_to_room.clone();
-                    let def = if !jtr.is_empty() {
-                        rooms.iter().find(|x| x.id == jtr).cloned()
-                    } else {
-                        None
-                    };
+                    let def = data
+                        .lock()
+                        .unwrap()
+                        .join_to_room
+                        .as_ref()
+                        .and_then(|jtr| rooms.iter().find(|x| x.id == *jtr).cloned());
                     tx.send(BKResponse::Rooms(rooms, def))
                         .expect_log("Connection closed");
                 }
