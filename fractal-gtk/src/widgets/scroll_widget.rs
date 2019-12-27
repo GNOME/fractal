@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use fractal_api::identifiers::RoomId;
 use gio::Action;
 use gio::ActionExt;
 use gtk;
@@ -117,7 +118,7 @@ impl Widgets {
 }
 
 impl ScrollWidget {
-    pub fn new(action: Option<Action>, room_id: String) -> ScrollWidget {
+    pub fn new(action: Option<Action>, room_id: RoomId) -> ScrollWidget {
         let builder = gtk::Builder::new();
 
         builder
@@ -149,7 +150,7 @@ impl ScrollWidget {
     }
 
     /* Keep the same position if new messages are added */
-    pub fn connect(&mut self, action: Option<Action>, room_id: String) -> Option<()> {
+    pub fn connect(&mut self, action: Option<Action>, room_id: RoomId) -> Option<()> {
         let adj = self.widgets.view.get_vadjustment()?;
         let upper = Rc::downgrade(&self.upper);
         let balance = Rc::downgrade(&self.balance);
@@ -217,7 +218,7 @@ impl ScrollWidget {
                     if adj.get_value() < adj.get_page_size() * 2.0 {
                         /* Load more messages once the user is nearly at the end of the history */
                         spinner.start();
-                        let data = glib::Variant::from(&room_id);
+                        let data = glib::Variant::from(&room_id.to_string());
                         action.activate(Some(&data));
                         request_sent.set(true);
                     }

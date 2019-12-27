@@ -5,6 +5,7 @@ use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
+use ruma_identifiers::RoomId;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
@@ -193,12 +194,12 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
 pub fn get_prev_batch_from(
     baseu: &Url,
     tk: &AccessToken,
-    roomid: &str,
+    room_id: &RoomId,
     evid: &str,
 ) -> Result<String, Error> {
     let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
 
-    let path = format!("rooms/{}/context/{}", roomid, evid);
+    let path = format!("rooms/{}/context/{}", room_id, evid);
     let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", url, &json!(null))?;

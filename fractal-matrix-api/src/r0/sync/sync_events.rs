@@ -3,6 +3,7 @@ use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
+use ruma_identifiers::RoomId;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
@@ -111,11 +112,11 @@ pub struct Response {
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Rooms {
     #[serde(default)]
-    pub leave: HashMap<String, LeftRoom>,
+    pub leave: HashMap<RoomId, LeftRoom>,
     #[serde(default)]
-    pub join: HashMap<String, JoinedRoom>,
+    pub join: HashMap<RoomId, JoinedRoom>,
     #[serde(default)]
-    pub invite: HashMap<String, InvitedRoom>,
+    pub invite: HashMap<RoomId, InvitedRoom>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

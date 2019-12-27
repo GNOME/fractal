@@ -1,6 +1,8 @@
 use crate::i18n::{i18n, i18n_k, ni18n_f};
+use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
 use log::{error, warn};
+use std::convert::TryFrom;
 use std::fs::remove_file;
 use std::os::unix::fs;
 
@@ -11,6 +13,7 @@ use crate::appop::AppOp;
 
 use crate::backend;
 use crate::backend::BKCommand;
+use crate::backend::BKResponse;
 use fractal_api::util::cache_dir_path;
 
 use crate::actions;
@@ -22,9 +25,6 @@ use crate::types::{Member, Reason, Room, RoomMembership, RoomTag};
 
 use crate::util::markup_text;
 
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
-
 use glib::functions::markup_escape_text;
 
 // The TextBufferExt alias is necessary to avoid conflict with gtk's TextBufferExt
@@ -35,27 +35,25 @@ use std::time::Instant;
 pub struct Force(pub bool);
 
 impl AppOp {
-    pub fn remove_room(&mut self, id: String) {
+    pub fn remove_room(&mut self, id: RoomId) {
         self.rooms.remove(&id);
         self.unsent_messages.remove(&id);
         self.roomlist.remove_room(id);
     }
 
-    pub fn set_rooms(&mut self, mut rooms: Vec<Room>, clear_room_list: bool) {
+    pub fn set_rooms(&mut self, rooms: Vec<Room>, clear_room_list: bool) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if clear_room_list {
             self.rooms.clear();
         }
         let mut roomlist = vec![];
-        while let Some(room) = rooms.pop() {
-            if room.membership.is_left() {
-                // removing left rooms
-                if let RoomMembership::Left(kicked) = room.membership.clone() {
-                    if let Reason::Kicked(reason, kicker) = kicked {
-                        if let Some(r) = self.rooms.get(&room.id) {
-                            let room_name = r.name.clone().unwrap_or_default();
-                            self.kicked_room(room_name, reason, kicker.alias.unwrap_or_default());
-                        }
+        for room in rooms {
+            // removing left rooms
+            if let RoomMembership::Left(kicked) = room.membership.clone() {
+                if let Reason::Kicked(reason, kicker) = kicked {
+                    if let Some(r) = self.rooms.get(&room.id) {
+                        let room_name = r.name.clone().unwrap_or_default();
+                        self.kicked_room(room_name, reason, kicker.alias.unwrap_or_default());
                     }
                 }
                 if self.active_room.as_ref().map_or(false, |x| x == &room.id) {
@@ -63,9 +61,8 @@ impl AppOp {
                 } else {
                     self.remove_room(room.id);
                 }
-            } else if self.rooms.contains_key(&room.id) {
+            } else if let Some(update_room) = self.rooms.get_mut(&room.id) {
                 // TODO: update the existing rooms
-                let update_room = self.rooms.get_mut(&room.id).unwrap();
                 if room.language.is_some() {
                     update_room.language = room.language.clone();
                 };
@@ -156,7 +153,7 @@ impl AppOp {
         self.set_state(AppState::NoRoom);
     }
 
-    pub fn set_active_room_by_id(&mut self, id: String) {
+    pub fn set_active_room_by_id(&mut self, id: RoomId) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(room) = self.rooms.get(&id) {
             if let Some(language) = room.language.clone() {
@@ -280,9 +277,11 @@ impl AppOp {
         self.update_typing_notification();
     }
 
+    // FIXME: This should be a special case in a generic
+    //        function that leaves any room in any state.
     pub fn really_leave_active_room(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let r = self.active_room.clone().unwrap_or_default();
+        let r = unwrap_or_unit_return!(self.active_room.clone());
         self.backend
             .send(BKCommand::LeaveRoom(
                 login_data.server_url,
@@ -299,26 +298,24 @@ impl AppOp {
     }
 
     pub fn leave_active_room(&self) {
+        let active_room = unwrap_or_unit_return!(self.active_room.clone());
+        let r = unwrap_or_unit_return!(self.rooms.get(&active_room));
+
         let dialog = self
             .ui
             .builder
             .get_object::<gtk::MessageDialog>("leave_room_dialog")
             .expect("Can't find leave_room_dialog in ui file.");
 
-        if let Some(r) = self
-            .rooms
-            .get(&self.active_room.clone().unwrap_or_default())
-        {
-            let text = i18n_k(
-                "Leave {room_name}?",
-                &[("room_name", &r.name.clone().unwrap_or_default())],
-            );
-            dialog.set_property_text(Some(text.as_str()));
-            dialog.present();
-        }
+        let text = i18n_k(
+            "Leave {room_name}?",
+            &[("room_name", &r.name.clone().unwrap_or_default())],
+        );
+        dialog.set_property_text(Some(text.as_str()));
+        dialog.present();
     }
 
-    pub fn kicked_room(&self, roomid: String, reason: String, kicker: String) {
+    pub fn kicked_room(&self, room_name: String, reason: String, kicker: String) {
         let parent: gtk::Window = self
             .ui
             .builder
@@ -328,7 +325,7 @@ impl AppOp {
         let parent = upgrade_weak!(parent_weak);
         let viewer = widgets::KickedDialog::new();
         viewer.set_parent_window(&parent);
-        viewer.show(&roomid, &reason, &kicker);
+        viewer.show(&room_name, &reason, &kicker);
     }
 
     pub fn create_new_room(&mut self) {
@@ -354,7 +351,8 @@ impl AppOp {
             backend::RoomType::Public
         };
 
-        let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
+        let internal_id = RoomId::new(&login_data.server_url.to_string())
+            .expect("The server domain should have been validated");
         self.backend
             .send(BKCommand::NewRoom(
                 login_data.server_url,
@@ -365,8 +363,11 @@ impl AppOp {
             ))
             .unwrap();
 
-        let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
-        fakeroom.name = Some(n);
+        let fakeroom = Room {
+            name: Some(n),
+            ..Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None))
+        };
+
         self.new_room(fakeroom, None);
         self.set_active_room_by_id(internal_id);
         self.set_state(AppState::Room);
@@ -386,8 +387,8 @@ impl AppOp {
         };
     }
 
-    pub fn set_room_detail(&mut self, roomid: String, key: String, value: Option<String>) {
-        if let Some(r) = self.rooms.get_mut(&roomid) {
+    pub fn set_room_detail(&mut self, room_id: RoomId, key: String, value: Option<String>) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             let k: &str = &key;
             match k {
                 "m.room.name" => {
@@ -400,26 +401,30 @@ impl AppOp {
             };
         }
 
-        if roomid == self.active_room.clone().unwrap_or_default() {
+        if self
+            .active_room
+            .as_ref()
+            .map_or(false, |a_room| *a_room == room_id)
+        {
             self.set_current_room_detail(key, value);
         }
     }
 
-    pub fn set_room_avatar(&mut self, roomid: String, avatar: Option<Url>) {
+    pub fn set_room_avatar(&mut self, room_id: RoomId, avatar: Option<Url>) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if avatar.is_none() {
-            if let Ok(dest) = cache_dir_path(None, &roomid) {
+            if let Ok(dest) = cache_dir_path(None, &room_id.to_string()) {
                 let _ = remove_file(dest);
             }
         }
-        if let Some(r) = self.rooms.get_mut(&roomid) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             if avatar.is_none() && r.members.len() == 2 {
                 for m in r.members.keys() {
                     if *m != login_data.uid {
                         //FIXME: Find a better solution
                         // create a symlink from user avatar to room avatar (works only on unix)
                         if let Ok(source) = cache_dir_path(None, m) {
-                            if let Ok(dest) = cache_dir_path(None, &roomid) {
+                            if let Ok(dest) = cache_dir_path(None, &room_id.to_string()) {
                                 let _ = fs::symlink(source, dest);
                             }
                         }
@@ -428,7 +433,7 @@ impl AppOp {
             }
             r.avatar = avatar.map(|s| s.into_string());
             self.roomlist
-                .set_room_avatar(roomid.clone(), r.avatar.clone());
+                .set_room_avatar(room_id.clone(), r.avatar.clone());
         }
     }
 
@@ -490,24 +495,31 @@ impl AppOp {
             .ui
             .builder
             .get_object::<gtk::Entry>("join_room_name")
-            .expect("Can't find join_room_name in ui file.");
-
-        let n = name
+            .expect("Can't find join_room_name in ui file.")
             .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string())
-            .trim()
-            .to_string();
+            .map_or(String::new(), |gstr| gstr.to_string());
 
-        self.backend
-            .send(BKCommand::JoinRoom(
-                login_data.server_url,
-                login_data.access_token,
-                n.clone(),
-            ))
-            .unwrap();
+        match RoomId::try_from(name.trim()) {
+            Ok(room_id) => {
+                self.backend
+                    .send(BKCommand::JoinRoom(
+                        login_data.server_url,
+                        login_data.access_token,
+                        room_id,
+                    ))
+                    .unwrap();
+            }
+            Err(err) => {
+                self.backend
+                    .send(BKCommand::SendBKResponse(BKResponse::JoinRoom(Err(
+                        err.into()
+                    ))))
+                    .unwrap();
+            }
+        }
     }
 
-    pub fn new_room(&mut self, r: Room, internal_id: Option<String>) {
+    pub fn new_room(&mut self, r: Room, internal_id: Option<RoomId>) {
         if let Some(id) = internal_id {
             self.remove_room(id);
         }
@@ -522,8 +534,8 @@ impl AppOp {
         self.set_active_room_by_id(r.id);
     }
 
-    pub fn added_to_fav(&mut self, roomid: String, tofav: bool) {
-        if let Some(ref mut r) = self.rooms.get_mut(&roomid) {
+    pub fn added_to_fav(&mut self, room_id: RoomId, tofav: bool) {
+        if let Some(ref mut r) = self.rooms.get_mut(&room_id) {
             let tag = if tofav {
                 RoomTag::Favourite
             } else {
@@ -536,60 +548,48 @@ impl AppOp {
     /// This method calculate the room name when there's no room name event
     /// For this we use the members in the room. If there's only one member we'll return that
     /// member name, if there's more than one we'll return the first one and others
-    pub fn recalculate_room_name(&mut self, roomid: String) {
+    pub fn recalculate_room_name(&mut self, room_id: RoomId) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if !self.rooms.contains_key(&roomid) {
+        let r = unwrap_or_unit_return!(self.rooms.get_mut(&room_id));
+
+        // we should do nothing if this room has room name
+        if r.name.is_some() {
             return;
         }
 
-        let rname;
-        {
-            let r = self.rooms.get_mut(&roomid).unwrap();
-            // we should do nothing it this room has room name
-            if let Some(_) = r.name {
-                return;
-            }
+        // removing one because the user should be in the room
+        let n = r.members.len() - 1;
+        let suid = login_data.uid;
+        let mut members = r
+            .members
+            .iter()
+            .filter(|&(uid, _)| uid != &suid)
+            .map(|(_uid, m)| m.get_alias());
 
-            // removing one because the user should be in the room
-            let n = r.members.len() - 1;
-            let suid = login_data.uid;
-            let mut members = r.members.iter().filter(|&(uid, _)| uid != &suid);
+        let m1 = members.next().unwrap_or_default();
+        let m2 = members.next().unwrap_or_default();
 
-            let m1 = match members.next() {
-                Some((_uid, m)) => m.get_alias(),
-                None => String::new(),
-            };
+        let name = match n {
+            0 => i18n("EMPTY ROOM"),
+            1 => String::from(m1),
+            2 => i18n_k("{m1} and {m2}", &[("m1", &m1), ("m2", &m2)]),
+            _ => i18n_k("{m1} and Others", &[("m1", &m1)]),
+        };
 
-            let m2 = match members.next() {
-                Some((_uid, m)) => m.get_alias(),
-                None => String::new(),
-            };
+        r.name = Some(name.clone());
 
-            let name = match n {
-                0 => i18n("EMPTY ROOM"),
-                1 => String::from(m1),
-                2 => i18n_k("{m1} and {m2}", &[("m1", &m1), ("m2", &m2)]),
-                _ => i18n_k("{m1} and Others", &[("m1", &m1)]),
-            };
-
-            r.name = Some(name);
-            rname = r.name.clone();
-        }
-
-        self.room_name_change(roomid, rname);
+        self.room_name_change(room_id, Some(name));
     }
 
-    pub fn room_name_change(&mut self, roomid: String, name: Option<String>) {
-        if !self.rooms.contains_key(&roomid) {
-            return;
-        }
+    pub fn room_name_change(&mut self, room_id: RoomId, name: Option<String>) {
+        let r = unwrap_or_unit_return!(self.rooms.get_mut(&room_id));
+        r.name = name.clone();
 
+        if self
+            .active_room
+            .as_ref()
+            .map_or(false, |a_room| a_room == &room_id)
         {
-            let r = self.rooms.get_mut(&roomid).unwrap();
-            r.name = name.clone();
-        }
-
-        if roomid == self.active_room.clone().unwrap_or_default() {
             self.ui
                 .builder
                 .get_object::<gtk::Label>("room_name")
@@ -597,20 +597,18 @@ impl AppOp {
                 .set_text(&name.clone().unwrap_or_default());
         }
 
-        self.roomlist.rename_room(roomid.clone(), name);
+        self.roomlist.rename_room(room_id, name);
     }
 
-    pub fn room_topic_change(&mut self, roomid: String, topic: Option<String>) {
-        if !self.rooms.contains_key(&roomid) {
-            return;
-        }
+    pub fn room_topic_change(&mut self, room_id: RoomId, topic: Option<String>) {
+        let r = unwrap_or_unit_return!(self.rooms.get_mut(&room_id));
+        r.topic = topic.clone();
 
+        if self
+            .active_room
+            .as_ref()
+            .map_or(false, |a_room| *a_room == room_id)
         {
-            let r = self.rooms.get_mut(&roomid).unwrap();
-            r.topic = topic.clone();
-        }
-
-        if roomid == self.active_room.clone().unwrap_or_default() {
             self.set_room_topic_label(topic);
         }
     }
@@ -647,9 +645,9 @@ impl AppOp {
         };
     }
 
-    pub fn new_room_avatar(&self, roomid: String) {
+    pub fn new_room_avatar(&self, room_id: RoomId) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if !self.rooms.contains_key(&roomid) {
+        if !self.rooms.contains_key(&room_id) {
             return;
         }
 
@@ -657,62 +655,59 @@ impl AppOp {
             .send(BKCommand::GetRoomAvatar(
                 login_data.server_url,
                 login_data.access_token,
-                roomid,
+                room_id,
             ))
             .unwrap();
     }
 
     pub fn update_typing_notification(&mut self) {
-        if let Some(active_room) = &self
-            .rooms
-            .get(&self.active_room.clone().unwrap_or_default())
-        {
-            if let Some(ref mut history) = self.history {
-                let typing_users = &active_room.typing_users;
-                if typing_users.len() == 0 {
-                    history.typing_notification("");
-                } else if typing_users.len() > 2 {
-                    history.typing_notification(&i18n("Several users are typing…"));
-                } else {
-                    let typing_string = ni18n_f(
-                        "<b>{}</b> is typing…",
-                        "<b>{}</b> and <b>{}</b> are typing…",
-                        typing_users.len() as u32,
-                        typing_users
-                            .iter()
-                            .map(|user| markup_escape_text(&user.get_alias()).to_string())
-                            .collect::<Vec<String>>()
-                            .iter()
-                            .map(std::ops::Deref::deref)
-                            .collect::<Vec<&str>>()
-                            .as_slice(),
-                    );
-                    history.typing_notification(&typing_string);
-                }
-            }
+        let active_room_id = unwrap_or_unit_return!(self.active_room.clone());
+        let active_room = unwrap_or_unit_return!(self.rooms.get(&active_room_id));
+        let history = unwrap_or_unit_return!(self.history.as_mut());
+
+        let typing_users = &active_room.typing_users;
+        if typing_users.len() == 0 {
+            history.typing_notification("");
+        } else if typing_users.len() > 2 {
+            history.typing_notification(&i18n("Several users are typing…"));
+        } else {
+            let typing_string = ni18n_f(
+                "<b>{}</b> is typing…",
+                "<b>{}</b> and <b>{}</b> are typing…",
+                typing_users.len() as u32,
+                typing_users
+                    .iter()
+                    .map(|user| markup_escape_text(&user.get_alias()).to_string())
+                    .collect::<Vec<String>>()
+                    .iter()
+                    .map(std::ops::Deref::deref)
+                    .collect::<Vec<&str>>()
+                    .as_slice(),
+            );
+            history.typing_notification(&typing_string);
         }
     }
 
     pub fn send_typing(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if let Some(ref active_room) = self.active_room {
-            let now = Instant::now();
-            if let Some(last_typing) = self.typing.get(active_room) {
-                let time_passed = now.duration_since(*last_typing);
-                if time_passed.as_secs() < 3 {
-                    return;
-                }
+        let active_room = unwrap_or_unit_return!(self.active_room.as_ref());
+
+        let now = Instant::now();
+        if let Some(last_typing) = self.typing.get(active_room) {
+            let time_passed = now.duration_since(*last_typing);
+            if time_passed.as_secs() < 3 {
+                return;
             }
-            self.typing.insert(active_room.clone(), now);
-            self.backend
-                .send(BKCommand::SendTyping(
-                    login_data.server_url,
-                    login_data.access_token,
-                    login_data.uid,
-                    active_room.clone(),
-                ))
-                .unwrap();
         }
+        self.typing.insert(active_room.clone(), now);
+        self.backend
+            .send(BKCommand::SendTyping(
+                login_data.server_url,
+                login_data.access_token,
+                login_data.uid,
+                active_room.clone(),
+            ))
+            .unwrap();
     }
 
     pub fn set_language(&self, lang_code: String) {

@@ -1,5 +1,6 @@
 use crate::i18n::{i18n, i18n_k};
 
+use fractal_api::identifiers::RoomId;
 use gtk;
 use gtk::prelude::*;
 
@@ -209,15 +210,14 @@ impl AppOp {
         dialog.resize(300, 200);
     }
 
-    pub fn remove_inv(&mut self, roomid: String) {
-        self.rooms.remove(&roomid);
-        self.roomlist.remove_room(roomid);
+    pub fn remove_inv(&mut self, room_id: RoomId) {
+        self.rooms.remove(&room_id);
+        self.roomlist.remove_room(room_id);
     }
 
     pub fn accept_inv(&mut self, accept: bool) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let rid = self.invitation_roomid.clone();
-        if let Some(rid) = rid {
+        if let Some(rid) = self.invitation_roomid.clone() {
             if accept {
                 self.backend
                     .send(BKCommand::AcceptInv(
