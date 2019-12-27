@@ -1,3 +1,4 @@
+use fractal_api::identifiers::RoomId;
 use gtk;
 use gtk::prelude::*;
 
@@ -8,9 +9,6 @@ use crate::appop::SearchType;
 use crate::backend::BKCommand;
 use crate::types::{Room, RoomMembership, RoomTag};
 
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
-
 impl AppOp {
     pub fn start_chat(&mut self) {
         if self.invite_list.len() != 1 {
@@ -20,7 +18,8 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let user = self.invite_list[0].clone();
 
-        let internal_id: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
+        let internal_id = RoomId::new(&login_data.server_url.to_string())
+            .expect("The server domain should have been validated");
         self.backend
             .send(BKCommand::DirectChat(
                 login_data.server_url,
@@ -32,9 +31,11 @@ impl AppOp {
             .unwrap();
         self.close_direct_chat_dialog();
 
-        let mut fakeroom = Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None));
-        fakeroom.name = user.0.alias;
-        fakeroom.direct = true;
+        let fakeroom = Room {
+            name: user.0.alias,
+            direct: true,
+            ..Room::new(internal_id.clone(), RoomMembership::Joined(RoomTag::None))
+        };
 
         self.new_room(fakeroom, None);
         self.set_active_room_by_id(internal_id);

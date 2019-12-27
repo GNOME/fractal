@@ -89,10 +89,10 @@ impl AppOp {
 
         self.ui.sventry.view.grab_focus();
 
-        let active_room_id = self.active_room.clone().unwrap_or_default();
         let msg = self
-            .unsent_messages
-            .get(&active_room_id)
+            .active_room
+            .as_ref()
+            .and_then(|active_room_id| self.unsent_messages.get(active_room_id))
             .cloned()
             .unwrap_or_default();
         if let Some(buffer) = self.ui.sventry.view.get_buffer() {

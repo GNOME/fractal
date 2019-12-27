@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use chrono::DateTime;
 use chrono::TimeZone;
+use ruma_identifiers::RoomId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
@@ -13,7 +14,7 @@ pub struct Message {
     pub mtype: String,
     pub body: String,
     pub date: DateTime<Local>,
-    pub room: String,
+    pub room: RoomId,
     pub thumb: Option<String>,
     pub url: Option<String>,
     pub id: String,
@@ -47,7 +48,7 @@ impl PartialOrd for Message {
 }
 
 impl Message {
-    pub fn new(room: String, sender: String, body: String, mtype: String) -> Self {
+    pub fn new(room: RoomId, sender: String, body: String, mtype: String) -> Self {
         let date = Local::now();
         Message {
             id: get_txn_id(&room, &body, &date.to_string()),
@@ -95,7 +96,7 @@ impl Message {
     ///
     /// * `roomid` - The message room id
     /// * `msg` - The message event as Json
-    pub fn parse_room_message(roomid: &str, msg: &JsonValue) -> Message {
+    pub fn parse_room_message(room_id: &RoomId, msg: &JsonValue) -> Message {
         let sender = msg["sender"].as_str().unwrap_or_default();
 
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or_default() / 1000;
@@ -109,7 +110,7 @@ impl Message {
         let mut message = Message {
             sender: sender.to_string(),
             date: server_timestamp,
-            room: String::from(roomid),
+            room: room_id.clone(),
             id: id.to_string(),
             mtype: type_.to_string(),
             body: String::new(),
@@ -126,78 +127,77 @@ impl Message {
 
         let c = &msg["content"];
         match type_ {
-            "m.room.message" => Message::parse_m_room_message(&mut message, c),
-            "m.sticker" => Message::parse_m_sticker(&mut message, c),
+            "m.room.message" => message.parse_m_room_message(c),
+            "m.sticker" => message.parse_m_sticker(c),
             _ => {}
         };
 
         message
     }
 
-    fn parse_m_room_message(msg: &mut Message, c: &JsonValue) {
-        let mtype = c["msgtype"].as_str().unwrap_or_default();
-        let body = c["body"].as_str().unwrap_or_default();
+    fn parse_m_room_message(&mut self, c: &JsonValue) {
+        let mtype = c["msgtype"].as_str().map(String::from).unwrap_or_default();
+        let body = c["body"].as_str().map(String::from).unwrap_or_default();
         let formatted_body = c["formatted_body"].as_str().map(String::from);
         let format = c["format"].as_str().map(String::from);
 
-        match mtype {
+        match mtype.as_str() {
             "m.image" | "m.file" | "m.video" | "m.audio" => {
-                let url = String::from(c["url"].as_str().unwrap_or_default());
-                let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or_default());
+                let url = c["url"].as_str().map(String::from).unwrap_or_default();
+                let mut t = c["info"]["thumbnail_url"]
+                    .as_str()
+                    .map(String::from)
+                    .unwrap_or_default();
                 if t.is_empty() && !url.is_empty() {
                     t = url.clone();
                 }
 
-                msg.url = Some(url);
-                msg.thumb = Some(t);
+                self.url = Some(url);
+                self.thumb = Some(t);
             }
             "m.text" => {
                 // Only m.text messages can be replies for backward compatability
                 // https://matrix.org/docs/spec/client_server/r0.4.0.html#rich-replies
-                msg.in_reply_to = c["m.relates_to"]["m.in_reply_to"]["event_id"]
+                self.in_reply_to = c["m.relates_to"]["m.in_reply_to"]["event_id"]
                     .as_str()
-                    .map(String::from)
+                    .map(String::from);
             }
             _ => {}
         };
 
-        msg.mtype = mtype.to_string();
-        msg.body = body.to_string();
-        msg.formatted_body = formatted_body;
-        msg.format = format;
+        self.mtype = mtype;
+        self.body = body;
+        self.formatted_body = formatted_body;
+        self.format = format;
     }
 
-    fn parse_m_sticker(msg: &mut Message, c: &JsonValue) {
-        let body = c["body"].as_str().unwrap_or_default();
-
-        let url = String::from(c["url"].as_str().unwrap_or_default());
-        let mut t = String::from(c["info"]["thumbnail_url"].as_str().unwrap_or_default());
+    fn parse_m_sticker(&mut self, c: &JsonValue) {
+        let url = c["url"].as_str().map(String::from).unwrap_or_default();
+        let mut t = c["info"]["thumbnail_url"]
+            .as_str()
+            .map(String::from)
+            .unwrap_or_default();
         if t.is_empty() && !url.is_empty() {
             t = url.clone();
         }
 
-        msg.body = body.to_string();
-        msg.url = Some(url);
-        msg.thumb = Some(t);
+        self.body = c["body"].as_str().map(String::from).unwrap_or_default();
+        self.url = Some(url);
+        self.thumb = Some(t);
     }
 
     /// Create a vec of Message from a json event list
     ///
     /// * `roomid` - The messages room id
     /// * `events` - An iterator to the json events
-    pub fn from_json_events_iter<'a, I>(roomid: &str, events: I) -> Vec<Message>
+    pub fn from_json_events_iter<'a, I>(room_id: &RoomId, events: I) -> Vec<Message>
     where
         I: Iterator<Item = &'a JsonValue>,
     {
-        let mut ms = vec![];
-
-        let evs = events.filter(Message::supported_event);
-        for msg in evs {
-            let m = Message::parse_room_message(roomid.clone(), msg);
-            ms.push(m);
-        }
-
-        ms
+        events
+            .filter(Message::supported_event)
+            .map(|msg| Message::parse_room_message(&room_id, msg))
+            .collect()
     }
 
     pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {
@@ -209,7 +209,7 @@ impl Message {
 /// message body and the date.
 
 /// https://matrix.org/docs/spec/client_server/r0.3.0.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid
-pub fn get_txn_id(room: &str, body: &str, date: &str) -> String {
+pub fn get_txn_id(room: &RoomId, body: &str, date: &str) -> String {
     let msg = format!("{}{}{}", room, body, date);
     let digest = md5::compute(msg.as_bytes());
     format!("{:x}", digest)

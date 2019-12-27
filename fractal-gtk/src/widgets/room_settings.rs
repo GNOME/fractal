@@ -168,7 +168,7 @@ impl RoomSettings {
 
         if let Some(action) = self.actions.lookup_action("change-avatar") {
             action.bind_button_state(&avatar_btn);
-            let data = glib::Variant::from(&self.room.id);
+            let data = glib::Variant::from(&self.room.id.to_string());
             avatar_btn.set_action_target_value(Some(&data));
             avatar_btn.set_action_name(Some("room-settings.change-avatar"));
             let avatar_spinner = self
@@ -428,7 +428,7 @@ impl RoomSettings {
 
         let image = widgets::Avatar::avatar_new(Some(100));
         let data = image.circle(
-            self.room.id.clone(),
+            self.room.id.to_string(),
             self.room.name.clone(),
             100,
             None,
@@ -437,7 +437,7 @@ impl RoomSettings {
         download_to_cache(
             self.backend.clone(),
             self.server_url.clone(),
-            self.room.id.clone(),
+            self.room.id.to_string(),
             data,
         );
 

@@ -1,5 +1,6 @@
 use crate::i18n::i18n;
 use fractal_api::clone;
+use fractal_api::identifiers::RoomId;
 
 use gdk;
 use glib;
@@ -13,6 +14,7 @@ use std::collections::HashMap;
 use crate::globals;
 use crate::types::{Room, RoomTag};
 use crate::widgets::roomrow::RoomRow;
+use std::convert::TryFrom;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use chrono::prelude::*;
@@ -45,7 +47,7 @@ pub enum RoomListType {
 }
 
 pub struct RoomListGroup {
-    pub rooms: HashMap<String, RoomRow>,
+    pub rooms: HashMap<RoomId, RoomRow>,
     pub baseu: Url,
     pub list: gtk::ListBox,
     rev: gtk::Revealer,
@@ -173,27 +175,27 @@ impl RoomListGroup {
         self.show();
     }
 
-    pub fn set_bold(&mut self, room: String, bold: bool) {
-        if let Some(ref mut r) = self.rooms.get_mut(&room) {
+    pub fn set_bold(&mut self, room_id: RoomId, bold: bool) {
+        if let Some(ref mut r) = self.rooms.get_mut(&room_id) {
             r.set_bold(bold);
         }
     }
 
-    pub fn set_room_notifications(&mut self, room: String, n: i32, h: i32) {
-        if let Some(ref mut r) = self.rooms.get_mut(&room) {
+    pub fn set_room_notifications(&mut self, room_id: RoomId, n: i32, h: i32) {
+        if let Some(ref mut r) = self.rooms.get_mut(&room_id) {
             r.set_notifications(n, h);
         }
 
-        self.edit_room(&room, move |rv| {
+        self.edit_room(&room_id, move |rv| {
             rv.room.notifications = n;
             rv.room.highlight = h;
         });
     }
 
-    pub fn remove_room(&mut self, room: String) -> Option<RoomUpdated> {
-        self.rooms.remove(&room);
+    pub fn remove_room(&mut self, room_id: RoomId) -> Option<RoomUpdated> {
+        self.rooms.remove(&room_id);
         let mut rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
+        if let Some(idx) = rv.iter().position(|x| x.room.id == room_id) {
             if let Some(row) = self.list.get_row_at_index(idx as i32) {
                 self.list.remove(&row);
             }
@@ -204,22 +206,22 @@ impl RoomListGroup {
         None
     }
 
-    pub fn rename_room(&mut self, room: String, newname: Option<String>) {
-        if let (Some(r), Some(n)) = (self.rooms.get_mut(&room), newname.clone()) {
+    pub fn rename_room(&mut self, room_id: RoomId, newname: Option<String>) {
+        if let (Some(r), Some(n)) = (self.rooms.get_mut(&room_id), newname.clone()) {
             r.set_name(n);
         }
 
-        self.edit_room(&room, move |rv| {
+        self.edit_room(&room_id, move |rv| {
             rv.room.name = newname.clone();
         });
     }
 
-    pub fn set_room_avatar(&mut self, room: String, av: Option<String>) {
-        if let Some(r) = self.rooms.get_mut(&room) {
+    pub fn set_room_avatar(&mut self, room_id: RoomId, av: Option<String>) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             r.set_avatar(av.clone());
         }
 
-        self.edit_room(&room, move |rv| {
+        self.edit_room(&room_id, move |rv| {
             rv.room.avatar = av.clone();
         });
     }
@@ -271,27 +273,22 @@ impl RoomListGroup {
         self.widget.hide();
     }
 
-    pub fn get_selected(&self) -> Option<String> {
+    pub fn get_selected(&self) -> Option<RoomId> {
         let rv = self.roomvec.lock().unwrap();
-        match self.list.get_selected_row() {
-            Some(row) => Some(rv[row.get_index() as usize].room.id.clone()),
-            None => None,
-        }
+        self.list
+            .get_selected_row()
+            .map(|row| rv[row.get_index() as usize].room.id.clone())
     }
 
-    pub fn set_selected(&self, room: Option<String>) {
+    pub fn set_selected(&self, room_id: Option<RoomId>) {
         self.list.unselect_all();
 
-        if room.is_none() {
-            return;
-        }
-
-        let room = room.unwrap();
-
-        let rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
-            if let Some(ref row) = self.list.get_row_at_index(idx as i32) {
-                self.list.select_row(Some(row));
+        if let Some(room_id) = room_id {
+            let rv = self.roomvec.lock().unwrap();
+            if let Some(idx) = rv.iter().position(|x| x.room.id == room_id) {
+                if let Some(ref row) = self.list.get_row_at_index(idx as i32) {
+                    self.list.select_row(Some(row));
+                }
             }
         }
     }
@@ -306,20 +303,20 @@ impl RoomListGroup {
     /// # Return value
     ///
     /// `(Room id if found, go to previous group, go to next group)`
-    fn sibling_id(&self, unread_only: bool, direction: i32) -> (Option<String>, bool, bool) {
+    fn sibling_id(&self, unread_only: bool, direction: i32) -> (Option<RoomId>, bool, bool) {
         match self.list.get_selected_row() {
             Some(row) => {
                 let rv = self.roomvec.lock().unwrap();
                 let mut idx = row.get_index() + direction;
                 while unread_only
-                    && 0 <= idx
+                    && idx >= 0
                     && (idx as usize) < rv.len()
                     && rv[idx as usize].room.notifications == 0
                 {
                     idx += direction;
                 }
 
-                if 0 <= idx && (idx as usize) < rv.len() {
+                if idx >= 0 && (idx as usize) < rv.len() {
                     (Some(rv[idx as usize].room.id.clone()), false, false)
                 } else {
                     (None, idx < 0, idx >= 0)
@@ -329,7 +326,7 @@ impl RoomListGroup {
         }
     }
 
-    fn first_id(&self, unread_only: bool) -> Option<String> {
+    fn first_id(&self, unread_only: bool) -> Option<RoomId> {
         self.roomvec
             .lock()
             .unwrap()
@@ -345,7 +342,7 @@ impl RoomListGroup {
             .map(|r| r.room.id.clone())
     }
 
-    fn last_id(&self, unread_only: bool) -> Option<String> {
+    fn last_id(&self, unread_only: bool) -> Option<RoomId> {
         self.roomvec
             .lock()
             .unwrap()
@@ -372,13 +369,13 @@ impl RoomListGroup {
         }
     }
 
-    pub fn moveup(&mut self, room: String) {
+    pub fn moveup(&mut self, room_id: RoomId) {
         let s = self.get_selected();
 
-        self.edit_room(&room, move |rv| {
+        self.edit_room(&room_id, move |rv| {
             rv.up();
         });
-        if let Some(r) = self.remove_room(room) {
+        if let Some(r) = self.remove_room(room_id) {
             self.add_room_up(r);
         }
 
@@ -393,9 +390,9 @@ impl RoomListGroup {
         }
     }
 
-    fn edit_room<F: Fn(&mut RoomUpdated) + 'static>(&mut self, room: &str, cb: F) {
+    fn edit_room<F: Fn(&mut RoomUpdated) + 'static>(&mut self, room_id: &RoomId, cb: F) {
         let mut rv = self.roomvec.lock().unwrap();
-        if let Some(idx) = rv.iter().position(|x| x.room.id == room) {
+        if let Some(idx) = rv.iter().position(|x| x.room.id == *room_id) {
             if let Some(ref mut m) = rv.get_mut(idx) {
                 cb(m);
             }
@@ -454,10 +451,10 @@ pub struct RoomList {
 }
 
 macro_rules! run_in_group {
-    ($self: expr, $roomid: expr, $fn: ident, $($arg: expr),*) => {{
-        if $self.inv.get().rooms.contains_key($roomid) {
+    ($self: expr, $room_id: expr, $fn: ident, $($arg: expr),*) => {{
+        if $self.inv.get().rooms.contains_key($room_id) {
             $self.inv.get().$fn($($arg),*)
-        } else if $self.fav.get().rooms.contains_key($roomid) {
+        } else if $self.fav.get().rooms.contains_key($room_id) {
             $self.fav.get().$fn($($arg),*)
         } else {
             $self.rooms.get().$fn($($arg),*)
@@ -498,16 +495,15 @@ impl RoomList {
         rl
     }
 
-    pub fn select(&self, r: &str) {
-        //FIXME don't use to_string(), pass &str
-        run_in_group!(self, &r.to_string(), set_selected, Some(r.to_string()));
+    pub fn select(&self, room_id: &RoomId) {
+        run_in_group!(self, room_id, set_selected, Some(room_id.clone()));
     }
 
-    fn sibling_id_inv(&self, unread_only: bool, direction: i32) -> Option<String> {
-        let (room, _, next) = self.inv.get().sibling_id(unread_only, direction);
+    fn sibling_id_inv(&self, unread_only: bool, direction: i32) -> Option<RoomId> {
+        let (room_id, _, next) = self.inv.get().sibling_id(unread_only, direction);
 
-        if let Some(room) = room {
-            Some(room)
+        if let Some(room_id) = room_id {
+            Some(room_id)
         } else if next {
             self.fav.get().first_id(unread_only)
         } else {
@@ -515,11 +511,11 @@ impl RoomList {
         }
     }
 
-    fn sibling_id_fav(&self, unread_only: bool, direction: i32) -> Option<String> {
-        let (room, prev, next) = self.fav.get().sibling_id(unread_only, direction);
+    fn sibling_id_fav(&self, unread_only: bool, direction: i32) -> Option<RoomId> {
+        let (room_id, prev, next) = self.fav.get().sibling_id(unread_only, direction);
 
-        if let Some(room) = room {
-            Some(room)
+        if let Some(room_id) = room_id {
+            Some(room_id)
         } else if prev {
             self.inv.get().last_id(unread_only)
         } else if next {
@@ -529,11 +525,11 @@ impl RoomList {
         }
     }
 
-    fn sibling_id_rooms(&self, unread_only: bool, direction: i32) -> Option<String> {
-        let (room, prev, _) = self.rooms.get().sibling_id(unread_only, direction);
+    fn sibling_id_rooms(&self, unread_only: bool, direction: i32) -> Option<RoomId> {
+        let (room_id, prev, _) = self.rooms.get().sibling_id(unread_only, direction);
 
-        if let Some(room) = room {
-            Some(room)
+        if let Some(room_id) = room_id {
+            Some(room_id)
         } else if prev {
             self.fav.get().last_id(unread_only)
         } else {
@@ -541,27 +537,27 @@ impl RoomList {
         }
     }
 
-    fn sibling_id(&self, unread_only: bool, direction: i32) -> Option<String> {
+    fn sibling_id(&self, unread_only: bool, direction: i32) -> Option<RoomId> {
         self.sibling_id_inv(unread_only, direction)
     }
 
-    pub fn next_id(&self) -> Option<String> {
+    pub fn next_id(&self) -> Option<RoomId> {
         self.sibling_id(false, 1)
     }
 
-    pub fn prev_id(&self) -> Option<String> {
+    pub fn prev_id(&self) -> Option<RoomId> {
         self.sibling_id(false, -1)
     }
 
-    pub fn next_unread_id(&self) -> Option<String> {
+    pub fn next_unread_id(&self) -> Option<RoomId> {
         self.sibling_id(true, 1)
     }
 
-    pub fn prev_unread_id(&self) -> Option<String> {
+    pub fn prev_unread_id(&self) -> Option<RoomId> {
         self.sibling_id(true, -1)
     }
 
-    pub fn first_id(&self) -> Option<String> {
+    pub fn first_id(&self) -> Option<RoomId> {
         self.inv
             .get()
             .first_id(false)
@@ -569,7 +565,7 @@ impl RoomList {
             .or_else(|| self.rooms.get().first_id(false))
     }
 
-    pub fn last_id(&self) -> Option<String> {
+    pub fn last_id(&self) -> Option<RoomId> {
         self.rooms
             .get()
             .last_id(false)
@@ -615,8 +611,8 @@ impl RoomList {
         let r = self.rooms.clone();
         let f = self.fav.clone();
         let cb = acb.clone();
-        self.connect_drop(favw, move |roomid| {
-            if let Some(room) = r.get().remove_room(roomid) {
+        self.connect_drop(favw, move |room_id| {
+            if let Some(room) = r.get().remove_room(room_id) {
                 cb(room.room.clone(), true);
                 f.get().add_room_up(room);
             }
@@ -634,22 +630,22 @@ impl RoomList {
         });
     }
 
-    pub fn set_room_avatar(&mut self, room: String, av: Option<String>) {
-        run_in_group!(self, &room, set_room_avatar, room, av);
+    pub fn set_room_avatar(&mut self, room_id: RoomId, av: Option<String>) {
+        run_in_group!(self, &room_id, set_room_avatar, room_id, av);
     }
 
-    pub fn set_room_notifications(&mut self, room: String, n: i32, h: i32) {
-        run_in_group!(self, &room, set_room_notifications, room, n, h);
+    pub fn set_room_notifications(&mut self, room_id: RoomId, n: i32, h: i32) {
+        run_in_group!(self, &room_id, set_room_notifications, room_id, n, h);
     }
 
-    pub fn remove_room(&mut self, room: String) -> Option<RoomUpdated> {
-        let ret = run_in_group!(self, &room, remove_room, room);
+    pub fn remove_room(&mut self, room_id: RoomId) -> Option<RoomUpdated> {
+        let ret = run_in_group!(self, &room_id, remove_room, room_id);
         self.show_and_hide();
         ret
     }
 
-    pub fn set_bold(&mut self, room: String, bold: bool) {
-        run_in_group!(self, &room, set_bold, room, bold)
+    pub fn set_bold(&mut self, room_id: RoomId, bold: bool) {
+        run_in_group!(self, &room_id, set_bold, room_id, bold)
     }
 
     pub fn add_room(&mut self, r: Room) {
@@ -665,12 +661,12 @@ impl RoomList {
         self.show_and_hide();
     }
 
-    pub fn rename_room(&mut self, room: String, newname: Option<String>) {
-        run_in_group!(self, &room, rename_room, room, newname);
+    pub fn rename_room(&mut self, room_id: RoomId, newname: Option<String>) {
+        run_in_group!(self, &room_id, rename_room, room_id, newname);
     }
 
-    pub fn moveup(&mut self, room: String) {
-        run_in_group!(self, &room, moveup, room);
+    pub fn moveup(&mut self, room_id: RoomId) {
+        run_in_group!(self, &room_id, moveup, room_id);
     }
 
     // Roomlist widget
@@ -732,7 +728,7 @@ impl RoomList {
         });
     }
 
-    pub fn connect_drop<F: Fn(String) + 'static>(&self, widget: gtk::EventBox, cb: F) {
+    pub fn connect_drop<F: Fn(RoomId) + 'static>(&self, widget: gtk::EventBox, cb: F) {
         let flags = gtk::DestDefaults::empty();
         let action = gdk::DragAction::all();
         widget.drag_dest_set(flags, &[], action);
@@ -748,8 +744,11 @@ impl RoomList {
             glib::signal::Inhibit(true)
         });
         widget.connect_drag_data_received(move |_w, _ctx, _x, _y, data, _info, _time| {
-            if let Some(roomid) = data.get_text() {
-                cb(roomid.to_string());
+            if let Some(room_id) = data
+                .get_text()
+                .and_then(|rid| RoomId::try_from(rid.as_str()).ok())
+            {
+                cb(room_id);
             }
         });
     }
