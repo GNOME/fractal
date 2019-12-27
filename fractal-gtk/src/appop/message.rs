@@ -1,4 +1,5 @@
 use comrak::{markdown_to_html, ComrakOptions};
+use fractal_api::identifiers::RoomId;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
 use gtk;
@@ -29,7 +30,7 @@ pub struct TmpMsg {
 }
 
 impl AppOp {
-    pub fn get_message_by_id(&self, room_id: &str, id: &str) -> Option<Message> {
+    pub fn get_message_by_id(&self, room_id: &RoomId, id: &str) -> Option<Message> {
         let room = self.rooms.get(room_id)?;
         room.messages
             .iter()
@@ -401,18 +402,18 @@ impl AppOp {
     pub fn show_room_messages_top(
         &mut self,
         msgs: Vec<Message>,
-        roomid: String,
+        room_id: RoomId,
         prev_batch: Option<String>,
     ) {
-        if let Some(r) = self.rooms.get_mut(&roomid) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             r.prev_batch = prev_batch;
         }
 
-        let active_room = self.active_room.clone().unwrap_or_default();
+        let active_room = self.active_room.as_ref();
         let mut list = vec![];
         for item in msgs.iter().rev() {
             /* create a list of new messages to load to the history */
-            if item.room == active_room && !item.redacted {
+            if active_room.map_or(false, |a_room| item.room == *a_room) && !item.redacted {
                 if let Some(ui_msg) = self.create_new_room_message(item) {
                     list.push(ui_msg);
                 }
@@ -428,8 +429,8 @@ impl AppOp {
         }
     }
 
-    pub fn remove_message(&mut self, room: String, id: String) -> Option<()> {
-        let message = self.get_message_by_id(&room, &id);
+    pub fn remove_message(&mut self, room_id: RoomId, id: String) -> Option<()> {
+        let message = self.get_message_by_id(&room_id, &id);
 
         if let Some(msg) = message {
             self.remove_room_message(&msg);

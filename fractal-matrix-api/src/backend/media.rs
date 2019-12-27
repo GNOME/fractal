@@ -1,6 +1,7 @@
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
+use ruma_identifiers::RoomId;
 use serde_json::json;
 use std::str::Split;
 use std::sync::mpsc::Sender;
@@ -39,7 +40,7 @@ pub fn get_media_list_async(
     bk: &Backend,
     baseu: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     first_media_id: Option<String>,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
@@ -48,7 +49,7 @@ pub fn get_media_list_async(
         let media_list = get_room_media_list(
             &baseu,
             &access_token,
-            &roomid,
+            &room_id,
             globals::PAGE_LIMIT,
             first_media_id,
             &prev_batch,
@@ -76,7 +77,7 @@ pub fn get_file_async(url: Url, tx: Sender<String>) -> Result<(), Error> {
 fn get_room_media_list(
     baseu: &Url,
     tk: &AccessToken,
-    roomid: &str,
+    room_id: &RoomId,
     limit: i32,
     first_media_id: Option<String>,
     prev_batch: &Option<String>,
@@ -100,12 +101,12 @@ fn get_room_media_list(
         Some(ref pb) => params.push(("from", pb.clone())),
         None => {
             if let Some(id) = first_media_id {
-                params.push(("from", get_prev_batch_from(baseu, tk, &roomid, &id)?))
+                params.push(("from", get_prev_batch_from(baseu, tk, room_id, &id)?))
             }
         }
     };
 
-    let path = format!("rooms/{}/messages", roomid);
+    let path = format!("rooms/{}/messages", room_id);
     let url = client_url(baseu, &path, &params)?;
 
     let r = json_q("get", url, &json!(null))?;
@@ -116,7 +117,7 @@ fn get_room_media_list(
     }
 
     let evs = array.unwrap().iter().rev();
-    let media_list = Message::from_json_events_iter(roomid, evs);
+    let media_list = Message::from_json_events_iter(room_id, evs);
 
     Ok((media_list, prev_batch))
 }
