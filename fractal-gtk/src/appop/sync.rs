@@ -25,6 +25,7 @@ impl AppOp {
                 .send(BKCommand::Sync(
                     login_data.server_url,
                     login_data.access_token,
+                    login_data.uid,
                     since,
                     initial,
                 ))

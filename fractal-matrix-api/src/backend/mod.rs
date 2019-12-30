@@ -21,7 +21,6 @@ mod directory;
 mod media;
 pub mod register;
 mod room;
-mod stickers;
 mod sync;
 mod types;
 mod user;
@@ -37,12 +36,6 @@ pub use self::types::RoomType;
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
-            user_id: String::from("Guest"),
-            scalar_token: None,
-            scalar_url: Url::parse("https://scalar.vector.im")
-                .expect("Wrong scalar_url value in BackendData"),
-            sticker_widget: None,
-            since: None,
             rooms_since: String::new(),
             join_to_room: String::new(),
             m_direct: HashMap::new(),
@@ -91,18 +84,31 @@ impl Backend {
                 register::login(self, user, passwd, server, id_url)
             }
             Ok(BKCommand::Logout(server, access_token)) => {
-                register::logout(self, server, access_token)
+                thread::spawn(move || {
+                    let query = register::logout(server, access_token);
+                    tx.send(BKResponse::Logout(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::Register(user, passwd, server, id_url)) => {
                 register::register(self, user, passwd, server, id_url)
             }
             Ok(BKCommand::Guest(server, id_url)) => register::guest(self, server, id_url),
-            Ok(BKCommand::SetUserID(uid)) => register::set_uid(self, uid),
 
             // User module
-            Ok(BKCommand::GetUsername(server)) => user::get_username(self, server),
-            Ok(BKCommand::SetUserName(server, access_token, name)) => {
-                user::set_username(self, server, access_token, name)
+            Ok(BKCommand::GetUsername(server, uid)) => {
+                thread::spawn(move || {
+                    let query = user::get_username(server, uid);
+                    tx.send(BKResponse::Name(query))
+                        .expect_log("Connection closed");
+                });
+            }
+            Ok(BKCommand::SetUserName(server, access_token, uid, username)) => {
+                thread::spawn(move || {
+                    let query = user::set_username(server, access_token, uid, username);
+                    tx.send(BKResponse::SetUserName(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::GetThreePID(server, access_token)) => {
                 thread::spawn(move || {
@@ -175,9 +181,19 @@ impl Backend {
                         .expect_log("Connection closed");
                 });
             }
-            Ok(BKCommand::GetAvatar(server)) => user::get_avatar(self, server),
-            Ok(BKCommand::SetUserAvatar(server, access_token, file)) => {
-                user::set_user_avatar(self, server, access_token, file)
+            Ok(BKCommand::GetAvatar(server, uid)) => {
+                thread::spawn(move || {
+                    let query = user::get_avatar(server, uid);
+                    tx.send(BKResponse::Avatar(query))
+                        .expect_log("Connection closed");
+                });
+            }
+            Ok(BKCommand::SetUserAvatar(server, access_token, uid, file)) => {
+                thread::spawn(move || {
+                    let query = user::set_user_avatar(server, access_token, uid, file);
+                    tx.send(BKResponse::SetUserAvatar(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::GetAvatarAsync(server, member, ctx)) => {
                 user::get_avatar_async(self, server, member, ctx)
@@ -200,11 +216,8 @@ impl Backend {
             }
 
             // Sync module
-            Ok(BKCommand::Sync(server, access_token, since, initial)) => {
-                sync::sync(self, server, access_token, since, initial)
-            }
-            Ok(BKCommand::SyncForced(server, access_token)) => {
-                sync::force_sync(self, server, access_token)
+            Ok(BKCommand::Sync(server, access_token, uid, since, initial)) => {
+                sync::sync(self, server, access_token, uid, since, initial)
             }
 
             // Room module
@@ -231,8 +244,8 @@ impl Backend {
                 let r = room::redact_msg(self, server, access_token, &msg);
                 bkerror2!(r, tx, BKResponse::SentMsgRedaction);
             }
-            Ok(BKCommand::SendTyping(server, access_token, room)) => {
-                let r = room::send_typing(self, server, access_token, room);
+            Ok(BKCommand::SendTyping(server, access_token, uid, room)) => {
+                let r = room::send_typing(self, server, access_token, uid, room);
                 bkerror!(r, tx, BKResponse::SendTypingError);
             }
             Ok(BKCommand::SetRoom(server, access_token, id)) => {
@@ -285,15 +298,16 @@ impl Backend {
                         .expect_log("Connection closed");
                 }
             }
-            Ok(BKCommand::DirectChat(server, access_token, user, internalid)) => {
-                let r = room::direct_chat(self, server, access_token, user, internalid.clone());
+            Ok(BKCommand::DirectChat(server, access_token, uid, user, internalid)) => {
+                let r =
+                    room::direct_chat(self, server, access_token, uid, user, internalid.clone());
                 if let Err(e) = r {
                     tx.send(BKResponse::NewRoom(Err(e), internalid))
                         .expect_log("Connection closed");
                 }
             }
-            Ok(BKCommand::AddToFav(server, access_token, roomid, tofav)) => {
-                let r = room::add_to_fav(self, server, access_token, roomid, tofav);
+            Ok(BKCommand::AddToFav(server, access_token, uid, roomid, tofav)) => {
+                let r = room::add_to_fav(self, server, access_token, uid, roomid, tofav);
                 bkerror2!(r, tx, BKResponse::AddedToFav);
             }
             Ok(BKCommand::AcceptInv(server, access_token, roomid)) => {
@@ -308,8 +322,8 @@ impl Backend {
                 let r = room::invite(self, server, access_token, room, userid);
                 bkerror!(r, tx, BKResponse::InviteError);
             }
-            Ok(BKCommand::ChangeLanguage(access_token, server, lang, room)) => {
-                let r = room::set_language(self, access_token, server, &room, &lang);
+            Ok(BKCommand::ChangeLanguage(access_token, server, uid, room, lang)) => {
+                let r = room::set_language(self, access_token, server, uid, room, lang);
                 bkerror2!(r, tx, BKResponse::ChangeLanguage);
             }
 
@@ -377,20 +391,6 @@ impl Backend {
 
                 let r = directory::room_search(self, server, access_token, hs, q, tp, more);
                 bkerror2!(r, tx, BKResponse::DirectorySearch);
-            }
-
-            // Stickers module
-            Ok(BKCommand::ListStickers(access_token)) => {
-                let r = stickers::list(self, access_token);
-                bkerror2!(r, tx, BKResponse::Stickers);
-            }
-            Ok(BKCommand::SendSticker(server, access_token, room, sticker)) => {
-                let r = stickers::send(self, server, access_token, room, sticker);
-                bkerror2!(r, tx, BKResponse::Stickers);
-            }
-            Ok(BKCommand::PurchaseSticker(access_token, group)) => {
-                let r = stickers::purchase(self, access_token, group);
-                bkerror2!(r, tx, BKResponse::Stickers);
             }
 
             // Internal commands

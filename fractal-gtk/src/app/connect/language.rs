@@ -28,8 +28,9 @@ impl App {
                         if let (Some(active_room), Some(login_data)) = (&op.active_room, &op.login_data) {
                             let server = login_data.server_url.clone();
                             let access_token = login_data.access_token.clone();
+                            let uid = login_data.uid.clone();
                             op.backend
-                                .send(BKCommand::ChangeLanguage(access_token, server, lang_code, active_room.clone()))
+                                .send(BKCommand::ChangeLanguage(access_token, server, uid, active_room.clone(), lang_code))
                                 .unwrap();
                         }
                     }

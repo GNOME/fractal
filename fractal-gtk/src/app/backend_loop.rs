@@ -28,8 +28,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(bk_logout);
                 }
                 BKResponse::Name(Ok(username)) => {
-                    let u = Some(username);
-                    APPOP!(set_username, (u));
+                    APPOP!(set_username, (username));
                 }
                 BKResponse::GetThreePID(Ok(list)) => {
                     let l = Some(list);

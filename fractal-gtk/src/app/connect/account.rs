@@ -82,6 +82,7 @@ impl App {
             &backend,
             login_data.server_url,
             login_data.access_token,
+            login_data.uid,
         );
         let container = self
             .ui

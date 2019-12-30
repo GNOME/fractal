@@ -573,6 +573,7 @@ impl AppOp {
                 .send(BKCommand::SetUserName(
                     login_data.server_url,
                     login_data.access_token,
+                    login_data.uid,
                     username,
                 ))
                 .unwrap();

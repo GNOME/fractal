@@ -375,9 +375,9 @@ pub fn send_typing(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
+    userid: String,
     roomid: String,
 ) -> Result<(), Error> {
-    let userid = bk.data.lock().unwrap().user_id.clone();
     let url = bk.url(
         base,
         &access_token,
@@ -828,6 +828,7 @@ pub fn direct_chat(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
+    userid: String,
     user: Member,
     internal_id: String,
 ) -> Result<(), Error> {
@@ -846,7 +847,6 @@ pub fn direct_chat(
         }
     });
 
-    let userid = bk.data.lock().unwrap().user_id.clone();
     let direct_url = bk.url(
         base,
         &access_token,
@@ -882,10 +882,10 @@ pub fn add_to_fav(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
+    userid: String,
     roomid: String,
     tofav: bool,
 ) -> Result<(), Error> {
-    let userid = bk.data.lock().unwrap().user_id.clone();
     let url = bk.url(
         base,
         &access_token,
@@ -960,10 +960,10 @@ pub fn set_language(
     bk: &Backend,
     access_token: AccessToken,
     server: Url,
-    roomid: &str,
-    language_code: &str,
+    userid: String,
+    roomid: String,
+    input_language: String,
 ) -> Result<(), Error> {
-    let userid = bk.data.lock().unwrap().user_id.clone();
     let url = bk.url(
         server,
         &access_token,
@@ -974,10 +974,9 @@ pub fn set_language(
         ),
         vec![],
     )?;
-    let body = json!(Language {
-        input_language: language_code.to_string(),
-    });
+    let body = json!(Language { input_language });
 
+    // FIXME: Manage errors in the AppOp loop
     put!(url, &body, |_| {}, |err| {
         error!(
             "Matrix failed to set room language with error code: {:?}",

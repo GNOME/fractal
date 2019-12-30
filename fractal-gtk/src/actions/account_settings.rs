@@ -21,6 +21,7 @@ pub fn new(
     backend: &Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
+    uid: String,
 ) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     // TODO create two stats loading interaction and connect it to the avatar box
@@ -42,6 +43,7 @@ pub fn new(
                 let _ = backend.send(BKCommand::SetUserAvatar(
                     server_url.clone(),
                     access_token.clone(),
+                    uid.clone(),
                     file.to_string(),
                 ));
             } else {

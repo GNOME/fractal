@@ -15,10 +15,13 @@ impl AppOp {
     pub fn get_username(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         self.backend
-            .send(BKCommand::GetUsername(login_data.server_url.clone()))
+            .send(BKCommand::GetUsername(
+                login_data.server_url.clone(),
+                login_data.uid.clone(),
+            ))
             .unwrap();
         self.backend
-            .send(BKCommand::GetAvatar(login_data.server_url))
+            .send(BKCommand::GetAvatar(login_data.server_url, login_data.uid))
             .unwrap();
     }
 
