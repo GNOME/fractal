@@ -6,7 +6,7 @@ use gstreamer_editing_services::UriClipAsset;
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
-use log::error;
+use log::{error, warn};
 use rand::Rng;
 use serde_json::json;
 use serde_json::Value as JsonValue;
@@ -54,26 +54,28 @@ impl AppOp {
         None
     }
 
-    pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
-        let messages = self.history.as_ref()?.get_listbox();
-        if let Some(ui_msg) = self.create_new_room_message(&msg) {
-            let backend = self.backend.clone();
-            let mb =
-                widgets::MessageBox::new(backend, self.server_url.clone()).tmpwidget(&ui_msg)?;
-            let m = mb.get_listbox_row()?;
-            messages.add(m);
-
-            if let Some(w) = messages.get_children().iter().last() {
-                self.msg_queue.insert(
-                    0,
-                    TmpMsg {
-                        msg: msg.clone(),
-                        widget: Some(w.clone()),
-                    },
-                );
-            };
+    pub fn add_tmp_room_message(&mut self, msg: Message) {
+        if let Some(history) = self.history.as_ref() {
+            let messages = history.get_listbox();
+            if let Some(ui_msg) = self.create_new_room_message(&msg) {
+                let backend = self.backend.clone();
+                let mb =
+                    widgets::MessageBox::new(backend, self.server_url.clone()).tmpwidget(&ui_msg);
+                let m = mb.get_listbox_row();
+                messages.add(m);
+                if let Some(w) = messages.get_children().iter().last() {
+                    self.msg_queue.insert(
+                        0,
+                        TmpMsg {
+                            msg: msg.clone(),
+                            widget: Some(w.clone()),
+                        },
+                    );
+                };
+            }
+        } else {
+            warn!("Temporary room message could not be added due to missing history in AppOp.");
         }
-        None
     }
 
     pub fn clear_tmp_msgs(&mut self) {
@@ -93,9 +95,9 @@ impl AppOp {
         for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                 let backend = self.backend.clone();
-                let mb = widgets::MessageBox::new(backend, self.server_url.clone())
-                    .tmpwidget(&ui_msg)?;
-                let m = mb.get_listbox_row()?;
+                let mb =
+                    widgets::MessageBox::new(backend, self.server_url.clone()).tmpwidget(&ui_msg);
+                let m = mb.get_listbox_row();
                 messages.add(m);
 
                 if let Some(w) = messages.get_children().iter().last() {

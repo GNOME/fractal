@@ -43,7 +43,7 @@ impl List {
         match element {
             Element::Message(ref message) => {
                 self.listbox
-                    .insert(message.widget.as_ref()?.get_listbox_row()?, 1);
+                    .insert(message.widget.as_ref()?.get_listbox_row(), 1);
             }
             Element::NewDivider(ref divider) => {
                 self.listbox.insert(divider.get_widget(), 1);
@@ -63,7 +63,7 @@ impl List {
         match element {
             Element::Message(ref message) => {
                 self.listbox
-                    .insert(message.widget.as_ref()?.get_listbox_row()?, -1);
+                    .insert(message.widget.as_ref()?.get_listbox_row(), -1);
             }
             Element::NewDivider(ref divider) => {
                 self.listbox.insert(divider.get_widget(), -1);
@@ -193,12 +193,12 @@ impl RoomHistory {
                         let divider = Element::NewDivider(create_new_message_divider());
                         rows.borrow_mut().add_top(divider);
                     }
-                    item.widget = create_row(
+                    item.widget = Some(create_row(
                         item.clone(),
                         has_header,
                         backend.clone(),
                         server_url.clone(),
-                    );
+                    ));
                     rows.borrow_mut().add_top(Element::Message(item));
                     if let Some(day_divider) = day_divider {
                         rows.borrow_mut().add_top(day_divider);
@@ -262,7 +262,7 @@ impl RoomHistory {
             self.backend.clone(),
             self.server_url.clone(),
         );
-        item.widget = b;
+        item.widget = Some(b);
         rows.add_bottom(Element::Message(item));
         None
     }
@@ -306,13 +306,13 @@ fn create_row(
     has_header: bool,
     backend: Sender<BKCommand>,
     server_url: Url,
-) -> Option<widgets::MessageBox> {
+) -> widgets::MessageBox {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
     let mut mb = widgets::MessageBox::new(backend, server_url);
     mb.create(&row, has_header && row.mtype != RowType::Emote);
 
-    Some(mb)
+    mb
 }
 
 /* returns if two messages should have only a single header or not */
