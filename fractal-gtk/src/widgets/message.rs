@@ -93,18 +93,17 @@ impl MessageBox {
         self.connect_right_click_menu(msg, None);
     }
 
-    // FIXME: return directly row
-    pub fn get_listbox_row(&self) -> Option<&gtk::ListBoxRow> {
-        Some(&self.row)
+    pub fn get_listbox_row(&self) -> &gtk::ListBoxRow {
+        &self.row
     }
 
-    pub fn tmpwidget(mut self, msg: &Message) -> Option<MessageBox> {
+    pub fn tmpwidget(mut self, msg: &Message) -> MessageBox {
         self.create(msg, true);
         {
-            let w = self.get_listbox_row()?;
+            let w = self.get_listbox_row();
             w.get_style_context().add_class("msg-tmp");
         }
-        Some(self)
+        self
     }
 
     pub fn update_header(&mut self, msg: Message, has_header: bool) {
