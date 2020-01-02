@@ -67,8 +67,8 @@ impl AppOp {
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
             let backend = self.backend.clone();
-            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(&ui_msg)?;
-            let m = mb.get_listbox_row()?;
+            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(&ui_msg);
+            let m = mb.get_listbox_row();
             messages.add(m);
 
             if let Some(w) = messages.get_children().iter().last() {
@@ -103,8 +103,8 @@ impl AppOp {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                 let backend = self.backend.clone();
                 let mb = widgets::MessageBox::new(backend, login_data.server_url.clone())
-                    .tmpwidget(&ui_msg)?;
-                let m = mb.get_listbox_row()?;
+                    .tmpwidget(&ui_msg);
+                let m = mb.get_listbox_row();
                 messages.add(m);
 
                 if let Some(w) = messages.get_children().iter().last() {
