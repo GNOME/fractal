@@ -36,7 +36,7 @@ pub fn new(
     let window_weak = window.downgrade();
     let backend = backend.clone();
     change_avatar.connect_activate(move |a, data| {
-        if let Some(id) = data.as_ref().map(|x| x.to_string()) {
+        if let Some(Some(id)) = data.as_ref().map(|x| x.get_str()) {
             let window = upgrade_weak!(window_weak);
             let filter = gtk::FileFilter::new();
             filter.set_name(Some(i18n("Images").as_str()));
@@ -47,7 +47,7 @@ pub fn new(
                     let _ = backend.send(BKCommand::SetRoomAvatar(
                         server_url.clone(),
                         access_token.clone(),
-                        id,
+                        id.to_string(),
                         file.to_string(),
                     ));
                 } else {
