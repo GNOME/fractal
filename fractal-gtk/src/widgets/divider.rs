@@ -9,7 +9,7 @@ pub struct NewMessageDivider {
 }
 
 impl NewMessageDivider {
-    pub fn new(text: &str) -> NewMessageDivider {
+    pub fn new<F: Fn() + 'static>(text: &str, remove_divider: F) -> NewMessageDivider {
         let row = gtk::ListBoxRow::new();
         row.set_selectable(false);
 
@@ -43,30 +43,25 @@ impl NewMessageDivider {
          * destroy the NewMessageDivider after it's added to the History with a couple of
          * secounds delay */
         let revealer_weak = revealer.downgrade();
-        row.connect_parent_set(move |w, _| {
-            || -> Option<()> {
-                let revealer = revealer_weak.upgrade()?;
+        row.connect_parent_set(move |_, _| {
+            revealer_weak.upgrade().map(|revealer| {
                 let revealer_weak = revealer.downgrade();
                 gtk::timeout_add(5000, move || {
                     /* when the user closes the room the divider gets destroyed and this tiemout
                      * does nothing, but that's fine */
-                    || -> Option<()> {
-                        let r = revealer_weak.upgrade()?;
+                    revealer_weak.upgrade().map(|r| {
                         r.set_reveal_child(false);
-                        None
-                    }();
+                    });
                     glib::Continue(false)
                 });
-                let row_weak = w.downgrade();
-                revealer.connect_property_child_revealed_notify(move |_| {
-                    || -> Option<()> {
-                        let r = row_weak.upgrade()?;
-                        r.destroy();
-                        None
-                    }();
-                });
-                None
-            }();
+            });
+        });
+        let row_weak = row.downgrade();
+        revealer.connect_property_child_revealed_notify(move |_| {
+            row_weak.upgrade().map(|r| {
+                r.destroy();
+                remove_divider();
+            });
         });
         NewMessageDivider {
             revealer: revealer,
