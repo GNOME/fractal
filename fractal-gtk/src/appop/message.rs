@@ -186,7 +186,7 @@ impl AppOp {
         if let Some(next) = self.msg_queue.last() {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
-                "m.image" | "m.file" | "m.audio" => {
+                "m.image" | "m.file" | "m.audio" | "m.video" => {
                     self.backend
                         .send(BKCommand::AttachFile(
                             login_data.server_url,
@@ -293,6 +293,19 @@ impl AppOp {
                         "audio/flac" => "m.audio",
                         "audio/x-flac" => "m.audio",
                         "application/x-riff" => "m.audio",
+                        "video/x-msvideo" => "m.video",
+                        "video/mpeg" => "m.video",
+                        "video/ogg" => "m.video",
+                        "video/mp2t" => "m.video",
+                        "video/webm" => "m.video",
+                        "video/3gpp" => "m.video",
+                        "video/3gpp2" => "m.video",
+                        "video/x-flv" => "m.video",
+                        "video/mp4" => "m.video",
+                        "application/x-mpegURL" => "m.video",
+                        "video/MP2T" => "m.video",
+                        "video/quicktime" => "m.video",
+                        "video/x-ms-wmv" => "m.video",
                         _ => "m.file",
                     };
                     let body = path
@@ -304,7 +317,8 @@ impl AppOp {
                     let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
                     let info = match mtype {
                         "m.image" => get_image_media_info(path_string, mime.as_ref()),
-                        "m.audio" => get_audio_media_info(path_string, mime.as_ref()),
+                        "m.audio" => get_audio_video_media_info(path_string, mime.as_ref()),
+                        "m.video" => get_audio_video_media_info(path_string, mime.as_ref()),
                         "m.file" => get_file_media_info(path_string, mime.as_ref()),
                         _ => None,
                     };
@@ -568,7 +582,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     Some(info)
 }
 
-fn get_audio_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
+fn get_audio_video_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let nfile = format!("file://{}", file);
     let uri = UriClipAsset::request_sync(&nfile).ok()?;
     let duration = uri.get_duration().mseconds()?;
