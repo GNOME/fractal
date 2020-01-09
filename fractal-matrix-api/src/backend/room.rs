@@ -703,8 +703,10 @@ pub fn attach_file(
                 }
                 Ok(thumb_uri) => {
                     msg.thumb = Some(thumb_uri.to_string());
-                    extra_content.clone().unwrap().info.thumbnail_url = Some(thumb_uri);
-                    msg.extra_content = Some(serde_json::to_value(&extra_content).unwrap());
+                    if let Some(mut xctx) = extra_content {
+                        xctx.info.thumbnail_url = Some(thumb_uri);
+                        msg.extra_content = Some(serde_json::to_value(&xctx).unwrap());
+                    }
                 }
             }
             if let Err(_e) = std::fs::remove_file(&thumb) {

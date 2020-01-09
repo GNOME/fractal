@@ -339,8 +339,9 @@ impl MessageBox {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let img_path = match msg.thumb {
-            Some(ref m) => m.clone(),
-            None => msg.url.clone().unwrap_or_default(),
+            // If the thumbnail is not a valid URL we use the msg.url
+            Some(ref m) if m.starts_with("mxc:") || m.starts_with("http") => m.clone(),
+            _ => msg.url.clone().unwrap_or_default(),
         };
         let image = widgets::image::Image::new(&self.backend, self.server_url.clone(), &img_path)
             .size(Some(globals::MAX_IMAGE_SIZE))
