@@ -1,6 +1,6 @@
 use crate::i18n::{i18n, i18n_k};
 
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{RoomId, UserId};
 use gtk;
 use gtk::prelude::*;
 
@@ -80,7 +80,7 @@ impl AppOp {
         }
     }
 
-    pub fn rm_from_invite(&mut self, uid: String) {
+    pub fn rm_from_invite(&mut self, uid: UserId) {
         let idx = self.invite_list.iter().position(|x| x.0.uid == uid);
         if let Some(i) = idx {
             self.invite_list.remove(i);

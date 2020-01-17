@@ -19,7 +19,7 @@ pub enum AvatarBadgeColor {
 pub type Avatar = gtk::Overlay;
 
 pub struct AvatarData {
-    uid: String,
+    id: String,
     username: Option<String>,
     size: i32,
     cache: Option<Pixbuf>,
@@ -31,13 +31,13 @@ impl AvatarData {
     pub fn redraw_fallback(&mut self, username: Option<String>) {
         self.username = username.clone();
         /* This function should never fail */
-        self.fallback = letter_avatar::generate::new(self.uid.clone(), username, self.size as f64)
+        self.fallback = letter_avatar::generate::new(self.id.clone(), username, self.size as f64)
             .expect("this function should never fail");
         self.widget.queue_draw();
     }
 
     pub fn redraw_pixbuf(&mut self) {
-        let path = cache_dir_path(None, &self.uid).unwrap_or_default();
+        let path = cache_dir_path(None, self.id.as_str()).unwrap_or_default();
         self.cache = load_pixbuf(&path, self.size);
         self.widget.queue_draw();
     }
@@ -49,7 +49,7 @@ pub trait AvatarExt {
     fn create_da(&self, size: Option<i32>) -> DrawingArea;
     fn circle(
         &self,
-        uid: String,
+        id: String,
         username: Option<String>,
         size: i32,
         badge: Option<AvatarBadgeColor>,
@@ -84,14 +84,14 @@ impl AvatarExt for gtk::Overlay {
         b
     }
     /// # Arguments
-    /// * `uid` - Matrix ID
+    /// * `id` - User or Room ID
     /// * `username` - Full name
     /// * `size` - Size of the avatar
     /// * `badge_color` - Badge color. None for no badge
     /// * `badge_size` - Badge size. None for size / 3
     fn circle(
         &self,
-        uid: String,
+        id: String,
         username: Option<String>,
         size: i32,
         badge_color: Option<AvatarBadgeColor>,
@@ -99,7 +99,7 @@ impl AvatarExt for gtk::Overlay {
     ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
-        let path = cache_dir_path(None, &uid).unwrap_or_default();
+        let path = cache_dir_path(None, id.as_str()).unwrap_or_default();
         let user_avatar = load_pixbuf(&path, size);
         let uname = username.clone();
         /* remove IRC postfix from the username */
@@ -109,7 +109,7 @@ impl AvatarExt for gtk::Overlay {
             None
         };
         /* This function should never fail */
-        let fallback = letter_avatar::generate::new(uid.clone(), username, size as f64)
+        let fallback = letter_avatar::generate::new(id.clone(), username, size as f64)
             .expect("this function should never fail");
 
         // Power level badge setup
@@ -130,7 +130,7 @@ impl AvatarExt for gtk::Overlay {
         }
 
         let data = AvatarData {
-            uid: uid.clone(),
+            id,
             username: uname,
             size: size,
             cache: user_avatar,

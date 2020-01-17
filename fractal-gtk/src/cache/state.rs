@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::types::Message;
 use crate::types::Room;
+use fractal_api::identifiers::UserId;
 use fractal_api::util::cache_dir_path;
 
 // Models
@@ -24,7 +25,7 @@ use fractal_api::util::cache_dir_path;
 pub struct AppState {
     pub since: Option<String>,
     pub username: String,
-    pub uid: String,
+    pub uid: UserId,
     pub device_id: String,
 }
 

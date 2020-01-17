@@ -2,7 +2,7 @@ use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{RoomId, UserId};
 use serde::ser::SerializeMap;
 use serde::Serialize;
 use serde::Serializer;
@@ -44,7 +44,7 @@ impl Serialize for Body {
 pub fn request(
     base: Url,
     room_id: &RoomId,
-    user_id: &str,
+    user_id: &UserId,
     params: &Parameters,
     body: &Body,
 ) -> Result<Request, Error> {

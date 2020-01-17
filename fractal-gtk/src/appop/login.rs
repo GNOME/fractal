@@ -1,5 +1,6 @@
 use log::error;
 
+use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 
 use fractal_api::url::Url;
@@ -25,7 +26,7 @@ use super::LoginData;
 impl AppOp {
     pub fn bk_login(
         &mut self,
-        uid: String,
+        uid: UserId,
         access_token: AccessToken,
         device: Option<String>,
         server_url: Url,

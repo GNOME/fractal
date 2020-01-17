@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::types::Room;
 use crate::types::RoomList;
 use failure::Error;
+use fractal_api::identifiers::UserId;
 use std::collections::HashMap;
 
 use crate::globals;
@@ -32,7 +33,7 @@ pub struct CacheData {
     pub since: Option<String>,
     pub rooms: RoomList,
     pub username: String,
-    pub uid: String,
+    pub uid: UserId,
     pub device_id: String,
 }
 
@@ -40,7 +41,7 @@ pub fn store(
     rooms: &RoomList,
     since: Option<String>,
     username: String,
-    uid: String,
+    uid: UserId,
     device_id: String,
 ) -> Result<(), Error> {
     // don't store all messages in the cache
@@ -100,15 +101,11 @@ pub fn load() -> Result<CacheData, Error> {
 pub fn download_to_cache(
     backend: Sender<BKCommand>,
     server_url: Url,
-    name: String,
+    uid: UserId,
     data: Rc<RefCell<AvatarData>>,
 ) {
     let (tx, rx) = channel::<(String, String)>();
-    let _ = backend.send(BKCommand::GetUserInfoAsync(
-        server_url,
-        name.clone(),
-        Some(tx),
-    ));
+    let _ = backend.send(BKCommand::GetUserInfoAsync(server_url, uid, Some(tx)));
 
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -124,13 +121,13 @@ pub fn download_to_cache(
 pub fn download_to_cache_username(
     backend: Sender<BKCommand>,
     server_url: Url,
-    uid: &str,
+    uid: UserId,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
     backend
-        .send(BKCommand::GetUserNameAsync(server_url, uid.to_string(), tx))
+        .send(BKCommand::GetUserNameAsync(server_url, uid, tx))
         .unwrap();
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
@@ -152,14 +149,14 @@ pub fn download_to_cache_username(
 pub fn download_to_cache_username_emote(
     backend: Sender<BKCommand>,
     server_url: Url,
-    uid: &str,
+    uid: UserId,
     text: &str,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
     backend
-        .send(BKCommand::GetUserNameAsync(server_url, uid.to_string(), tx))
+        .send(BKCommand::GetUserNameAsync(server_url, uid, tx))
         .unwrap();
     let text = text.to_string();
     gtk::timeout_add(50, move || match rx.try_recv() {
