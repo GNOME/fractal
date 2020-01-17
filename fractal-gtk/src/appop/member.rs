@@ -1,9 +1,10 @@
 use fractal_api::clone;
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{RoomId, UserId};
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
@@ -23,16 +24,11 @@ pub enum SearchType {
 
 impl AppOp {
     pub fn member_level(&self, member: &Member) -> i32 {
-        if let Some(r) = self
-            .active_room
+        self.active_room
             .as_ref()
-            .and_then(|a_room| self.rooms.get(a_room))
-        {
-            if let Some(level) = r.admins.get(&member.uid) {
-                return *level;
-            }
-        }
-        0
+            .and_then(|a_room| self.rooms.get(a_room)?.admins.get(&member.uid))
+            .copied()
+            .unwrap_or(0)
     }
 
     pub fn set_room_members(&mut self, room_id: RoomId, members: Vec<Member>) {
@@ -55,10 +51,10 @@ impl AppOp {
         // NOTE: maybe we should show this events in the message list to notify enters and leaves
         // to the user
 
-        let sender = ev.sender.clone();
+        let sender = ev.sender;
         match ev.content["membership"].as_str() {
             Some("leave") => {
-                if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
+                if let Some(r) = self.rooms.get_mut(&ev.room) {
                     r.members.remove(&sender);
                 }
             }
@@ -70,7 +66,7 @@ impl AppOp {
                     alias: Some(String::from(
                         ev.content["displayname"].as_str().unwrap_or_default(),
                     )),
-                    uid: sender.clone(),
+                    uid: sender,
                 };
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
                     r.members.insert(m.uid.clone(), m.clone());
@@ -160,16 +156,17 @@ impl AppOp {
         }
         scroll.hide();
 
-        let t = term.unwrap_or_default();
-        let uid_in_term = t.contains("@") && t.contains(":");
+        let uid_term = term.and_then(|t| UserId::try_from(t.as_str()).ok());
         // Adding a new user if the user
-        if uid_in_term && !users.iter().find(|u| u.uid == t).is_some() {
-            let member = Member {
-                avatar: None,
-                alias: None,
-                uid: t,
-            };
-            users.insert(0, member);
+        if let Some(uid) = uid_term {
+            if let None = users.iter().find(|u| u.uid == uid) {
+                let member = Member {
+                    avatar: None,
+                    alias: None,
+                    uid,
+                };
+                users.insert(0, member);
+            }
         }
 
         for (i, u) in users.iter().enumerate() {

@@ -8,9 +8,10 @@ use crate::r0::sync::sync_events::Response as SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
 use log::{debug, info};
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{Error as IdError, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::convert::{TryFrom, TryInto};
 use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -99,8 +100,8 @@ pub struct Room {
 
     /// Hashmap with the room users power levels
     /// the key will be the userid and the value will be the level
-    pub admins: HashMap<String, i32>,
-    pub power_levels: HashMap<String, i32>,
+    pub admins: HashMap<UserId, i32>,
+    pub default_power_level: i32,
 }
 
 impl Room {
@@ -124,13 +125,17 @@ impl Room {
             typing_users: Default::default(),
             language: Default::default(),
             admins: Default::default(),
-            power_levels: Default::default(),
+            default_power_level: -1,
         }
     }
 
-    pub fn from_sync_response(response: &SyncResponse, userid: &str, baseu: &Url) -> Vec<Self> {
+    pub fn from_sync_response(
+        response: &SyncResponse,
+        user_id: UserId,
+        baseu: &Url,
+    ) -> Result<Vec<Self>, IdError> {
         // getting the list of direct rooms
-        let direct: HashSet<String> = parse_m_direct(&response.account_data.events)
+        let direct: HashSet<RoomId> = parse_m_direct(&response.account_data.events)?
             .values()
             .flatten()
             .cloned()
@@ -154,17 +159,17 @@ impl Room {
                 .map(|lang| lang.to_string());
 
             let mut r = Self {
-                name: calculate_room_name(stevents, userid),
+                name: calculate_room_name(stevents, &user_id),
                 avatar: evc(stevents, "m.room.avatar", "url"),
                 alias: evc(stevents, "m.room.canonical_alias", "alias"),
                 topic: evc(stevents, "m.room.topic", "topic"),
-                direct: direct.contains(&k.to_string()),
+                direct: direct.contains(&k),
                 notifications: room.unread_notifications.notification_count,
                 highlight: room.unread_notifications.highlight_count,
                 prev_batch: timeline.prev_batch.clone(),
-                messages: Message::from_json_events_iter(&k, timeline.events.iter()),
-                admins: get_admins(stevents),
-                power_levels: get_power_levels(stevents),
+                messages: Message::from_json_events_iter(&k, timeline.events.iter())?,
+                admins: get_admins(stevents)?,
+                default_power_level: get_default_power_level(stevents),
                 members: stevents
                     .iter()
                     .filter(|x| x["type"] == "m.room.member")
@@ -187,25 +192,26 @@ impl Room {
                 .into_iter()
                 .find(|x| x["type"] == "m.fully_read")
                 .and_then(|fread| fread["content"]["event_id"].as_str())
+                .map(ToOwned::to_owned)
             {
-                r.add_receipt_from_fully_read(userid, ev);
+                r.add_receipt_from_fully_read(user_id.clone(), ev);
             }
 
-            r
+            Ok(r)
         });
 
         let left_rooms = response.rooms.leave.iter().map(|(k, room)| {
-            if let Some(last_event) = room.timeline.events.last() {
-                let leave_id = &last_event["sender"];
-                if leave_id != userid {
+            let r = if let Some(last_event) = room.timeline.events.last() {
+                let leave_id = UserId::try_from(last_event["sender"].as_str().unwrap_or_default())?;
+                if leave_id != user_id {
                     let kick_reason = &last_event["content"]["reason"];
                     if let Some((kicker_alias, kicker_avatar)) =
-                        get_user_avatar(baseu, leave_id.as_str().unwrap_or_default()).ok()
+                        get_user_avatar(baseu, &leave_id).ok()
                     {
                         let kicker = Member {
                             alias: Some(kicker_alias),
                             avatar: Some(kicker_avatar),
-                            uid: String::from(leave_id.as_str().unwrap_or_default()),
+                            uid: leave_id,
                         };
                         let reason = Reason::Kicked(
                             String::from(kick_reason.as_str().unwrap_or_default()),
@@ -220,36 +226,50 @@ impl Room {
                 }
             } else {
                 Self::new(k.clone(), RoomMembership::Left(Reason::None))
-            }
+            };
+
+            Ok(r)
         });
 
-        let invited_rooms = response.rooms.invite.iter().filter_map(|(k, room)| {
-            let stevents = &room.invite_state.events;
-            if let Some((alias, avatar)) = stevents
-                .iter()
-                .find(|x| x["content"]["membership"] == "invite" && x["state_key"] == userid)
-                .and_then(|ev| {
-                    get_user_avatar(baseu, ev["sender"].as_str().unwrap_or_default()).ok()
-                })
-            {
-                let inv_sender = Member {
-                    alias: Some(alias),
-                    avatar: Some(avatar),
-                    uid: String::from(userid),
-                };
+        let invited_rooms = response
+            .rooms
+            .invite
+            .iter()
+            .map(|(k, room)| {
+                let stevents = &room.invite_state.events;
+                let alias_avatar: Result<Option<(String, String)>, IdError> = stevents
+                    .iter()
+                    .find(|x| {
+                        x["content"]["membership"] == "invite"
+                            && x["state_key"] == user_id.to_string().as_str()
+                    })
+                    .map_or(Ok(None), |ev| {
+                        Ok(get_user_avatar(
+                            baseu,
+                            &UserId::try_from(ev["sender"].as_str().unwrap_or_default())?,
+                        )
+                        .ok())
+                    });
+                if let Some((alias, avatar)) = alias_avatar? {
+                    let inv_sender = Member {
+                        alias: Some(alias),
+                        avatar: Some(avatar),
+                        uid: user_id.clone(),
+                    };
 
-                Some(Self {
-                    name: calculate_room_name(stevents, userid),
-                    avatar: evc(stevents, "m.room.avatar", "url"),
-                    alias: evc(stevents, "m.room.canonical_alias", "alias"),
-                    topic: evc(stevents, "m.room.topic", "topic"),
-                    direct: direct.contains(&k.to_string()),
-                    ..Self::new(k.clone(), RoomMembership::Invited(inv_sender))
-                })
-            } else {
-                None
-            }
-        });
+                    Ok(Some(Self {
+                        name: calculate_room_name(stevents, &user_id),
+                        avatar: evc(stevents, "m.room.avatar", "url"),
+                        alias: evc(stevents, "m.room.canonical_alias", "alias"),
+                        topic: evc(stevents, "m.room.topic", "topic"),
+                        direct: direct.contains(&k),
+                        ..Self::new(k.clone(), RoomMembership::Invited(inv_sender))
+                    }))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map(Result::transpose);
 
         joined_rooms
             .chain(left_rooms)
@@ -258,7 +278,7 @@ impl Room {
     }
 
     pub fn add_receipt_from_json(&mut self, mut events: Vec<&JsonValue>) {
-        let receipts: HashMap<String, HashMap<String, i64>> = events
+        let receipts: HashMap<String, HashMap<UserId, i64>> = events
             .pop()
             .and_then(|ev| ev["content"].as_object())
             .into_iter()
@@ -273,29 +293,28 @@ impl Room {
                         if ts == 0 {
                             info!("Possibly malformed timestamp, working around synapse bug 4898");
                         };
-                        (uid.to_string(), ts)
+                        Ok((UserId::try_from(uid.as_str())?, ts))
                     })
-                    .collect();
+                    .collect::<Result<HashMap<UserId, i64>, IdError>>()
+                    .ok()?;
 
                 Some((mid.to_string(), receipts))
             })
             .collect();
 
-        if !receipts.is_empty() {
-            for msg in self.messages.iter_mut() {
-                if let Some(r) = receipts.get(&msg.id) {
-                    msg.set_receipt(r.clone());
-                }
+        for msg in self.messages.iter_mut() {
+            if let Some(r) = receipts.get(&msg.id) {
+                msg.set_receipt(r.clone());
             }
         }
     }
 
-    pub fn add_receipt_from_fully_read(&mut self, uid: &str, evid: &str) {
+    pub fn add_receipt_from_fully_read(&mut self, uid: UserId, evid: String) {
         let _ = self
             .messages
             .iter_mut()
-            .filter(|msg| msg.id == evid.to_string())
-            .map(|msg| msg.receipt.insert(uid.to_string(), 0));
+            .filter(|msg| msg.id == evid)
+            .map(|msg| msg.receipt.insert(uid.clone(), 0));
     }
 }
 
@@ -330,27 +349,32 @@ fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
         .map(Into::into)
 }
 
-fn get_admins(stevents: &Vec<JsonValue>) -> HashMap<String, i32> {
+fn get_admins(stevents: &Vec<JsonValue>) -> Result<HashMap<UserId, i32>, IdError> {
     stevents
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
         .filter_map(|ev| ev["content"]["users"].as_object())
         .flatten()
-        .map(|(k, v)| (k.clone(), v.as_i64().map(|v| v as i32).unwrap_or_default()))
+        .map(|(k, v)| {
+            Ok((
+                UserId::try_from(k.as_str())?,
+                v.as_i64().map(|v| v as i32).unwrap_or_default(),
+            ))
+        })
         .collect()
 }
 
-fn get_power_levels(stevents: &Vec<JsonValue>) -> HashMap<String, i32> {
+fn get_default_power_level(stevents: &Vec<JsonValue>) -> i32 {
     stevents
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
-        .filter_map(|ev| ev["content"].as_object())
-        .flatten()
-        .map(|(k, v)| (k.clone(), v.as_i64().map(|v| v as i32).unwrap_or_default()))
-        .collect()
+        .filter_map(|ev| ev["content"]["users_default"].as_i64())
+        .last()
+        .unwrap_or(-1) as i32
 }
 
-fn calculate_room_name(events: &Vec<JsonValue>, userid: &str) -> Option<String> {
+fn calculate_room_name(events: &Vec<JsonValue>, user_id: &UserId) -> Option<String> {
+    let userid = user_id.to_string();
     // looking for "m.room.name" event
     if let Some(name) = events
         .iter()
@@ -377,8 +401,9 @@ fn calculate_room_name(events: &Vec<JsonValue>, userid: &str) -> Option<String> 
         .iter()
         .filter(|x| {
             (x["type"] == "m.room.member"
-                && ((x["content"]["membership"] == "join" && x["sender"] != userid)
-                    || (x["content"]["membership"] == "invite" && x["state_key"] != userid)))
+                && ((x["content"]["membership"] == "join" && x["sender"] != userid.as_str())
+                    || (x["content"]["membership"] == "invite"
+                        && x["state_key"] != userid.as_str())))
         })
         .take(3)
         .map(|m| {
@@ -401,7 +426,7 @@ fn parse_room_member(msg: &JsonValue) -> Option<Member> {
     let _ = c["membership"].as_str().filter(|&m| m == "join")?;
 
     Some(Member {
-        uid: msg["sender"].as_str().map(Into::into)?,
+        uid: msg["sender"].as_str().unwrap_or_default().try_into().ok()?,
         alias: c["displayname"].as_str().map(Into::into),
         avatar: c["avatar_url"].as_str().map(Into::into),
     })

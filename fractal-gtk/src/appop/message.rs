@@ -478,7 +478,7 @@ impl AppOp {
                     if let Some(user) = login_data.username {
                         highlights.push(user);
                     }
-                    highlights.push(login_data.uid.clone());
+                    highlights.push(login_data.uid.to_string());
                     highlights.push(String::from("message_menu"));
 
                     RowType::Mention

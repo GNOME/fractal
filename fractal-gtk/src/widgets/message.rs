@@ -217,7 +217,7 @@ impl MessageBox {
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
 
         let data = avatar.circle(
-            uid.clone(),
+            uid.to_string(),
             alias.clone(),
             globals::MSG_ICON_SIZE,
             None,
@@ -226,7 +226,7 @@ impl MessageBox {
         if let Some(name) = alias {
             self.username.set_text(&name);
         } else {
-            self.username.set_text(&uid);
+            self.username.set_text(&uid.to_string());
         }
 
         download_to_cache(
@@ -238,7 +238,7 @@ impl MessageBox {
         download_to_cache_username(
             self.backend.clone(),
             self.server_url.clone(),
-            &uid,
+            uid,
             self.username.clone(),
             Some(data.clone()),
         );
@@ -246,9 +246,7 @@ impl MessageBox {
         avatar
     }
 
-    fn build_room_msg_username(&self, sender: &str) -> gtk::Label {
-        let uname = String::from(sender);
-
+    fn build_room_msg_username(&self, uname: String) -> gtk::Label {
         self.username.set_text(&uname);
         self.username.set_justify(gtk::Justification::Left);
         self.username.set_halign(gtk::Align::Start);
@@ -581,7 +579,8 @@ impl MessageBox {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let username = self.build_room_msg_username(&msg.sender);
+        let username =
+            self.build_room_msg_username(msg.sender_name.clone().unwrap_or(msg.sender.to_string()));
         let date = self.build_room_msg_date(&msg.date);
 
         self.username_event_box.add(&username);
@@ -595,10 +594,7 @@ impl MessageBox {
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         /* Use MXID till we have a alias */
-        let sname = msg
-            .sender_name
-            .clone()
-            .unwrap_or(String::from(msg.sender.clone()));
+        let sname = msg.sender_name.clone().unwrap_or(msg.sender.to_string());
         let msg_label = gtk::Label::new(None);
         let body: &str = &msg.body;
         let markup = markup_text(body);
@@ -606,7 +602,7 @@ impl MessageBox {
         download_to_cache_username_emote(
             self.backend.clone(),
             self.server_url.clone(),
-            &sname,
+            msg.sender.clone(),
             &markup,
             msg_label.clone(),
             None,

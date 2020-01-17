@@ -53,7 +53,7 @@ impl AppOp {
                 .get_object::<gtk::Label>("user_info_uid")
                 .expect("Can't find user_info_avatar in ui file.");
 
-            uid.set_text(&login_data.uid);
+            uid.set_text(&login_data.uid.to_string());
             name.set_text(&login_data.username.clone().unwrap_or_default());
 
             /* remove all old avatar from the popover */
@@ -63,7 +63,7 @@ impl AppOp {
 
             let w = widgets::Avatar::avatar_new(Some(40));
             let data = w.circle(
-                login_data.uid.clone(),
+                login_data.uid.to_string(),
                 login_data.username.clone(),
                 40,
                 None,
@@ -86,7 +86,13 @@ impl AppOp {
         match login_data.avatar.clone() {
             Some(_) => {
                 let w = widgets::Avatar::avatar_new(Some(24));
-                let data = w.circle(login_data.uid.clone(), login_data.username, 24, None, None);
+                let data = w.circle(
+                    login_data.uid.to_string(),
+                    login_data.username,
+                    24,
+                    None,
+                    None,
+                );
                 download_to_cache(
                     self.backend.clone(),
                     login_data.server_url.clone(),
