@@ -1,5 +1,6 @@
 use crate::r0::search::user::User;
 use crate::r0::sync::get_joined_members::RoomMember;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;
@@ -7,10 +8,7 @@ use url::Url;
 // TODO: Make this non-(de)serializable
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
-    // The mxid is either inside the json object, or outside of it.
-    // Since we don't know, we always have to populate it manually
-    #[serde(default)]
-    pub uid: String,
+    pub uid: UserId,
     #[serde(rename = "display_name")]
     pub alias: Option<String>,
     #[serde(rename = "avatar_url")]
@@ -24,7 +22,7 @@ impl Member {
                 return alias.clone();
             }
         }
-        self.uid.clone()
+        self.uid.to_string()
     }
 }
 
@@ -44,19 +42,15 @@ impl From<User> for Member {
     }
 }
 
-impl From<(String, RoomMember)> for Member {
-    fn from(uid_roommember: (String, RoomMember)) -> Self {
+impl From<(UserId, RoomMember)> for Member {
+    fn from((uid, roommember): (UserId, RoomMember)) -> Self {
         Member {
-            uid: uid_roommember.0,
-            alias: uid_roommember.1.display_name,
-            avatar: uid_roommember
-                .1
-                .avatar_url
-                .as_ref()
-                .map(ToString::to_string),
+            uid,
+            alias: roommember.display_name,
+            avatar: roommember.avatar_url.as_ref().map(ToString::to_string),
         }
     }
 }
 
 // hashmap userid -> Member
-pub type MemberList = HashMap<String, Member>;
+pub type MemberList = HashMap<UserId, Member>;

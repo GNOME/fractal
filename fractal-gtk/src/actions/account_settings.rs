@@ -1,4 +1,5 @@
 use crate::i18n::i18n;
+use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use gio::prelude::*;
@@ -21,7 +22,7 @@ pub fn new(
     backend: &Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
-    uid: String,
+    uid: UserId,
 ) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     // TODO create two stats loading interaction and connect it to the avatar box
