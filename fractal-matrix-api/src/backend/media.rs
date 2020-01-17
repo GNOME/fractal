@@ -117,7 +117,7 @@ fn get_room_media_list(
     }
 
     let evs = array.unwrap().iter().rev();
-    let media_list = Message::from_json_events_iter(room_id, evs);
+    let media_list = Message::from_json_events_iter(room_id, evs)?;
 
     Ok((media_list, prev_batch))
 }

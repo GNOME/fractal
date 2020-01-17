@@ -173,14 +173,11 @@ impl AppOp {
                 .downcast::<gtk::Stack>()
                 .unwrap();
 
-            let user_power = match room.admins.get(&login_data.uid) {
-                Some(p) => *p,
-                None => room
-                    .power_levels
-                    .get("users_default")
-                    .map(|x| *x)
-                    .unwrap_or(-1),
-            };
+            let user_power = room
+                .admins
+                .get(&login_data.uid)
+                .copied()
+                .unwrap_or(room.default_power_level);
 
             // No room admin information, assuming normal
             if user_power >= 0 || room.admins.len() == 0 {
@@ -423,7 +420,7 @@ impl AppOp {
                     if *m != login_data.uid {
                         //FIXME: Find a better solution
                         // create a symlink from user avatar to room avatar (works only on unix)
-                        if let Ok(source) = cache_dir_path(None, m) {
+                        if let Ok(source) = cache_dir_path(None, &m.to_string()) {
                             if let Ok(dest) = cache_dir_path(None, &room_id.to_string()) {
                                 let _ = fs::symlink(source, dest);
                             }

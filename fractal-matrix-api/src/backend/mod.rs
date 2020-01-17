@@ -158,7 +158,7 @@ impl Backend {
             Ok(BKCommand::ChangePassword(
                 server,
                 access_token,
-                username,
+                user,
                 old_password,
                 new_password,
             )) => {
@@ -166,7 +166,7 @@ impl Backend {
                     let query = user::change_password(
                         server,
                         access_token,
-                        username,
+                        user,
                         old_password,
                         new_password,
                     );
@@ -174,9 +174,9 @@ impl Backend {
                         .expect_log("Connection closed");
                 });
             }
-            Ok(BKCommand::AccountDestruction(server, access_token, username, password)) => {
+            Ok(BKCommand::AccountDestruction(server, access_token, user, password)) => {
                 thread::spawn(move || {
-                    let query = user::account_destruction(server, access_token, username, password);
+                    let query = user::account_destruction(server, access_token, user, password);
                     tx.send(BKResponse::AccountDestruction(query))
                         .expect_log("Connection closed");
                 });

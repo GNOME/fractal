@@ -4,6 +4,7 @@ use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
 use ruma_identifiers::DeviceId;
+use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -31,7 +32,7 @@ pub enum Auth {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
     pub access_token: Option<AccessToken>,
-    pub user_id: Option<String>,
+    pub user_id: Option<UserId>,
     pub device_id: Option<DeviceId>,
 }
 

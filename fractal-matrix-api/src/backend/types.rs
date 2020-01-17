@@ -1,4 +1,4 @@
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{RoomId, UserId};
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
@@ -25,8 +25,8 @@ pub enum BKCommand {
     Register(String, String, Url, Url),
     #[allow(dead_code)]
     Guest(Url, Url),
-    GetUsername(Url, String),
-    SetUserName(Url, AccessToken, String, String),
+    GetUsername(Url, UserId),
+    SetUserName(Url, AccessToken, UserId, String),
     GetThreePID(Url, AccessToken),
     GetTokenEmail(Url, AccessToken, Url, String, String),
     GetTokenPhone(Url, AccessToken, Url, String, String),
@@ -35,9 +35,9 @@ pub enum BKCommand {
     DeleteThreePID(Url, AccessToken, Medium, String),
     ChangePassword(Url, AccessToken, String, String, String),
     AccountDestruction(Url, AccessToken, String, String),
-    GetAvatar(Url, String),
-    SetUserAvatar(Url, AccessToken, String, String),
-    Sync(Url, AccessToken, String, Option<String>, bool),
+    GetAvatar(Url, UserId),
+    SetUserAvatar(Url, AccessToken, UserId, String),
+    Sync(Url, AccessToken, UserId, Option<String>, bool),
     GetRoomMembers(Url, AccessToken, RoomId),
     GetRoomMessages(Url, AccessToken, RoomId, String),
     GetRoomMessagesFromMsg(Url, AccessToken, RoomId, Message),
@@ -56,11 +56,11 @@ pub enum BKCommand {
     GetFileAsync(Url, Sender<String>),
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
     GetMedia(Url, String),
-    GetUserInfoAsync(Url, String, Option<Sender<(String, String)>>),
-    GetUserNameAsync(Url, String, Sender<String>),
+    GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
+    GetUserNameAsync(Url, UserId, Sender<String>),
     SendMsg(Url, AccessToken, Message),
     SendMsgRedaction(Url, AccessToken, Message),
-    SendTyping(Url, AccessToken, String, RoomId),
+    SendTyping(Url, AccessToken, UserId, RoomId),
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
     DirectoryProtocols(Url, AccessToken),
@@ -73,20 +73,20 @@ pub enum BKCommand {
     SetRoomAvatar(Url, AccessToken, RoomId, String),
     AttachFile(Url, AccessToken, Message),
     NewRoom(Url, AccessToken, String, RoomType, RoomId),
-    DirectChat(Url, AccessToken, String, Member, RoomId),
-    AddToFav(Url, AccessToken, String, RoomId, bool),
+    DirectChat(Url, AccessToken, UserId, Member, RoomId),
+    AddToFav(Url, AccessToken, UserId, RoomId, bool),
     AcceptInv(Url, AccessToken, RoomId),
     RejectInv(Url, AccessToken, RoomId),
     UserSearch(Url, AccessToken, String),
-    Invite(Url, AccessToken, RoomId, String),
-    ChangeLanguage(AccessToken, Url, String, RoomId, String),
+    Invite(Url, AccessToken, RoomId, UserId),
+    ChangeLanguage(AccessToken, Url, UserId, RoomId, String),
     SendBKResponse(BKResponse),
 }
 
 #[derive(Debug)]
 pub enum BKResponse {
     ShutDown,
-    Token(String, AccessToken, Option<String>, Url, Url),
+    Token(UserId, AccessToken, Option<String>, Url, Url),
     Logout(Result<(), Error>),
     Name(Result<Option<String>, Error>),
     SetUserName(Result<String, Error>),
@@ -101,13 +101,13 @@ pub enum BKResponse {
     Avatar(Result<String, Error>),
     SetUserAvatar(Result<String, Error>),
     Sync(Result<String, Error>),
-    Rooms(Vec<Room>, Option<Room>),
-    UpdateRooms(Vec<Room>),
+    Rooms(Result<(Vec<Room>, Option<Room>), Error>),
+    UpdateRooms(Result<Vec<Room>, Error>),
     RoomDetail(Result<(RoomId, String, String), Error>),
     RoomAvatar(Result<(RoomId, Option<Url>), Error>),
     NewRoomAvatar(RoomId),
     RoomMemberEvent(Event),
-    RoomMessages(Vec<Message>),
+    RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
     RoomMessagesTo(Result<(Vec<Message>, RoomId, Option<String>), Error>),
     RoomMembers(Result<(RoomId, Vec<Member>), Error>),
@@ -151,7 +151,7 @@ pub enum RoomType {
 pub struct BackendData {
     pub rooms_since: String,
     pub join_to_room: Option<RoomId>,
-    pub m_direct: HashMap<String, Vec<String>>,
+    pub m_direct: HashMap<UserId, Vec<RoomId>>,
 }
 
 #[derive(Clone)]
@@ -161,7 +161,7 @@ pub struct Backend {
     pub internal_tx: Option<Sender<BKCommand>>,
 
     // user info cache, uid -> (name, avatar)
-    pub user_info_cache: CacheMap<Arc<Mutex<(String, String)>>>,
+    pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,
     // semaphore to limit the number of threads downloading images
     pub limit_threads: Arc<(Mutex<u8>, Condvar)>,
 }

@@ -52,9 +52,9 @@ pub fn guest(bk: &Backend, server: Url, id_url: Url) {
                 let dev = response.device_id;
 
                 if let Some(tk) = response.access_token {
-                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use DeviceId
                         .expect_log("Connection closed");
-                    tx.send(BKResponse::Rooms(vec![], None))
+                    tx.send(BKResponse::Rooms(Ok((vec![], None))))
                         .expect_log("Connection closed");
                 } else {
                     tx.send(BKResponse::GuestLoginError(Error::BackendError))
@@ -104,11 +104,10 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
 
         match query {
             Ok(response) => {
-                let uid = response.user_id.unwrap_or(user);
                 let dev = response.device_id;
 
-                if let (Some(tk), false) = (response.access_token, uid.is_empty()) {
-                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId and DeviceId
+                if let (Some(tk), Some(uid)) = (response.access_token, response.user_id) {
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use DeviceId
                         .expect_log("Connection closed");
                 } else {
                     tx.send(BKResponse::LoginError(Error::BackendError))
@@ -164,7 +163,7 @@ pub fn register(bk: &Backend, user: String, password: String, server: Url, id_ur
                 let dev = response.device_id;
 
                 if let Some(tk) = response.access_token {
-                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use UserId
+                    tx.send(BKResponse::Token(uid, tk, dev, server, id_url))  // TODO: Use DeviceId
                         .expect_log("Connection closed");
                 }
             }
