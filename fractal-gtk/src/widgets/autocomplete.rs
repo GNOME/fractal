@@ -499,7 +499,7 @@ impl Autocomplete {
                                 let mut count = 0;
                                 for (_, m) in r.members.iter() {
                                     let alias = &m.alias.clone().unwrap_or_default().to_lowercase();
-                                    let uid = &m.uid.clone().to_lowercase()[1..];
+                                    let uid = m.uid.localpart().to_lowercase();
                                     if alias.starts_with(&w) || uid.starts_with(&w) {
                                         list.push(m.clone());
                                         count = count + 1;

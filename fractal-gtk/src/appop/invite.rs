@@ -1,6 +1,6 @@
 use crate::i18n::{i18n, i18n_k};
 
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{RoomId, UserId};
 use gtk;
 use gtk::prelude::*;
 
@@ -80,7 +80,7 @@ impl AppOp {
         }
     }
 
-    pub fn rm_from_invite(&mut self, uid: String) {
+    pub fn rm_from_invite(&mut self, uid: UserId) {
         let idx = self.invite_list.iter().position(|x| x.0.uid == uid);
         if let Some(i) = idx {
             self.invite_list.remove(i);
@@ -217,7 +217,7 @@ impl AppOp {
 
     pub fn accept_inv(&mut self, accept: bool) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if let Some(rid) = self.invitation_roomid.clone() {
+        if let Some(rid) = self.invitation_roomid.take() {
             if accept {
                 self.backend
                     .send(BKCommand::AcceptInv(
@@ -237,7 +237,6 @@ impl AppOp {
             }
             self.remove_inv(rid);
         }
-        self.invitation_roomid = None;
     }
 
     /* FIXME: move to a widget */

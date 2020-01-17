@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::r0::AccessToken;
 
 use gtk;
@@ -49,7 +49,7 @@ use self::message::TmpMsg;
 #[derive(Clone, Debug)]
 pub struct LoginData {
     pub access_token: AccessToken,
-    pub uid: String,
+    pub uid: UserId,
     pub username: Option<String>,
     pub avatar: Option<String>,
     pub server_url: Url,

@@ -1,3 +1,4 @@
+use ruma_identifiers::UserId;
 use std::fs;
 use url::Url;
 
@@ -5,7 +6,6 @@ use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::util::cache_dir_path;
 use crate::util::dw_media;
-use crate::util::encode_uid;
 use crate::util::get_user_avatar;
 use crate::util::semaphore;
 use crate::util::ContentType;
@@ -66,8 +66,8 @@ use crate::r0::Medium;
 use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
 
-pub fn get_username(base: Url, uid: String) -> Result<Option<String>, Error> {
-    get_display_name(base, &encode_uid(&uid))
+pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
+    get_display_name(base, &uid)
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
@@ -81,8 +81,8 @@ pub fn get_username(base: Url, uid: String) -> Result<Option<String>, Error> {
 
 // FIXME: This function manages errors *really* wrong and isn't more async
 // than the normal function. It should be removed.
-pub fn get_username_async(base: Url, uid: String) -> String {
-    get_display_name(base, &encode_uid(&uid))
+pub fn get_username_async(base: Url, uid: UserId) -> String {
+    get_display_name(base, &uid)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
@@ -93,13 +93,13 @@ pub fn get_username_async(base: Url, uid: String) -> String {
         })
         .ok()
         .and_then(|response| response.displayname)
-        .unwrap_or(uid)
+        .unwrap_or(uid.to_string())
 }
 
 pub fn set_username(
     base: Url,
     access_token: AccessToken,
-    uid: String,
+    uid: UserId,
     username: String,
 ) -> Result<String, Error> {
     let params = SetDisplayNameParameters { access_token };
@@ -107,7 +107,7 @@ pub fn set_username(
         displayname: Some(username.clone()),
     };
 
-    set_display_name(base, &params, &body, &encode_uid(&uid))
+    set_display_name(base, &params, &body, &uid)
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
@@ -339,7 +339,7 @@ pub fn account_destruction(
         .and(Ok(()))
 }
 
-pub fn get_avatar(base: Url, userid: String) -> Result<String, Error> {
+pub fn get_avatar(base: Url, userid: UserId) -> Result<String, Error> {
     get_user_avatar(&base, &userid).map(|(_, fname)| fname)
 }
 
@@ -360,7 +360,7 @@ pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sen
 pub fn set_user_avatar(
     base: Url,
     access_token: AccessToken,
-    id: String,
+    uid: UserId,
     avatar: String,
 ) -> Result<String, Error> {
     let params_upload = CreateContentParameters {
@@ -386,7 +386,7 @@ pub fn set_user_avatar(
                 avatar_url: Some(upload_response.content_uri),
             };
 
-            set_avatar_url(base, &params_avatar, &body, &encode_uid(&id))
+            set_avatar_url(base, &params_avatar, &body, &uid)
                 .map_err(Into::into)
                 .and_then(|request| {
                     HTTP_CLIENT
@@ -401,12 +401,11 @@ pub fn set_user_avatar(
 pub fn get_user_info_async(
     bk: &mut Backend,
     baseu: Url,
-    uid: String,
+    uid: UserId,
     tx: Option<Sender<(String, String)>>,
 ) {
-    if let Some(info) = bk.user_info_cache.get(&uid) {
+    if let Some(info) = bk.user_info_cache.get(&uid).cloned() {
         if let Some(tx) = tx.clone() {
-            let info = info.clone();
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
                 tx.send(i).expect_log("Connection closed");
@@ -455,12 +454,12 @@ pub fn search(
         .map(|response| response.results.into_iter().map(Into::into).collect())
 }
 
-fn get_user_avatar_img(baseu: &Url, userid: &str, avatar: &str) -> Result<String, Error> {
+fn get_user_avatar_img(baseu: &Url, userid: &UserId, avatar: &str) -> Result<String, Error> {
     if avatar.is_empty() {
         return Ok(String::new());
     }
 
-    let dest = cache_dir_path(None, &userid)?;
+    let dest = cache_dir_path(None, &userid.to_string())?;
     dw_media(
         baseu,
         &avatar,

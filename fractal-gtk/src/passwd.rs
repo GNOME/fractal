@@ -1,4 +1,5 @@
 use fractal_api::derror;
+use fractal_api::identifiers::{Error as IdError, UserId};
 use fractal_api::r0::AccessToken;
 use fractal_api::url::ParseError;
 use fractal_api::url::Url;
@@ -8,11 +9,18 @@ use secret_service;
 pub enum Error {
     SecretServiceError,
     UrlParseError(ParseError),
+    IdParseError(IdError),
 }
 
 impl From<ParseError> for Error {
     fn from(err: ParseError) -> Error {
         Error::UrlParseError(err)
+    }
+}
+
+impl From<IdError> for Error {
+    fn from(err: IdError) -> Error {
+        Error::IdParseError(err)
     }
 }
 
@@ -37,19 +45,21 @@ pub trait PasswordStorage {
         ss_storage::get_pass()
     }
 
-    fn store_token(&self, uid: String, token: AccessToken) -> Result<(), Error> {
+    fn store_token(&self, uid: UserId, token: AccessToken) -> Result<(), Error> {
         ss_storage::store_token(uid, token)
     }
 
-    fn get_token(&self) -> Result<(Option<AccessToken>, String), Error> {
+    fn get_token(&self) -> Result<(Option<AccessToken>, UserId), Error> {
         ss_storage::get_token()
     }
 }
 
 mod ss_storage {
     use super::Error;
+    use fractal_api::identifiers::UserId;
     use fractal_api::r0::AccessToken;
     use fractal_api::url::Url;
+    use std::convert::TryFrom;
 
     use super::secret_service::EncryptionType;
     use super::secret_service::SecretService;
@@ -73,7 +83,7 @@ mod ss_storage {
         Ok(())
     }
 
-    pub fn store_token(uid: String, token: AccessToken) -> Result<(), Error> {
+    pub fn store_token(uid: UserId, token: AccessToken) -> Result<(), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
         let key = "fractal-token";
@@ -84,17 +94,17 @@ mod ss_storage {
         // create new item
         collection.unlock()?;
         collection.create_item(
-            key,                          // label
-            vec![("uid", &uid)],          // properties
-            token.to_string().as_bytes(), // secret
-            true,                         // replace item with same attributes
-            "text/plain",                 // secret content type
+            key,                             // label
+            vec![("uid", &uid.to_string())], // properties
+            token.to_string().as_bytes(),    // secret
+            true,                            // replace item with same attributes
+            "text/plain",                    // secret content type
         )?;
 
         Ok(())
     }
 
-    pub fn get_token() -> Result<(Option<AccessToken>, String), Error> {
+    pub fn get_token() -> Result<(Option<AccessToken>, UserId), Error> {
         let ss = SecretService::new(EncryptionType::Dh)?;
         let collection = ss.get_default_collection()?;
         let allpass = collection.get_all_items()?;
@@ -120,7 +130,7 @@ mod ss_storage {
             .iter()
             .find(|&ref x| x.0 == "uid")
             .ok_or(Error::SecretServiceError)?;
-        let uid = attr.1.clone();
+        let uid = UserId::try_from(attr.1.as_str())?;
 
         Ok((token, uid))
     }
