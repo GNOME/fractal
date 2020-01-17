@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -13,7 +14,6 @@ use gtk::prelude::*;
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
 use crate::backend::BKCommand;
-use crate::cache::download_to_cache;
 use crate::types::Member;
 use crate::util::markup_text;
 use crate::widgets;
@@ -25,7 +25,7 @@ use fractal_api::types::Room;
 pub struct RoomSettings {
     actions: gio::SimpleActionGroup,
     room: Room,
-    uid: String,
+    uid: UserId,
     builder: gtk::Builder,
     members_list: Option<MembersList>,
     backend: Sender<BKCommand>,
@@ -37,7 +37,7 @@ impl RoomSettings {
     pub fn new(
         window: &gtk::Window,
         backend: Sender<BKCommand>,
-        uid: String,
+        uid: UserId,
         room: Room,
         server_url: Url,
         access_token: AccessToken,
@@ -100,7 +100,7 @@ impl RoomSettings {
     }
 
     #[allow(dead_code)]
-    pub fn update_members_list(&self, uid: String) -> Option<()> {
+    pub fn update_members_list(&self, uid: UserId) -> Option<()> {
         self.members_list.clone()?.update(uid);
         None
     }
@@ -195,7 +195,7 @@ impl RoomSettings {
         let mut is_room = true;
         let mut is_group = false;
         let members: Vec<Member> = self.room.members.values().cloned().collect();
-        let power = *self.room.admins.get(&self.uid.clone()).unwrap_or(&0);
+        let power = self.room.admins.get(&self.uid).copied().unwrap_or(0);
 
         let edit = power >= 50 && !self.room.direct;
 
@@ -203,6 +203,8 @@ impl RoomSettings {
             is_room = false;
             is_group = false;
             self.get_direct_partner_uid(members.clone())
+                .as_ref()
+                .map(ToString::to_string)
         } else {
             /* we don't have private groups yet
             let description = Some(format!("Private Group · {} members", members.len()));
@@ -231,7 +233,7 @@ impl RoomSettings {
     }
 
     /* returns the uid of the fisrt member in the room, ignoring the current user */
-    fn get_direct_partner_uid(&self, members: Vec<Member>) -> Option<String> {
+    fn get_direct_partner_uid(&self, members: Vec<Member>) -> Option<UserId> {
         members
             .iter()
             .map(|m| m.uid.clone())
@@ -410,7 +412,7 @@ impl RoomSettings {
         None
     }
 
-    fn room_settings_show_avatar(&self, edit: bool) -> Option<()> {
+    fn room_settings_show_avatar(&self, edit: bool) {
         let container = self
             .builder
             .get_object::<gtk::Box>("room_settings_avatar_box")
@@ -426,19 +428,18 @@ impl RoomSettings {
             }
         }
 
+        let _ = self.backend.send(BKCommand::GetRoomAvatar(
+            self.server_url.clone(),
+            self.access_token.clone(),
+            self.room.id.clone(),
+        ));
         let image = widgets::Avatar::avatar_new(Some(100));
-        let data = image.circle(
+        let _data = image.circle(
             self.room.id.to_string(),
             self.room.name.clone(),
             100,
             None,
             None,
-        );
-        download_to_cache(
-            self.backend.clone(),
-            self.server_url.clone(),
-            self.room.id.to_string(),
-            data,
         );
 
         if edit {
@@ -469,8 +470,6 @@ impl RoomSettings {
             avatar_btn.hide();
             container.add(&image);
         }
-
-        return None;
     }
 
     pub fn update_room_name(&mut self) -> Option<()> {
@@ -649,12 +648,7 @@ impl RoomSettings {
             )
             .as_str(),
         );
-        let list = widgets::MembersList::new(
-            members.clone(),
-            self.room.admins.clone(),
-            self.room.power_levels.clone(),
-            entry,
-        );
+        let list = widgets::MembersList::new(members.clone(), self.room.admins.clone(), entry);
         let w = list.create()?;
         b.add(&w);
         self.members_list = Some(list);

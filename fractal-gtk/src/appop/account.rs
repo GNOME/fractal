@@ -289,7 +289,7 @@ impl AppOp {
 
         stack.set_visible_child_name("loading");
         self.get_three_pid();
-        uid.set_text(&login_data.uid);
+        uid.set_text(&login_data.uid.to_string());
         device_id.set_text(&self.device_id.clone().unwrap_or_default());
         homeserver.set_text(login_data.server_url.as_str());
         name.set_text(&login_data.username.unwrap_or_default());
@@ -502,7 +502,13 @@ impl AppOp {
         let w = widgets::Avatar::avatar_new(Some(100));
         avatar.add(&w);
 
-        let data = w.circle(login_data.uid.clone(), login_data.username, 100, None, None);
+        let data = w.circle(
+            login_data.uid.to_string(),
+            login_data.username,
+            100,
+            None,
+            None,
+        );
         download_to_cache(
             self.backend.clone(),
             login_data.server_url,
@@ -635,7 +641,7 @@ impl AppOp {
                     let _ = self.backend.send(BKCommand::ChangePassword(
                         login_data.server_url,
                         login_data.access_token,
-                        login_data.uid,
+                        login_data.uid.localpart().into(),
                         old.to_string(),
                         new.to_string(),
                     ));
@@ -743,7 +749,7 @@ impl AppOp {
                         let _ = backend.send(BKCommand::AccountDestruction(
                             login_data.server_url.clone(),
                             login_data.access_token.clone(),
-                            login_data.uid.clone(),
+                            login_data.uid.localpart().into(),
                             password.to_string(),
                         ));
                     }

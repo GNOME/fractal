@@ -1,9 +1,9 @@
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{RoomId, UserId};
 use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone)]
 pub struct Event {
-    pub sender: String,
+    pub sender: UserId,
     pub stype: String,
     pub room: RoomId,
     pub id: String,

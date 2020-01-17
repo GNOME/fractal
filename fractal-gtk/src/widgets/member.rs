@@ -32,7 +32,7 @@ impl<'a> MemberBox<'a> {
         let w = gtk::Box::new(gtk::Orientation::Horizontal, 5);
         let v = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-        uid.set_text(&self.member.uid);
+        uid.set_text(&self.member.uid.to_string());
         uid.set_valign(gtk::Align::Start);
         uid.set_halign(gtk::Align::Start);
         uid.get_style_context().add_class("member-uid");
@@ -40,7 +40,7 @@ impl<'a> MemberBox<'a> {
         username.set_text(&self.member.get_alias());
         let mut alias = self.member.get_alias();
         alias.push_str("\n");
-        alias.push_str(&self.member.uid);
+        alias.push_str(&self.member.uid.to_string());
         username.set_tooltip_text(Some(&alias[..]));
         username.set_margin_end(5);
         username.set_ellipsize(pango::EllipsizeMode::End);
@@ -55,7 +55,7 @@ impl<'a> MemberBox<'a> {
             _ => None,
         };
         let data = avatar.circle(
-            self.member.uid.clone(),
+            self.member.uid.to_string(),
             Some(alias.clone()),
             globals::USERLIST_ICON_SIZE,
             badge,
@@ -95,7 +95,7 @@ impl<'a> MemberBox<'a> {
 
         let avatar = widgets::Avatar::avatar_new(Some(globals::PILL_ICON_SIZE));
         let data = avatar.circle(
-            self.member.uid.clone(),
+            self.member.uid.to_string(),
             Some(self.member.get_alias()),
             globals::PILL_ICON_SIZE,
             None,

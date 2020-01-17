@@ -1,16 +1,17 @@
 use chrono::prelude::*;
 use chrono::DateTime;
 use chrono::TimeZone;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{Error as IdError, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 //FIXME make properties privat
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
-    pub sender: String,
+    pub sender: UserId,
     pub mtype: String,
     pub body: String,
     pub date: DateTime<Local>,
@@ -21,7 +22,7 @@ pub struct Message {
     pub formatted_body: Option<String>,
     pub format: Option<String>,
     pub source: Option<String>,
-    pub receipt: HashMap<String, i64>, // This `HashMap` associates the user ID with a timestamp
+    pub receipt: HashMap<UserId, i64>, // This `HashMap` associates the user ID with a timestamp
     pub redacted: bool,
     // The event ID of the message this is in reply to.
     pub in_reply_to: Option<String>,
@@ -48,7 +49,7 @@ impl PartialOrd for Message {
 }
 
 impl Message {
-    pub fn new(room: RoomId, sender: String, body: String, mtype: String) -> Self {
+    pub fn new(room: RoomId, sender: UserId, body: String, mtype: String) -> Self {
         let date = Local::now();
         Message {
             id: get_txn_id(&room, &body, &date.to_string()),
@@ -96,8 +97,8 @@ impl Message {
     ///
     /// * `roomid` - The message room id
     /// * `msg` - The message event as Json
-    pub fn parse_room_message(room_id: &RoomId, msg: &JsonValue) -> Message {
-        let sender = msg["sender"].as_str().unwrap_or_default();
+    pub fn parse_room_message(room_id: &RoomId, msg: &JsonValue) -> Result<Message, IdError> {
+        let sender: UserId = msg["sender"].as_str().unwrap_or_default().try_into()?;
 
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or_default() / 1000;
         let server_timestamp: DateTime<Local> = Local.timestamp(timestamp, 0);
@@ -108,7 +109,7 @@ impl Message {
         let redacted = msg["unsigned"].get("redacted_because") != None;
 
         let mut message = Message {
-            sender: sender.to_string(),
+            sender,
             date: server_timestamp,
             room: room_id.clone(),
             id: id.to_string(),
@@ -132,7 +133,7 @@ impl Message {
             _ => {}
         };
 
-        message
+        Ok(message)
     }
 
     fn parse_m_room_message(&mut self, c: &JsonValue) {
@@ -190,7 +191,10 @@ impl Message {
     ///
     /// * `roomid` - The messages room id
     /// * `events` - An iterator to the json events
-    pub fn from_json_events_iter<'a, I>(room_id: &RoomId, events: I) -> Vec<Message>
+    pub fn from_json_events_iter<'a, I>(
+        room_id: &RoomId,
+        events: I,
+    ) -> Result<Vec<Message>, IdError>
     where
         I: Iterator<Item = &'a JsonValue>,
     {
@@ -200,7 +204,7 @@ impl Message {
             .collect()
     }
 
-    pub fn set_receipt(&mut self, receipt: HashMap<String, i64>) {
+    pub fn set_receipt(&mut self, receipt: HashMap<UserId, i64>) {
         self.receipt = receipt;
     }
 }

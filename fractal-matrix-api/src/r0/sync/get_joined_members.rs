@@ -3,7 +3,7 @@ use crate::serde::option_url;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;
@@ -16,7 +16,7 @@ pub struct Parameters {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
     #[serde(default)]
-    pub joined: HashMap<String, RoomMember>,
+    pub joined: HashMap<UserId, RoomMember>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
