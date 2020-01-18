@@ -65,7 +65,7 @@
                 </child>
                 <style>
                   <class name="osd"/>
-                  <class name="scroll_button"/>
+                  <class name="round-button"/>
                 </style>
               </object>
             </child>

@@ -4,8 +4,7 @@ use itertools::Itertools;
 use chrono::prelude::*;
 use glib;
 use gtk;
-use gtk::prelude::*;
-use gtk::WidgetExt;
+use gtk::{prelude::*, ButtonExt, ContainerExt, Overlay, WidgetExt};
 use pango;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -414,10 +413,48 @@ impl MessageBox {
             &bx,
             start_playing,
         );
+
+        let overlay = Overlay::new();
         let video_widget = player.get_video_widget();
         video_widget.set_size_request(-1, 390);
         VideoPlayerWidget::auto_adjust_video_dimensions(&player);
-        bx.pack_start(&video_widget, true, true, 0);
+        overlay.add(&video_widget);
+
+        let play_icon =
+            gtk::Image::new_from_icon_name(Some("media-playback-start"), gtk::IconSize::Dialog);
+        play_icon.set_halign(gtk::Align::Center);
+        play_icon.set_valign(gtk::Align::Center);
+        play_icon.get_style_context().add_class("osd");
+        play_icon.get_style_context().add_class("play-icon");
+        overlay.add_overlay(&play_icon);
+
+        let menu_button = gtk::Button::new();
+        let three_dot_icon =
+            gtk::Image::new_from_icon_name(Some("view-more-symbolic"), gtk::IconSize::Button);
+        menu_button.set_image(Some(&three_dot_icon));
+        menu_button.get_style_context().add_class("osd");
+        menu_button.get_style_context().add_class("round-button");
+        menu_button.set_opacity(0.8);
+        menu_button.set_halign(gtk::Align::End);
+        menu_button.set_valign(gtk::Align::Start);
+        overlay.add_overlay(&menu_button);
+
+        let id = msg.id.clone();
+        let redactable = msg.redactable.clone();
+        let eventbox_weak = self.eventbox.downgrade();
+        menu_button.connect_clicked(move |_| {
+            eventbox_weak.upgrade().map(|eventbox| {
+                MessageMenu::new(
+                    id.as_str(),
+                    &RowType::Video,
+                    &redactable,
+                    &eventbox,
+                    eventbox.upcast_ref::<gtk::Widget>(),
+                );
+            });
+        });
+
+        bx.pack_start(&overlay, true, true, 0);
         self.connect_media_viewer(msg);
         self.video_player = Some(player.clone());
         bx
