@@ -64,6 +64,7 @@ struct Data {
     loading_more_media: bool,
     loading_error: bool,
     no_more_media: bool,
+    is_fullscreen: bool,
 }
 
 impl Data {
@@ -76,6 +77,12 @@ impl Data {
         main_window: gtk::Window,
         builder: gtk::Builder,
     ) -> Data {
+        let is_fullscreen = main_window
+            .clone()
+            .get_window()
+            .unwrap()
+            .get_state()
+            .contains(gdk::WindowState::FULLSCREEN);
         Data {
             media_list,
             current_media_index,
@@ -90,6 +97,7 @@ impl Data {
             access_token,
             main_window,
             signal_id: None,
+            is_fullscreen,
         }
     }
 
@@ -112,6 +120,7 @@ impl Data {
 
     pub fn enter_full_screen(&mut self) {
         self.main_window.fullscreen();
+        self.is_fullscreen = true;
 
         let media_viewer_headerbar_box = self
             .builder
@@ -151,6 +160,7 @@ impl Data {
 
     pub fn leave_full_screen(&mut self) {
         self.main_window.unfullscreen();
+        self.is_fullscreen = false;
 
         let media_viewer_headerbar_box = self
             .builder
@@ -300,16 +310,14 @@ impl Data {
 
         bx.pack_start(&overlay, false, false, 0);
 
-        if let Some(win) = self.main_window.clone().get_window() {
-            if win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                bx.set_child_packing(&overlay, true, true, 0, gtk::PackType::Start);
-            } else {
-                bx.set_margin_start(70);
-                bx.set_margin_end(70);
-                overlay.set_valign(gtk::Align::Center);
-                overlay.set_halign(gtk::Align::Center);
-                VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(&bx, &overlay, &player);
-            }
+        if self.is_fullscreen {
+            bx.set_child_packing(&overlay, true, true, 0, gtk::PackType::Start);
+        } else {
+            bx.set_margin_start(70);
+            bx.set_margin_end(70);
+            overlay.set_valign(gtk::Align::Center);
+            overlay.set_halign(gtk::Align::Center);
+            VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(&bx, &overlay, &player);
         }
 
         let player_weak = Rc::downgrade(&player);
