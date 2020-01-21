@@ -25,6 +25,7 @@ use log::{error, info, warn};
 
 use gtk;
 use gtk::prelude::*;
+use gtk::ButtonExt;
 
 // use gio::{File, FileExt};
 use glib::SignalHandlerId;
@@ -60,6 +61,7 @@ pub trait PlayerExt {
     );
     fn get_controls_container(player: &Rc<Self>) -> Option<gtk::Box>;
     fn get_player(player: &Rc<Self>) -> gst_player::Player;
+    fn switch_mute_state(player: &Rc<Self>, button: &gtk::Button);
 }
 
 #[derive(Debug, Clone)]
@@ -236,6 +238,7 @@ pub struct VideoPlayerWidget {
     controls: Option<PlayerControls>,
     pub local_path: Rc<RefCell<Option<String>>>,
     dimensions: Rc<RefCell<Option<(i32, i32)>>>,
+    state: Rc<RefCell<Option<gst_player::PlayerState>>>,
 }
 
 impl Default for VideoPlayerWidget {
@@ -265,6 +268,7 @@ impl Default for VideoPlayerWidget {
             controls: None,
             local_path: Rc::new(RefCell::new(None)),
             dimensions: Rc::new(RefCell::new(None)),
+            state: Rc::new(RefCell::new(None)),
         }
     }
 }
@@ -299,6 +303,15 @@ impl VideoPlayerWidget {
                 foo.borrow_mut().take();
             });
         }
+
+        /* The followign callback requires `Send` but is handled by the gtk main loop */
+        let player_weak = Fragile::new(Rc::downgrade(&w));
+        w.player.connect_state_changed(move |_, state| {
+            player_weak.get().upgrade().map(|player| {
+                *player.state.borrow_mut() = Some(state);
+            });
+        });
+
         w
     }
 
@@ -411,6 +424,17 @@ impl VideoPlayerWidget {
         self.player.stop();
         self.player.disconnect(id);
     }
+
+    pub fn switch_play_pause_state(player: &Rc<Self>) {
+        match *player.state.borrow() {
+            Some(gst_player::PlayerState::Paused) => {
+                player.play();
+            }
+            _ => {
+                player.pause();
+            }
+        }
+    }
 }
 
 impl PartialEq for VideoPlayerWidget {
@@ -516,6 +540,21 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
 
     fn get_player(player: &Rc<Self>) -> gst_player::Player {
         player.get_player()
+    }
+
+    fn switch_mute_state(player_widget: &Rc<Self>, button: &gtk::Button) {
+        let player = player_widget.get_player();
+        if player.get_mute() {
+            player.set_mute(false);
+            let image =
+                gtk::Image::new_from_icon_name(Some("audio-volume-high"), gtk::IconSize::Button);
+            button.set_image(Some(&image));
+        } else {
+            player.set_mute(true);
+            let image =
+                gtk::Image::new_from_icon_name(Some("audio-volume-muted"), gtk::IconSize::Button);
+            button.set_image(Some(&image));
+        }
     }
 }
 

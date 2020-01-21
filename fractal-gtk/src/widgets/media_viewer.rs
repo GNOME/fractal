@@ -303,10 +303,61 @@ impl Data {
 
         let overlay = Overlay::new();
         overlay.add(&player.get_video_widget());
+
+        let full_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         let control_box = PlayerExt::get_controls_container(&player).unwrap();
-        control_box.set_valign(gtk::Align::End);
-        control_box.get_style_context().add_class("osd");
-        overlay.add_overlay(&control_box);
+        full_control_box.pack_start(&control_box, false, true, 0);
+
+        let mute_button = gtk::Button::new_from_icon_name(
+            Some("audio-volume-high"),
+            gtk::IconSize::Button.into(),
+        );
+        let player_weak = Rc::downgrade(&player);
+        mute_button.connect_clicked(move |button| {
+            player_weak.upgrade().map(|player| {
+                VideoPlayerWidget::switch_mute_state(&player, &button);
+            });
+        });
+        full_control_box.pack_start(&mute_button, false, false, 3);
+
+        let control_revealer = gtk::Revealer::new();
+        control_revealer.add(&full_control_box);
+        control_revealer.set_reveal_child(true);
+        let source_id: Rc<RefCell<Option<glib::source::SourceId>>> = Rc::new(RefCell::new(None));
+        let first_sid = gtk::timeout_add_seconds(
+            1,
+            clone!(source_id, control_revealer => move || {
+                control_revealer.set_reveal_child(false);
+                *source_id.borrow_mut() = None;
+                Continue(false)
+            }),
+        );
+        *source_id.borrow_mut() = Some(first_sid);
+        let media_viewer_box = self
+            .builder
+            .clone()
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+        media_viewer_box.connect_motion_notify_event(clone!( control_revealer => move |_, _| {
+            control_revealer.set_reveal_child(true);
+            if let Some(sid) = source_id.borrow_mut().take() {
+                glib::source::source_remove(sid);
+            }
+            let new_sid = gtk::timeout_add_seconds(
+                1,
+                clone!(source_id, control_revealer => move || {
+                    control_revealer.set_reveal_child(false);
+                    *source_id.borrow_mut() = None;
+                    Continue(false)
+                }),
+            );
+            *source_id.borrow_mut() = Some(new_sid);
+            Inhibit(false)
+        }));
+
+        control_revealer.set_valign(gtk::Align::End);
+        control_revealer.get_style_context().add_class("osd");
+        overlay.add_overlay(&control_revealer);
 
         bx.pack_start(&overlay, false, false, 0);
 
@@ -329,6 +380,33 @@ impl Data {
                 }
             });
         });
+
+        let player_weak = Rc::downgrade(&player);
+        self.main_window.connect_key_press_event(move |_, k| {
+            player_weak.upgrade().map(|player| {
+                if player.get_video_widget().get_mapped() {
+                    match k.get_keyval() {
+                        gdk::enums::key::space => {
+                            VideoPlayerWidget::switch_play_pause_state(&player);
+                        }
+                        _ => {}
+                    }
+                }
+            });
+            Inhibit(false)
+        });
+        let player_weak = Rc::downgrade(&player);
+        player
+            .get_video_widget()
+            .connect_button_press_event(move |_, e| {
+                if e.get_button() == 1 {
+                    player_weak.upgrade().map(|player| {
+                        VideoPlayerWidget::switch_play_pause_state(&player);
+                    });
+                }
+                Inhibit(false)
+            });
+
         self.widget = Widget::Video(player);
         bx
     }
