@@ -36,7 +36,7 @@ use std::sync::Mutex;
 pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
     /* gtk widgets we need to have a reference to */
-    builder: gtk::Builder,
+    pub builder: gtk::Builder,
     backend: Sender<BKCommand>,
 }
 
@@ -518,29 +518,33 @@ impl MediaViewer {
 
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
         full_screen_button.connect_clicked(move |_| {
-            let main_window = own.borrow().main_window.clone();
-            if let Some(win) = main_window.get_window() {
-                if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                    own.borrow_mut().enter_full_screen();
-                } else {
-                    own.borrow_mut().leave_full_screen()
+            own_weak.upgrade().map(|own| {
+                let main_window = own.borrow().main_window.clone();
+                if let Some(win) = main_window.get_window() {
+                    if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
+                        own.borrow_mut().enter_full_screen();
+                    } else {
+                        own.borrow_mut().leave_full_screen()
+                    }
                 }
-            }
+            });
         });
 
         let save_as_button = self
             .builder
             .get_object::<gtk::ModelButton>("save_as_button")
             .expect("Cant find save_as_button in ui file.");
-        let data = self.data.clone();
+        let data_weak = Rc::downgrade(&self.data);
         save_as_button.connect_clicked(move |_| {
-            data.borrow().save_media();
+            data_weak.upgrade().map(|data| {
+                data.borrow().save_media();
+            });
         });
     }
 
@@ -662,7 +666,7 @@ impl MediaViewer {
             Inhibit(false)
         });
 
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let builder = self.builder.clone();
         let backend = self.backend.clone();
         let previous_media_button = self
@@ -670,18 +674,22 @@ impl MediaViewer {
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
         previous_media_button.connect_clicked(move |_| {
-            if !own.borrow_mut().previous_media() {
-                load_more_media(own.clone(), builder.clone(), backend.clone());
-            }
+            own_weak.upgrade().map(|own| {
+                if !own.borrow_mut().previous_media() {
+                    load_more_media(own.clone(), builder.clone(), backend.clone());
+                }
+            });
         });
 
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let next_media_button = self
             .builder
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
         next_media_button.connect_clicked(move |_| {
-            own.borrow_mut().next_media();
+            own_weak.upgrade().map(|own| {
+                own.borrow_mut().next_media();
+            });
         });
         let full_screen_button = self
             .builder
@@ -719,13 +727,15 @@ impl MediaViewer {
         self.data.borrow_mut().signal_id = Some(id);
 
         // Remove the keyboard signal management on hide
-        let data = self.data.clone();
+        let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
-            let id = data.borrow_mut().signal_id.take();
-            let main_window = &data.borrow().main_window;
-            if let Some(id) = id {
-                signal::signal_handler_disconnect(main_window, id);
-            }
+            data_weak.upgrade().map(|data| {
+                let id = data.borrow_mut().signal_id.take();
+                let main_window = &data.borrow().main_window;
+                if let Some(id) = id {
+                    signal::signal_handler_disconnect(main_window, id);
+                }
+            });
         });
     }
 
@@ -799,41 +809,44 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
         .unwrap();
 
     let ui = builder.clone();
-    let data = data.clone();
+    let data_weak = Rc::downgrade(&data);
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
         Err(TryRecvError::Disconnected) => {
-            data.borrow_mut().loading_error = true;
-            let err = i18n("Error while loading previous media");
-            ErrorDialog::new(false, &err);
+            data_weak.clone().upgrade().map(|data| {
+                data.borrow_mut().loading_error = true;
+                let err = i18n("Error while loading previous media");
+                ErrorDialog::new(false, &err);
+            });
 
             gtk::Continue(false)
         }
         Ok((msgs, prev_batch)) => {
             if msgs.len() == 0 {
-                data.borrow_mut().no_more_media = true;
+                data_weak.clone().upgrade().map(|data| {
+                    data.borrow_mut().no_more_media = true;
+                });
                 return gtk::Continue(false);
             }
-
-            let media_list = data.borrow().media_list.clone();
-            let img_msgs: Vec<Message> = msgs
-                .into_iter()
-                .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
-                .collect();
-            let img_msgs_count = img_msgs.len();
-            let new_media_list: Vec<Message> =
-                img_msgs.into_iter().chain(media_list.into_iter()).collect();
-
-            data.borrow_mut().media_list = new_media_list;
-            data.borrow_mut().prev_batch = Some(prev_batch);
-
-            if img_msgs_count == 0 {
-                load_more_media(data.clone(), builder.clone(), backend.clone());
-            } else {
-                data.borrow_mut().current_media_index += img_msgs_count;
-                data.borrow_mut().previous_media();
-                data.borrow_mut().loading_more_media = loading_state(&ui, false);
-            }
+            data_weak.upgrade().map(|data| {
+                let media_list = data.borrow().media_list.clone();
+                let img_msgs: Vec<Message> = msgs
+                    .into_iter()
+                    .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
+                    .collect();
+                let img_msgs_count = img_msgs.len();
+                let new_media_list: Vec<Message> =
+                    img_msgs.into_iter().chain(media_list.into_iter()).collect();
+                data.borrow_mut().media_list = new_media_list;
+                data.borrow_mut().prev_batch = Some(prev_batch);
+                if img_msgs_count == 0 {
+                    load_more_media(data.clone(), builder.clone(), backend.clone());
+                } else {
+                    data.borrow_mut().current_media_index += img_msgs_count;
+                    data.borrow_mut().previous_media();
+                    data.borrow_mut().loading_more_media = loading_state(&ui, false);
+                }
+            });
 
             gtk::Continue(false)
         }

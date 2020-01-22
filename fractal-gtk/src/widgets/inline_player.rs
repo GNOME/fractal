@@ -283,26 +283,6 @@ impl VideoPlayerWidget {
         }
 
         let w = Rc::new(player_widget);
-        if with_controls {
-            // When the widget is attached to a parent,
-            // since it's a rust struct and not a widget the
-            // compiler drops the refference to it at the end of
-            // scope. That's cause we only attach the `self.controls.container`
-            // to the parent.
-            //
-            // So this callback keeps a refference to the Rust Struct
-            // so the compiler won't drop it which would cause to also drop
-            // the `gst_player`.
-            //
-            // When the widget is detached from it's parent which happens
-            // when we drop the room widget, this callback runs freeing
-            // the last refference we were holding.
-            let container = w.controls.clone().unwrap().container;
-            let foo = RefCell::new(Some(w.clone()));
-            container.connect_remove(move |_, _| {
-                foo.borrow_mut().take();
-            });
-        }
 
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&w));
