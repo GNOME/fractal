@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
 use fractal_api::r0::AccessToken;
@@ -72,6 +74,8 @@ pub struct AppOp {
     pub unsent_messages: HashMap<String, (String, i32)>,
     pub typing: HashMap<String, std::time::Instant>,
 
+    pub media_viewer: Rc<RefCell<Option<widgets::MediaViewer>>>,
+
     pub state: AppState,
     pub since: Option<String>,
 
@@ -110,6 +114,7 @@ impl AppOp {
             since: None,
             unsent_messages: HashMap::new(),
             typing: HashMap::new(),
+            media_viewer: Rc::new(RefCell::new(None)),
 
             md_enabled: false,
             invitation_roomid: None,
