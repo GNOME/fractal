@@ -12,8 +12,6 @@ use std::thread;
 use crate::backend::BKResponse;
 use fractal_api::error::Error;
 
-use std::sync::mpsc::RecvError;
-
 pub fn backend_loop(rx: Receiver<BKResponse>) {
     thread::spawn(move || {
         while let Ok(recv) = rx.recv() {

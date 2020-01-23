@@ -10,7 +10,6 @@ use url::Url;
 
 use crate::backend;
 use crate::backend::BKCommand;
-use crate::globals;
 
 use crate::types::Member;
 use crate::types::Room;
