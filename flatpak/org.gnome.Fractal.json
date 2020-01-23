@@ -31,7 +31,8 @@
         ],
         "env" : {
             "CARGO_HOME" : "/run/build/Fractal/cargo",
-            "RUST_BACKTRACE" : "1"
+            "RUST_BACKTRACE" : "1",
+            "RUSTFLAGS" : ""
         }
     },
     "add-extensions": {
@@ -60,7 +61,8 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://source.puri.sm/Librem5/libhandy.git"
+                    "url" : "https://source.puri.sm/Librem5/libhandy.git",
+                    "branch" : "libhandy-0-0"
                 }
             ]
         },
