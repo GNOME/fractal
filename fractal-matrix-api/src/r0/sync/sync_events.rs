@@ -1,10 +1,10 @@
 use crate::r0::filter::{serialize_filter_as_str, Filter};
 use crate::r0::AccessToken;
-use crate::serde::duration_as_millis;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -16,27 +16,53 @@ pub struct Parameters<'a> {
     #[serde(serialize_with = "serialize_filter_as_str")]
     #[serde(skip_serializing_if = "Filter::is_default")]
     pub filter: Filter<'a>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub since: Option<String>,
     #[serde(flatten)]
     pub include_state: IncludeState,
     #[serde(skip_serializing_if = "MarkPresence::is_default")]
     pub set_presence: MarkPresence,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
-#[serde(tag = "full_state", content = "timeout")]
+#[derive(Clone, Debug, PartialEq)]
 pub enum IncludeState {
-    #[serde(rename = "false")]
-    #[serde(with = "duration_as_millis")]
-    Changed(Duration),
-    #[serde(rename = "true")]
+    Changed { since: String, timeout: Duration },
     Full,
+}
+
+impl Serialize for IncludeState {
+    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            IncludeState::Changed { since, timeout } => {
+                let mut serialized_map;
+
+                if since.is_empty() {
+                    serialized_map = ser.serialize_map(Some(2))?;
+                } else {
+                    serialized_map = ser.serialize_map(Some(3))?;
+                    serialized_map.serialize_entry("since", &since)?;
+                };
+
+                serialized_map.serialize_entry("full_state", &false)?;
+                serialized_map.serialize_entry("timeout", &(timeout.as_millis() as u64))?;
+                serialized_map.end()
+            }
+            IncludeState::Full => {
+                let mut serialized_map = ser.serialize_map(Some(1))?;
+                serialized_map.serialize_entry("full_state", &true)?;
+                serialized_map.end()
+            }
+        }
+    }
 }
 
 impl Default for IncludeState {
     fn default() -> Self {
-        IncludeState::Changed(Default::default())
+        IncludeState::Changed {
+            since: Default::default(),
+            timeout: Default::default(),
+        }
     }
 }
 

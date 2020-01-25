@@ -120,15 +120,3 @@ pub mod host_list {
         ser.collect_seq(host_list.iter().map(ToString::to_string))
     }
 }
-
-pub mod duration_as_millis {
-    use serde::Serializer;
-    use std::time::Duration;
-
-    pub fn serialize<S>(duration: &Duration, ser: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        ser.serialize_u64(duration.as_millis() as u64)
-    }
-}
