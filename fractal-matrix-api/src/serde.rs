@@ -121,6 +121,7 @@ pub mod host_list {
     }
 }
 
+#[allow(dead_code)]
 pub mod duration_as_millis {
     use serde::Serializer;
     use std::time::Duration;
