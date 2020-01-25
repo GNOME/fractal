@@ -83,7 +83,7 @@ impl AppOp {
 fn store_pixbuf(pixb: &Pixbuf) -> Result<PathBuf, Error> {
     let data = get_pixbuf_data(pixb)?;
     let mut path = glib::get_tmp_dir().unwrap_or(PathBuf::from("/tmp"));
-    path.push("fractal-pasted-image");
+    path.push(format!("{}.png", i18n("image")));
     let mut f = File::create(&path)?;
     f.write_all(&data)?;
     f.sync_data()?;
