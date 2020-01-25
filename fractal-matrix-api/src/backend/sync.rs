@@ -245,7 +245,7 @@ pub fn sync(
                         .expect_log("Connection closed");
                 }
 
-                let next_batch = response.next_batch;
+                let next_batch = response.next_batch.unwrap_or_default();
                 tx.send(BKResponse::Sync(Ok(next_batch)))
                     .expect_log("Connection closed");
             }

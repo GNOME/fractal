@@ -68,7 +68,7 @@ impl MarkPresence {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub next_batch: String,
+    pub next_batch: Option<String>,
     #[serde(default)]
     pub rooms: Rooms,
     pub presence: Option<Presence>,
