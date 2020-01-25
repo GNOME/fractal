@@ -5,7 +5,8 @@ use reqwest::Error;
 use reqwest::Request;
 use ruma_identifiers::RoomAliasId;
 use ruma_identifiers::RoomId;
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Serialize, Serializer};
 use url::Host;
 use url::Url;
 
@@ -23,23 +24,44 @@ pub struct Body {
     pub limit: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub since: Option<String>,
-    // This field doesn't follow the spec but for some reason
-    // it fails with matrix.org if it's not set this way
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter: Option<Filter>,
     #[serde(flatten)]
     pub third_party_networks: ThirdPartyNetworks,
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(tag = "include_all_networks", content = "third_party_instance_id")]
+#[derive(Clone, Debug)]
 pub enum ThirdPartyNetworks {
-    #[serde(rename = "false")]
     None,
-    #[serde(rename = "false")]
     Only(String),
-    #[serde(rename = "true")]
     All,
+}
+
+impl Serialize for ThirdPartyNetworks {
+    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            ThirdPartyNetworks::None => {
+                let mut serialized_map = ser.serialize_map(Some(1))?;
+                serialized_map.serialize_entry("include_all_networks", &false)?;
+                serialized_map.end()
+            }
+            ThirdPartyNetworks::Only(network) => {
+                let mut serialized_map = ser.serialize_map(Some(2))?;
+
+                serialized_map.serialize_entry("include_all_networks", &false)?;
+                serialized_map.serialize_entry("third_party_instance_id", &network)?;
+                serialized_map.end()
+            }
+            ThirdPartyNetworks::All => {
+                let mut serialized_map = ser.serialize_map(Some(1))?;
+                serialized_map.serialize_entry("include_all_networks", &true)?;
+                serialized_map.end()
+            }
+        }
+    }
 }
 
 impl Default for ThirdPartyNetworks {
