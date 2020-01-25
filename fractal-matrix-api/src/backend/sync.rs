@@ -83,8 +83,10 @@ pub fn sync(
     let params = SyncParameters {
         access_token,
         filter,
-        since: since.clone(),
-        include_state: IncludeState::Changed(timeout),
+        include_state: IncludeState::Changed {
+            since: since.clone().unwrap_or_default(),
+            timeout,
+        },
         set_presence: Default::default(),
     };
 
