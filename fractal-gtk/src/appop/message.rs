@@ -562,6 +562,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
         x.to_string()
     );
     thumb.savev(&thumb_path, "png", &[]).ok()?;
+    let thumb_size = fs::metadata(&thumb_path).ok()?.len();
 
     let info = json!({
         "info": {
@@ -569,6 +570,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
             "thumbnail_info": {
                 "w": thumb.get_width(),
                 "h": thumb.get_height(),
+                "size": thumb_size,
                 "mimetype": "image/png"
             },
             "w": w,
