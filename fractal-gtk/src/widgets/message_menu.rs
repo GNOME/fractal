@@ -11,6 +11,7 @@ struct Widgets {
     reply_button: gtk::ModelButton,
     open_with_button: gtk::ModelButton,
     save_image_as_button: gtk::ModelButton,
+    save_video_as_button: gtk::ModelButton,
     copy_image_button: gtk::ModelButton,
     delete_message_button: gtk::ModelButton,
     view_source_button: gtk::ModelButton,
@@ -42,6 +43,10 @@ impl Widgets {
             .get_object("save_image_as_button")
             .expect("Can't find save_image_as_button in ui file.");
 
+        let save_video_as_button: gtk::ModelButton = builder
+            .get_object("save_video_as_button")
+            .expect("Can't find save_video_as_button in ui file.");
+
         let copy_image_button: gtk::ModelButton = builder
             .get_object("copy_image_button")
             .expect("Can't find copy_image_button in ui file.");
@@ -70,10 +75,11 @@ impl Widgets {
         copy_selected_button.hide();
         delete_message_button.set_visible(*redactable);
         menu_separator.set_visible(*redactable);
-        open_with_button.set_visible(mtype == &RowType::Image);
+        open_with_button.set_visible(mtype == &RowType::Image || mtype == &RowType::Video);
         save_image_as_button.set_visible(mtype == &RowType::Image);
+        save_video_as_button.set_visible(mtype == &RowType::Video);
         copy_image_button.set_visible(mtype == &RowType::Image);
-        copy_text_button.set_visible(mtype != &RowType::Image);
+        copy_text_button.set_visible(mtype != &RowType::Image && mtype != &RowType::Video);
 
         let data = glib::Variant::from(id);
         reply_button.set_action_target_value(Some(&data));
@@ -82,6 +88,7 @@ impl Widgets {
         delete_message_button.set_action_target_value(Some(&data));
         open_with_button.set_action_target_value(Some(&data));
         save_image_as_button.set_action_target_value(Some(&data));
+        save_video_as_button.set_action_target_value(Some(&data));
         copy_image_button.set_action_target_value(Some(&data));
         copy_text_button.set_action_target_value(Some(&data));
 
@@ -90,6 +97,7 @@ impl Widgets {
             reply_button,
             open_with_button,
             save_image_as_button,
+            save_video_as_button,
             copy_image_button,
             delete_message_button,
             view_source_button,

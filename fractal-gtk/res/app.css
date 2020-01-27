@@ -155,9 +155,15 @@ row:not(:selected) .member-uid {
   padding: 6px 9px;
 }
 
-.scroll_button {
+.round-button {
   border-radius: 9999px;
   -gtk-outline-radius: 9999px;
+}
+
+.play-icon {
+  border-radius: 9999px;
+  -gtk-outline-radius: 9999px;
+  padding: 20px;
 }
 
 .msg-highlighted {

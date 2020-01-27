@@ -207,29 +207,6 @@ pub fn get_prev_batch_from(
     Ok(prev_batch)
 }
 
-pub fn resolve_media_url(base: &Url, url: &str, media_type: ContentType) -> Result<Url, Error> {
-    let caps = globals::MATRIX_RE
-        .captures(url)
-        .ok_or(Error::BackendError)?;
-    let server = String::from(&caps["server"]);
-    let media = String::from(&caps["media"]);
-
-    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
-        (
-            vec![
-                ("width", w.to_string()),
-                ("height", h.to_string()),
-                ("method", String::from("scale")),
-            ],
-            format!("thumbnail/{}/{}", server, media),
-        )
-    } else {
-        (vec![], format!("download/{}/{}", server, media))
-    };
-
-    media_url(base, &path, &params)
-}
-
 pub fn dw_media(
     base: &Url,
     url: &str,

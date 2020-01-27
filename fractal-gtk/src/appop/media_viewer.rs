@@ -1,6 +1,9 @@
 use gtk;
 use gtk::prelude::*;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::appop::AppOp;
 use crate::appop::AppState;
 
@@ -53,6 +56,16 @@ impl AppOp {
 
             stack.add_named(&body, "media-viewer");
             stack_header.add_named(&header, "media-viewer");
+
+            let media_viewer_back_button = panel
+                .builder
+                .get_object::<gtk::Button>("media_viewer_back_button")
+                .expect("Can't find media_viewer_back_button in ui file.");
+            self.media_viewer = Rc::new(RefCell::new(Some(panel)));
+            let mv = self.media_viewer.clone();
+            media_viewer_back_button.connect_clicked(move |_| {
+                mv.borrow_mut().take();
+            });
         }
 
         self.set_state(AppState::MediaViewer);

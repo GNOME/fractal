@@ -266,6 +266,11 @@ impl ScrollWidget {
     pub fn get_container(&self) -> gtk::Widget {
         self.widgets.container.clone()
     }
+
+    pub fn get_scrolled_window(&self) -> gtk::ScrolledWindow {
+        self.widgets.view.clone()
+    }
+
     pub fn reset_request_sent(&self) {
         self.request_sent.set(false);
         self.widgets.spinner.stop();

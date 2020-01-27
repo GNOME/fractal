@@ -12,6 +12,7 @@ use glib;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
+use gtk::Overlay;
 use gtk::ResponseType;
 use url::Url;
 
@@ -23,6 +24,8 @@ use std::fs;
 use crate::backend::BKCommand;
 use crate::widgets::image;
 use crate::widgets::ErrorDialog;
+use crate::widgets::PlayerExt;
+use crate::widgets::{MediaPlayer, VideoPlayerWidget};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -33,8 +36,15 @@ use std::sync::Mutex;
 pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
     /* gtk widgets we need to have a reference to */
-    builder: gtk::Builder,
+    pub builder: gtk::Builder,
     backend: Sender<BKCommand>,
+}
+
+#[derive(Debug)]
+enum Widget {
+    Image(image::Image),
+    Video(Rc<VideoPlayerWidget>),
+    None,
 }
 
 #[derive(Debug)]
@@ -45,7 +55,7 @@ struct Data {
     server_url: Url,
     access_token: AccessToken,
 
-    pub image: Option<image::Image>,
+    widget: Widget,
     media_list: Vec<Message>,
     current_media_index: usize,
 
@@ -54,6 +64,7 @@ struct Data {
     loading_more_media: bool,
     loading_error: bool,
     no_more_media: bool,
+    is_fullscreen: bool,
 }
 
 impl Data {
@@ -66,6 +77,12 @@ impl Data {
         main_window: gtk::Window,
         builder: gtk::Builder,
     ) -> Data {
+        let is_fullscreen = main_window
+            .clone()
+            .get_window()
+            .unwrap()
+            .get_state()
+            .contains(gdk::WindowState::FULLSCREEN);
         Data {
             media_list,
             current_media_index,
@@ -73,28 +90,37 @@ impl Data {
             loading_more_media: false,
             loading_error: false,
             no_more_media: false,
-            image: None,
+            widget: Widget::None,
             builder,
             backend,
             server_url,
             access_token,
             main_window,
             signal_id: None,
+            is_fullscreen,
         }
     }
 
-    pub fn save_media(&self) -> Option<()> {
-        let image = self.image.clone()?;
-        save_file_as(
-            &self.main_window,
-            image.local_path.lock().unwrap().clone().unwrap_or_default(),
-            self.media_list[self.current_media_index].body.clone(),
-        );
-        None
+    pub fn save_media(&self) {
+        let local_path = match &self.widget {
+            Widget::Image(image) => image.local_path.lock().unwrap().clone(),
+            Widget::Video(player) => player.get_local_path_access().borrow().clone(),
+            Widget::None => None,
+        };
+        if let Some(local_path) = local_path {
+            save_file_as(
+                &self.main_window,
+                local_path,
+                self.media_list[self.current_media_index].body.clone(),
+            );
+        } else {
+            ErrorDialog::new(false, &i18n("Media is not loaded, yet."));
+        }
     }
 
     pub fn enter_full_screen(&mut self) {
         self.main_window.fullscreen();
+        self.is_fullscreen = true;
 
         let media_viewer_headerbar_box = self
             .builder
@@ -129,11 +155,12 @@ impl Data {
 
         headerbar_revealer.add(&media_viewer_headerbar);
 
-        self.redraw_image_in_viewport();
+        self.redraw_media_in_viewport();
     }
 
     pub fn leave_full_screen(&mut self) {
         self.main_window.unfullscreen();
+        self.is_fullscreen = false;
 
         let media_viewer_headerbar_box = self
             .builder
@@ -169,7 +196,7 @@ impl Data {
         media_viewer_headerbar.set_hexpand(true);
         media_viewer_headerbar_box.add(&media_viewer_headerbar);
 
-        self.redraw_image_in_viewport();
+        self.redraw_media_in_viewport();
     }
 
     pub fn set_nav_btn_visibility(&self) {
@@ -210,7 +237,7 @@ impl Data {
                 set_header_title(&self.builder, name);
             }
 
-            self.redraw_image_in_viewport();
+            self.redraw_media_in_viewport();
             return true;
         }
     }
@@ -225,10 +252,10 @@ impl Data {
             set_header_title(&self.builder, name);
         }
 
-        self.redraw_image_in_viewport();
+        self.redraw_media_in_viewport();
     }
 
-    pub fn redraw_image_in_viewport(&mut self) {
+    pub fn redraw_media_in_viewport(&mut self) {
         let media_viewport = self
             .builder
             .get_object::<gtk::Viewport>("media_viewport")
@@ -238,22 +265,161 @@ impl Data {
             media_viewport.remove(&child);
         }
 
-        let url = self.media_list[self.current_media_index]
-            .url
-            .clone()
-            .unwrap_or_default();
-
-        let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
-            .fit_to_width(true)
-            .center(true)
-            .build();
-
-        media_viewport.add(&image.widget);
-        image.widget.show();
-
+        let msg = &self.media_list[self.current_media_index];
+        let url = msg.url.clone().unwrap_or_default();
+        match msg.mtype.as_ref() {
+            "m.image" => {
+                let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
+                    .fit_to_width(true)
+                    .center(true)
+                    .build();
+                media_viewport.add(&image.widget);
+                image.widget.show();
+                self.widget = Widget::Image(image);
+            }
+            "m.video" => {
+                let bx = self.create_video_widget(&url);
+                media_viewport.add(&bx);
+                media_viewport.show_all();
+            }
+            _ => {}
+        }
         self.set_nav_btn_visibility();
+    }
 
-        self.image = Some(image);
+    fn create_video_widget(&mut self, url: &String) -> gtk::Box {
+        let with_controls = true;
+        let player = VideoPlayerWidget::new(with_controls);
+        let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let start_playing = true;
+        PlayerExt::initialize_stream(
+            &player,
+            &self.backend,
+            url,
+            &self.server_url.clone(),
+            &bx,
+            start_playing,
+        );
+
+        let overlay = Overlay::new();
+        overlay.add(&player.get_video_widget());
+
+        let full_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let control_box = PlayerExt::get_controls_container(&player).unwrap();
+        full_control_box.pack_start(&control_box, false, true, 0);
+
+        let mute_button = gtk::Button::new_from_icon_name(
+            Some("audio-volume-high"),
+            gtk::IconSize::Button.into(),
+        );
+        let player_weak = Rc::downgrade(&player);
+        mute_button.connect_clicked(move |button| {
+            player_weak.upgrade().map(|player| {
+                VideoPlayerWidget::switch_mute_state(&player, &button);
+            });
+        });
+        full_control_box.pack_start(&mute_button, false, false, 3);
+
+        let control_revealer = gtk::Revealer::new();
+        control_revealer.add(&full_control_box);
+        control_revealer.set_reveal_child(true);
+        let source_id: Rc<RefCell<Option<glib::source::SourceId>>> = Rc::new(RefCell::new(None));
+        let first_sid = gtk::timeout_add_seconds(
+            1,
+            clone!(source_id, control_revealer => move || {
+                control_revealer.set_reveal_child(false);
+                *source_id.borrow_mut() = None;
+                Continue(false)
+            }),
+        );
+        *source_id.borrow_mut() = Some(first_sid);
+        let media_viewer_box = self
+            .builder
+            .clone()
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+        media_viewer_box.connect_motion_notify_event(clone!( control_revealer => move |_, _| {
+            control_revealer.set_reveal_child(true);
+            if let Some(sid) = source_id.borrow_mut().take() {
+                glib::source::source_remove(sid);
+            }
+            let new_sid = gtk::timeout_add_seconds(
+                1,
+                clone!(source_id, control_revealer => move || {
+                    control_revealer.set_reveal_child(false);
+                    *source_id.borrow_mut() = None;
+                    Continue(false)
+                }),
+            );
+            *source_id.borrow_mut() = Some(new_sid);
+            Inhibit(false)
+        }));
+
+        control_revealer.set_valign(gtk::Align::End);
+        control_revealer.get_style_context().add_class("osd");
+        overlay.add_overlay(&control_revealer);
+
+        bx.pack_start(&overlay, false, false, 0);
+
+        if self.is_fullscreen {
+            bx.set_child_packing(&overlay, true, true, 0, gtk::PackType::Start);
+        } else {
+            bx.set_margin_start(70);
+            bx.set_margin_end(70);
+            overlay.set_valign(gtk::Align::Center);
+            overlay.set_halign(gtk::Align::Center);
+            VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(&bx, &overlay, &player);
+        }
+
+        let player_weak = Rc::downgrade(&player);
+        bx.connect_state_flags_changed(move |_, flag| {
+            let focussed = gtk::StateFlags::BACKDROP;
+            player_weak.upgrade().map(|player| {
+                if !flag.contains(focussed) {
+                    player.pause();
+                }
+            });
+        });
+
+        let player_weak = Rc::downgrade(&player);
+        self.main_window.connect_key_press_event(move |_, k| {
+            player_weak.upgrade().map(|player| {
+                if player.get_video_widget().get_mapped() {
+                    match k.get_keyval() {
+                        gdk::enums::key::space => {
+                            VideoPlayerWidget::switch_play_pause_state(&player);
+                        }
+                        _ => {}
+                    }
+                }
+            });
+            Inhibit(false)
+        });
+        let player_weak = Rc::downgrade(&player);
+        player
+            .get_video_widget()
+            .connect_button_press_event(move |_, e| {
+                if e.get_button() == 1 {
+                    player_weak.upgrade().map(|player| {
+                        VideoPlayerWidget::switch_play_pause_state(&player);
+                    });
+                }
+                Inhibit(false)
+            });
+
+        self.widget = Widget::Video(player);
+        bx
+    }
+}
+
+impl Drop for Data {
+    fn drop(&mut self) {
+        match &self.widget {
+            Widget::Video(player) => {
+                player.stop();
+            }
+            _ => {}
+        }
     }
 }
 
@@ -278,7 +444,7 @@ impl MediaViewer {
             .messages
             .clone()
             .into_iter()
-            .filter(|msg| msg.mtype == "m.image")
+            .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
             .collect();
 
         let current_media_index = media_list
@@ -312,6 +478,7 @@ impl MediaViewer {
             .expect("Can't find media_viewer_headerbar in ui file.");
         self.connect_media_viewer_headerbar();
         self.connect_media_viewer_box();
+        self.connect_stop_video_when_leaving();
 
         Some((body, header))
     }
@@ -336,47 +503,59 @@ impl MediaViewer {
             .get_object::<gtk::Viewport>("media_viewport")
             .expect("Cant find media_viewport in ui file.");
 
-        let image = image::Image::new(
-            &self.backend,
-            self.data.borrow().server_url.clone(),
-            &media_msg.url.clone().unwrap_or_default(),
-        )
-        .fit_to_width(true)
-        .center(true)
-        .build();
+        let url = media_msg.url.clone().unwrap_or_default();
+        match media_msg.mtype.as_ref() {
+            "m.image" => {
+                let image =
+                    image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
+                        .fit_to_width(true)
+                        .center(true)
+                        .build();
 
-        media_viewport.add(&image.widget);
-        media_viewport.show_all();
+                media_viewport.add(&image.widget);
+                media_viewport.show_all();
 
-        self.data.borrow_mut().image = Some(image);
-        self.data.borrow_mut().set_nav_btn_visibility();
+                self.data.borrow_mut().widget = Widget::Image(image);
+                self.data.borrow_mut().set_nav_btn_visibility();
+            }
+            "m.video" => {
+                let bx = self.data.borrow_mut().create_video_widget(&url);
+                media_viewport.add(&bx);
+                media_viewport.show_all();
+            }
+            _ => {}
+        }
     }
 
     /* connect media viewer headerbar */
     pub fn connect_media_viewer_headerbar(&self) {
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
         full_screen_button.connect_clicked(move |_| {
-            let main_window = own.borrow().main_window.clone();
-            if let Some(win) = main_window.get_window() {
-                if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                    own.borrow_mut().enter_full_screen();
-                } else {
-                    own.borrow_mut().leave_full_screen()
+            own_weak.upgrade().map(|own| {
+                let main_window = own.borrow().main_window.clone();
+                if let Some(win) = main_window.get_window() {
+                    if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
+                        own.borrow_mut().enter_full_screen();
+                    } else {
+                        own.borrow_mut().leave_full_screen()
+                    }
                 }
-            }
+            });
         });
 
         let save_as_button = self
             .builder
             .get_object::<gtk::ModelButton>("save_as_button")
             .expect("Cant find save_as_button in ui file.");
-        let data = self.data.clone();
+        let data_weak = Rc::downgrade(&self.data);
         save_as_button.connect_clicked(move |_| {
-            data.borrow().save_media();
+            data_weak.upgrade().map(|data| {
+                data.borrow().save_media();
+            });
         });
     }
 
@@ -498,7 +677,7 @@ impl MediaViewer {
             Inhibit(false)
         });
 
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let builder = self.builder.clone();
         let backend = self.backend.clone();
         let previous_media_button = self
@@ -506,18 +685,22 @@ impl MediaViewer {
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
         previous_media_button.connect_clicked(move |_| {
-            if !own.borrow_mut().previous_media() {
-                load_more_media(own.clone(), builder.clone(), backend.clone());
-            }
+            own_weak.upgrade().map(|own| {
+                if !own.borrow_mut().previous_media() {
+                    load_more_media(own.clone(), builder.clone(), backend.clone());
+                }
+            });
         });
 
-        let own = self.data.clone();
+        let own_weak = Rc::downgrade(&self.data);
         let next_media_button = self
             .builder
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
         next_media_button.connect_clicked(move |_| {
-            own.borrow_mut().next_media();
+            own_weak.upgrade().map(|own| {
+                own.borrow_mut().next_media();
+            });
         });
         let full_screen_button = self
             .builder
@@ -555,13 +738,32 @@ impl MediaViewer {
         self.data.borrow_mut().signal_id = Some(id);
 
         // Remove the keyboard signal management on hide
-        let data = self.data.clone();
+        let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
-            let id = data.borrow_mut().signal_id.take();
-            let main_window = &data.borrow().main_window;
-            if let Some(id) = id {
-                signal::signal_handler_disconnect(main_window, id);
-            }
+            data_weak.upgrade().map(|data| {
+                let id = data.borrow_mut().signal_id.take();
+                let main_window = &data.borrow().main_window;
+                if let Some(id) = id {
+                    signal::signal_handler_disconnect(main_window, id);
+                }
+            });
+        });
+    }
+
+    fn connect_stop_video_when_leaving(&self) {
+        let media_viewer_box = self
+            .builder
+            .clone()
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+        let data_weak = Rc::downgrade(&self.data);
+        media_viewer_box.connect_unmap(move |_| {
+            data_weak.upgrade().map(|data| match &data.borrow().widget {
+                Widget::Video(player_widget) => {
+                    PlayerExt::get_player(&player_widget).stop();
+                }
+                _ => {}
+            });
         });
     }
 }
@@ -618,41 +820,44 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
         .unwrap();
 
     let ui = builder.clone();
-    let data = data.clone();
+    let data_weak = Rc::downgrade(&data);
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => gtk::Continue(true),
         Err(TryRecvError::Disconnected) => {
-            data.borrow_mut().loading_error = true;
-            let err = i18n("Error while loading previous media");
-            ErrorDialog::new(false, &err);
+            data_weak.clone().upgrade().map(|data| {
+                data.borrow_mut().loading_error = true;
+                let err = i18n("Error while loading previous media");
+                ErrorDialog::new(false, &err);
+            });
 
             gtk::Continue(false)
         }
         Ok((msgs, prev_batch)) => {
             if msgs.len() == 0 {
-                data.borrow_mut().no_more_media = true;
+                data_weak.clone().upgrade().map(|data| {
+                    data.borrow_mut().no_more_media = true;
+                });
                 return gtk::Continue(false);
             }
-
-            let media_list = data.borrow().media_list.clone();
-            let img_msgs: Vec<Message> = msgs
-                .into_iter()
-                .filter(|msg| msg.mtype == "m.image")
-                .collect();
-            let img_msgs_count = img_msgs.len();
-            let new_media_list: Vec<Message> =
-                img_msgs.into_iter().chain(media_list.into_iter()).collect();
-
-            data.borrow_mut().media_list = new_media_list;
-            data.borrow_mut().prev_batch = Some(prev_batch);
-
-            if img_msgs_count == 0 {
-                load_more_media(data.clone(), builder.clone(), backend.clone());
-            } else {
-                data.borrow_mut().current_media_index += img_msgs_count;
-                data.borrow_mut().previous_media();
-                data.borrow_mut().loading_more_media = loading_state(&ui, false);
-            }
+            data_weak.upgrade().map(|data| {
+                let media_list = data.borrow().media_list.clone();
+                let img_msgs: Vec<Message> = msgs
+                    .into_iter()
+                    .filter(|msg| msg.mtype == "m.image" || msg.mtype == "m.video")
+                    .collect();
+                let img_msgs_count = img_msgs.len();
+                let new_media_list: Vec<Message> =
+                    img_msgs.into_iter().chain(media_list.into_iter()).collect();
+                data.borrow_mut().media_list = new_media_list;
+                data.borrow_mut().prev_batch = Some(prev_batch);
+                if img_msgs_count == 0 {
+                    load_more_media(data.clone(), builder.clone(), backend.clone());
+                } else {
+                    data.borrow_mut().current_media_index += img_msgs_count;
+                    data.borrow_mut().previous_media();
+                    data.borrow_mut().loading_more_media = loading_state(&ui, false);
+                }
+            });
 
             gtk::Continue(false)
         }
