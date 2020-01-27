@@ -18,9 +18,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use fractal_api::clone;
+
 use gst::prelude::*;
 use gst::ClockTime;
-use gst_player;
+use gstreamer_pbutils::Discoverer;
 use log::{error, info, warn};
 
 use gtk;
@@ -503,6 +504,13 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                     Ok(path) => {
                         info!("MEDIA PATH: {}", &path);
                         *local_path.borrow_mut() = Some(path.clone());
+                        if ! start_playing {
+                            if let Some(controls) = player.get_controls() {
+                                if let Ok(duration) = get_media_duration(&path) {
+                                    controls.timer.on_duration_changed(Duration(duration))
+                                }
+                            }
+                        }
                         let uri = format!("file://{}", path);
                         player.get_player().set_uri(&uri);
                         if player.get_controls().is_some() {
@@ -641,4 +649,11 @@ fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video
             bx.set_spacing(margin);
         }
     }
+}
+
+pub fn get_media_duration(file: &str) -> Result<ClockTime, glib::Error> {
+    let timeout = ClockTime::from_seconds(1);
+    let discoverer = Discoverer::new(timeout)?;
+    let info = discoverer.discover_uri(&format!("file://{}", file))?;
+    Ok(info.get_duration())
 }

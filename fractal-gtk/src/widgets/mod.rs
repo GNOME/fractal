@@ -5,7 +5,7 @@ mod divider;
 pub mod error_dialog;
 pub mod file_dialog;
 pub mod image;
-mod inline_player;
+pub mod inline_player;
 mod kicked_dialog;
 mod login;
 pub mod media_viewer;
