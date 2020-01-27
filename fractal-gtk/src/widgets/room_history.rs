@@ -631,7 +631,7 @@ fn create_row(
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
     let mut mb = widgets::MessageBox::new(backend, server_url);
-    mb.create(&row, has_header && row.mtype != RowType::Emote);
+    mb.create(&row, has_header && row.mtype != RowType::Emote, false);
 
     match row.mtype {
         RowType::Video => {
