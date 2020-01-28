@@ -8,6 +8,7 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use gtk::DrawingArea;
+use log::error;
 use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
@@ -15,6 +16,7 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 
 use crate::backend::BKCommand;
+use crate::error::Error;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]
@@ -263,7 +265,10 @@ impl Image {
     pub fn load_async(&self) {
         if self.path.starts_with("mxc:") {
             // asyn load
-            let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+            let (tx, rx): (
+                Sender<Result<String, Error>>,
+                Receiver<Result<String, Error>>,
+            ) = channel();
             let command = if self.thumb {
                 BKCommand::GetThumbAsync(self.server_url.clone(), self.path.to_string(), tx)
             } else {
@@ -279,10 +284,14 @@ impl Image {
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => gtk::Continue(true),
                 Err(TryRecvError::Disconnected) => gtk::Continue(false),
-                Ok(fname) => {
+                Ok(Ok(fname)) => {
                     *local_path.lock().unwrap() = Some(fname.clone());
                     load_pixbuf(pix.clone(), scaled.clone(), da.clone(), &fname);
                     da.get_style_context().remove_class("image-spinner");
+                    gtk::Continue(false)
+                }
+                Ok(Err(err)) => {
+                    error!("Image path could not be found due to error: {:?}", err);
                     gtk::Continue(false)
                 }
             });

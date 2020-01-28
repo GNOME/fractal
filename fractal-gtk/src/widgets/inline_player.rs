@@ -46,6 +46,7 @@ use url::Url;
 
 use crate::app::App;
 use crate::backend::BKCommand;
+use crate::error::Error;
 use crate::i18n::i18n;
 
 pub trait PlayerExt {
@@ -481,7 +482,10 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         start_playing: bool,
     ) {
         bx.set_opacity(0.3);
-        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        let (tx, rx): (
+            Sender<Result<String, Error>>,
+            Receiver<Result<String, Error>>,
+        ) = channel();
         backend
             .send(BKCommand::GetMediaAsync(
                 server_url.clone(),
@@ -501,7 +505,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                         APPOP!(show_error, (msg));
                         gtk::Continue(true)
                     },
-                    Ok(path) => {
+                    Ok(Ok(path)) => {
                         info!("MEDIA PATH: {}", &path);
                         *local_path.borrow_mut() = Some(path.clone());
                         if ! start_playing {
@@ -520,6 +524,10 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                         if start_playing {
                             player.play();
                         }
+                        gtk::Continue(false)
+                    }
+                    Ok(Err(err)) => {
+                        error!("Media path could not be found due to error: {:?}", err);
                         gtk::Continue(false)
                     }
                 }

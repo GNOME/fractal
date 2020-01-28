@@ -1,11 +1,13 @@
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
+use log::error;
 use std::fs;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
 use crate::backend::BKCommand;
+use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
 use crate::uibuilder::UI;
@@ -104,7 +106,7 @@ pub fn new(
             let name = m.body;
             let url = m.url.unwrap_or_default();
 
-            let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+            let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
             let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url, tx));
 
             let parent_weak = parent_weak.clone();
@@ -118,7 +120,7 @@ pub fn new(
 
                         gtk::Continue(true)
                     },
-                    Ok(fname) => {
+                    Ok(Ok(fname)) => {
                         let window = upgrade_weak!(parent_weak, gtk::Continue(true));
                         if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
@@ -126,6 +128,10 @@ pub fn new(
                                 ErrorDialog::new(false, &i18n("Couldn’t save file"));
                             }
                         }
+                        gtk::Continue(false)
+                    }
+                    Ok(Err(err)) => {
+                        error!("Media path could not be found due to error: {:?}", err);
                         gtk::Continue(false)
                     }
                 }),
@@ -138,7 +144,10 @@ pub fn new(
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
 
-            let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+            let (tx, rx): (
+                Sender<Result<String, Error>>,
+                Receiver<Result<String, Error>>,
+            ) = channel();
 
             let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url.clone(), tx));
 
@@ -150,7 +159,7 @@ pub fn new(
 
                     gtk::Continue(true)
                 }
-                Ok(fname) => {
+                Ok(Ok(fname)) => {
                     if let Ok(pixbuf) = gdk_pixbuf::Pixbuf::new_from_file(fname) {
                         let atom = gdk::Atom::intern("CLIPBOARD");
                         let clipboard = gtk::Clipboard::get(&atom);
@@ -158,6 +167,10 @@ pub fn new(
                         clipboard.set_image(&pixbuf);
                     }
 
+                    gtk::Continue(false)
+                }
+                Ok(Err(err)) => {
+                    error!("Image path could not be found due to error: {:?}", err);
                     gtk::Continue(false)
                 }
             });

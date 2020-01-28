@@ -42,8 +42,8 @@ pub enum BKCommand {
     GetRoomMessagesFromMsg(Url, AccessToken, String, Message),
     GetMessageContext(Url, AccessToken, Message),
     GetRoomAvatar(Url, AccessToken, String),
-    GetThumbAsync(Url, String, Sender<String>),
-    GetMediaAsync(Url, String, Sender<String>),
+    GetThumbAsync(Url, String, Sender<Result<String, Error>>),
+    GetMediaAsync(Url, String, Sender<Result<String, Error>>),
     GetMediaListAsync(
         Url,
         AccessToken,
