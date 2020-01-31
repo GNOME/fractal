@@ -10,6 +10,7 @@ use dirs;
 use gdk::*;
 use glib;
 use glib::signal;
+use glib::SourceId;
 use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
@@ -32,7 +33,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
     /* gtk widgets we need to have a reference to */
@@ -41,9 +42,54 @@ pub struct MediaViewer {
 }
 
 #[derive(Debug)]
+struct VideoWidget {
+    player: Rc<VideoPlayerWidget>,
+    inner_box: gtk::Overlay,
+    outer_box: gtk::Box,
+    auto_adjust_ids: Option<(glib::SignalHandlerId, glib::SignalHandlerId)>,
+}
+
+impl VideoWidget {
+    fn set_fullscreen_mode(&mut self) {
+        if let Some((dimension_id, size_id)) = self.auto_adjust_ids.take() {
+            self.player.get_player().disconnect(dimension_id);
+            self.outer_box.disconnect(size_id);
+        }
+        self.outer_box.set_margin_start(0);
+        self.outer_box.set_margin_end(0);
+        self.outer_box.foreach(|widget| {
+            self.outer_box.remove(widget);
+        });
+        self.outer_box.pack_start(&self.inner_box, true, true, 0);
+
+        self.inner_box.set_valign(gtk::Align::Fill);
+        self.inner_box.set_halign(gtk::Align::Fill);
+    }
+
+    fn set_window_mode(&mut self) {
+        self.outer_box.set_margin_start(70);
+        self.outer_box.set_margin_end(70);
+
+        self.outer_box.foreach(|widget| {
+            self.outer_box.remove(widget);
+        });
+        self.outer_box.pack_start(&self.inner_box, false, false, 0);
+
+        self.inner_box.set_valign(gtk::Align::Center);
+        self.inner_box.set_halign(gtk::Align::Center);
+        let ids = VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(
+            &self.outer_box,
+            &self.inner_box,
+            &self.player,
+        );
+        self.auto_adjust_ids = Some(ids);
+    }
+}
+
+#[derive(Debug)]
 enum Widget {
     Image(image::Image),
-    Video(Rc<VideoPlayerWidget>),
+    Video(VideoWidget),
     None,
 }
 
@@ -65,6 +111,7 @@ struct Data {
     loading_error: bool,
     no_more_media: bool,
     is_fullscreen: bool,
+    widget_clicked_timeout: Option<SourceId>,
 }
 
 impl Data {
@@ -98,13 +145,14 @@ impl Data {
             main_window,
             signal_id: None,
             is_fullscreen,
+            widget_clicked_timeout: None,
         }
     }
 
     pub fn save_media(&self) {
         let local_path = match &self.widget {
             Widget::Image(image) => image.local_path.lock().unwrap().clone(),
-            Widget::Video(player) => player.get_local_path_access().borrow().clone(),
+            Widget::Video(widget) => widget.player.get_local_path_access().borrow().clone(),
             Widget::None => None,
         };
         if let Some(local_path) = local_path {
@@ -155,7 +203,19 @@ impl Data {
 
         headerbar_revealer.add(&media_viewer_headerbar);
 
-        self.redraw_media_in_viewport();
+        match self.widget {
+            Widget::Video(ref mut widget) => {
+                widget.set_fullscreen_mode();
+                let media_viewport = self
+                    .builder
+                    .get_object::<gtk::Viewport>("media_viewport")
+                    .expect("Cant find media_viewport in ui file.");
+                media_viewport.show();
+            }
+            _ => {
+                self.redraw_media_in_viewport();
+            }
+        }
     }
 
     pub fn leave_full_screen(&mut self) {
@@ -196,7 +256,25 @@ impl Data {
         media_viewer_headerbar.set_hexpand(true);
         media_viewer_headerbar_box.add(&media_viewer_headerbar);
 
-        self.redraw_media_in_viewport();
+        match self.widget {
+            Widget::Video(ref mut widget) => {
+                widget.set_window_mode();
+                let media_viewport = self
+                    .builder
+                    .get_object::<gtk::Viewport>("media_viewport")
+                    .expect("Cant find media_viewport in ui file.");
+                media_viewport.show_all();
+                if widget.player.is_playing() {
+                    /* For some reason, if we don't replay the video, the play button,
+                    which theoretically is hidden, appears next to the pause button. */
+                    widget.player.pause();
+                    widget.player.play();
+                }
+            }
+            _ => {
+                self.redraw_media_in_viewport();
+            }
+        }
     }
 
     pub fn set_nav_btn_visibility(&self) {
@@ -278,8 +356,9 @@ impl Data {
                 self.widget = Widget::Image(image);
             }
             "m.video" => {
-                let bx = self.create_video_widget(&url);
-                media_viewport.add(&bx);
+                let widget = self.create_video_widget(&url);
+                media_viewport.add(&widget.outer_box);
+                self.widget = Widget::Video(widget);
                 media_viewport.show_all();
             }
             _ => {}
@@ -287,7 +366,7 @@ impl Data {
         self.set_nav_btn_visibility();
     }
 
-    fn create_video_widget(&mut self, url: &String) -> gtk::Box {
+    fn create_video_widget(&self, url: &String) -> VideoWidget {
         let with_controls = true;
         let player = VideoPlayerWidget::new(with_controls);
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -361,16 +440,6 @@ impl Data {
 
         bx.pack_start(&overlay, false, false, 0);
 
-        if self.is_fullscreen {
-            bx.set_child_packing(&overlay, true, true, 0, gtk::PackType::Start);
-        } else {
-            bx.set_margin_start(70);
-            bx.set_margin_end(70);
-            overlay.set_valign(gtk::Align::Center);
-            overlay.set_halign(gtk::Align::Center);
-            VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(&bx, &overlay, &player);
-        }
-
         let player_weak = Rc::downgrade(&player);
         bx.connect_state_flags_changed(move |_, flag| {
             let focussed = gtk::StateFlags::BACKDROP;
@@ -395,28 +464,29 @@ impl Data {
             });
             Inhibit(false)
         });
-        let player_weak = Rc::downgrade(&player);
-        player
-            .get_video_widget()
-            .connect_button_press_event(move |_, e| {
-                if e.get_button() == 1 {
-                    player_weak.upgrade().map(|player| {
-                        VideoPlayerWidget::switch_play_pause_state(&player);
-                    });
-                }
-                Inhibit(false)
-            });
 
-        self.widget = Widget::Video(player);
-        bx
+        let mut widget = VideoWidget {
+            player,
+            inner_box: overlay,
+            outer_box: bx,
+            auto_adjust_ids: None,
+        };
+
+        if self.is_fullscreen {
+            widget.set_fullscreen_mode();
+        } else {
+            widget.set_window_mode();
+        }
+
+        widget
     }
 }
 
 impl Drop for Data {
     fn drop(&mut self) {
         match &self.widget {
-            Widget::Video(player) => {
-                player.stop();
+            Widget::Video(widget) => {
+                widget.player.stop();
             }
             _ => {}
         }
@@ -516,15 +586,17 @@ impl MediaViewer {
                 media_viewport.show_all();
 
                 self.data.borrow_mut().widget = Widget::Image(image);
-                self.data.borrow_mut().set_nav_btn_visibility();
             }
             "m.video" => {
-                let bx = self.data.borrow_mut().create_video_widget(&url);
-                media_viewport.add(&bx);
+                let video_widget = self.data.borrow().create_video_widget(&url);
+                media_viewport.add(&video_widget.outer_box);
                 media_viewport.show_all();
+
+                self.data.borrow_mut().widget = Widget::Video(video_widget);
             }
             _ => {}
         }
+        self.data.borrow_mut().set_nav_btn_visibility();
     }
 
     /* connect media viewer headerbar */
@@ -561,9 +633,62 @@ impl MediaViewer {
 
     pub fn connect_media_viewer_box(&self) {
         let ui = self.builder.clone();
+
+        let media_viewer_box = ui
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+        let data_weak = Rc::downgrade(&self.data);
+        media_viewer_box.connect_button_press_event(move |_, e| {
+            match e.get_event_type() {
+                EventType::ButtonPress => {
+                    data_weak.upgrade().map(|data| {
+                        if data.borrow().widget_clicked_timeout.is_some() {
+                            let sid = data.borrow_mut().widget_clicked_timeout.take().unwrap();
+                            glib::source::source_remove(sid);
+                        } else {
+                            let data_timeout = Rc::downgrade(&data);
+                            let sid = gtk::timeout_add(200, move || {
+                                data_timeout.upgrade().map(|data| {
+                                    match &data.borrow().widget {
+                                        Widget::Video(video_widget) => {
+                                            VideoPlayerWidget::switch_play_pause_state(
+                                                &video_widget.player,
+                                            );
+                                        }
+                                        _ => {}
+                                    }
+                                    data.borrow_mut().widget_clicked_timeout = None;
+                                });
+                                Continue(false)
+                            });
+                            data.borrow_mut().widget_clicked_timeout = Some(sid);
+                        }
+                    });
+                }
+                _ => {}
+            }
+            Inhibit(false)
+        });
+
+        let full_screen_button = self
+            .builder
+            .get_object::<gtk::Button>("full_screen_button")
+            .expect("Cant find full_screen_button in ui file.");
+        self.data
+            .borrow()
+            .main_window
+            .connect_button_press_event(move |_, e| {
+                match e.get_event_type() {
+                    EventType::DoubleButtonPress => {
+                        full_screen_button.clicked();
+                    }
+                    _ => {}
+                }
+                Inhibit(false)
+            });
+
         let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
         let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
-
         let headerbar_revealer = ui
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
@@ -610,72 +735,71 @@ impl MediaViewer {
             Inhibit(false)
         }));
 
-        let media_viewer_box = ui
-            .get_object::<gtk::Box>("media_viewer_box")
-            .expect("Cant find media_viewer_box in ui file.");
-
         let source_id: Arc<Mutex<Option<glib::source::SourceId>>> = Arc::new(Mutex::new(None));
         let win = self.data.borrow().main_window.clone();
-        media_viewer_box.connect_motion_notify_event(move |_, _| {
-            {
-                let mut id = source_id.lock().unwrap();
-                if let Some(sid) = id.take() {
-                    glib::source::source_remove(sid);
+        self.data
+            .borrow()
+            .main_window
+            .connect_motion_notify_event(move |_, _| {
+                {
+                    let mut id = source_id.lock().unwrap();
+                    if let Some(sid) = id.take() {
+                        glib::source::source_remove(sid);
+                    }
                 }
-            }
 
-            gdk::Display::get_default()
-                .and_then(|disp| disp.get_default_seat())
-                .and_then(|seat| seat.get_pointer())
-                .map(|ptr| {
-                    let win = win.get_window()?;
-                    let (_, _, y, _) = win.get_device_position(&ptr);
-                    if y <= 6 && win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                        headerbar_revealer.set_reveal_child(true);
-                    }
-                    Some(true)
-                });
+                gdk::Display::get_default()
+                    .and_then(|disp| disp.get_default_seat())
+                    .and_then(|seat| seat.get_pointer())
+                    .map(|ptr| {
+                        let win = win.get_window()?;
+                        let (_, _, y, _) = win.get_device_position(&ptr);
+                        if y <= 6 && win.get_state().contains(gdk::WindowState::FULLSCREEN) {
+                            headerbar_revealer.set_reveal_child(true);
+                        }
+                        Some(true)
+                    });
 
-            let previous_media_revealer = ui
-                .get_object::<gtk::Revealer>("previous_media_revealer")
-                .expect("Cant find previous_media_revealer in ui file.");
-            previous_media_revealer.set_reveal_child(true);
+                let previous_media_revealer = ui
+                    .get_object::<gtk::Revealer>("previous_media_revealer")
+                    .expect("Cant find previous_media_revealer in ui file.");
+                previous_media_revealer.set_reveal_child(true);
 
-            let next_media_revealer = ui
-                .get_object::<gtk::Revealer>("next_media_revealer")
-                .expect("Cant find next_media_revealer in ui file.");
-            next_media_revealer.set_reveal_child(true);
+                let next_media_revealer = ui
+                    .get_object::<gtk::Revealer>("next_media_revealer")
+                    .expect("Cant find next_media_revealer in ui file.");
+                next_media_revealer.set_reveal_child(true);
 
-            let sid = gtk::timeout_add(
-                1000,
-                clone!(ui, header_hovered, nav_hovered, source_id => move || {
-                    if !*header_hovered.lock().unwrap() {
-                        let headerbar_revealer = ui
-                            .get_object::<gtk::Revealer>("headerbar_revealer")
-                            .expect("Can't find headerbar_revealer in ui file.");
-                        headerbar_revealer.set_reveal_child(false);
-                    }
+                let sid = gtk::timeout_add(
+                    1000,
+                    clone!(ui, header_hovered, nav_hovered, source_id => move || {
+                        if !*header_hovered.lock().unwrap() {
+                            let headerbar_revealer = ui
+                                .get_object::<gtk::Revealer>("headerbar_revealer")
+                                .expect("Can't find headerbar_revealer in ui file.");
+                            headerbar_revealer.set_reveal_child(false);
+                        }
 
-                    if !*nav_hovered.lock().unwrap() {
-                        let previous_media_revealer = ui
-                            .get_object::<gtk::Revealer>("previous_media_revealer")
-                            .expect("Cant find previous_media_revealer in ui file.");
-                        previous_media_revealer.set_reveal_child(false);
+                        if !*nav_hovered.lock().unwrap() {
+                            let previous_media_revealer = ui
+                                .get_object::<gtk::Revealer>("previous_media_revealer")
+                                .expect("Cant find previous_media_revealer in ui file.");
+                            previous_media_revealer.set_reveal_child(false);
 
-                        let next_media_revealer = ui
-                            .get_object::<gtk::Revealer>("next_media_revealer")
-                            .expect("Cant find next_media_revealer in ui file.");
-                        next_media_revealer.set_reveal_child(false);
-                    }
+                            let next_media_revealer = ui
+                                .get_object::<gtk::Revealer>("next_media_revealer")
+                                .expect("Cant find next_media_revealer in ui file.");
+                            next_media_revealer.set_reveal_child(false);
+                        }
 
-                    *(source_id.lock().unwrap()) = None;
-                    gtk::Continue(false)
-                }),
-            );
+                        *(source_id.lock().unwrap()) = None;
+                        gtk::Continue(false)
+                    }),
+                );
 
-            *(source_id.lock().unwrap()) = Some(sid);
-            Inhibit(false)
-        });
+                *(source_id.lock().unwrap()) = Some(sid);
+                Inhibit(false)
+            });
 
         let own_weak = Rc::downgrade(&self.data);
         let builder = self.builder.clone();
@@ -759,12 +883,20 @@ impl MediaViewer {
         let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
             data_weak.upgrade().map(|data| match &data.borrow().widget {
-                Widget::Video(player_widget) => {
-                    PlayerExt::get_player(&player_widget).stop();
+                Widget::Video(widget) => {
+                    PlayerExt::get_player(&widget.player).stop();
                 }
                 _ => {}
             });
         });
+    }
+
+    pub fn disconnect_signal_id(&mut self) {
+        let id = self.data.borrow_mut().signal_id.take();
+        let main_window = &self.data.borrow().main_window;
+        if let Some(id) = id {
+            signal::signal_handler_disconnect(main_window, id);
+        }
     }
 }
 
