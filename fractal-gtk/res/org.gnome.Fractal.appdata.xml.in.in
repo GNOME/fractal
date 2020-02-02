@@ -18,6 +18,33 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="4.4" type="stable" date="2020-02-28" urgency="high">
+      <description>
+        <p>This new major release is the result of 3 months of hard work.</p>
+        <p>New features:</p>
+        <ul>
+          <li>Videos now have a preview directly in history</li>
+          <li>New videos player: click on a preview to open it</li>
+          <li>Improved audio file support, with a nicer presentation and seeking</li>
+          <li>Redacted messages are removed from history</li>
+          <li>Translations have been updated</li>
+          <li>Spellcheck language is saved per room</li>
+          <li>New swipe-back gesture to go back from room to room list in narrow view</li>
+          <li>SOCKS proxy are now also supported</li>
+        </ul>
+        <p>Bugfixes:</p>
+        <ul>
+          <li>Thumbnail for pasted images have been fixed</li>
+          <li>File type detection for uploads is more reliable</li>
+          <li>Typing notifications are now only sent when text is actually typed in the message input</li>
+        </ul>
+        <p>Under the hood:</p>
+        <ul>
+          <li>Code refactor is still going</li>
+          <li>Some improvements to logging, including access token removal for privacy</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.2.2" type="stable" date="2019-11-27" urgency="high">
       <description>
         <p>This new minor release is the result of 2 months of hard work.</p>
