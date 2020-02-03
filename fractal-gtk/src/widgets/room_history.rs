@@ -32,7 +32,7 @@ struct List {
     new_divider_index: Option<usize>,
     playing_videos: Vec<(Rc<VideoPlayerWidget>, SignalHandlerId)>,
     listbox: gtk::ListBox,
-    video_scroll_debounce: Option<source::SourceId>,
+    video_scroll_debounce: Rc<RefCell<Option<source::SourceId>>>,
     view: widgets::ScrollWidget,
 }
 
@@ -43,7 +43,7 @@ impl List {
             new_divider_index: None,
             playing_videos: Vec::new(),
             listbox,
-            video_scroll_debounce: None,
+            video_scroll_debounce: Rc::new(RefCell::new(None)),
             view,
         }
     }
@@ -293,7 +293,7 @@ impl RoomHistory {
             });
             Continue(false)
         });
-        self.rows.borrow_mut().video_scroll_debounce = Some(id);
+        *self.rows.borrow().video_scroll_debounce.borrow_mut() = Some(id);
 
         None
     }
@@ -309,20 +309,20 @@ impl RoomHistory {
             .downcast::<gtk::Scrollbar>()
             .unwrap();
         let weak_rows = Rc::downgrade(&self.rows);
+        let scroll_debounce = self.rows.borrow().video_scroll_debounce.clone();
         scrollbar.connect_value_changed(move |_| {
-            weak_rows.upgrade().map(|rows| {
-                let weak_rows_inner = weak_rows.clone();
-                let new_id = timeout_add(250, move || {
-                    weak_rows_inner.upgrade().map(|rows| {
-                        rows.borrow_mut().update_videos();
-                        rows.borrow_mut().video_scroll_debounce = None;
-                    });
-                    Continue(false)
+            let scroll_debounce_inner = scroll_debounce.clone();
+            let weak_rows_inner = weak_rows.clone();
+            let new_id = timeout_add(250, move || {
+                weak_rows_inner.upgrade().map(|rows| {
+                    rows.borrow_mut().update_videos();
+                    *scroll_debounce_inner.borrow_mut() = None;
                 });
-                if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
-                    let _ = Source::remove(old_id);
-                }
+                Continue(false)
             });
+            if let Some(old_id) = scroll_debounce.borrow_mut().replace(new_id) {
+                let _ = Source::remove(old_id);
+            }
         });
     }
 
@@ -356,7 +356,7 @@ impl RoomHistory {
         scrolled_window.connect_unmap(move |_| {
             /* The user has navigated out of the room history */
             weak_rows.upgrade().map(|rows| {
-                if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
+                if let Some(id) = rows.borrow().video_scroll_debounce.borrow_mut().take() {
                     let _ = Source::remove(id);
                 }
                 for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
@@ -392,7 +392,7 @@ impl RoomHistory {
                         rows.borrow_mut().playing_videos = videos;
                     } else {
                         /* Fractal has been unfocussed */
-                        if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
+                        if let Some(id) = rows.borrow().video_scroll_debounce.borrow_mut().take() {
                             let _ = Source::remove(id);
                         }
                         for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
