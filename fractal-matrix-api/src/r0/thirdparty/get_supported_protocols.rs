@@ -15,7 +15,8 @@ pub struct Parameters {
 
 pub type Response = BTreeMap<String, Protocol>;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(default)]
 pub struct Protocol {
     pub user_fields: Vec<String>,
     pub location_fields: Vec<String>,
