@@ -13,10 +13,10 @@
         <property name="hhomogeneous">False</property>
         <child>
           <object class="HdyLeaflet" id="chat_state_leaflet">
+            <property name="can-swipe-back" bind-source="header_leaflet" bind-property="can-swipe-back" bind-flags="bidirectional|sync-create"/>
             <property name="child-transition-duration" bind-source="header_leaflet" bind-property="child-transition-duration" bind-flags="bidirectional|sync-create"/>
             <property name="mode-transition-duration" bind-source="header_leaflet" bind-property="mode-transition-duration" bind-flags="bidirectional|sync-create"/>
             <property name="transition-type" bind-source="header_leaflet" bind-property="transition-type" bind-flags="bidirectional|sync-create"/>
-            <property name="visible-child-name" bind-source="header_leaflet" bind-property="visible-child-name" bind-flags="bidirectional|sync-create"/>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hhomogeneous-folded">True</property>
@@ -97,6 +97,9 @@
                     <class name="sidebar"/>
                 </style>
               </object>
+              <packing>
+                <property name="allow-visible">False</property>
+              </packing>
             </child>
             <child>
               <object class="GtkOverlay" id="inapp">
@@ -379,6 +382,7 @@
             <child>
               <object class="HdyLeaflet" id="header_leaflet"> <!--message view-->
                 <property name="visible">True</property>
+                <property name="can-swipe-back">True</property>
                 <property name="transition-type">over</property>
                 <property name="hhomogeneous-folded">True</property>
                 <child>
@@ -481,6 +485,9 @@
                       <class name="sidebar"/>
                     </style>
                   </object>
+                  <packing>
+                    <property name="allow-visible">False</property>
+                  </packing>
                 </child>
                 <child>
                   <object class="GtkHeaderBar" id="room_header_bar"> <!--right titlebar-->
@@ -801,5 +808,11 @@
       <headerbar name="left-header"/>
       <headerbar name="room_header_bar"/>
     </headerbars>
+  </object>
+  <object class="HdySwipeGroup" id="swipe_group">
+    <swipeables>
+      <swipeable name="chat_state_leaflet"/>
+      <swipeable name="header_leaflet"/>
+    </swipeables>
   </object>
 </interface>
