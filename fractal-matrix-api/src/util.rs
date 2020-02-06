@@ -364,7 +364,7 @@ pub fn scalar_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<U
     build_url(base, &format!("api/{}", path), params)
 }
 
-pub fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
+fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
     build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
