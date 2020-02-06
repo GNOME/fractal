@@ -127,16 +127,22 @@ impl List {
         if len == 0 {
             return indices;
         }
-        if let Some(visible_index) = self.find_visible_index((0, len - 1)) {
-            indices.push(visible_index);
-            let upper = self.list.iter().enumerate().skip(visible_index + 1);
+
+        let sw = self.view.get_scrolled_window();
+        let visible_index = match get_rel_position(&sw, &self.list[0]) {
+            RelativePosition::InSight => Some(0),
+            _ => self.find_visible_index((1, len - 1)),
+        };
+        if let Some(visible) = visible_index {
+            indices.push(visible);
+            let upper = self.list.iter().enumerate().skip(visible + 1);
             self.add_while_visible(&mut indices, upper);
             let lower = self
                 .list
                 .iter()
                 .enumerate()
                 .rev()
-                .skip(self.list.len() - visible_index);
+                .skip(self.list.len() - visible);
             self.add_while_visible(&mut indices, lower);
         }
         indices
