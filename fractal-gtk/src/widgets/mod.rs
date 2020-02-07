@@ -47,6 +47,8 @@ pub use self::room_history::RoomHistory;
 pub use self::room_settings::RoomSettings;
 pub use self::roomlist::RoomList;
 pub use self::roomrow::RoomRow;
+pub use self::scroll_widget::page_down;
+pub use self::scroll_widget::page_up;
 pub use self::scroll_widget::ScrollWidget;
 pub use self::source_dialog::SourceDialog;
 pub use self::sourceview_entry::SVEntry;

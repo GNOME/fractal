@@ -610,11 +610,13 @@ impl RoomHistory {
     }
 
     pub fn page_up(&mut self) {
-        self.rows.borrow_mut().view.page_up();
+        let scrolled_window = self.rows.borrow().view.get_scrolled_window();
+        widgets::page_up(scrolled_window);
     }
 
-    pub fn page_down(&mut self) {
-        self.rows.borrow_mut().view.page_down();
+    pub fn page_down(&self) {
+        let scrolled_window = self.rows.borrow().view.get_scrolled_window();
+        widgets::page_down(scrolled_window);
     }
 }
 

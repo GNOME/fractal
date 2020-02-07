@@ -284,19 +284,17 @@ impl ScrollWidget {
             self.widgets.typing_label.set_markup(typing_str);
         }
     }
+}
 
-    pub fn page_up(&mut self) {
-        if let Some(adj) = self.widgets.view.get_vadjustment() {
-            adj.set_value(adj.get_value() - adj.get_page_size());
-            self.upper.set(adj.get_upper());
-        }
+pub fn page_up(sw: gtk::ScrolledWindow) {
+    if let Some(adj) = sw.get_vadjustment() {
+        adj.set_value(adj.get_value() - adj.get_page_size());
     }
+}
 
-    pub fn page_down(&mut self) {
-        if let Some(adj) = self.widgets.view.get_vadjustment() {
-            adj.set_value(adj.get_value() + adj.get_page_size());
-            self.upper.set(adj.get_upper());
-        }
+pub fn page_down(sw: gtk::ScrolledWindow) {
+    if let Some(adj) = sw.get_vadjustment() {
+        adj.set_value(adj.get_value() + adj.get_page_size());
     }
 }
 
