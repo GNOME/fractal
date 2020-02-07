@@ -1,3 +1,4 @@
+use fractal_api::url::Url;
 use gdk::ContextExt;
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
@@ -13,7 +14,6 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use url::Url;
 
 use crate::backend::BKCommand;
 use crate::error::Error;

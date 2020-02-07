@@ -1,8 +1,8 @@
 use crate::i18n::{i18n, i18n_k, ni18n_f};
+use fractal_api::url::Url;
 use log::{error, warn};
 use std::fs::remove_file;
 use std::os::unix::fs;
-use url::Url;
 
 use gtk;
 use gtk::prelude::*;
