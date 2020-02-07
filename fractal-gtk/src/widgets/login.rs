@@ -1,7 +1,7 @@
+use fractal_api::url::Url;
 use gio::prelude::*;
 use gtk::prelude::*;
 use log::info;
-use url::Url;
 
 use crate::actions;
 use crate::actions::global::AppState;

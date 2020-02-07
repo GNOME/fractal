@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use crate::i18n::i18n;
 use dirs;
+use fractal_api::url::Url;
 use gdk::*;
 use glib;
 use glib::signal;
@@ -15,7 +16,6 @@ use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
 use gtk::ResponseType;
-use url::Url;
 
 use crate::types::Message;
 use crate::types::Room;
