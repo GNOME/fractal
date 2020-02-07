@@ -12,11 +12,7 @@ pub mod r0;
 mod serde;
 pub mod types;
 
-pub mod prelude {
-    pub use ruma_identifiers::DeviceId;
-    pub use ruma_identifiers::RoomAliasId;
-    pub use ruma_identifiers::RoomId;
-}
+pub use ruma_identifiers as identifiers;
 
 #[cfg(test)]
 mod tests {
