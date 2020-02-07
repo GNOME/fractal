@@ -2,6 +2,7 @@ use crate::i18n::i18n;
 use itertools::Itertools;
 
 use chrono::prelude::*;
+use fractal_api::url::Url;
 use glib;
 use gtk;
 use gtk::{prelude::*, ButtonExt, ContainerExt, Overlay, WidgetExt};
@@ -9,7 +10,6 @@ use pango;
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use url::Url;
 
 use crate::backend::BKCommand;
 

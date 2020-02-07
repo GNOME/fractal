@@ -18,6 +18,7 @@ use crate::uitypes::RowType;
 use crate::globals;
 use crate::widgets;
 use crate::widgets::{PlayerExt, VideoPlayerWidget};
+use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
 use glib::source;
@@ -25,7 +26,6 @@ use glib::SignalHandlerId;
 use glib::Source;
 use gtk;
 use gtk::prelude::*;
-use url::Url;
 
 struct List {
     list: VecDeque<Element>,

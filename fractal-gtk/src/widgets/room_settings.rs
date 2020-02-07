@@ -5,10 +5,10 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
 use crate::i18n::ni18n_f;
+use fractal_api::url::Url;
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use url::Url;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};

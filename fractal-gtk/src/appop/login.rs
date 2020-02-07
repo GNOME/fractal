@@ -2,7 +2,7 @@ use log::error;
 
 use fractal_api::r0::AccessToken;
 
-use url::Url;
+use fractal_api::url::Url;
 
 use crate::appop::AppOp;
 

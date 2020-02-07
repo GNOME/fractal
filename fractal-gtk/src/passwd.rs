@@ -1,8 +1,8 @@
 use fractal_api::derror;
 use fractal_api::r0::AccessToken;
+use fractal_api::url::ParseError;
+use fractal_api::url::Url;
 use secret_service;
-use url::ParseError;
-use url::Url;
 
 #[derive(Debug)]
 pub enum Error {
@@ -49,7 +49,7 @@ pub trait PasswordStorage {
 mod ss_storage {
     use super::Error;
     use fractal_api::r0::AccessToken;
-    use url::Url;
+    use fractal_api::url::Url;
 
     use super::secret_service::EncryptionType;
     use super::secret_service::SecretService;
