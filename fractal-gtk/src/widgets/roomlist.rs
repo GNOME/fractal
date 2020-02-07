@@ -5,10 +5,10 @@ use gdk;
 use glib;
 use pango;
 
+use fractal_api::url::Url;
 use gtk;
 use gtk::prelude::*;
 use std::collections::HashMap;
-use url::Url;
 
 use crate::globals;
 use crate::types::{Room, RoomTag};

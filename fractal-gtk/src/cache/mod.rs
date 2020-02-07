@@ -1,7 +1,7 @@
+use fractal_api::url::Url;
 use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use crate::types::Room;
 use crate::types::RoomList;

@@ -1,12 +1,12 @@
 use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
+use fractal_api::url::Url;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
-use url::Url;
 
 use crate::appop::AppOp;
 use crate::backend::BKCommand;

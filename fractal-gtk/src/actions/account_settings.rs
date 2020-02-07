@@ -1,12 +1,12 @@
 use crate::i18n::i18n;
 use fractal_api::r0::AccessToken;
+use fractal_api::url::Url;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
 use std::sync::mpsc::Sender;
-use url::Url;
 
 use crate::backend::BKCommand;
 

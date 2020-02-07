@@ -8,7 +8,7 @@ use fractal_api::r0::AccessToken;
 use gtk;
 use gtk::prelude::*;
 
-use url::Url;
+use fractal_api::url::Url;
 
 use crate::backend;
 use crate::backend::BKCommand;

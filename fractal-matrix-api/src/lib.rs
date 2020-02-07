@@ -13,6 +13,7 @@ mod serde;
 pub mod types;
 
 pub use ruma_identifiers as identifiers;
+pub use url;
 
 #[cfg(test)]
 mod tests {
