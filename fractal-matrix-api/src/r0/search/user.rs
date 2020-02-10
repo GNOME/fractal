@@ -1,3 +1,4 @@
+use crate::r0::u64_is_10;
 use crate::r0::AccessToken;
 use crate::serde::option_url;
 use reqwest::blocking::Client;
@@ -41,10 +42,6 @@ pub struct User {
     #[serde(with = "option_url")]
     #[serde(default)]
     pub avatar_url: Option<Url>,
-}
-
-fn u64_is_10(number: &u64) -> bool {
-    number == &10
 }
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
