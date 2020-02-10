@@ -371,9 +371,8 @@ impl VideoPlayerWidget {
         });
     }
 
-    pub fn auto_adjust_widget_to_video_dimensions<T: IsA<gtk::Widget>>(
+    pub fn auto_adjust_box_size_to_video_dimensions(
         bx: &gtk::Box,
-        widget: &T,
         player: &Rc<VideoPlayerWidget>,
     ) -> (glib::SignalHandlerId, glib::SignalHandlerId) {
         /* When gtk allocates a different size to the video widget than its minimal preferred size
@@ -381,16 +380,9 @@ impl VideoPlayerWidget {
         When that happens and furthermore, the video widget is embedded in a vertically oriented box,
         this function here can be called. Here, the widget's height gets adjusted as a consequence of
         adjusting the distance between the top/bottom of the widget and the top/bottom of the box,
-        rather than through the widget's preferred height. Adjusting those distances through the
-        spacing instead of margins has the advantage that the top and bottom distance get adjusted
-        at the same time. */
+        rather than through the widget's preferred height. */
 
-        let top_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        bx.pack_start(&top_box, true, true, 0);
-        let bottom_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        bx.pack_start(&bottom_box, true, true, 0);
-        bx.reorder_child(widget, 1);
-        /* The followign callbacks requires `Send` but is handled by the gtk main loop */
+        /* The followign callback requires `Send` but is handled by the gtk main loop */
         let dimensions_weak = Fragile::new(Rc::downgrade(&player.dimensions));
         let bx_weak = Fragile::new(bx.downgrade());
         let dimension_id =
@@ -401,17 +393,25 @@ impl VideoPlayerWidget {
                         *dimensions.borrow_mut() = Some((video_width, video_height));
                     });
                     bx_weak.get().upgrade().map(|bx| {
-                        adjust_box_spacing_to_video_dimensions(&bx, video_width, video_height);
+                        adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
                     });
                 });
         let player_weak = Rc::downgrade(player);
-        let size_id = bx.connect_size_allocate(move |bx, _| {
-            player_weak.upgrade().map(|player| {
+        let size_id =
+            bx.connect_size_allocate(move |bx, _| {
+                player_weak.upgrade().map(|player| {
                 if let Some((video_width, video_height)) = *player.dimensions.borrow() {
-                    adjust_box_spacing_to_video_dimensions(&bx, video_width, video_height);
+                    /* The timeout is necessary for the edge cases, i.e. when resizing to minimum width or height.
+                    When approaching the minimum fast, the last connect_size_allocate signal gets emitted before
+                    reaching the minimum size. So without timeout, the values used to adjust the the video size
+                    are bigger than they should be. */
+                    gtk::timeout_add(50, clone!(bx, video_width, video_height => move || {
+                        adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
+                        Continue(false)
+                    }));
                 }
             });
-        });
+            });
         (dimension_id, size_id)
     }
 
@@ -565,13 +565,17 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         let player = player_widget.get_player();
         if player.get_mute() {
             player.set_mute(false);
-            let image =
-                gtk::Image::new_from_icon_name(Some("audio-volume-high"), gtk::IconSize::Button);
+            let image = gtk::Image::new_from_icon_name(
+                Some("audio-volume-high-symbolic"),
+                gtk::IconSize::Button,
+            );
             button.set_image(Some(&image));
         } else {
             player.set_mute(true);
-            let image =
-                gtk::Image::new_from_icon_name(Some("audio-volume-muted"), gtk::IconSize::Button);
+            let image = gtk::Image::new_from_icon_name(
+                Some("audio-volume-muted-symbolic"),
+                gtk::IconSize::Button,
+            );
             button.set_image(Some(&image));
         }
     }
@@ -665,14 +669,40 @@ fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> Si
     }))
 }
 
-fn adjust_box_spacing_to_video_dimensions(bx: &gtk::Box, video_width: i32, video_height: i32) {
-    if video_width != 0 {
-        let current_width = bx.get_allocated_width();
-        let adjusted_height = current_width * video_height / video_width;
-        if let Some(scrolled_window) = bx.get_parent().and_then(|viewport| viewport.get_parent()) {
-            let height_visible_area = scrolled_window.get_allocated_height();
-            let margin = (height_visible_area - adjusted_height) / 2;
-            bx.set_spacing(margin);
+fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video_height: i32) {
+    if let Some(parent) = bx.get_parent() {
+        let parent_height = parent.get_allocated_height();
+        let parent_width = parent.get_allocated_width();
+        if video_height * parent_width >= parent_height * video_width
+            && parent_height < video_height
+        {
+            if video_height != 0 {
+                let adjusted_width = if parent_height < video_height {
+                    let box_height = bx.get_allocated_height();
+                    box_height * video_width / video_height
+                } else {
+                    video_width
+                };
+                let margin = (parent_width - adjusted_width) / 2;
+                bx.set_margin_start(margin);
+                bx.set_margin_end(margin);
+                bx.set_margin_top(0);
+                bx.set_margin_bottom(0);
+            }
+        } else {
+            if video_width != 0 {
+                let adjusted_height = if parent_width < video_width {
+                    let box_width = bx.get_allocated_width();
+                    box_width * video_height / video_width
+                } else {
+                    video_height
+                };
+                let margin = (parent_height - adjusted_height) / 2;
+                bx.set_margin_top(margin);
+                bx.set_margin_bottom(margin);
+                bx.set_margin_start(0);
+                bx.set_margin_end(0);
+            }
         }
     }
 }
