@@ -64,7 +64,9 @@ impl AppOp {
             self.media_viewer = Rc::new(RefCell::new(Some(panel)));
             let mv = self.media_viewer.clone();
             media_viewer_back_button.connect_clicked(move |_| {
-                mv.borrow_mut().take();
+                if let Some(mut mv) = mv.borrow_mut().take() {
+                    mv.disconnect_signal_id();
+                }
             });
         }
 

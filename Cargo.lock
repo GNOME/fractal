@@ -561,6 +561,7 @@ dependencies = [
  "gspell 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer 0.14.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-editing-services 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-pbutils 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-player 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "html2pango 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -68,19 +68,44 @@ impl MessageBox {
     }
 
     /* create the message row with or without a header */
-    pub fn create(&mut self, msg: &Message, has_header: bool) {
+    pub fn create(&mut self, msg: &Message, has_header: bool, is_temp: bool) {
         self.set_msg_styles(msg, &self.row);
         self.row.set_selectable(false);
-        let w = if has_header && msg.mtype != RowType::Emote {
-            self.row.set_margin_top(12);
-            self.header = true;
-            self.widget(msg)
-        } else {
-            if let RowType::Emote = msg.mtype {
+        let upload_attachment_msg = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        let w = match msg.mtype {
+            RowType::Emote => {
                 self.row.set_margin_top(12);
+                self.header = false;
+                self.small_widget(msg)
             }
-            self.header = false;
-            self.small_widget(msg)
+            RowType::Video if is_temp => {
+                upload_attachment_msg
+                    .add(&gtk::Label::new(Some(i18n("Uploading video.").as_str())));
+                upload_attachment_msg
+            }
+            RowType::Audio if is_temp => {
+                upload_attachment_msg
+                    .add(&gtk::Label::new(Some(i18n("Uploading audio.").as_str())));
+                upload_attachment_msg
+            }
+            RowType::Image if is_temp => {
+                upload_attachment_msg
+                    .add(&gtk::Label::new(Some(i18n("Uploading image.").as_str())));
+                upload_attachment_msg
+            }
+            RowType::File if is_temp => {
+                upload_attachment_msg.add(&gtk::Label::new(Some(i18n("Uploading file.").as_str())));
+                upload_attachment_msg
+            }
+            _ if has_header => {
+                self.row.set_margin_top(12);
+                self.header = true;
+                self.widget(msg)
+            }
+            _ => {
+                self.header = false;
+                self.small_widget(msg)
+            }
         };
 
         self.eventbox.add(&w);
@@ -94,7 +119,7 @@ impl MessageBox {
     }
 
     pub fn tmpwidget(mut self, msg: &Message) -> MessageBox {
-        self.create(msg, true);
+        self.create(msg, true, true);
         {
             let w = self.get_listbox_row();
             w.get_style_context().add_class("msg-tmp");

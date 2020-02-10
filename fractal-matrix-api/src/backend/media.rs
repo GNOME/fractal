@@ -21,17 +21,16 @@ use crate::util::ResultExpectLog;
 use crate::r0::filter::RoomEventFilter;
 use crate::types::Message;
 
-pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
+pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
     semaphore(bk.limit_threads.clone(), move || {
-        let fname =
-            dw_media(&baseu, &media, ContentType::default_thumbnail(), None).unwrap_or_default();
+        let fname = dw_media(&baseu, &media, ContentType::default_thumbnail(), None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
 
-pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<String>) {
+pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
     semaphore(bk.limit_threads.clone(), move || {
-        let fname = dw_media(&baseu, &media, ContentType::Download, None).unwrap_or_default();
+        let fname = dw_media(&baseu, &media, ContentType::Download, None);
         tx.send(fname).expect_log("Connection closed");
     });
 }

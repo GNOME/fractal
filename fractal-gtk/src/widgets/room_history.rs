@@ -127,16 +127,22 @@ impl List {
         if len == 0 {
             return indices;
         }
-        if let Some(visible_index) = self.find_visible_index((0, len - 1)) {
-            indices.push(visible_index);
-            let upper = self.list.iter().enumerate().skip(visible_index + 1);
+
+        let sw = self.view.get_scrolled_window();
+        let visible_index = match get_rel_position(&sw, &self.list[0]) {
+            RelativePosition::InSight => Some(0),
+            _ => self.find_visible_index((1, len - 1)),
+        };
+        if let Some(visible) = visible_index {
+            indices.push(visible);
+            let upper = self.list.iter().enumerate().skip(visible + 1);
             self.add_while_visible(&mut indices, upper);
             let lower = self
                 .list
                 .iter()
                 .enumerate()
                 .rev()
-                .skip(self.list.len() - visible_index);
+                .skip(self.list.len() - visible);
             self.add_while_visible(&mut indices, lower);
         }
         indices
@@ -309,20 +315,23 @@ impl RoomHistory {
             .downcast::<gtk::Scrollbar>()
             .unwrap();
         let weak_rows = Rc::downgrade(&self.rows);
-        scrollbar.connect_value_changed(move |_| {
-            weak_rows.upgrade().map(|rows| {
-                let weak_rows_inner = weak_rows.clone();
-                let new_id = timeout_add(250, move || {
-                    weak_rows_inner.upgrade().map(|rows| {
-                        rows.borrow_mut().update_videos();
-                        rows.borrow_mut().video_scroll_debounce = None;
+        scrollbar.connect_value_changed(move |sb| {
+            if !sb.get_state_flags().contains(gtk::StateFlags::BACKDROP) {
+                /* Fractal is focused */
+                weak_rows.upgrade().map(|rows| {
+                    let weak_rows_inner = weak_rows.clone();
+                    let new_id = timeout_add(250, move || {
+                        weak_rows_inner.upgrade().map(|rows| {
+                            rows.borrow_mut().update_videos();
+                            rows.borrow_mut().video_scroll_debounce = None;
+                        });
+                        Continue(false)
                     });
-                    Continue(false)
+                    if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
+                        let _ = Source::remove(old_id);
+                    }
                 });
-                if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
-                    let _ = Source::remove(old_id);
-                }
-            });
+            }
         });
     }
 
@@ -370,13 +379,13 @@ impl RoomHistory {
             if window.get_mapped() {
                 /* The room history is being displayed */
                 weak_rows.upgrade().map(|rows| {
-                    let focussed = gtk::StateFlags::BACKDROP;
-                    if flag.contains(focussed) {
-                        /* Fractal has been focussed */
+                    let focused = gtk::StateFlags::BACKDROP;
+                    if flag.contains(focused) {
+                        /* Fractal has been focused */
                         let len = rows.borrow().playing_videos.len();
                         if len != 0 {
                             warn!(
-                                "{:?} videos were playing while Fractal was focussed out.",
+                                "{:?} videos were playing while Fractal was focused out.",
                                 len
                             );
                             for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
@@ -391,7 +400,7 @@ impl RoomHistory {
                         }
                         rows.borrow_mut().playing_videos = videos;
                     } else {
-                        /* Fractal has been unfocussed */
+                        /* Fractal has been unfocused */
                         if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
                             let _ = Source::remove(id);
                         }
@@ -631,7 +640,7 @@ fn create_row(
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
     let mut mb = widgets::MessageBox::new(backend, server_url);
-    mb.create(&row, has_header && row.mtype != RowType::Emote);
+    mb.create(&row, has_header && row.mtype != RowType::Emote, false);
 
     match row.mtype {
         RowType::Video => {

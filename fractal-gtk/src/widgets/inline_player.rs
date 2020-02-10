@@ -18,9 +18,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use fractal_api::clone;
+
 use gst::prelude::*;
 use gst::ClockTime;
-use gst_player;
+use gstreamer_pbutils::Discoverer;
 use log::{error, info, warn};
 
 use gtk;
@@ -45,6 +46,7 @@ use url::Url;
 
 use crate::app::App;
 use crate::backend::BKCommand;
+use crate::error::Error;
 use crate::i18n::i18n;
 
 pub trait PlayerExt {
@@ -308,6 +310,18 @@ impl VideoPlayerWidget {
             .unwrap()
     }
 
+    pub fn is_playing(&self) -> bool {
+        if let Some(state) = *self.state.borrow() {
+            let is_playing = match state {
+                gst_player::PlayerState::Playing => true,
+                _ => false,
+            };
+            is_playing
+        } else {
+            false
+        }
+    }
+
     pub fn auto_adjust_video_dimensions(player_widget: &Rc<Self>) {
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&player_widget));
@@ -361,12 +375,16 @@ impl VideoPlayerWidget {
         bx: &gtk::Box,
         widget: &T,
         player: &Rc<VideoPlayerWidget>,
-    ) {
+    ) -> (glib::SignalHandlerId, glib::SignalHandlerId) {
         /* When gtk allocates a different size to the video widget than its minimal preferred size
         (set by set_size_request()), the method auto_adjust_video_dimensions() does not have any effect.
         When that happens and furthermore, the video widget is embedded in a vertically oriented box,
         this function here can be called. Here, the widget's height gets adjusted as a consequence of
-        adjusting the top and bottom margin of the box, rather than through the widget's preferred height.*/
+        adjusting the distance between the top/bottom of the widget and the top/bottom of the box,
+        rather than through the widget's preferred height. Adjusting those distances through the
+        spacing instead of margins has the advantage that the top and bottom distance get adjusted
+        at the same time. */
+
         let top_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
         bx.pack_start(&top_box, true, true, 0);
         let bottom_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -375,24 +393,26 @@ impl VideoPlayerWidget {
         /* The followign callbacks requires `Send` but is handled by the gtk main loop */
         let dimensions_weak = Fragile::new(Rc::downgrade(&player.dimensions));
         let bx_weak = Fragile::new(bx.downgrade());
-        player
-            .player
-            .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                dimensions_weak.get().upgrade().map(|dimensions| {
-                    *dimensions.borrow_mut() = Some((video_width, video_height));
+        let dimension_id =
+            player
+                .player
+                .connect_video_dimensions_changed(move |_, video_width, video_height| {
+                    dimensions_weak.get().upgrade().map(|dimensions| {
+                        *dimensions.borrow_mut() = Some((video_width, video_height));
+                    });
+                    bx_weak.get().upgrade().map(|bx| {
+                        adjust_box_spacing_to_video_dimensions(&bx, video_width, video_height);
+                    });
                 });
-                bx_weak.get().upgrade().map(|bx| {
-                    adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
-                });
-            });
         let player_weak = Rc::downgrade(player);
-        bx.connect_size_allocate(move |bx, _| {
+        let size_id = bx.connect_size_allocate(move |bx, _| {
             player_weak.upgrade().map(|player| {
                 if let Some((video_width, video_height)) = *player.dimensions.borrow() {
-                    adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
+                    adjust_box_spacing_to_video_dimensions(&bx, video_width, video_height);
                 }
             });
         });
+        (dimension_id, size_id)
     }
 
     /* As soon as there's an implementation for that in gst::Player, we should take that one instead. */
@@ -480,7 +500,10 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         start_playing: bool,
     ) {
         bx.set_opacity(0.3);
-        let (tx, rx): (Sender<String>, Receiver<String>) = channel();
+        let (tx, rx): (
+            Sender<Result<String, Error>>,
+            Receiver<Result<String, Error>>,
+        ) = channel();
         backend
             .send(BKCommand::GetMediaAsync(
                 server_url.clone(),
@@ -500,9 +523,16 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                         APPOP!(show_error, (msg));
                         gtk::Continue(true)
                     },
-                    Ok(path) => {
+                    Ok(Ok(path)) => {
                         info!("MEDIA PATH: {}", &path);
                         *local_path.borrow_mut() = Some(path.clone());
+                        if ! start_playing {
+                            if let Some(controls) = player.get_controls() {
+                                if let Ok(duration) = get_media_duration(&path) {
+                                    controls.timer.on_duration_changed(Duration(duration))
+                                }
+                            }
+                        }
                         let uri = format!("file://{}", path);
                         player.get_player().set_uri(&uri);
                         if player.get_controls().is_some() {
@@ -512,6 +542,10 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                         if start_playing {
                             player.play();
                         }
+                        gtk::Continue(false)
+                    }
+                    Ok(Err(err)) => {
+                        error!("Media path could not be found due to error: {:?}", err);
                         gtk::Continue(false)
                     }
                 }
@@ -631,7 +665,7 @@ fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> Si
     }))
 }
 
-fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video_height: i32) {
+fn adjust_box_spacing_to_video_dimensions(bx: &gtk::Box, video_width: i32, video_height: i32) {
     if video_width != 0 {
         let current_width = bx.get_allocated_width();
         let adjusted_height = current_width * video_height / video_width;
@@ -641,4 +675,11 @@ fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video
             bx.set_spacing(margin);
         }
     }
+}
+
+pub fn get_media_duration(file: &str) -> Result<ClockTime, glib::Error> {
+    let timeout = ClockTime::from_seconds(1);
+    let discoverer = Discoverer::new(timeout)?;
+    let info = discoverer.discover_uri(&format!("file://{}", file))?;
+    Ok(info.get_duration())
 }
