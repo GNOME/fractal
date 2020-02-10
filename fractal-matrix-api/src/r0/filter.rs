@@ -88,7 +88,25 @@ pub struct RoomEventFilter<'a> {
     pub contains_url: bool,
 }
 
-pub fn serialize_filter_as_str<S>(filter: &Filter, ser: S) -> Result<S::Ok, S::Error>
+impl<'a> RoomEventFilter<'a> {
+    pub fn is_default(&self) -> bool {
+        *self == Default::default()
+    }
+}
+
+pub(crate) fn serialize_filter_as_str<S>(filter: &Filter, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let filter_str = serde_json::to_string(filter).expect("Malformed filter");
+
+    ser.serialize_str(&filter_str)
+}
+
+pub(crate) fn serialize_room_event_filter_as_str<S>(
+    filter: &RoomEventFilter,
+    ser: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
