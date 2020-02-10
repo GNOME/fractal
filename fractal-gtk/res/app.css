@@ -215,6 +215,17 @@ row .timestamp {
     padding-left: 6px;
 }
 
+/** media viewer **/
+.fullscreen-control-box {
+  background-color: rgba(0,0,0,.8);
+  padding: 12;
+}
+
+.window-control-box {
+  background-color: rgba(0,0,0,.6);
+  padding: 3;
+}
+
 /** autocomplete popover **/
 .autocomplete {
   margin-left: 150px;

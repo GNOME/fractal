@@ -54,34 +54,61 @@ impl VideoWidget {
             self.player.get_player().disconnect(dimension_id);
             self.outer_box.disconnect(size_id);
         }
-        self.outer_box.set_margin_start(0);
-        self.outer_box.set_margin_end(0);
-        self.outer_box.foreach(|widget| {
-            self.outer_box.remove(widget);
-        });
-        self.outer_box.pack_start(&self.inner_box, true, true, 0);
+
+        self.outer_box
+            .set_child_packing(&self.inner_box, true, true, 0, gtk::PackType::Start);
 
         self.inner_box.set_valign(gtk::Align::Fill);
         self.inner_box.set_halign(gtk::Align::Fill);
+        self.inner_box.set_margin_top(0);
+        self.inner_box.set_margin_bottom(0);
+        self.outer_box.set_margin_top(0);
+        self.outer_box.set_margin_bottom(0);
+
+        for widget in self.inner_box.get_children() {
+            if widget.is::<gtk::Revealer>() {
+                let control_box = widget
+                    .downcast::<gtk::Revealer>()
+                    .unwrap()
+                    .get_child()
+                    .expect("The control box has to be added to the control box reavealer.");
+                control_box
+                    .get_style_context()
+                    .remove_class("window-control-box");
+                control_box
+                    .get_style_context()
+                    .add_class("fullscreen-control-box");
+            }
+        }
     }
 
     fn set_window_mode(&mut self) {
-        self.outer_box.set_margin_start(70);
-        self.outer_box.set_margin_end(70);
-
-        self.outer_box.foreach(|widget| {
-            self.outer_box.remove(widget);
-        });
-        self.outer_box.pack_start(&self.inner_box, false, false, 0);
+        self.outer_box
+            .set_child_packing(&self.inner_box, false, false, 0, gtk::PackType::Start);
 
         self.inner_box.set_valign(gtk::Align::Center);
         self.inner_box.set_halign(gtk::Align::Center);
-        let ids = VideoPlayerWidget::auto_adjust_widget_to_video_dimensions(
+        let ids = VideoPlayerWidget::auto_adjust_box_size_to_video_dimensions(
             &self.outer_box,
-            &self.inner_box,
             &self.player,
         );
         self.auto_adjust_ids = Some(ids);
+
+        for widget in self.inner_box.get_children() {
+            if widget.is::<gtk::Revealer>() {
+                let control_box = widget
+                    .downcast::<gtk::Revealer>()
+                    .unwrap()
+                    .get_child()
+                    .expect("The control box reavealer has to contain the control box.");
+                control_box
+                    .get_style_context()
+                    .remove_class("fullscreen-control-box");
+                control_box
+                    .get_style_context()
+                    .add_class("window-control-box");
+            }
+        }
     }
 }
 
@@ -380,12 +407,22 @@ impl Data {
         let overlay = Overlay::new();
         overlay.add(&player.get_video_widget());
 
-        let full_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let full_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        if self.is_fullscreen {
+            full_control_box
+                .get_style_context()
+                .add_class("fullscreen-control-box");
+        } else {
+            full_control_box
+                .get_style_context()
+                .add_class("window-control-box");
+        }
+
         let control_box = PlayerExt::get_controls_container(&player).unwrap();
         full_control_box.pack_start(&control_box, false, true, 0);
 
         let mute_button = gtk::Button::new_from_icon_name(
-            Some("audio-volume-high"),
+            Some("audio-volume-high-symbolic"),
             gtk::IconSize::Button.into(),
         );
         let player_weak = Rc::downgrade(&player);
@@ -394,7 +431,7 @@ impl Data {
                 VideoPlayerWidget::switch_mute_state(&player, &button);
             });
         });
-        full_control_box.pack_start(&mute_button, false, false, 3);
+        full_control_box.pack_start(&mute_button, false, false, 0);
 
         let control_revealer = gtk::Revealer::new();
         control_revealer.add(&full_control_box);
