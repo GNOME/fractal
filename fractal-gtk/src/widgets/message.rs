@@ -6,6 +6,7 @@ use glib;
 use gtk;
 use gtk::{prelude::*, ButtonExt, ContainerExt, Overlay, WidgetExt};
 use pango;
+use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use url::Url;
@@ -445,39 +446,47 @@ impl MessageBox {
         VideoPlayerWidget::auto_adjust_video_dimensions(&player);
         overlay.add(&video_widget);
 
-        let play_icon =
-            gtk::Image::new_from_icon_name(Some("media-playback-start"), gtk::IconSize::Dialog);
-        play_icon.set_halign(gtk::Align::Center);
-        play_icon.set_valign(gtk::Align::Center);
-        play_icon.get_style_context().add_class("osd");
-        play_icon.get_style_context().add_class("play-icon");
-        overlay.add_overlay(&play_icon);
+        let play_button = gtk::Button::new();
+        let play_icon = gtk::Image::new_from_icon_name(
+            Some("media-playback-start-symbolic"),
+            gtk::IconSize::Dialog,
+        );
+        play_button.set_image(Some(&play_icon));
+        play_button.set_halign(gtk::Align::Center);
+        play_button.set_valign(gtk::Align::Center);
+        play_button.get_style_context().add_class("osd");
+        play_button.get_style_context().add_class("play-icon");
+        play_button.get_style_context().add_class("flat");
+        overlay.add_overlay(&play_button);
 
-        let menu_button = gtk::Button::new();
+        let menu_button = gtk::MenuButton::new();
         let three_dot_icon =
             gtk::Image::new_from_icon_name(Some("view-more-symbolic"), gtk::IconSize::Button);
         menu_button.set_image(Some(&three_dot_icon));
         menu_button.get_style_context().add_class("osd");
         menu_button.get_style_context().add_class("round-button");
+        menu_button.get_style_context().add_class("flat");
+        menu_button.set_margin_top(12);
+        menu_button.set_margin_end(12);
         menu_button.set_opacity(0.8);
         menu_button.set_halign(gtk::Align::End);
         menu_button.set_valign(gtk::Align::Start);
+        menu_button.connect_size_allocate(|button, allocation| {
+            let diameter = max(allocation.width, allocation.height);
+            button.set_size_request(diameter, diameter);
+        });
         overlay.add_overlay(&menu_button);
 
         let id = msg.id.clone();
         let redactable = msg.redactable.clone();
-        let eventbox_weak = self.eventbox.downgrade();
-        menu_button.connect_clicked(move |_| {
-            eventbox_weak.upgrade().map(|eventbox| {
-                MessageMenu::new(
-                    id.as_str(),
-                    &RowType::Video,
-                    &redactable,
-                    &eventbox,
-                    eventbox.upcast_ref::<gtk::Widget>(),
-                );
-            });
-        });
+        let menu = MessageMenu::new(
+            id.as_str(),
+            &RowType::Video,
+            &redactable,
+            &self.eventbox,
+            self.eventbox.upcast_ref::<gtk::Widget>(),
+        );
+        menu_button.set_popover(Some(&menu.get_popover()));
 
         bx.pack_start(&overlay, true, true, 0);
         self.connect_media_viewer(msg);

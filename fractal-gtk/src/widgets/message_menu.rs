@@ -179,6 +179,10 @@ impl MessageMenu {
         });
         None
     }
+
+    pub fn get_popover(&self) -> gtk::Popover {
+        self.widgets.popover.clone()
+    }
 }
 
 fn get_selected_text(event_widget: Option<&gtk::Label>) -> Option<SelectedText> {
