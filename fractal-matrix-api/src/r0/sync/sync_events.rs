@@ -68,6 +68,8 @@ impl MarkPresence {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
+    // Sometimes servers don’t send this field even though it is required in the spec
+    #[serde(default)]
     pub next_batch: String,
     #[serde(default)]
     pub rooms: Rooms,
