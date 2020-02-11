@@ -10,7 +10,6 @@ use dirs;
 use gdk::*;
 use glib;
 use glib::signal;
-use glib::SourceId;
 use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
@@ -111,7 +110,6 @@ struct Data {
     loading_error: bool,
     no_more_media: bool,
     is_fullscreen: bool,
-    widget_clicked_timeout: Option<SourceId>,
 }
 
 impl Data {
@@ -145,7 +143,6 @@ impl Data {
             main_window,
             signal_id: None,
             is_fullscreen,
-            widget_clicked_timeout: None,
         }
     }
 
@@ -464,6 +461,36 @@ impl Data {
             });
             Inhibit(false)
         });
+        let ui = self.builder.clone();
+        let media_viewer_box = ui
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
+        let player_weak = Rc::downgrade(&player);
+        let timeout_id = Rc::new(RefCell::new(None));
+        media_viewer_box.connect_button_press_event(move |_, e| {
+            player_weak
+                .upgrade()
+                .map(|player| match e.get_event_type() {
+                    EventType::ButtonPress => {
+                        if timeout_id.borrow().is_some() {
+                            let id = timeout_id.borrow_mut().take().unwrap();
+                            glib::source::source_remove(id);
+                        } else {
+                            let sid = gtk::timeout_add(
+                                250,
+                                clone!(player, timeout_id => move || {
+                                    VideoPlayerWidget::switch_play_pause_state(&player);
+                                    *timeout_id.borrow_mut() = None;
+                                    Continue(false)
+                                }),
+                            );
+                            *timeout_id.borrow_mut() = Some(sid);
+                        }
+                    }
+                    _ => {}
+                });
+            Inhibit(false)
+        });
 
         let mut widget = VideoWidget {
             player,
@@ -632,44 +659,6 @@ impl MediaViewer {
     }
 
     pub fn connect_media_viewer_box(&self) {
-        let ui = self.builder.clone();
-
-        let media_viewer_box = ui
-            .get_object::<gtk::Box>("media_viewer_box")
-            .expect("Cant find media_viewer_box in ui file.");
-        let data_weak = Rc::downgrade(&self.data);
-        media_viewer_box.connect_button_press_event(move |_, e| {
-            match e.get_event_type() {
-                EventType::ButtonPress => {
-                    data_weak.upgrade().map(|data| {
-                        if data.borrow().widget_clicked_timeout.is_some() {
-                            let sid = data.borrow_mut().widget_clicked_timeout.take().unwrap();
-                            glib::source::source_remove(sid);
-                        } else {
-                            let data_timeout = Rc::downgrade(&data);
-                            let sid = gtk::timeout_add(200, move || {
-                                data_timeout.upgrade().map(|data| {
-                                    match &data.borrow().widget {
-                                        Widget::Video(video_widget) => {
-                                            VideoPlayerWidget::switch_play_pause_state(
-                                                &video_widget.player,
-                                            );
-                                        }
-                                        _ => {}
-                                    }
-                                    data.borrow_mut().widget_clicked_timeout = None;
-                                });
-                                Continue(false)
-                            });
-                            data.borrow_mut().widget_clicked_timeout = Some(sid);
-                        }
-                    });
-                }
-                _ => {}
-            }
-            Inhibit(false)
-        });
-
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
@@ -689,6 +678,7 @@ impl MediaViewer {
 
         let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
         let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+        let ui = self.builder.clone();
         let headerbar_revealer = ui
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
@@ -863,6 +853,10 @@ impl MediaViewer {
 
         // Remove the keyboard signal management on hide
         let data_weak = Rc::downgrade(&self.data);
+        let ui = self.builder.clone();
+        let media_viewer_box = ui
+            .get_object::<gtk::Box>("media_viewer_box")
+            .expect("Cant find media_viewer_box in ui file.");
         media_viewer_box.connect_unmap(move |_| {
             data_weak.upgrade().map(|data| {
                 let id = data.borrow_mut().signal_id.take();
