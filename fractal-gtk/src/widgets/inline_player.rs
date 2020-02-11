@@ -286,13 +286,20 @@ impl VideoPlayerWidget {
 
         let w = Rc::new(player_widget);
 
-        /* The followign callback requires `Send` but is handled by the gtk main loop */
+        /* The followign callbacks require `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&w));
         w.player.connect_state_changed(move |_, state| {
             player_weak.get().upgrade().map(|player| {
                 *player.state.borrow_mut() = Some(state);
             });
         });
+        let dimensions_weak = Fragile::new(Rc::downgrade(&w.dimensions));
+        w.player
+            .connect_video_dimensions_changed(move |_, video_width, video_height| {
+                dimensions_weak.get().upgrade().map(|dimensions| {
+                    *dimensions.borrow_mut() = Some((video_width, video_height));
+                });
+            });
 
         w
     }
@@ -325,7 +332,6 @@ impl VideoPlayerWidget {
     pub fn auto_adjust_video_dimensions(player_widget: &Rc<Self>) {
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&player_widget));
-        let dimensions_weak = Fragile::new(Rc::downgrade(&player_widget.dimensions));
         player_widget.player.connect_video_dimensions_changed(
             move |_, video_width, video_height| {
                 if video_width != 0 {
@@ -336,9 +342,6 @@ impl VideoPlayerWidget {
                         widget.set_size_request(-1, adjusted_height);
                     });
                 }
-                dimensions_weak.get().upgrade().map(|dimensions| {
-                    *dimensions.borrow_mut() = Some((video_width, video_height));
-                });
             },
         );
         let player_weak = Rc::downgrade(&player_widget);
@@ -382,16 +385,12 @@ impl VideoPlayerWidget {
         adjusting the distance between the top/bottom of the widget and the top/bottom of the box,
         rather than through the widget's preferred height. */
 
-        /* The followign callback requires `Send` but is handled by the gtk main loop */
-        let dimensions_weak = Fragile::new(Rc::downgrade(&player.dimensions));
+        /* The following callback requires `Send` but is handled by the gtk main loop */
         let bx_weak = Fragile::new(bx.downgrade());
         let dimension_id =
             player
                 .player
                 .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                    dimensions_weak.get().upgrade().map(|dimensions| {
-                        *dimensions.borrow_mut() = Some((video_width, video_height));
-                    });
                     bx_weak.get().upgrade().map(|bx| {
                         adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
                     });
