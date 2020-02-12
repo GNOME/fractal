@@ -2,6 +2,7 @@ use fractal_api::clone;
 use fractal_api::r0::AccessToken;
 use gdk;
 
+use fragile::Fragile;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -428,6 +429,18 @@ impl Data {
             Some("audio-volume-high-symbolic"),
             gtk::IconSize::Button.into(),
         );
+        /* The followign callback requires `Send` but is handled by the gtk main loop */
+        let button = Fragile::new(mute_button.clone());
+        PlayerExt::get_player(&player).connect_state_changed(move |player, state| match state {
+            gst_player::PlayerState::Playing if player.get_mute() => {
+                let image = gtk::Image::new_from_icon_name(
+                    Some("audio-volume-muted-symbolic"),
+                    gtk::IconSize::Button.into(),
+                );
+                button.get().set_image(Some(&image));
+            }
+            _ => {}
+        });
         let player_weak = Rc::downgrade(&player);
         mute_button.connect_clicked(move |button| {
             player_weak.upgrade().map(|player| {
