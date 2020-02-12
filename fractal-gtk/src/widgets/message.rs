@@ -457,6 +457,9 @@ impl MessageBox {
         play_button.get_style_context().add_class("osd");
         play_button.get_style_context().add_class("play-icon");
         play_button.get_style_context().add_class("flat");
+        let data = glib::Variant::from(msg.id.as_str());
+        play_button.set_action_name(Some("app.open-media-viewer"));
+        play_button.set_action_target_value(Some(&data));
         overlay.add_overlay(&play_button);
 
         let menu_button = gtk::MenuButton::new();
