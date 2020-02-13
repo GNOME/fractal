@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/fractal/issues\n"
-"POT-Creation-Date: 2020-02-03 10:11+0000\n"
-"PO-Revision-Date: 2020-02-04 14:50+0700\n"
+"POT-Creation-Date: 2020-02-13 07:19+0000\n"
+"PO-Revision-Date: 2020-02-13 19:00+0700\n"
 "Last-Translator: Kukuh Syafaat <kukuhsyafaat@gnome.org>\n"
 "Language-Team: Indonesian <gnome-l10n-id@googlegroups.com>\n"
 "Language: id\n"
@@ -245,8 +245,8 @@ msgid "Account Settings"
 msgstr "Pengaturan Akun"
 
 #: fractal-gtk/res/ui/account_settings.ui:602
-#: fractal-gtk/res/ui/main_window.ui:517 fractal-gtk/res/ui/main_window.ui:657
-#: fractal-gtk/res/ui/main_window.ui:767 fractal-gtk/res/ui/media_viewer.ui:248
+#: fractal-gtk/res/ui/main_window.ui:522 fractal-gtk/res/ui/main_window.ui:662
+#: fractal-gtk/res/ui/main_window.ui:772 fractal-gtk/res/ui/media_viewer.ui:248
 #: fractal-gtk/res/ui/room_settings.ui:1034
 msgid "Back"
 msgstr "Kembali"
@@ -416,47 +416,47 @@ msgstr "Pinta_san Papan Tik"
 msgid "_About Fractal"
 msgstr "Tent_ang Fractal"
 
-#: fractal-gtk/res/ui/main_window.ui:183
+#: fractal-gtk/res/ui/main_window.ui:185
 msgid "No room selected"
 msgstr "Tidak ada ruang yang dipilih"
 
-#: fractal-gtk/res/ui/main_window.ui:198
+#: fractal-gtk/res/ui/main_window.ui:200
 msgid "Join a room to start chatting"
 msgstr "Bergabung dengan sebuah ruangan untuk memulai obrolan"
 
-#: fractal-gtk/res/ui/main_window.ui:208
+#: fractal-gtk/res/ui/main_window.ui:210
 msgid "No room"
 msgstr "Tidak ada ruang"
 
-#: fractal-gtk/res/ui/main_window.ui:289
+#: fractal-gtk/res/ui/main_window.ui:291
 msgid "Chat"
 msgstr "Obrolan"
 
-#: fractal-gtk/res/ui/main_window.ui:341
+#: fractal-gtk/res/ui/main_window.ui:343
 msgid "Directory"
 msgstr "Direktori"
 
-#: fractal-gtk/res/ui/main_window.ui:365
+#: fractal-gtk/res/ui/main_window.ui:367
 msgid "Loading"
 msgstr "Sedang Memuat"
 
-#: fractal-gtk/res/ui/main_window.ui:410
+#: fractal-gtk/res/ui/main_window.ui:412
 msgid "User"
 msgstr "Pengguna"
 
-#: fractal-gtk/res/ui/main_window.ui:437
+#: fractal-gtk/res/ui/main_window.ui:439
 msgid "Add"
 msgstr "Tambah"
 
-#: fractal-gtk/res/ui/main_window.ui:467
+#: fractal-gtk/res/ui/main_window.ui:469
 msgid "Room search"
 msgstr "Pencarian ruang"
 
-#: fractal-gtk/res/ui/main_window.ui:591
+#: fractal-gtk/res/ui/main_window.ui:596
 msgid "Room Menu"
 msgstr "Menu Ruang"
 
-#: fractal-gtk/res/ui/main_window.ui:697
+#: fractal-gtk/res/ui/main_window.ui:702
 #: fractal-gtk/res/ui/server_chooser_menu.ui:65
 #: fractal-gtk/src/app/connect/directory.rs:130
 msgid "Default Matrix Server"
@@ -569,7 +569,7 @@ msgstr "Privat"
 #: fractal-gtk/res/ui/password_dialog.ui:22
 #: fractal-gtk/src/widgets/file_dialog.rs:13
 #: fractal-gtk/src/widgets/file_dialog.rs:34
-#: fractal-gtk/src/widgets/media_viewer.rs:875
+#: fractal-gtk/src/widgets/media_viewer.rs:1007
 msgid "_Cancel"
 msgstr "Ba_tal"
 
@@ -744,16 +744,16 @@ msgstr "Tidak dapat membuka berkas"
 msgid "Select a file"
 msgstr "Pilih berkas"
 
-#: fractal-gtk/src/actions/room_history.rs:64
+#: fractal-gtk/src/actions/room_history.rs:66
 msgid "This message has no source."
 msgstr "Pesan ini tidak memiliki sumber."
 
-#: fractal-gtk/src/actions/room_history.rs:116
-#: fractal-gtk/src/actions/room_history.rs:148
+#: fractal-gtk/src/actions/room_history.rs:118
+#: fractal-gtk/src/actions/room_history.rs:157
 msgid "Could not download the file"
 msgstr "Tidak dapat mengunduh berkas"
 
-#: fractal-gtk/src/actions/room_history.rs:126
+#: fractal-gtk/src/actions/room_history.rs:128
 msgid "Couldn’t save file"
 msgstr "Tidak dapat menyimpan berkas"
 
@@ -940,12 +940,12 @@ msgid "You don’t have permission to post to this room"
 msgstr "Anda tidak memiliki izin untuk memposting ke ruang ini"
 
 #: fractal-gtk/src/widgets/file_dialog.rs:9
-#: fractal-gtk/src/widgets/media_viewer.rs:871
+#: fractal-gtk/src/widgets/media_viewer.rs:1003
 msgid "Save media as"
 msgstr "Simpan media sebagai"
 
 #: fractal-gtk/src/widgets/file_dialog.rs:12
-#: fractal-gtk/src/widgets/media_viewer.rs:874
+#: fractal-gtk/src/widgets/media_viewer.rs:1006
 msgid "_Save"
 msgstr "_Simpan"
 
@@ -953,7 +953,7 @@ msgstr "_Simpan"
 msgid "_Select"
 msgstr "_Pilih"
 
-#: fractal-gtk/src/widgets/inline_player.rs:498
+#: fractal-gtk/src/widgets/inline_player.rs:521
 msgid "Could not retrieve file URI"
 msgstr "Tidak dapat mengambil berkas URI"
 
@@ -969,15 +969,15 @@ msgstr ""
 "Ditendang oleh: {}\n"
 " “{}”"
 
-#: fractal-gtk/src/widgets/media_viewer.rs:117
-msgid "Media is not loaded, yet."
+#: fractal-gtk/src/widgets/media_viewer.rs:165
+msgid "Media is not loaded yet."
 msgstr "Media belum dimuat."
 
-#: fractal-gtk/src/widgets/media_viewer.rs:829
+#: fractal-gtk/src/widgets/media_viewer.rs:961
 msgid "Error while loading previous media"
 msgstr "Galat saat memuat media sebelumnya"
 
-#: fractal-gtk/src/widgets/media_viewer.rs:884
+#: fractal-gtk/src/widgets/media_viewer.rs:1016
 msgid "Could not save the file"
 msgstr "Tidak dapat menyimpan berkas"
 
@@ -997,22 +997,38 @@ msgstr "Moderator"
 msgid "Privileged"
 msgstr "Hak istimewa"
 
-#: fractal-gtk/src/widgets/message.rs:390
-#: fractal-gtk/src/widgets/message.rs:482
+#: fractal-gtk/src/widgets/message.rs:83
+msgid "Uploading video."
+msgstr "Mengunggah video."
+
+#: fractal-gtk/src/widgets/message.rs:88
+msgid "Uploading audio."
+msgstr "Mengunggah audio."
+
+#: fractal-gtk/src/widgets/message.rs:93
+msgid "Uploading image."
+msgstr "Mengunggah gambar."
+
+#: fractal-gtk/src/widgets/message.rs:97
+msgid "Uploading file."
+msgstr "Mengunggah berkas."
+
+#: fractal-gtk/src/widgets/message.rs:415
+#: fractal-gtk/src/widgets/message.rs:507
 msgid "Save"
 msgstr "Simpan"
 
-#: fractal-gtk/src/widgets/message.rs:492
+#: fractal-gtk/src/widgets/message.rs:517
 msgid "Open"
 msgstr "Buka"
 
 #. Use 12h time format (AM/PM)
-#: fractal-gtk/src/widgets/message.rs:512
+#: fractal-gtk/src/widgets/message.rs:537
 msgid "%l∶%M %p"
 msgstr "%l∶%M %p"
 
 #. Use 24 time format
-#: fractal-gtk/src/widgets/message.rs:515
+#: fractal-gtk/src/widgets/message.rs:540
 msgid "%R"
 msgstr "%R"
 
@@ -1021,12 +1037,12 @@ msgid "New Messages"
 msgstr "Pesan Baru"
 
 #. Translators: This is a date format in the day divider without the year
-#: fractal-gtk/src/widgets/room_history.rs:679
+#: fractal-gtk/src/widgets/room_history.rs:690
 msgid "%B %e"
 msgstr "%e %b"
 
 #. Translators: This is a date format in the day divider with the year
-#: fractal-gtk/src/widgets/room_history.rs:682
+#: fractal-gtk/src/widgets/room_history.rs:693
 msgid "%B %e, %Y"
 msgstr "%e %b %Y"
 
