@@ -12,8 +12,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/fractal/issues\n"
-"POT-Creation-Date: 2020-02-11 08:26+0000\n"
-"PO-Revision-Date: 2020-02-11 12:34+0100\n"
+"POT-Creation-Date: 2020-02-13 07:19+0000\n"
+"PO-Revision-Date: 2020-02-13 13:00+0100\n"
 "Last-Translator: Daniel Mustieles <daniel.mustieles@gmail.com>\n"
 "Language-Team: Spanish - Spain <gnome-es-list@gnome.org>\n"
 "Language: es_ES\n"
@@ -974,7 +974,8 @@ msgstr ""
 " «{}»"
 
 #: fractal-gtk/src/widgets/media_viewer.rs:165
-msgid "Media is not loaded, yet."
+#| msgid "Media is not loaded, yet."
+msgid "Media is not loaded yet."
 msgstr "El medio no se ha cargado todavía."
 
 #: fractal-gtk/src/widgets/media_viewer.rs:961
@@ -1002,22 +1003,18 @@ msgid "Privileged"
 msgstr "Con privilegios"
 
 #: fractal-gtk/src/widgets/message.rs:83
-#| msgid "loading"
 msgid "Uploading video."
 msgstr "Subiendo vídeo."
 
 #: fractal-gtk/src/widgets/message.rs:88
-#| msgid "loading"
 msgid "Uploading audio."
 msgstr "Subiendo sonido."
 
 #: fractal-gtk/src/widgets/message.rs:93
-#| msgid "loading"
 msgid "Uploading image."
 msgstr "Subiendo imagen."
 
 #: fractal-gtk/src/widgets/message.rs:97
-#| msgid "loading"
 msgid "Uploading file."
 msgstr "Subiendo archivo."
 
