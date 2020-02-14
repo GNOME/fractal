@@ -1,5 +1,5 @@
+use fractal_api::url::Url;
 use lazy_static::lazy_static;
-use url::Url;
 
 pub static CACHE_SIZE: usize = 40;
 pub static MSG_ICON_SIZE: i32 = 40;

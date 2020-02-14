@@ -12,12 +12,12 @@ use crate::i18n::i18n;
 use crate::types::Message;
 use crate::uibuilder::UI;
 use crate::App;
+use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use gtk;
 use gtk::prelude::*;
-use url::Url;
 
 use crate::widgets::ErrorDialog;
 use crate::widgets::FileDialog::save;

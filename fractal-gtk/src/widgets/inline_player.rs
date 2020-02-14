@@ -42,7 +42,7 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
-use url::Url;
+use fractal_api::url::Url;
 
 use crate::app::App;
 use crate::backend::BKCommand;
