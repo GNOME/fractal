@@ -5,11 +5,11 @@ use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
-use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
 use std::fs::{create_dir_all, write};
@@ -278,7 +278,7 @@ pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Er
         conn = conn.header(CONTENT_LENGTH, 0);
     }
 
-    let mut res = conn.send()?;
+    let res = conn.send()?;
 
     //let mut content = String::new();
     //res.read_to_string(&mut content);
@@ -382,7 +382,7 @@ pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
 }
 
 pub fn encode_uid(userid: &str) -> String {
-    utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect::<String>()
+    utf8_percent_encode(userid, NON_ALPHANUMERIC).collect::<String>()
 }
 
 pub trait ResultExpectLog {

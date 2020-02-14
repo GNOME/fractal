@@ -16,6 +16,7 @@ use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 
@@ -113,26 +114,26 @@ pub fn new(
             gtk::timeout_add(
                 50,
                 clone!(name => move || match rx.try_recv() {
-                    Err(TryRecvError::Empty) => gtk::Continue(true),
+                    Err(TryRecvError::Empty) => Continue(true),
                     Err(TryRecvError::Disconnected) => {
                         let msg = i18n("Could not download the file");
                         ErrorDialog::new(false, &msg);
 
-                        gtk::Continue(true)
+                        Continue(true)
                     },
                     Ok(Ok(fname)) => {
-                        let window = upgrade_weak!(parent_weak, gtk::Continue(true));
+                        let window = upgrade_weak!(parent_weak, Continue(true));
                         if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
                             if let Err(_) = fs::copy(fname.clone(), path) {
                                 ErrorDialog::new(false, &i18n("Couldn’t save file"));
                             }
                         }
-                        gtk::Continue(false)
+                        Continue(false)
                     }
                     Ok(Err(err)) => {
                         error!("Media path could not be found due to error: {:?}", err);
-                        gtk::Continue(false)
+                        Continue(false)
                     }
                 }),
             );
@@ -152,12 +153,12 @@ pub fn new(
             let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url.clone(), tx));
 
             gtk::timeout_add(50, move || match rx.try_recv() {
-                Err(TryRecvError::Empty) => gtk::Continue(true),
+                Err(TryRecvError::Empty) => Continue(true),
                 Err(TryRecvError::Disconnected) => {
                     let msg = i18n("Could not download the file");
                     ErrorDialog::new(false, &msg);
 
-                    gtk::Continue(true)
+                    Continue(true)
                 }
                 Ok(Ok(fname)) => {
                     if let Ok(pixbuf) = gdk_pixbuf::Pixbuf::new_from_file(fname) {
@@ -167,11 +168,11 @@ pub fn new(
                         clipboard.set_image(&pixbuf);
                     }
 
-                    gtk::Continue(false)
+                    Continue(false)
                 }
                 Ok(Err(err)) => {
                     error!("Image path could not be found due to error: {:?}", err);
-                    gtk::Continue(false)
+                    Continue(false)
                 }
             });
         }

@@ -1,6 +1,7 @@
 use gio::ApplicationExt;
 use gio::FileExt;
 use gio::Notification;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 use log::info;
@@ -67,14 +68,14 @@ impl AppOp {
         let id = id.to_string();
         let app_weak = app.downgrade();
         gtk::timeout_add(50, move || match rx.try_recv() {
-            Err(TryRecvError::Empty) => gtk::Continue(true),
-            Err(TryRecvError::Disconnected) => gtk::Continue(false),
+            Err(TryRecvError::Empty) => Continue(true),
+            Err(TryRecvError::Disconnected) => Continue(false),
             Ok((name, avatar_path)) => {
                 let title = format!("{}{}", name, title);
-                let app = upgrade_weak!(app_weak, gtk::Continue(false));
+                let app = upgrade_weak!(app_weak, Continue(false));
                 let n = create_notification(&room_id, &title, &short_body, &avatar_path);
                 app.send_notification(Some(id.as_str()), &n);
-                gtk::Continue(false)
+                Continue(false)
             }
         });
 

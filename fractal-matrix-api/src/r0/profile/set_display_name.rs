@@ -1,7 +1,7 @@
 use crate::r0::AccessToken;
-use reqwest::Client;
+use reqwest::blocking::Client;
+use reqwest::blocking::Request;
 use reqwest::Error;
-use reqwest::Request;
 use serde::Serialize;
 use url::Url;
 

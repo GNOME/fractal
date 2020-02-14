@@ -4,7 +4,6 @@ use std::rc::Rc;
 
 use cairo;
 use fractal_api::util::cache_dir_path;
-use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
 use gtk;
 use gtk::prelude::*;

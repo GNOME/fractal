@@ -1,8 +1,8 @@
 use crate::r0::AccessToken;
 use crate::serde::{option_host, option_url};
-use reqwest::Client;
+use reqwest::blocking::Client;
+use reqwest::blocking::Request;
 use reqwest::Error;
-use reqwest::Request;
 use ruma_identifiers::RoomAliasId;
 use ruma_identifiers::RoomId;
 use serde::ser::SerializeMap;
