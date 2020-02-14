@@ -108,7 +108,7 @@ impl MembersList {
         w.add(&load_row_content(member.clone()));
         }
         }
-        gtk::Continue(false)
+        glib::source::Continue(false)
         }));
         }
         */

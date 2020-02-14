@@ -23,6 +23,7 @@ use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
 use glib::source;
+use glib::source::Continue;
 use glib::SignalHandlerId;
 use glib::Source;
 use gtk;
@@ -496,9 +497,9 @@ impl RoomHistory {
                 } else {
                     /* Remove the source id, since the closure is destoryed */
                     source_id.borrow_mut().take();
-                    return gtk::Continue(false);
+                    return Continue(false);
                 }
-                return gtk::Continue(true);
+                return Continue(true);
             }));
         }
         None

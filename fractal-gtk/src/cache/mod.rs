@@ -1,4 +1,5 @@
 use fractal_api::url::Url;
+use glib::source::Continue;
 use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
@@ -108,11 +109,11 @@ pub fn download_to_cache(
     let _ = backend.send(BKCommand::GetUserInfoAsync(server_url, uid, Some(tx)));
 
     gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
+        Err(TryRecvError::Empty) => Continue(true),
+        Err(TryRecvError::Disconnected) => Continue(false),
         Ok(_resp) => {
             data.borrow_mut().redraw_pixbuf();
-            gtk::Continue(false)
+            Continue(false)
         }
     });
 }
@@ -130,8 +131,8 @@ pub fn download_to_cache_username(
         .send(BKCommand::GetUserNameAsync(server_url, uid, tx))
         .unwrap();
     gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
+        Err(TryRecvError::Empty) => Continue(true),
+        Err(TryRecvError::Disconnected) => Continue(false),
         Ok(username) => {
             label.set_text(&username);
             if let Some(ref rc_data) = avatar {
@@ -139,7 +140,7 @@ pub fn download_to_cache_username(
                 data.redraw_fallback(Some(username));
             }
 
-            gtk::Continue(false)
+            Continue(false)
         }
     });
 }
@@ -160,8 +161,8 @@ pub fn download_to_cache_username_emote(
         .unwrap();
     let text = text.to_string();
     gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
-        Err(TryRecvError::Disconnected) => gtk::Continue(false),
+        Err(TryRecvError::Empty) => Continue(true),
+        Err(TryRecvError::Disconnected) => Continue(false),
         Ok(username) => {
             label.set_markup(&format!("<b>{}</b> {}", &username, text));
             if let Some(ref rc_data) = avatar {
@@ -169,7 +170,7 @@ pub fn download_to_cache_username_emote(
                 data.redraw_fallback(Some(username));
             }
 
-            gtk::Continue(false)
+            Continue(false)
         }
     });
 }

@@ -6,7 +6,6 @@ use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use gtk;
-use gtk::prelude::*;
 use std::sync::mpsc::Sender;
 
 use crate::backend::BKCommand;

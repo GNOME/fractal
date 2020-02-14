@@ -1,4 +1,5 @@
-use gio::{resources_register, Error, Resource};
+use gio::{resources_register, Resource};
+use glib::error::Error;
 use glib::Bytes;
 
 pub fn init() -> Result<(), Error> {

@@ -29,6 +29,7 @@ use gtk::prelude::*;
 use gtk::ButtonExt;
 
 // use gio::{File, FileExt};
+use glib::source::Continue;
 use glib::SignalHandlerId;
 
 use chrono::NaiveTime;
@@ -311,9 +312,11 @@ impl VideoPlayerWidget {
             .unwrap()
             .get::<gst::Element>()
             .expect("The player of a VideoPlayerWidget should not use the default sink.")
+            .unwrap()
             .get_property("widget")
             .unwrap()
             .get::<gtk::Widget>()
+            .unwrap()
             .unwrap()
     }
 
@@ -515,12 +518,12 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
             50,
             clone!(player, bx => move || {
                 match rx.try_recv() {
-                    Err(TryRecvError::Empty) => gtk::Continue(true),
+                    Err(TryRecvError::Empty) => Continue(true),
                     Err(TryRecvError::Disconnected) => {
                         let msg = i18n("Could not retrieve file URI");
                         /* FIXME: don't use APPOP! */
                         APPOP!(show_error, (msg));
-                        gtk::Continue(true)
+                        Continue(true)
                     },
                     Ok(Ok(path)) => {
                         info!("MEDIA PATH: {}", &path);
@@ -541,11 +544,11 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
                         if start_playing {
                             player.play();
                         }
-                        gtk::Continue(false)
+                        Continue(false)
                     }
                     Ok(Err(err)) => {
                         error!("Media path could not be found due to error: {:?}", err);
-                        gtk::Continue(false)
+                        Continue(false)
                     }
                 }
             }),
