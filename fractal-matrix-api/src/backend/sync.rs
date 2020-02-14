@@ -22,7 +22,7 @@ use crate::util::parse_m_direct;
 use crate::util::ResultExpectLog;
 
 use log::error;
-use reqwest::Client;
+use reqwest::blocking::Client;
 use serde_json::value::from_value;
 use std::{
     thread,

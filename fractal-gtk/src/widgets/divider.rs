@@ -1,3 +1,4 @@
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 use gtk::RevealerTransitionType;
@@ -52,7 +53,7 @@ impl NewMessageDivider {
                     revealer_weak.upgrade().map(|r| {
                         r.set_reveal_child(false);
                     });
-                    glib::Continue(false)
+                    Continue(false)
                 });
             });
         });

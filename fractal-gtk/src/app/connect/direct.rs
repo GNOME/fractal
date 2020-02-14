@@ -4,6 +4,7 @@ use gtk;
 use gtk::prelude::*;
 
 use glib;
+use glib::source::Continue;
 use std::sync::{Arc, Mutex};
 
 use crate::app::App;
@@ -76,7 +77,7 @@ impl App {
                 }
 
                 *(source_id.lock().unwrap()) = None;
-                gtk::Continue(false)
+                Continue(false)
             }));
 
             *(source_id.lock().unwrap()) = Some(sid);

@@ -1,4 +1,4 @@
-use gio;
+use glib;
 use std::io;
 use std::time::SystemTimeError;
 
@@ -25,7 +25,7 @@ impl From<reqwest::Error> for Error {
 
 derror!(url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
-derror!(gio::Error, Error::BackendError);
+derror!(glib::error::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
 derror!(ruma_identifiers::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);

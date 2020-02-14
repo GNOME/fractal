@@ -6,47 +6,59 @@ workspace = "../"
 edition = "2018"
 
 [dependencies]
-clap = "2.32.0"
-comrak = "0.4.0"
-dirs = "1.0.4"
-failure = "0.1.3"
-fragile = "0.3.0"
-gspell = "0.3.0"
-gdk = "0.11.0"
-gdk-pixbuf = "0.7.0"
-gdk-pixbuf-sys = "0.9.0"
-gstreamer-editing-services = "0.14.0"
-gstreamer-pbutils = "0.14.0"
-glib = "0.8.0"
-html2pango = "0.3.1"
-itertools = "0.8.0"
-lazy_static = "1.2.0"
-letter-avatar = "1.2.0"
-log = "0.4.6"
-loggerv = "0.7.1"
+clap = "2.33.0"
+comrak = "0.7.0"
+dirs = "2.0.2"
+failure = "0.1.6"
+fragile = "1.0.0"
+# gspell = "0.3.0"
+gdk = "0.12.0"
+gdk-pixbuf = "0.8.0"
+gdk-pixbuf-sys = "0.9.1"
+gstreamer-editing-services = "0.15.0"
+gstreamer-pbutils = "0.15.1"
+glib = "0.9.1"
+html2pango = "0.3.2"
+itertools = "0.8.2"
+lazy_static = "1.4.0"
+# letter-avatar = "1.2.0"
+log = "0.4.8"
+loggerv = "0.7.2"
 mdl = "1.0.4"
-pango = "0.7.0"
-pangocairo = "0.8.0"
-rand = "0.6.1"
-regex = "1.1.0"
+pango = "0.8.0"
+pangocairo = "0.9.0"
+rand = "0.7.3"
+regex = "1.3.4"
 secret-service = "1.0.0"
-serde_json = "1.0.33"
-sourceview4 = "0.1.0"
+serde_json = "1.0.46"
+# sourceview4 = "0.1.1"
+
+[dependencies.sourceview4]
+git = "https://gitlab.gnome.org/World/Rust/sourceview4-rs.git"
+branch = "alatiera/update-gtk-rs"
+
+[dependencies.gspell]
+git = "https://gitlab.gnome.org/World/Rust/gspell-rs.git"
+branch = "alatiera/update-gtk-rs"
+
+[dependencies.letter-avatar]
+git = "https://gitlab.gnome.org/danigm/letter-avatar.git"
+branch = "updatedep"
 
 [dependencies.gst]
-version = "0.14.0"
+version = "0.15.2"
 package = "gstreamer"
 
 [dependencies.gst_player]
-version = "0.14.0"
+version = "0.15.0"
 package = "gstreamer-player"
 
 [dependencies.cairo-rs]
-version = "0.7.0"
+version = "0.8.0"
 features = ["png"]
 
 [dependencies.chrono]
-version = "0.4.6"
+version = "0.4.10"
 features = ["serde"]
 
 [dependencies.fractal_api]
@@ -54,7 +66,7 @@ path = "../fractal-matrix-api"
 package = "fractal-matrix-api"
 
 [dependencies.libhandy]
-version = "0.4.0"
+version = "0.5.0"
 features = ["v0_0_10"]
 
 [dependencies.gettext-rs]
@@ -63,13 +75,13 @@ branch = "no-gettext"
 features = ["gettext-system"]
 
 [dependencies.gtk]
-version = "0.7.0"
+version = "0.8.0"
 features = ["v3_22"]
 
 [dependencies.serde]
-version = "1.0.82"
+version = "1.0.104"
 features = ["derive"]
 
 [dependencies.gio]
-version = "0.7.0"
+version = "0.8.0"
 features = ["v2_56"]

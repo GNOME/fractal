@@ -1,6 +1,7 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
@@ -165,7 +166,7 @@ impl AppOp {
         gtk::timeout_add(5000, move || {
             /* This will be removed once tmp messages are refactored */
             APPOP!(force_dequeue_message);
-            gtk::Continue(false)
+            Continue(false)
         });
     }
 

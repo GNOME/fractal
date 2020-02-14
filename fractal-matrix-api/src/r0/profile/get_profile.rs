@@ -1,7 +1,7 @@
 use crate::serde::option_url;
-use reqwest::Client;
+use reqwest::blocking::Client;
+use reqwest::blocking::Request;
 use reqwest::Error;
-use reqwest::Request;
 use serde::Deserialize;
 use url::Url;
 

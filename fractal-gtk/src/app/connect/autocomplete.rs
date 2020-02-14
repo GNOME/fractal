@@ -1,4 +1,4 @@
-use gtk::BuilderExtManual;
+use gtk::prelude::*;
 
 use crate::widgets;
 

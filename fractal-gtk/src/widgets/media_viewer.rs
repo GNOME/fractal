@@ -12,6 +12,7 @@ use fractal_api::url::Url;
 use gdk::*;
 use glib;
 use glib::signal;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
@@ -885,7 +886,7 @@ impl MediaViewer {
                         }
 
                         *(source_id.lock().unwrap()) = None;
-                        gtk::Continue(false)
+                        Continue(false)
                     }),
                 );
 
@@ -1050,7 +1051,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     let ui = builder.clone();
     let data_weak = Rc::downgrade(&data);
     gtk::timeout_add(50, move || match rx.try_recv() {
-        Err(TryRecvError::Empty) => gtk::Continue(true),
+        Err(TryRecvError::Empty) => Continue(true),
         Err(TryRecvError::Disconnected) => {
             data_weak.clone().upgrade().map(|data| {
                 data.borrow_mut().loading_error = true;
@@ -1058,14 +1059,14 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                 ErrorDialog::new(false, &err);
             });
 
-            gtk::Continue(false)
+            Continue(false)
         }
         Ok((msgs, prev_batch)) => {
             if msgs.len() == 0 {
                 data_weak.clone().upgrade().map(|data| {
                     data.borrow_mut().no_more_media = true;
                 });
-                return gtk::Continue(false);
+                return Continue(false);
             }
             data_weak.upgrade().map(|data| {
                 let media_list = data.borrow().media_list.clone();
@@ -1087,7 +1088,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                 }
             });
 
-            gtk::Continue(false)
+            Continue(false)
         }
     });
 }

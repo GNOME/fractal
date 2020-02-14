@@ -59,7 +59,7 @@ impl AppOp {
             match protocol_model.iter_nth_child(None, active) {
                 Some(it) => {
                     let v = protocol_model.get_value(&it, 1);
-                    v.get().unwrap()
+                    v.get().unwrap().unwrap()
                 }
                 None => String::new(),
             }
