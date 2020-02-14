@@ -27,5 +27,5 @@ pub fn request(base: Url) -> Result<Request, Error> {
         .join("/.well-known/matrix/client")
         .expect("Malformed URL in domain_info");
 
-    Client::new().post(url).build()
+    Client::new().get(url).build()
 }
