@@ -131,7 +131,7 @@ impl List {
         let sw = self.view.get_scrolled_window();
         let visible_index = match get_rel_position(&sw, &self.list[0]) {
             RelativePosition::InSight => Some(0),
-            _ => self.find_visible_index((1, len - 1)),
+            _ => self.find_visible_index((0, len - 1)),
         };
         if let Some(visible) = visible_index {
             indices.push(visible);
@@ -149,6 +149,11 @@ impl List {
     }
 
     fn find_visible_index(&self, range: (usize, usize)) -> Option<usize> {
+        /* Looks for a message widget in sight among all elements in rows.list.list of RoomHistory
+        whose corresponding index lies in the closed interval [range.0, range.1]. */
+        if range.0 > range.1 {
+            return None;
+        }
         let middle_index = (range.0 + range.1) / 2;
         let element = &self.list[middle_index];
         let scrolled_window = self.view.get_scrolled_window();
