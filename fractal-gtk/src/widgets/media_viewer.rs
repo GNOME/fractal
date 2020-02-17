@@ -141,6 +141,7 @@ struct Data {
     loading_error: bool,
     no_more_media: bool,
     is_fullscreen: bool,
+    double_click_handler_id: Option<glib::SignalHandlerId>,
 }
 
 impl Data {
@@ -174,6 +175,7 @@ impl Data {
             main_window,
             signal_id: None,
             is_fullscreen,
+            double_click_handler_id: None,
         }
     }
 
@@ -613,6 +615,9 @@ impl Data {
 
 impl Drop for Data {
     fn drop(&mut self) {
+        if let Some(signal_handler_id) = self.double_click_handler_id.take() {
+            self.main_window.disconnect(signal_handler_id);
+        }
         match &self.widget {
             Widget::Video(widget) => {
                 widget.player.stop();
@@ -765,7 +770,8 @@ impl MediaViewer {
             .builder
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
-        self.data
+        let id = self
+            .data
             .borrow()
             .main_window
             .connect_button_press_event(move |_, e| {
@@ -777,6 +783,7 @@ impl MediaViewer {
                 }
                 Inhibit(false)
             });
+        self.data.borrow_mut().double_click_handler_id = Some(id);
 
         let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
         let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
