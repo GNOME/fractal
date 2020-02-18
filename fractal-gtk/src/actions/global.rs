@@ -1,6 +1,5 @@
 use fractal_api::clone;
 use log::{debug, info};
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -199,9 +198,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         }
     }));
 
-    /* Store the history of views so we can go back to it, this will be kept alive by the back
-     * callback */
-    let back_history: Rc<RefCell<Vec<AppState>>> = Rc::new(RefCell::new(vec![]));
+    let back_history = op.lock().unwrap().room_back_history.clone();
 
     let back_weak = Rc::downgrade(&back_history);
     account.connect_activate(clone!(op => move |_, _| {
@@ -256,26 +253,28 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         back.borrow_mut().push(AppState::MediaViewer);
     });
 
-    // back_history is moved into this closure to keep it alive as long the action exists
+    let back_weak = Rc::downgrade(&back_history);
     back.connect_activate(move |_, _| {
-        // Remove the current state form the store
-        back_history.borrow_mut().pop();
-        if let Some(state) = back_history.borrow().last() {
-            debug!("Go back to state {:?}", state);
-            if let Some(op) = App::get_op() {
-                let mut op = op.lock().unwrap();
-                op.set_state(state.clone());
-            }
-        } else {
-            // Falback when there is no back history
-            debug!("There is no state to go back to. Go back to state NoRoom");
-            if let Some(op) = App::get_op() {
-                let mut op = op.lock().unwrap();
-                if op.login_data.is_some() {
-                    op.set_state(AppState::NoRoom);
+        back_weak.upgrade().map(|back| {
+            // Remove the current state form the store
+            back.borrow_mut().pop();
+            if let Some(state) = back.borrow().last() {
+                debug!("Go back to state {:?}", state);
+                if let Some(op) = App::get_op() {
+                    let mut op = op.lock().unwrap();
+                    op.set_state(state.clone());
+                }
+            } else {
+                // Falback when there is no back history
+                debug!("There is no state to go back to. Go back to state NoRoom");
+                if let Some(op) = App::get_op() {
+                    let mut op = op.lock().unwrap();
+                    if op.login_data.is_some() {
+                        op.set_state(AppState::NoRoom);
+                    }
                 }
             }
-        }
+        });
     });
 
     let app_weak = app.downgrade();
