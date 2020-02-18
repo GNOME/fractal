@@ -78,6 +78,7 @@ pub struct AppOp {
 
     pub state: AppState,
     pub since: Option<String>,
+    pub room_back_history: Rc<RefCell<Vec<AppState>>>,
 
     pub invitation_roomid: Option<String>,
     pub md_enabled: bool,
@@ -110,6 +111,7 @@ impl AppOp {
             msg_queue: vec![],
             sending_message: false,
             state: AppState::Login,
+            room_back_history: Rc::new(RefCell::new(vec![])),
             roomlist: widgets::RoomList::new(None, None),
             since: None,
             unsent_messages: HashMap::new(),
