@@ -11,9 +11,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fractal master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/fractal/issues\n"
-"POT-Creation-Date: 2019-12-23 11:28+0000\n"
-"PO-Revision-Date: 2019-12-27 16:05+0300\n"
-"Last-Translator: Emin Tufan Çetin <etcetin@gmail.com>\n"
+"POT-Creation-Date: 2020-02-13 07:19+0000\n"
+"PO-Revision-Date: 2020-02-13 23:04+0300\n"
+"Last-Translator: Sabri Ünal <libreajans@gmail.com>\n"
 "Language-Team: Türkçe <gnome-turk@gnome.org>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
@@ -144,7 +144,8 @@ msgstr "Parola ve jeton depolama türü"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:14
 msgid "Type of password and token storage, default value is: Secret Service"
-msgstr "Parola ve jeton depolama türü, öntanımlı değer: Secret Service (Gizli Servis)"
+msgstr ""
+"Parola ve jeton depolama türü, öntanımlı değer: Secret Service (Gizli Servis)"
 
 #: fractal-gtk/res/org.gnome.Fractal.gschema.xml:21
 msgid "If markdown sending is active"
@@ -247,8 +248,8 @@ msgid "Account Settings"
 msgstr "Hesap Ayarları"
 
 #: fractal-gtk/res/ui/account_settings.ui:602
-#: fractal-gtk/res/ui/main_window.ui:517 fractal-gtk/res/ui/main_window.ui:657
-#: fractal-gtk/res/ui/main_window.ui:767 fractal-gtk/res/ui/media_viewer.ui:248
+#: fractal-gtk/res/ui/main_window.ui:522 fractal-gtk/res/ui/main_window.ui:662
+#: fractal-gtk/res/ui/main_window.ui:772 fractal-gtk/res/ui/media_viewer.ui:248
 #: fractal-gtk/res/ui/room_settings.ui:1034
 msgid "Back"
 msgstr "Geri"
@@ -416,47 +417,47 @@ msgstr "Klavye _Kısayolları"
 msgid "_About Fractal"
 msgstr "Fractal _Hakkında"
 
-#: fractal-gtk/res/ui/main_window.ui:183
+#: fractal-gtk/res/ui/main_window.ui:185
 msgid "No room selected"
 msgstr "Oda seçilmedi"
 
-#: fractal-gtk/res/ui/main_window.ui:198
+#: fractal-gtk/res/ui/main_window.ui:200
 msgid "Join a room to start chatting"
 msgstr "Sohbet etmeye başlamak için bir odaya katılın"
 
-#: fractal-gtk/res/ui/main_window.ui:208
+#: fractal-gtk/res/ui/main_window.ui:210
 msgid "No room"
 msgstr "Hiç oda yok"
 
-#: fractal-gtk/res/ui/main_window.ui:289
+#: fractal-gtk/res/ui/main_window.ui:291
 msgid "Chat"
 msgstr "Sohbet"
 
-#: fractal-gtk/res/ui/main_window.ui:341
+#: fractal-gtk/res/ui/main_window.ui:343
 msgid "Directory"
 msgstr "Dizin"
 
-#: fractal-gtk/res/ui/main_window.ui:365
+#: fractal-gtk/res/ui/main_window.ui:367
 msgid "Loading"
 msgstr "Yükleniyor"
 
-#: fractal-gtk/res/ui/main_window.ui:410
+#: fractal-gtk/res/ui/main_window.ui:412
 msgid "User"
 msgstr "Kullanıcı"
 
-#: fractal-gtk/res/ui/main_window.ui:437
+#: fractal-gtk/res/ui/main_window.ui:439
 msgid "Add"
 msgstr "Ekle"
 
-#: fractal-gtk/res/ui/main_window.ui:467
+#: fractal-gtk/res/ui/main_window.ui:469
 msgid "Room search"
 msgstr "Oda arama"
 
-#: fractal-gtk/res/ui/main_window.ui:591
+#: fractal-gtk/res/ui/main_window.ui:596
 msgid "Room Menu"
 msgstr "Oda Menüsü"
 
-#: fractal-gtk/res/ui/main_window.ui:697
+#: fractal-gtk/res/ui/main_window.ui:702
 #: fractal-gtk/res/ui/server_chooser_menu.ui:65
 #: fractal-gtk/src/app/connect/directory.rs:130
 msgid "Default Matrix Server"
@@ -507,22 +508,26 @@ msgid "Save Image As…"
 msgstr "Görüntüyü Farklı Kaydet…"
 
 #: fractal-gtk/res/ui/message_menu.ui:60
+msgid "Save Video As…"
+msgstr "Videoyu Farklı Kaydet…"
+
+#: fractal-gtk/res/ui/message_menu.ui:73
 msgid "Copy Image"
 msgstr "Görüntüyü Kopyala"
 
-#: fractal-gtk/res/ui/message_menu.ui:73
+#: fractal-gtk/res/ui/message_menu.ui:86
 msgid "Copy Selection"
 msgstr "Seçileni Kopyala"
 
-#: fractal-gtk/res/ui/message_menu.ui:86
+#: fractal-gtk/res/ui/message_menu.ui:99
 msgid "Copy Text"
 msgstr "Metni Kopyala"
 
-#: fractal-gtk/res/ui/message_menu.ui:101
+#: fractal-gtk/res/ui/message_menu.ui:114
 msgid "View Source"
 msgstr "Kaynağı Görüntüle"
 
-#: fractal-gtk/res/ui/message_menu.ui:126
+#: fractal-gtk/res/ui/message_menu.ui:139
 msgid "Delete Message"
 msgstr "İletiyi Sil"
 
@@ -565,7 +570,7 @@ msgstr "Özel"
 #: fractal-gtk/res/ui/password_dialog.ui:22
 #: fractal-gtk/src/widgets/file_dialog.rs:13
 #: fractal-gtk/src/widgets/file_dialog.rs:34
-#: fractal-gtk/src/widgets/media_viewer.rs:670
+#: fractal-gtk/src/widgets/media_viewer.rs:1007
 msgid "_Cancel"
 msgstr "_İptal Et"
 
@@ -721,17 +726,17 @@ msgstr "Diğer Evsunucusu"
 msgid "Homeserver URL"
 msgstr "Evsunucu URL’si"
 
-#: fractal-gtk/src/actions/account_settings.rs:38
+#: fractal-gtk/src/actions/account_settings.rs:39
 #: fractal-gtk/src/actions/room_settings.rs:42
 msgid "Images"
 msgstr "Görüntüler"
 
-#: fractal-gtk/src/actions/account_settings.rs:39
+#: fractal-gtk/src/actions/account_settings.rs:40
 #: fractal-gtk/src/actions/room_settings.rs:44
 msgid "Select a new avatar"
 msgstr "Yeni avatar seç"
 
-#: fractal-gtk/src/actions/account_settings.rs:48
+#: fractal-gtk/src/actions/account_settings.rs:50
 #: fractal-gtk/src/actions/room_settings.rs:54
 msgid "Couldn’t open file"
 msgstr "Dosya açılamadı"
@@ -740,32 +745,32 @@ msgstr "Dosya açılamadı"
 msgid "Select a file"
 msgstr "Dosya seç"
 
-#: fractal-gtk/src/actions/room_history.rs:64
+#: fractal-gtk/src/actions/room_history.rs:66
 msgid "This message has no source."
 msgstr "Bu iletinin kaynağı yok."
 
-#: fractal-gtk/src/actions/room_history.rs:116
-#: fractal-gtk/src/actions/room_history.rs:148
+#: fractal-gtk/src/actions/room_history.rs:118
+#: fractal-gtk/src/actions/room_history.rs:157
 msgid "Could not download the file"
 msgstr "Dosya indirilemedi"
 
-#: fractal-gtk/src/actions/room_history.rs:126
+#: fractal-gtk/src/actions/room_history.rs:128
 msgid "Couldn’t save file"
 msgstr "Dosya kaydedilemedi"
 
-#: fractal-gtk/src/app/backend_loop.rs:49
+#: fractal-gtk/src/app/backend_loop.rs:46
 msgid "Email is already in use"
 msgstr "E-posta zaten kullanılıyor"
 
-#: fractal-gtk/src/app/backend_loop.rs:53
+#: fractal-gtk/src/app/backend_loop.rs:50
 msgid "Please enter a valid email adress."
 msgstr "Lütfen geçerli bir e-posta adresi girin."
 
-#: fractal-gtk/src/app/backend_loop.rs:57
+#: fractal-gtk/src/app/backend_loop.rs:54
 msgid "Phone number is already in use"
 msgstr "Telefon numarası zaten kullanılıyor"
 
-#: fractal-gtk/src/app/backend_loop.rs:62
+#: fractal-gtk/src/app/backend_loop.rs:59
 msgid ""
 "Please enter your phone number in the format: \n"
 " + your country code and your phone number."
@@ -773,47 +778,47 @@ msgstr ""
 "Lütfen telefon numaranızı şöyle girin: \n"
 " + ülke kodu ve telefon numarası."
 
-#: fractal-gtk/src/app/backend_loop.rs:199
+#: fractal-gtk/src/app/backend_loop.rs:196
 msgid "Couldn’t delete the account"
 msgstr "Hesap silinemedi"
 
-#: fractal-gtk/src/app/backend_loop.rs:204
+#: fractal-gtk/src/app/backend_loop.rs:201
 msgid "Couldn’t change the password"
 msgstr "Parola değiştirilemedi"
 
-#: fractal-gtk/src/app/backend_loop.rs:209
+#: fractal-gtk/src/app/backend_loop.rs:206
 msgid "Sorry, account settings can’t be loaded."
 msgstr "Ne yazık ki hesap ayarları yüklenemiyor."
 
-#: fractal-gtk/src/app/backend_loop.rs:217
+#: fractal-gtk/src/app/backend_loop.rs:214
 msgid "Couldn’t add the email address."
 msgstr "E-posta adresi eklenemedi."
 
-#: fractal-gtk/src/app/backend_loop.rs:222
+#: fractal-gtk/src/app/backend_loop.rs:219
 msgid "Couldn’t add the phone number."
 msgstr "Telefon numarası eklenemedi."
 
-#: fractal-gtk/src/app/backend_loop.rs:229
+#: fractal-gtk/src/app/backend_loop.rs:226
 msgid "Can’t create the room, try again"
 msgstr "Oda yaratılamadı, yeniden deneyin"
 
-#: fractal-gtk/src/app/backend_loop.rs:237
+#: fractal-gtk/src/app/backend_loop.rs:234
 msgid "Can’t join the room, try again."
 msgstr "Odaya katılınamadı, yeniden deneyin."
 
-#: fractal-gtk/src/app/backend_loop.rs:246
+#: fractal-gtk/src/app/backend_loop.rs:243
 msgid "Can’t login, try again"
 msgstr "Giriş yapılamadı, yeniden deneyin"
 
-#: fractal-gtk/src/app/backend_loop.rs:262
+#: fractal-gtk/src/app/backend_loop.rs:259
 msgid "Error sending message"
 msgstr "İleti gönderilirken hata"
 
-#: fractal-gtk/src/app/backend_loop.rs:267
+#: fractal-gtk/src/app/backend_loop.rs:264
 msgid "Error deleting message"
 msgstr "İleti silinirken hata"
 
-#: fractal-gtk/src/app/backend_loop.rs:271
+#: fractal-gtk/src/app/backend_loop.rs:268
 msgid "Error searching for rooms"
 msgstr "Odalar için aratılırken hata"
 
@@ -865,7 +870,7 @@ msgstr ""
 msgid "OK"
 msgstr "Tamam"
 
-#: fractal-gtk/src/appop/account.rs:723
+#: fractal-gtk/src/appop/account.rs:724
 msgid "Are you sure you want to delete your account?"
 msgstr "Hesabınızı silmek istediğinizden emin misiniz?"
 
@@ -876,6 +881,11 @@ msgstr "Panodan Resim"
 #: fractal-gtk/src/appop/attach.rs:58
 msgid "Send"
 msgstr "Gönder"
+
+#. Filename for the attached image
+#: fractal-gtk/src/appop/attach.rs:87
+msgid "image"
+msgstr "görüntü"
 
 #: fractal-gtk/src/appop/invite.rs:145
 msgid "Invite to {name}"
@@ -900,27 +910,27 @@ msgstr "<b>{room_name}</b> odasına katılmaya davet edildiniz"
 msgid " (direct message)"
 msgstr " (doğrudan ileti)"
 
-#: fractal-gtk/src/appop/room.rs:312
+#: fractal-gtk/src/appop/room.rs:313
 msgid "Leave {room_name}?"
 msgstr "{room_name} odasını terket?"
 
-#: fractal-gtk/src/appop/room.rs:568
+#: fractal-gtk/src/appop/room.rs:569
 msgid "EMPTY ROOM"
 msgstr "BOŞ ODA"
 
-#: fractal-gtk/src/appop/room.rs:570
+#: fractal-gtk/src/appop/room.rs:571
 msgid "{m1} and {m2}"
 msgstr "{m1} ve {m2}"
 
-#: fractal-gtk/src/appop/room.rs:571
+#: fractal-gtk/src/appop/room.rs:572
 msgid "{m1} and Others"
 msgstr "{m1} ve Diğerleri"
 
-#: fractal-gtk/src/appop/room.rs:674
+#: fractal-gtk/src/appop/room.rs:675
 msgid "Several users are typing…"
 msgstr "Çeşitli kullanıcılar yazıyor…"
 
-#: fractal-gtk/src/appop/room.rs:677
+#: fractal-gtk/src/appop/room.rs:678
 msgid "<b>{}</b> is typing…"
 msgid_plural "<b>{}</b> and <b>{}</b> are typing…"
 msgstr[0] "<b>{}</b> yazıyor…"
@@ -934,18 +944,22 @@ msgid "You don’t have permission to post to this room"
 msgstr "Bu odaya ileti gönderme izniniz yok"
 
 #: fractal-gtk/src/widgets/file_dialog.rs:9
-#: fractal-gtk/src/widgets/media_viewer.rs:666
+#: fractal-gtk/src/widgets/media_viewer.rs:1003
 msgid "Save media as"
 msgstr "Ortamı farklı kaydet"
 
 #: fractal-gtk/src/widgets/file_dialog.rs:12
-#: fractal-gtk/src/widgets/media_viewer.rs:669
+#: fractal-gtk/src/widgets/media_viewer.rs:1006
 msgid "_Save"
 msgstr "_Kaydet"
 
 #: fractal-gtk/src/widgets/file_dialog.rs:33
 msgid "_Select"
 msgstr "_Seç"
+
+#: fractal-gtk/src/widgets/inline_player.rs:521
+msgid "Could not retrieve file URI"
+msgstr "Dosya URI’ı alınamadı"
 
 #: fractal-gtk/src/widgets/kicked_dialog.rs:46
 msgid "You have been kicked from {}"
@@ -959,11 +973,15 @@ msgstr ""
 "Atan: {}\n"
 "Neden: “{}”"
 
-#: fractal-gtk/src/widgets/media_viewer.rs:626
+#: fractal-gtk/src/widgets/media_viewer.rs:165
+msgid "Media is not loaded yet."
+msgstr "Ortam henüz yüklenmedi."
+
+#: fractal-gtk/src/widgets/media_viewer.rs:961
 msgid "Error while loading previous media"
 msgstr "Önceki ortam yüklenirken hata"
 
-#: fractal-gtk/src/widgets/media_viewer.rs:679
+#: fractal-gtk/src/widgets/media_viewer.rs:1016
 msgid "Could not save the file"
 msgstr "Dosya kaydedilemedi"
 
@@ -983,42 +1001,54 @@ msgstr "Moderatör"
 msgid "Privileged"
 msgstr "Ayrıcalıklı"
 
-#: fractal-gtk/src/widgets/message.rs:396
-msgid "Could not retrieve file URI"
-msgstr "Dosya URI’ı alınamadı"
+#: fractal-gtk/src/widgets/message.rs:83
+msgid "Uploading video."
+msgstr "Video yükleniyor."
 
-#: fractal-gtk/src/widgets/message.rs:414
-#: fractal-gtk/src/widgets/message.rs:440
+#: fractal-gtk/src/widgets/message.rs:88
+msgid "Uploading audio."
+msgstr "Ses dosyası yükleniyor."
+
+#: fractal-gtk/src/widgets/message.rs:93
+msgid "Uploading image."
+msgstr "Görüntü yükleniyor."
+
+#: fractal-gtk/src/widgets/message.rs:97
+msgid "Uploading file."
+msgstr "Dosya yükleniyor."
+
+#: fractal-gtk/src/widgets/message.rs:415
+#: fractal-gtk/src/widgets/message.rs:507
 msgid "Save"
 msgstr "Kaydet"
 
-#: fractal-gtk/src/widgets/message.rs:450
+#: fractal-gtk/src/widgets/message.rs:517
 msgid "Open"
 msgstr "Aç"
 
 #. Use 12h time format (AM/PM)
-#: fractal-gtk/src/widgets/message.rs:470
+#: fractal-gtk/src/widgets/message.rs:537
 msgid "%l∶%M %p"
 msgstr "%l∶%M %p"
 
 #. Use 24 time format
-#: fractal-gtk/src/widgets/message.rs:473
+#: fractal-gtk/src/widgets/message.rs:540
 msgid "%R"
 msgstr "%R"
 
+#: fractal-gtk/src/widgets/room_history.rs:81
+msgid "New Messages"
+msgstr "Yeni İletiler"
+
 #. Translators: This is a date format in the day divider without the year
-#: fractal-gtk/src/widgets/room_history.rs:391
+#: fractal-gtk/src/widgets/room_history.rs:690
 msgid "%B %e"
 msgstr "%B %e"
 
 #. Translators: This is a date format in the day divider with the year
-#: fractal-gtk/src/widgets/room_history.rs:394
+#: fractal-gtk/src/widgets/room_history.rs:693
 msgid "%B %e, %Y"
 msgstr "%B %e, %Y"
-
-#: fractal-gtk/src/widgets/room_history.rs:416
-msgid "New Messages"
-msgstr "Yeni İletiler"
 
 #: fractal-gtk/src/widgets/room_settings.rs:213
 msgid "Room · {} member"
