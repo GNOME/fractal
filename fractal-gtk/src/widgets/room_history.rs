@@ -28,6 +28,9 @@ use gtk;
 use gtk::prelude::*;
 
 struct List {
+    /* With the exception of temporary widgets, only modify the fields list and listbox
+    through the methods add_top(), add_bottom(), and remove_item() to maintain the
+    1-1 correspondence between them. */
     list: VecDeque<Element>,
     new_divider_index: Option<usize>,
     playing_videos: Vec<(Rc<VideoPlayerWidget>, SignalHandlerId)>,
@@ -64,6 +67,11 @@ impl List {
             self.new_divider_index = Some(index + 1);
         }
         self.list.push_front(element);
+    }
+
+    fn remove_item(&mut self, index: usize, row: &gtk::ListBoxRow) {
+        self.list.remove(index);
+        self.listbox.remove(row);
     }
 
     fn create_new_message_divider(rows: Rc<RefCell<Self>>) -> widgets::NewMessageDivider {
@@ -567,7 +575,7 @@ impl RoomHistory {
         let msg_widget = msg.widget.clone()?;
         let msg_sender = msg.sender.clone();
         msg.msg.redacted = true;
-        rows.listbox.remove(msg_widget.get_listbox_row());
+        rows.remove_item(i, msg_widget.get_listbox_row());
 
         // If the redacted message was a header message let's set
         // the header on the next non-redacted message instead.
