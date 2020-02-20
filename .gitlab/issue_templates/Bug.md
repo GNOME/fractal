@@ -6,14 +6,17 @@ Steps to reproduce:
 2. Enter a room
 3. ...
 
-## Design Tasks
+* [ ] This bug is reproducible from the latest nightly build <!-- Check this box if the bug happens on Fractal's development version -->
 
-* [ ]  design tasks
+**Fractal Version**: <!-- The version of Fractal you were using when the bug occurred. Check the "About Fractal" dialog for this information -->
+**OS Version**: <!-- Operating system version, e.g. Fedora 31 -->
+**Installation Source**: <!-- Where you installed Fractal from, e.g. Flathub, AUR, or distro repositories -->
 
-## Development Tasks
+<!-- If you have a crash report, use the "Attach A File" button in the issue editor to attach it, or paste it in a code block below. -->
+<!-- To create a code block, you surround the code with two lines with three "`" characters like so:
 
-* [ ]  development tasks
+```
+code goes here
+```
 
-## QA Tasks
-
-* [ ]  quality assurance tasks
+-->
