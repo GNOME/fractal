@@ -86,7 +86,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let directory = SimpleAction::new("directory", None);
     //TODO: use roomid as value
     let room_settings = SimpleAction::new("open-room-settings", None);
-    // TODO: send file should be a room_history action
+    // TODO: send file should be a message action
     let send_file = SimpleAction::new("send-file", None);
 
     let previous_room = SimpleAction::new("previous-room", None);

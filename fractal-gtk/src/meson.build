@@ -50,7 +50,7 @@ app_sources = files(
   'actions/global.rs',
   'actions/login.rs',
   'actions/mod.rs',
-  'actions/room_history.rs',
+  'actions/message.rs',
   'actions/room_settings.rs',
   'app/connect/account.rs',
   'app/connect/autocomplete.rs',

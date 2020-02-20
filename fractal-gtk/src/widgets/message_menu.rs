@@ -121,24 +121,26 @@ pub struct MessageMenu {
 }
 
 impl MessageMenu {
-    pub fn new(
+    pub fn new<W: IsA<gtk::Widget>>(
         id: &str,
         mtype: &RowType,
         redactable: &bool,
-        widget: &gtk::EventBox,
-        label: &gtk::Widget,
+        widget: &W,
+        label: Option<&gtk::Widget>,
     ) -> MessageMenu {
         let menu = MessageMenu {
             widgets: Widgets::new(id, mtype, redactable),
         };
         /* Copy selected text works a little different then the other actions, because it need the
          * label */
-        menu.connect_copy_selected_text(label);
+        if let Some(label) = label {
+            menu.connect_copy_selected_text(label);
+        }
         menu.show(widget);
         menu
     }
 
-    fn show(&self, w: &gtk::EventBox) {
+    fn show<W: IsA<gtk::Widget>>(&self, w: &W) {
         gdk::Display::get_default()
             .and_then(|disp| disp.get_default_seat())
             .and_then(|seat| seat.get_pointer())

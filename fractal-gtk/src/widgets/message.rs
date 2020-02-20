@@ -417,7 +417,7 @@ impl MessageBox {
 
         let data = glib::Variant::from(msg.id.as_str());
         download_btn.set_action_target_value(Some(&data));
-        download_btn.set_action_name(Some("room_history.save_as"));
+        download_btn.set_action_name(Some("message.save_as"));
 
         let control_box = PlayerExt::get_controls_container(&player)
             .expect("Every AudioPlayer must have controls.");
@@ -487,7 +487,7 @@ impl MessageBox {
             &RowType::Video,
             &redactable,
             &self.eventbox,
-            self.eventbox.upcast_ref::<gtk::Widget>(),
+            None,
         );
         menu_button.set_popover(Some(&menu.get_popover()));
 
@@ -520,7 +520,7 @@ impl MessageBox {
 
         let data = glib::Variant::from(msg.id.as_str());
         download_btn.set_action_target_value(Some(&data));
-        download_btn.set_action_name(Some("room_history.save_as"));
+        download_btn.set_action_name(Some("message.save_as"));
 
         let open_btn = gtk::Button::new_from_icon_name(
             Some("document-open-symbolic"),
@@ -530,7 +530,7 @@ impl MessageBox {
 
         let data = glib::Variant::from(msg.id.as_str());
         open_btn.set_action_target_value(Some(&data));
-        open_btn.set_action_name(Some("room_history.open_with"));
+        open_btn.set_action_name(Some("message.open_with"));
 
         btn_bx.pack_start(&open_btn, false, false, 0);
         btn_bx.pack_start(&download_btn, false, false, 0);
@@ -627,7 +627,7 @@ impl MessageBox {
         widget.connect_button_press_event(move |w, e| {
             if e.get_button() == 3 {
                 let eventbox = upgrade_weak!(evbox, gtk::Inhibit(false));
-                MessageMenu::new(i.as_str(), &mtype, &redactable, &eventbox, w);
+                MessageMenu::new(i.as_str(), &mtype, &redactable, &eventbox, Some(w));
                 Inhibit(true)
             } else {
                 Inhibit(false)
@@ -639,7 +639,7 @@ impl MessageBox {
             let eventbox = upgrade_weak!(eventbox_weak);
             let widget = upgrade_weak!(widget_weak);
 
-            MessageMenu::new(&id, &mtype, &redactable, &eventbox, &widget);
+            MessageMenu::new(&id, &mtype, &redactable, &eventbox, Some(&widget));
         });
         None
     }
