@@ -24,6 +24,13 @@
   padding: 6px 0px;
 }
 
+.audio-box {
+  margin-top: 6px;
+  border: 1px solid lightgray;
+  border-radius: 10px;
+  padding: 12px;
+}
+
 .noroom-title {
   font-size: larger;
   opacity: 0.5;
