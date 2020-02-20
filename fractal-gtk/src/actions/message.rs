@@ -1,11 +1,14 @@
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
 use log::error;
+use std::cell::RefCell;
 use std::fs;
+use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 
+use crate::actions::AppState;
 use crate::backend::BKCommand;
 use crate::error::Error;
 use crate::i18n::i18n;
@@ -13,6 +16,7 @@ use crate::types::Message;
 use crate::uibuilder::UI;
 use crate::App;
 use fractal_api::url::Url;
+use gio::ActionGroupExt;
 use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
@@ -29,6 +33,7 @@ pub fn new(
     server_url: Url,
     access_token: AccessToken,
     ui: UI,
+    back_history: Rc<RefCell<Vec<AppState>>>,
 ) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
     /* Action for each message */
@@ -71,7 +76,24 @@ pub fn new(
     });
 
     let msg_entry = ui.sventry.view.downgrade();
+    let back_weak = Rc::downgrade(&back_history);
+    let window = ui
+        .builder
+        .get_object::<gtk::ApplicationWindow>("main_window")
+        .expect("Couldn't find main_window in ui file.");
     reply.connect_activate(move |_, data| {
+        let back_history = upgrade_weak!(back_weak);
+        let state = back_history.borrow().last().map(|state| state.clone());
+        match state {
+            Some(AppState::MediaViewer) => {
+                if let Some(action_group) = window.get_action_group("app") {
+                    action_group.activate_action("back", None);
+                } else {
+                    error!("The action group app is not attached to the main window.");
+                }
+            }
+            _ => {}
+        };
         let msg_entry = upgrade_weak!(msg_entry);
         if let Some(buffer) = msg_entry.get_buffer() {
             let mut start = buffer.get_start_iter();
@@ -84,7 +106,6 @@ pub fn new(
                     .join("\n")
                     + "\n"
                     + "\n";
-
                 buffer.insert(&mut start, &quote);
                 msg_entry.grab_focus();
             }
@@ -189,7 +210,24 @@ pub fn new(
     let b = backend.clone();
     let u = server_url.clone();
     let tk = access_token.clone();
+    let back_weak = Rc::downgrade(&back_history);
+    let window = ui
+        .builder
+        .get_object::<gtk::ApplicationWindow>("main_window")
+        .expect("Couldn't find main_window in ui file.");
     delete.connect_activate(move |_, data| {
+        let back_history = upgrade_weak!(back_weak);
+        let state = back_history.borrow().last().map(|state| state.clone());
+        match state {
+            Some(AppState::MediaViewer) => {
+                if let Some(action_group) = window.get_action_group("app") {
+                    action_group.activate_action("back", None);
+                } else {
+                    error!("The action group app is not attached to the main window.");
+                }
+            }
+            _ => {}
+        };
         if let Some(m) = get_message(data) {
             let _ = b.send(BKCommand::SendMsgRedaction(u.clone(), tk.clone(), m));
         }

@@ -4,10 +4,10 @@ use gdk;
 
 use fragile::Fragile;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::i18n::i18n;
-use dirs;
 use fractal_api::url::Url;
 use gdk::*;
 use glib;
@@ -15,15 +15,14 @@ use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
-use gtk::ResponseType;
 
 use crate::types::Message;
 use crate::types::Room;
 
-use std::fs;
-
 use crate::backend::BKCommand;
+use crate::uitypes::RowType;
 use crate::widgets::image;
+use crate::widgets::message_menu::MessageMenu;
 use crate::widgets::ErrorDialog;
 use crate::widgets::PlayerExt;
 use crate::widgets::{MediaPlayer, VideoPlayerWidget};
@@ -130,6 +129,8 @@ struct Data {
     backend: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
+    uid: String,
+    admins: HashMap<String, i32>,
 
     widget: Widget,
     media_list: Vec<Message>,
@@ -153,6 +154,8 @@ impl Data {
         current_media_index: usize,
         main_window: gtk::Window,
         builder: gtk::Builder,
+        uid: String,
+        admins: HashMap<String, i32>,
     ) -> Data {
         let is_fullscreen = main_window
             .clone()
@@ -172,27 +175,12 @@ impl Data {
             backend,
             server_url,
             access_token,
+            uid,
+            admins,
             main_window,
             signal_id: None,
             is_fullscreen,
             double_click_handler_id: None,
-        }
-    }
-
-    pub fn save_media(&self) {
-        let local_path = match &self.widget {
-            Widget::Image(image) => image.local_path.lock().unwrap().clone(),
-            Widget::Video(widget) => widget.player.get_local_path_access().borrow().clone(),
-            Widget::None => None,
-        };
-        if let Some(local_path) = local_path {
-            save_file_as(
-                &self.main_window,
-                local_path,
-                self.media_list[self.current_media_index].body.clone(),
-            );
-        } else {
-            ErrorDialog::new(false, &i18n("Media is not loaded yet."));
         }
     }
 
@@ -393,6 +381,8 @@ impl Data {
             }
             _ => {}
         }
+
+        self.set_context_menu_popover(&msg);
         self.set_nav_btn_visibility();
     }
 
@@ -611,6 +601,25 @@ impl Data {
 
         widget
     }
+
+    fn set_context_menu_popover(&self, msg: &Message) {
+        let mtype = match msg.mtype.as_ref() {
+            "m.image" => RowType::Image,
+            "m.video" => RowType::Video,
+            _ => {
+                panic!("Data in the media viewer has to be of type image or video.");
+            }
+        };
+        let admin = self.admins.get(&self.uid).map(|n| *n).unwrap_or_default();
+        let redactable = admin != 0 || self.uid == msg.sender;
+        let menu = MessageMenu::new(msg.id.as_str(), &mtype, &redactable, None, None);
+        let popover = &menu.get_popover();
+        let menu_button = self
+            .builder
+            .get_object::<gtk::MenuButton>("media_viewer_menu_button")
+            .expect("Can't find media_viewer_menu_button in ui file.");
+        menu_button.set_popover(Some(popover));
+    }
 }
 
 impl Drop for Data {
@@ -635,11 +644,9 @@ impl MediaViewer {
         current_media_msg: &Message,
         server_url: Url,
         access_token: AccessToken,
+        uid: String,
     ) -> MediaViewer {
         let builder = gtk::Builder::new();
-        builder
-            .add_from_resource("/org/gnome/Fractal/ui/media_viewer_menu.ui")
-            .expect("Can't load ui file: media_viewer_menu.ui");
         builder
             .add_from_resource("/org/gnome/Fractal/ui/media_viewer.ui")
             .expect("Can't load ui file: media_viewer.ui");
@@ -665,6 +672,8 @@ impl MediaViewer {
                 current_media_index,
                 main_window,
                 builder.clone(),
+                uid,
+                room.admins.clone(),
             ))),
             builder,
             backend,
@@ -730,6 +739,8 @@ impl MediaViewer {
             }
             _ => {}
         }
+
+        self.data.borrow().set_context_menu_popover(&media_msg);
         self.data.borrow_mut().set_nav_btn_visibility();
     }
 
@@ -750,17 +761,6 @@ impl MediaViewer {
                         own.borrow_mut().leave_full_screen()
                     }
                 }
-            });
-        });
-
-        let save_as_button = self
-            .builder
-            .get_object::<gtk::ModelButton>("save_as_button")
-            .expect("Cant find save_as_button in ui file.");
-        let data_weak = Rc::downgrade(&self.data);
-        save_as_button.connect_clicked(move |_| {
-            data_weak.upgrade().map(|data| {
-                data.borrow().save_media();
             });
         });
     }
@@ -872,13 +872,18 @@ impl MediaViewer {
                 let sid = gtk::timeout_add(
                     1000,
                     clone!(ui, header_hovered, nav_hovered, source_id => move || {
-                        if !*header_hovered.lock().unwrap() {
-                            let headerbar_revealer = ui
-                                .get_object::<gtk::Revealer>("headerbar_revealer")
-                                .expect("Can't find headerbar_revealer in ui file.");
-                            headerbar_revealer.set_reveal_child(false);
-                        }
-
+                        let menu_popover_is_visible = ui
+                        .get_object::<gtk::MenuButton>("media_viewer_menu_button")
+                        .expect("Can't find headerbar_revealer in ui file.")
+                        .get_popover()
+                        .filter(|p| p.get_visible())
+                        .is_some();
+                            if !*header_hovered.lock().unwrap() && !menu_popover_is_visible {
+                                let headerbar_revealer = ui
+                                    .get_object::<gtk::Revealer>("headerbar_revealer")
+                                    .expect("Can't find headerbar_revealer in ui file.");
+                                headerbar_revealer.set_reveal_child(false);
+                            }
                         if !*nav_hovered.lock().unwrap() {
                             let previous_media_revealer = ui
                                 .get_object::<gtk::Revealer>("previous_media_revealer")
@@ -1097,30 +1102,4 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
             gtk::Continue(false)
         }
     });
-}
-
-/* FIXME: The following two functions should be moved to a different file,
- * so that they can be used again in different locations */
-fn save_file_as(main_window: &gtk::Window, src: String, name: String) {
-    let file_chooser = gtk::FileChooserNative::new(
-        Some(i18n("Save media as").as_str()),
-        Some(main_window),
-        gtk::FileChooserAction::Save,
-        Some(i18n("_Save").as_str()),
-        Some(i18n("_Cancel").as_str()),
-    );
-
-    file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
-    file_chooser.set_current_name(&name);
-
-    file_chooser.connect_response(move |fcd, res| {
-        if ResponseType::from(res) == ResponseType::Accept {
-            if let Err(_) = fs::copy(src.clone(), fcd.get_filename().unwrap_or_default()) {
-                let err = i18n("Could not save the file");
-                ErrorDialog::new(false, &err);
-            }
-        }
-    });
-
-    file_chooser.run();
 }

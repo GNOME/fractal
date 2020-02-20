@@ -18,7 +18,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="action_name">room_history.reply</property>
+            <property name="action_name">message.reply</property>
             <property name="text" translatable="yes">Reply</property>
           </object>
           <packing>
@@ -32,7 +32,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="text" translatable="yes">Open With…</property>
-            <property name="action_name">room_history.open_with</property>
+            <property name="action_name">message.open_with</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -45,7 +45,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="text" translatable="yes">Save Image As…</property>
-            <property name="action_name">room_history.save_as</property>
+            <property name="action_name">message.save_as</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -58,7 +58,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="text" translatable="yes">Save Video As…</property>
-            <property name="action_name">room_history.save_as</property>
+            <property name="action_name">message.save_as</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -71,7 +71,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="text" translatable="yes">Copy Image</property>
-            <property name="action_name">room_history.copy_image</property>
+            <property name="action_name">message.copy_image</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -97,7 +97,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="text" translatable="yes">Copy Text</property>
-            <property name="action_name">room_history.copy_text</property>
+            <property name="action_name">message.copy_text</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -110,7 +110,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="action_name">room_history.show_source</property>
+            <property name="action_name">message.show_source</property>
             <property name="text" translatable="yes">View Source</property>
           </object>
           <packing>
@@ -135,7 +135,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="action_name">room_history.delete</property>
+            <property name="action_name">message.delete</property>
             <property name="text" translatable="yes">Delete Message</property>
           </object>
           <packing>

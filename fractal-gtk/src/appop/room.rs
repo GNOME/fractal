@@ -259,11 +259,13 @@ impl AppOp {
             history.destroy();
         }
 
-        let actions = actions::RoomHistory::new(
+        let back_history = self.room_back_history.clone();
+        let actions = actions::Message::new(
             self.backend.clone(),
             login_data.server_url,
             login_data.access_token,
             self.ui.clone(),
+            back_history,
         );
         let history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         self.history = if let Some(mut history) = history {
