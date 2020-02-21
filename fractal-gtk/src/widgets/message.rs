@@ -5,7 +5,7 @@ use chrono::prelude::*;
 use fractal_api::url::Url;
 use glib;
 use gtk;
-use gtk::{prelude::*, ButtonExt, ContainerExt, Overlay, WidgetExt};
+use gtk::{prelude::*, ButtonExt, ContainerExt, LabelExt, Overlay, WidgetExt};
 use pango;
 use std::cmp::max;
 use std::rc::Rc;
@@ -423,7 +423,16 @@ impl MessageBox {
             .expect("Every AudioPlayer must have controls.");
         bx.pack_start(&control_box, false, true, 0);
         bx.pack_start(&download_btn, false, false, 3);
-        bx
+
+        let outer_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
+        let file_name = gtk::Label::new(Some(&format!("<b>{}</b>", msg.body)));
+        file_name.set_use_markup(true);
+        file_name.set_xalign(0.0);
+        file_name.set_line_wrap(true);
+        outer_box.pack_start(&file_name, false, false, 0);
+        outer_box.pack_start(&bx, false, false, 0);
+        outer_box.get_style_context().add_class("audio-box");
+        outer_box
     }
 
     fn build_room_video_player(&mut self, msg: &Message) -> gtk::Box {
