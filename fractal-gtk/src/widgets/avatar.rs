@@ -22,6 +22,7 @@ pub struct AvatarData {
     uid: String,
     username: Option<String>,
     size: i32,
+    scale: i32,
     cache: Option<Pixbuf>,
     pub widget: gtk::DrawingArea,
     fallback: cairo::ImageSurface,
@@ -31,14 +32,18 @@ impl AvatarData {
     pub fn redraw_fallback(&mut self, username: Option<String>) {
         self.username = username.clone();
         /* This function should never fail */
-        self.fallback = letter_avatar::generate::new(self.uid.clone(), username, self.size as f64)
-            .expect("this function should never fail");
+        self.fallback = letter_avatar::generate::new(
+            self.uid.clone(),
+            username,
+            (self.size * self.scale) as f64,
+        )
+        .expect("this function should never fail");
         self.widget.queue_draw();
     }
 
     pub fn redraw_pixbuf(&mut self) {
         let path = cache_dir_path(None, &self.uid).unwrap_or_default();
-        self.cache = load_pixbuf(&path, self.size);
+        self.cache = load_pixbuf(&path, self.size * self.scale);
         self.widget.queue_draw();
     }
 }
@@ -99,8 +104,9 @@ impl AvatarExt for gtk::Overlay {
     ) -> Rc<RefCell<AvatarData>> {
         self.clean();
         let da = self.create_da(Some(size));
+        let scale = da.get_scale_factor();
         let path = cache_dir_path(None, &uid).unwrap_or_default();
-        let user_avatar = load_pixbuf(&path, size);
+        let user_avatar = load_pixbuf(&path, size * scale);
         let uname = username.clone();
         /* remove IRC postfix from the username */
         let username = if let Some(u) = username {
@@ -109,7 +115,7 @@ impl AvatarExt for gtk::Overlay {
             None
         };
         /* This function should never fail */
-        let fallback = letter_avatar::generate::new(uid.clone(), username, size as f64)
+        let fallback = letter_avatar::generate::new(uid.clone(), username, (size * scale) as f64)
             .expect("this function should never fail");
 
         // Power level badge setup
@@ -133,6 +139,7 @@ impl AvatarExt for gtk::Overlay {
             uid: uid.clone(),
             username: uname,
             size: size,
+            scale: scale,
             cache: user_avatar,
             fallback: fallback,
             widget: da.clone(),
@@ -142,8 +149,12 @@ impl AvatarExt for gtk::Overlay {
         let user_cache = avatar_cache.clone();
         da.connect_draw(move |da, g| {
             use std::f64::consts::PI;
-            let width = size as f64;
-            let height = size as f64;
+
+            let scale_f = scale as f64;
+            g.scale(1.0 / scale_f, 1.0 / scale_f);
+
+            let width = size as f64 * scale_f;
+            let height = size as f64 * scale_f;
 
             g.set_antialias(cairo::Antialias::Best);
 
@@ -159,7 +170,7 @@ impl AvatarExt for gtk::Overlay {
                 if has_badge {
                     g.clip_preserve();
                     g.new_sub_path();
-                    let badge_radius = badge_size as f64 / 2.0;
+                    let badge_radius = badge_size as f64 * scale_f / 2.;
                     g.arc(
                         width - badge_radius,
                         badge_radius,
@@ -172,19 +183,27 @@ impl AvatarExt for gtk::Overlay {
 
                 let data = user_cache.borrow();
                 if let Some(ref pb) = data.cache {
+                    g.save();
+                    g.scale(scale_f, scale_f);
                     let context = da.get_style_context();
-                    gtk::render_background(&context, g, 0.0, 0.0, width, height);
+                    gtk::render_background(
+                        &context,
+                        g,
+                        0.0,
+                        0.0,
+                        width / scale_f,
+                        height / scale_f,
+                    );
+                    g.restore();
 
                     let hpos: f64 = (width - (pb.get_height()) as f64) / 2.0;
-                    g.set_source_pixbuf(&pb, 0.0, hpos);
+                    g.set_source_pixbuf(&pb, 0.0, hpos * scale_f);
                 } else {
                     /* use fallback */
                     g.set_source_surface(&data.fallback, 0f64, 0f64);
                 }
             }
-
-            g.rectangle(0.0, 0.0, width, height);
-            g.fill();
+            g.paint();
 
             Inhibit(false)
         });
