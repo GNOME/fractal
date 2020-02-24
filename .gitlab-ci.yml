@@ -54,16 +54,14 @@ pages:
     image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
     stage: deploy
     script:
-        - flatpak-builder --stop-at=${FLATPAK_MODULE} --force-clean app ${MANIFEST_PATH}
-        - flatpak-builder --run app ${MANIFEST_PATH} meson _build
+        - flatpak-builder --user --disable-rofiles-fuse --stop-at=${FLATPAK_MODULE} --force-clean app ${MANIFEST_PATH}
+        - flatpak-builder --user --disable-rofiles-fuse --run app ${MANIFEST_PATH} meson _build
 
-        - flatpak-builder --run app ${MANIFEST_PATH} ninja -C _build doc
+        - flatpak-builder --user --disable-rofiles-fuse --run app ${MANIFEST_PATH} ninja -C _build doc
 
         - rm -rf public
         - mv _build/target/doc/ public
     artifacts:
         paths:
           - public
-    only:
-        - master
     <<: *flatpak_cache
