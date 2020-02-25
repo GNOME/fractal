@@ -18,6 +18,7 @@ use crate::uitypes::RowType;
 use crate::globals;
 use crate::widgets;
 use crate::widgets::{PlayerExt, VideoPlayerWidget};
+use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
@@ -259,7 +260,7 @@ pub struct RoomHistory {
 }
 
 impl RoomHistory {
-    pub fn new(actions: SimpleActionGroup, room_id: String, op: &AppOp) -> Option<RoomHistory> {
+    pub fn new(actions: SimpleActionGroup, room_id: RoomId, op: &AppOp) -> Option<RoomHistory> {
         let history_container = op
             .ui
             .builder

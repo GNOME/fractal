@@ -1,4 +1,5 @@
 use fractal_api::clone;
+use fractal_api::identifiers::UserId;
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::rc::Rc;
@@ -18,24 +19,21 @@ pub struct MembersList {
     search_entry: gtk::SearchEntry,
     error: gtk::Label,
     members: Vec<Member>,
-    admins: HashMap<String, i32>,
-    power_levels: HashMap<String, i32>,
+    admins: HashMap<UserId, i32>,
 }
 
 impl MembersList {
     pub fn new(
-        m: Vec<Member>,
-        admins: HashMap<String, i32>,
-        power_levels: HashMap<String, i32>,
-        entry: gtk::SearchEntry,
+        members: Vec<Member>,
+        admins: HashMap<UserId, i32>,
+        search_entry: gtk::SearchEntry,
     ) -> MembersList {
         MembersList {
             container: gtk::ListBox::new(),
             error: gtk::Label::new(None),
-            members: m,
-            search_entry: entry,
-            admins: admins,
-            power_levels: power_levels,
+            members,
+            search_entry,
+            admins,
         }
     }
 
@@ -61,7 +59,7 @@ impl MembersList {
 
     /* removes the content of the row with index i */
     #[allow(dead_code)]
-    pub fn update(&self, uid: String) -> Option<()> {
+    pub fn update(&self, uid: UserId) -> Option<()> {
         let mut index = None;
         for (i, member) in self.members.iter().enumerate() {
             if member.uid == uid {
@@ -147,7 +145,7 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     // Avatar
     let avatar = widgets::Avatar::avatar_new(Some(40));
     avatar.circle(
-        member.uid.clone(),
+        member.uid.to_string(),
         member.alias.clone(),
         40,
         badge_color,
@@ -183,7 +181,7 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
     }
 
     // matrix ID + power level
-    let uid = gtk::Label::new(Some(member.uid.as_str()));
+    let uid = gtk::Label::new(Some(&member.uid.to_string()));
     uid.set_xalign(0.);
     uid.set_line_wrap(true);
     uid.set_line_wrap_mode(pango::WrapMode::Char);
@@ -209,14 +207,11 @@ fn load_row_content(member: Member, power_level: Option<i32>) -> gtk::Box {
 fn add_rows(
     container: gtk::ListBox,
     members: Vec<Member>,
-    admins: HashMap<String, i32>,
+    admins: HashMap<UserId, i32>,
 ) -> Option<usize> {
     /* Load just enough members to fill atleast the visible list */
     for member in members.iter() {
-        let admin = match admins.get(&member.uid) {
-            Some(pl) => Some(*pl),
-            None => None,
-        };
+        let admin = admins.get(&member.uid).copied();
         container.insert(&create_row(member.clone(), admin)?, -1);
     }
     None

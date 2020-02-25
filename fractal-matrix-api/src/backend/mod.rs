@@ -37,7 +37,7 @@ impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
             rooms_since: String::new(),
-            join_to_room: String::new(),
+            join_to_room: None,
             m_direct: HashMap::new(),
         };
         Backend {
@@ -158,7 +158,7 @@ impl Backend {
             Ok(BKCommand::ChangePassword(
                 server,
                 access_token,
-                username,
+                user,
                 old_password,
                 new_password,
             )) => {
@@ -166,7 +166,7 @@ impl Backend {
                     let query = user::change_password(
                         server,
                         access_token,
-                        username,
+                        user,
                         old_password,
                         new_password,
                     );
@@ -174,9 +174,9 @@ impl Backend {
                         .expect_log("Connection closed");
                 });
             }
-            Ok(BKCommand::AccountDestruction(server, access_token, username, password)) => {
+            Ok(BKCommand::AccountDestruction(server, access_token, user, password)) => {
                 thread::spawn(move || {
-                    let query = user::account_destruction(server, access_token, username, password);
+                    let query = user::account_destruction(server, access_token, user, password);
                     tx.send(BKResponse::AccountDestruction(query))
                         .expect_log("Connection closed");
                 });
@@ -221,16 +221,19 @@ impl Backend {
             }
 
             // Room module
-            Ok(BKCommand::GetRoomMembers(server, access_token, room)) => {
-                let r = room::get_room_members(self, server, access_token, room);
-                bkerror2!(r, tx, BKResponse::RoomMembers);
+            Ok(BKCommand::GetRoomMembers(server, access_token, room_id)) => {
+                thread::spawn(move || {
+                    let query = room::get_room_members(server, access_token, room_id);
+                    tx.send(BKResponse::RoomMembers(query))
+                        .expect_log("Connection closed");
+                });
             }
-            Ok(BKCommand::GetRoomMessages(server, access_token, room, from)) => {
-                let r = room::get_room_messages(self, server, access_token, room, from);
+            Ok(BKCommand::GetRoomMessages(server, access_token, room_id, from)) => {
+                let r = room::get_room_messages(self, server, access_token, room_id, from);
                 bkerror2!(r, tx, BKResponse::RoomMessagesTo);
             }
-            Ok(BKCommand::GetRoomMessagesFromMsg(server, access_token, room, from)) => {
-                room::get_room_messages_from_msg(self, server, access_token, room, from)
+            Ok(BKCommand::GetRoomMessagesFromMsg(server, access_token, room_id, from)) => {
+                room::get_room_messages_from_msg(self, server, access_token, room_id, from)
             }
             Ok(BKCommand::GetMessageContext(server, access_token, message)) => {
                 let r = room::get_message_context(self, server, access_token, message);
@@ -244,86 +247,103 @@ impl Backend {
                 let r = room::redact_msg(self, server, access_token, &msg);
                 bkerror2!(r, tx, BKResponse::SentMsgRedaction);
             }
-            Ok(BKCommand::SendTyping(server, access_token, uid, room)) => {
-                let r = room::send_typing(self, server, access_token, uid, room);
-                bkerror!(r, tx, BKResponse::SendTypingError);
+            Ok(BKCommand::SendTyping(server, access_token, uid, room_id)) => {
+                thread::spawn(move || {
+                    let query = room::send_typing(server, access_token, uid, room_id);
+                    if let Err(err) = query {
+                        tx.send(BKResponse::SendTypingError(err))
+                            .expect_log("Connection closed");
+                    }
+                });
             }
-            Ok(BKCommand::SetRoom(server, access_token, id)) => {
-                let r = room::set_room(self, server, access_token, id);
+            Ok(BKCommand::SetRoom(server, access_token, room_id)) => {
+                let r = room::set_room(self, server, access_token, room_id);
                 bkerror!(r, tx, BKResponse::SetRoomError);
             }
-            Ok(BKCommand::GetRoomAvatar(server, access_token, room)) => {
-                let r = room::get_room_avatar(self, server, access_token, room);
+            Ok(BKCommand::GetRoomAvatar(server, access_token, room_id)) => {
+                let r = room::get_room_avatar(self, server, access_token, room_id);
                 bkerror2!(r, tx, BKResponse::RoomAvatar);
             }
-            Ok(BKCommand::JoinRoom(server, access_token, roomid)) => {
-                let r = room::join_room(self, server, access_token, roomid);
-                bkerror2!(r, tx, BKResponse::JoinRoom);
+            Ok(BKCommand::JoinRoom(server, access_token, room_id)) => {
+                room::join_room(self, server, access_token, room_id)
             }
-            Ok(BKCommand::LeaveRoom(server, access_token, roomid)) => {
-                let r = room::leave_room(self, server, access_token, roomid);
-                bkerror2!(r, tx, BKResponse::LeaveRoom);
+            Ok(BKCommand::LeaveRoom(server, access_token, room_id)) => {
+                thread::spawn(move || {
+                    let query = room::leave_room(server, access_token, room_id);
+                    tx.send(BKResponse::LeaveRoom(query))
+                        .expect_log("Connection closed");
+                });
             }
-            Ok(BKCommand::MarkAsRead(server, access_token, roomid, evid)) => {
-                let r = room::mark_as_read(self, server, access_token, roomid, evid);
+            Ok(BKCommand::MarkAsRead(server, access_token, room_id, evid)) => {
+                let r = room::mark_as_read(self, server, access_token, room_id, evid);
                 bkerror2!(r, tx, BKResponse::MarkedAsRead);
             }
-            Ok(BKCommand::SetRoomName(server, access_token, roomid, name)) => {
-                let r = room::set_room_name(self, server, access_token, roomid, name);
+            Ok(BKCommand::SetRoomName(server, access_token, room_id, name)) => {
+                let r = room::set_room_name(self, server, access_token, room_id, name);
                 bkerror2!(r, tx, BKResponse::SetRoomName);
             }
-            Ok(BKCommand::SetRoomTopic(server, access_token, roomid, topic)) => {
-                let r = room::set_room_topic(self, server, access_token, roomid, topic);
+            Ok(BKCommand::SetRoomTopic(server, access_token, room_id, topic)) => {
+                let r = room::set_room_topic(self, server, access_token, room_id, topic);
                 bkerror2!(r, tx, BKResponse::SetRoomTopic);
             }
-            Ok(BKCommand::SetRoomAvatar(server, access_token, roomid, fname)) => {
-                let r = room::set_room_avatar(self, server, access_token, roomid, fname);
+            Ok(BKCommand::SetRoomAvatar(server, access_token, room_id, fname)) => {
+                let r = room::set_room_avatar(self, server, access_token, room_id, fname);
                 bkerror2!(r, tx, BKResponse::SetRoomAvatar);
             }
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);
                 bkerror2!(r, tx, BKResponse::AttachedFile);
             }
-            Ok(BKCommand::NewRoom(server, access_token, name, privacy, internalid)) => {
+            Ok(BKCommand::NewRoom(server, access_token, name, privacy, internal_id)) => {
                 let r = room::new_room(
                     self,
                     server,
                     access_token,
                     name,
                     privacy,
-                    internalid.clone(),
+                    internal_id.clone(),
                 );
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoom(Err(e), internalid))
+                    tx.send(BKResponse::NewRoom(Err(e), internal_id))
                         .expect_log("Connection closed");
                 }
             }
-            Ok(BKCommand::DirectChat(server, access_token, uid, user, internalid)) => {
+            Ok(BKCommand::DirectChat(server, access_token, uid, user, internal_id)) => {
                 let r =
-                    room::direct_chat(self, server, access_token, uid, user, internalid.clone());
+                    room::direct_chat(self, server, access_token, uid, user, internal_id.clone());
                 if let Err(e) = r {
-                    tx.send(BKResponse::NewRoom(Err(e), internalid))
+                    tx.send(BKResponse::NewRoom(Err(e), internal_id))
                         .expect_log("Connection closed");
                 }
             }
-            Ok(BKCommand::AddToFav(server, access_token, uid, roomid, tofav)) => {
-                let r = room::add_to_fav(self, server, access_token, uid, roomid, tofav);
-                bkerror2!(r, tx, BKResponse::AddedToFav);
+            Ok(BKCommand::AddToFav(server, access_token, uid, room_id, tofav)) => {
+                thread::spawn(move || {
+                    let query = room::add_to_fav(server, access_token, uid, room_id, tofav);
+                    tx.send(BKResponse::AddedToFav(query))
+                        .expect_log("Connection closed");
+                });
             }
-            Ok(BKCommand::AcceptInv(server, access_token, roomid)) => {
-                let r = room::join_room(self, server, access_token, roomid);
-                bkerror2!(r, tx, BKResponse::JoinRoom);
+            Ok(BKCommand::AcceptInv(server, access_token, room_id)) => {
+                room::join_room(self, server, access_token, room_id)
             }
-            Ok(BKCommand::RejectInv(server, access_token, roomid)) => {
-                let r = room::leave_room(self, server, access_token, roomid);
-                bkerror2!(r, tx, BKResponse::LeaveRoom);
+            Ok(BKCommand::RejectInv(server, access_token, room_id)) => {
+                thread::spawn(move || {
+                    let query = room::leave_room(server, access_token, room_id);
+                    tx.send(BKResponse::LeaveRoom(query))
+                        .expect_log("Connection closed");
+                });
             }
-            Ok(BKCommand::Invite(server, access_token, room, userid)) => {
-                let r = room::invite(self, server, access_token, room, userid);
-                bkerror!(r, tx, BKResponse::InviteError);
+            Ok(BKCommand::Invite(server, access_token, room_id, userid)) => {
+                thread::spawn(move || {
+                    let query = room::invite(server, access_token, room_id, userid);
+                    if let Err(err) = query {
+                        tx.send(BKResponse::InviteError(err))
+                            .expect_log("Connection closed");
+                    }
+                });
             }
-            Ok(BKCommand::ChangeLanguage(access_token, server, uid, room, lang)) => {
-                let r = room::set_language(self, access_token, server, uid, room, lang);
+            Ok(BKCommand::ChangeLanguage(access_token, server, uid, room_id, lang)) => {
+                let r = room::set_language(self, access_token, server, uid, room_id, lang);
                 bkerror2!(r, tx, BKResponse::ChangeLanguage);
             }
 
@@ -337,7 +357,7 @@ impl Backend {
             Ok(BKCommand::GetMediaListAsync(
                 server,
                 access_token,
-                roomid,
+                room_id,
                 first_media_id,
                 prev_batch,
                 ctx,
@@ -345,7 +365,7 @@ impl Backend {
                 self,
                 server,
                 access_token,
-                roomid,
+                room_id,
                 first_media_id,
                 prev_batch,
                 ctx,
@@ -391,6 +411,10 @@ impl Backend {
             }
 
             // Internal commands
+            Ok(BKCommand::SendBKResponse(response)) => {
+                tx.send(response).expect_log("Connection closed");
+            }
+
             Ok(BKCommand::ShutDown) => {
                 tx.send(BKResponse::ShutDown)
                     .expect_log("Connection closed");

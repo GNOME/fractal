@@ -93,7 +93,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let s = Some(since);
                     APPOP!(synced, (s));
                 }
-                BKResponse::Rooms(rooms, default) => {
+                BKResponse::Rooms(Ok((rooms, default))) => {
                     let clear_room_list = true;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                     // Open the newly joined room
@@ -102,7 +102,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         APPOP!(set_active_room_by_id, (room_id));
                     }
                 }
-                BKResponse::UpdateRooms(rooms) => {
+                BKResponse::UpdateRooms(Ok(rooms)) => {
                     let clear_room_list = false;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                 }
@@ -116,7 +116,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::RoomMembers(Ok((room, members))) => {
                     APPOP!(set_room_members, (room, members));
                 }
-                BKResponse::RoomMessages(msgs) => {
+                BKResponse::RoomMessages(Ok(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
                 }
                 BKResponse::RoomMessagesTo(Ok((msgs, room, prev_batch))) => {

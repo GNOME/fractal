@@ -23,8 +23,10 @@ use crate::util::ResultExpectLog;
 
 use log::error;
 use reqwest::Client;
+use ruma_identifiers::UserId;
 use serde_json::value::from_value;
 use std::{
+    convert::TryFrom,
     thread,
     time::{self, Duration},
 };
@@ -34,7 +36,7 @@ pub fn sync(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    userid: String,
+    user_id: UserId,
     since: Option<String>,
     initial: bool,
 ) {
@@ -111,18 +113,22 @@ pub fn sync(
                     let join = &response.rooms.join;
 
                     // New rooms
-                    let rs = Room::from_sync_response(&response, &userid, &base);
+                    let rs = Room::from_sync_response(&response, user_id.clone(), &base)
+                        .map_err(Into::into);
                     tx.send(BKResponse::UpdateRooms(rs))
                         .expect_log("Connection closed");
 
                     // Message events
                     let msgs = join
                         .iter()
-                        .flat_map(|(k, room)| {
+                        .try_fold(Vec::new(), |mut acum, (k, room)| {
                             let events = room.timeline.events.iter();
-                            Message::from_json_events_iter(&k, events).into_iter()
+                            Message::from_json_events_iter(&k, events).map(|msgs| {
+                                acum.extend(msgs);
+                                acum
+                            })
                         })
-                        .collect();
+                        .map_err(Into::into);
                     tx.send(BKResponse::RoomMessages(msgs))
                         .expect_log("Connection closed");
 
@@ -141,34 +147,34 @@ pub fn sync(
                         .iter()
                         .map(|(k, room)| {
                             let ephemerals = &room.ephemeral.events;
-                            let mut typing_room: Room =
-                                Room::new(k.clone(), RoomMembership::Joined(RoomTag::None));
-                            let mut typing: Vec<Member> = Vec::new();
-                            for event in ephemerals.iter() {
-                                if let Some(typing_users) = event
-                                    .get("content")
-                                    .and_then(|x| x.get("user_ids"))
-                                    .and_then(|x| x.as_array())
-                                {
-                                    for user in typing_users {
-                                        let user: String = from_value(user.to_owned()).unwrap();
-                                        // ignoring the user typing notifications
-                                        if user == userid {
-                                            continue;
-                                        }
-                                        typing.push(Member {
-                                            uid: user,
-                                            alias: None,
-                                            avatar: None,
-                                        });
+                            let typing: Vec<Member> = ephemerals.iter()
+                                .flat_map(|event| {
+                                    event
+                                        .get("content")
+                                        .and_then(|x| x.get("user_ids"))
+                                        .and_then(|x| x.as_array())
+                                        .unwrap_or(&vec![])
+                                        .to_owned()
+                                })
+                                .filter_map(|user| from_value(user).ok())
+                                // ignoring the user typing notifications
+                                .filter(|user| *user != user_id)
+                                .map(|uid| {
+                                    Member {
+                                        uid,
+                                        alias: None,
+                                        avatar: None,
                                     }
-                                }
+                                })
+                                .collect();
+
+                            Room {
+                                typing_users: typing,
+                                ..Room::new(k.clone(), RoomMembership::Joined(RoomTag::None))
                             }
-                            typing_room.typing_users = typing;
-                            typing_room
                         })
                         .collect();
-                    tx.send(BKResponse::UpdateRooms(rooms))
+                    tx.send(BKResponse::UpdateRooms(Ok(rooms)))
                         .expect_log("Connection closed");
 
                     // Other events
@@ -180,10 +186,13 @@ pub fn sync(
                                 .filter(|x| x["type"] != "m.room.message")
                                 .map(move |ev| Event {
                                     room: k.clone(),
-                                    sender: ev["sender"]
-                                        .as_str()
-                                        .map(Into::into)
-                                        .unwrap_or_default(),
+                                    sender: UserId::try_from(
+                                        ev["sender"].as_str().unwrap_or_default(),
+                                    )
+                                    .unwrap(),
+                                    // TODO: Correct error management is too hard here,
+                                    //       needs refactoring, but this workaround
+                                    //       is enough
                                     content: ev["content"].clone(),
                                     redacts: ev["redacts"]
                                         .as_str()
@@ -234,16 +243,21 @@ pub fn sync(
                             }
                         });
                 } else {
-                    data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
+                    if let Ok(m_direct) = parse_m_direct(&response.account_data.events) {
+                        data.lock().unwrap().m_direct = m_direct;
+                    }
 
-                    let rooms = Room::from_sync_response(&response, &userid, &base);
-                    let jtr = data.lock().unwrap().join_to_room.clone();
-                    let def = if !jtr.is_empty() {
-                        rooms.iter().find(|x| x.id == jtr).cloned()
-                    } else {
-                        None
-                    };
-                    tx.send(BKResponse::Rooms(rooms, def))
+                    let rooms_def =
+                        Room::from_sync_response(&response, user_id, &base)
+                            .map(|rooms| {
+                                let def =
+                                    data.lock().unwrap().join_to_room.as_ref().and_then(|jtr| {
+                                        rooms.iter().find(|x| x.id == *jtr).cloned()
+                                    });
+                                (rooms, def)
+                            })
+                            .map_err(Into::into);
+                    tx.send(BKResponse::Rooms(rooms_def))
                         .expect_log("Connection closed");
                 }
 

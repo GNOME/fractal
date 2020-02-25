@@ -1,14 +1,13 @@
 use log::error;
 use serde_json::json;
 
-use ruma_identifiers::RoomId;
-use ruma_identifiers::RoomIdOrAliasId;
-use std::convert::TryFrom;
+use ruma_identifiers::{Error as IdError, RoomId, RoomIdOrAliasId, UserId};
 use std::fs;
 use std::sync::mpsc::Sender;
 use url::Url;
 
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -68,11 +67,17 @@ pub fn set_room(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    id: String,
+    room_id: RoomId,
 ) -> Result<(), Error> {
     /* FIXME: remove clone and pass id by reference */
-    get_room_avatar(bk, base.clone(), access_token.clone(), id.clone())?;
-    get_room_detail(bk, base, access_token, id, String::from("m.room.topic"))?;
+    get_room_avatar(bk, base.clone(), access_token.clone(), room_id.clone())?;
+    get_room_detail(
+        bk,
+        base,
+        access_token,
+        room_id,
+        String::from("m.room.topic"),
+    )?;
 
     Ok(())
 }
@@ -81,13 +86,13 @@ pub fn get_room_detail(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     keys: String,
 ) -> Result<(), Error> {
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/state/{}", roomid, keys),
+        &format!("rooms/{}/state/{}", room_id, keys),
         vec![],
     )?;
 
@@ -98,7 +103,7 @@ pub fn get_room_detail(
             let k = keys.split('.').last().unwrap();
 
             let value = r[&k].as_str().map(Into::into).unwrap_or_default();
-            tx.send(BKResponse::RoomDetail(Ok((roomid, keys, value))))
+            tx.send(BKResponse::RoomDetail(Ok((room_id, keys, value))))
                 .expect_log("Connection closed");
         },
         |err| {
@@ -114,12 +119,12 @@ pub fn get_room_avatar(
     bk: &Backend,
     baseu: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
 ) -> Result<(), Error> {
     let url = bk.url(
         baseu.clone(),
         &access_token,
-        &format!("rooms/{}/state/m.room.avatar", roomid),
+        &format!("rooms/{}/state/m.room.avatar", room_id),
         vec![],
     )?;
     let tx = bk.tx.clone();
@@ -127,7 +132,7 @@ pub fn get_room_avatar(
         url,
         |r: JsonValue| {
             let avatar = r["url"].as_str().and_then(|s| Url::parse(s).ok());
-            let dest = cache_dir_path(None, &roomid).ok();
+            let dest = cache_dir_path(None, &room_id.to_string()).ok();
             if let Some(ref avatar) = avatar {
                 let _ = dw_media(
                     &baseu,
@@ -136,14 +141,14 @@ pub fn get_room_avatar(
                     dest.as_ref().map(String::as_str),
                 );
             }
-            tx.send(BKResponse::RoomAvatar(Ok((roomid, avatar))))
+            tx.send(BKResponse::RoomAvatar(Ok((room_id, avatar))))
                 .expect_log("Connection closed");
         },
         |err: Error| match err {
             Error::MatrixError(ref js)
                 if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
             {
-                tx.send(BKResponse::RoomAvatar(Ok((roomid, None))))
+                tx.send(BKResponse::RoomAvatar(Ok((room_id, None))))
                     .expect_log("Connection closed");
             }
             _ => {
@@ -157,37 +162,26 @@ pub fn get_room_avatar(
 }
 
 pub fn get_room_members(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
-) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-
-    let room_id = RoomId::try_from(roomid.as_str())?;
+    room_id: RoomId,
+) -> Result<(RoomId, Vec<Member>), Error> {
     let params = JoinedMembersParameters { access_token };
 
-    thread::spawn(move || {
-        let query = get_joined_members(base, &room_id, &params)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)?
-                    .json::<JoinedMembersResponse>()
-                    .map_err(Into::into)
-            })
-            .map(|response| {
-                let ms = response.joined.into_iter().map(Member::from).collect();
+    get_joined_members(base, &room_id, &params)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<JoinedMembersResponse>()
+                .map_err(Into::into)
+        })
+        .map(|response| {
+            let ms = response.joined.into_iter().map(Member::from).collect();
 
-                (room_id.to_string(), ms)
-            });
-
-        tx.send(BKResponse::RoomMembers(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
+            (room_id, ms)
+        })
 }
 
 /* Load older messages starting by prev_batch
@@ -197,7 +191,7 @@ pub fn get_room_messages(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     from: String,
 ) -> Result<(), Error> {
     let params = vec![
@@ -216,7 +210,7 @@ pub fn get_room_messages(
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/messages", roomid),
+        &format!("rooms/{}/messages", room_id),
         params,
     )?;
     let tx = bk.tx.clone();
@@ -225,9 +219,12 @@ pub fn get_room_messages(
         |r: JsonValue| {
             let array = r["chunk"].as_array();
             let evs = array.unwrap().iter().rev();
-            let list = Message::from_json_events_iter(&roomid, evs);
             let prev_batch = r["end"].as_str().map(String::from);
-            tx.send(BKResponse::RoomMessagesTo(Ok((list, roomid, prev_batch))))
+            let query = Message::from_json_events_iter(&room_id, evs)
+                .map(|list| (list, room_id, prev_batch))
+                .map_err(Into::into);
+
+            tx.send(BKResponse::RoomMessagesTo(query))
                 .expect_log("Connection closed");
         },
         |err| {
@@ -243,7 +240,7 @@ pub fn get_room_messages_from_msg(
     bk: &Backend,
     baseu: Url,
     tk: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     msg: Message,
 ) {
     // first of all, we calculate the from param using the context api, then we call the
@@ -251,9 +248,9 @@ pub fn get_room_messages_from_msg(
     let itx = bk.internal_tx.clone();
 
     thread::spawn(move || {
-        if let Ok(from) = get_prev_batch_from(&baseu, &tk, &roomid, &msg.id) {
+        if let Ok(from) = get_prev_batch_from(&baseu, &tk, &room_id, &msg.id) {
             if let Some(t) = itx {
-                t.send(BKCommand::GetRoomMessages(baseu, tk, roomid, from))
+                t.send(BKCommand::GetRoomMessages(baseu, tk, room_id, from))
                     .expect_log("Connection closed");
             }
         }
@@ -264,13 +261,13 @@ fn parse_context(
     tx: Sender<BKResponse>,
     tk: AccessToken,
     baseu: Url,
-    roomid: String,
+    room_id: RoomId,
     eid: &str,
     limit: i32,
 ) -> Result<(), Error> {
     let url = client_url(
         &baseu,
-        &format!("rooms/{}/context/{}", roomid, eid),
+        &format!("rooms/{}/context/{}", room_id, eid),
         &[
             ("limit", format!("{}", limit)),
             ("access_token", tk.to_string()),
@@ -282,32 +279,38 @@ fn parse_context(
         |r: JsonValue| {
             let mut id: Option<String> = None;
 
-            let mut ms: Vec<Message> = vec![];
-            let array = r["events_before"].as_array();
-            for msg in array.unwrap().iter().rev() {
-                if id.is_none() {
-                    id = Some(msg["event_id"].as_str().unwrap_or_default().to_string());
+            let ms: Result<Vec<Message>, _> = r["events_before"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .rev()
+                .inspect(|msg| {
+                    if id.is_none() {
+                        id = Some(msg["event_id"].as_str().unwrap_or_default().to_string());
+                    }
+                })
+                .filter(|msg| Message::supported_event(&&msg))
+                .map(|msg| Message::parse_room_message(&room_id, msg))
+                .collect();
+
+            match ms {
+                Ok(msgs) if msgs.is_empty() && id.is_some() => {
+                    // there's no messages so we'll try with a bigger context
+                    if let Err(err) =
+                        parse_context(tx.clone(), tk, baseu, room_id, &id.unwrap(), limit * 2)
+                    {
+                        tx.send(BKResponse::RoomMessagesTo(Err(err)))
+                            .expect_log("Connection closed");
+                    }
                 }
-
-                if !Message::supported_event(&&msg) {
-                    continue;
-                }
-
-                let m = Message::parse_room_message(&roomid, msg);
-                ms.push(m);
-            }
-
-            if ms.is_empty() && id.is_some() {
-                // there's no messages so we'll try with a bigger context
-                if let Err(err) =
-                    parse_context(tx.clone(), tk, baseu, roomid, &id.unwrap(), limit * 2)
-                {
-                    tx.send(BKResponse::RoomMessagesTo(Err(err)))
+                Ok(msgs) => {
+                    tx.send(BKResponse::RoomMessagesTo(Ok((msgs, room_id, None))))
                         .expect_log("Connection closed");
                 }
-            } else {
-                tx.send(BKResponse::RoomMessagesTo(Ok((ms, roomid, None))))
-                    .expect_log("Connection closed");
+                Err(err) => {
+                    tx.send(BKResponse::RoomMessagesTo(Err(err.into())))
+                        .expect_log("Connection closed");
+                }
             }
         },
         |err| {
@@ -326,9 +329,9 @@ pub fn get_message_context(
     msg: Message,
 ) -> Result<(), Error> {
     let tx = bk.tx.clone();
-    let roomid = msg.room.clone();
+    let room_id: RoomId = msg.room.clone();
 
-    parse_context(tx, tk, baseu, roomid, &msg.id, globals::PAGE_LIMIT)?;
+    parse_context(tx, tk, baseu, room_id, &msg.id, globals::PAGE_LIMIT)?;
 
     Ok(())
 }
@@ -339,12 +342,12 @@ pub fn send_msg(
     access_token: AccessToken,
     msg: Message,
 ) -> Result<(), Error> {
-    let roomid = msg.room.clone();
+    let room_id: RoomId = msg.room.clone();
 
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/send/m.room.message/{}", roomid, msg.id),
+        &format!("rooms/{}/send/m.room.message/{}", room_id, msg.id),
         vec![],
     )?;
 
@@ -371,8 +374,7 @@ pub fn send_msg(
     }
 
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         url,
         &attrs,
         move |js: JsonValue| {
@@ -390,38 +392,23 @@ pub fn send_msg(
 }
 
 pub fn send_typing(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    userid: String,
-    roomid: String,
+    user_id: UserId,
+    room_id: RoomId,
 ) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-
-    let room_id = RoomId::try_from(roomid.as_str())?;
     let params = TypingNotificationParameters { access_token };
     let body = TypingNotificationBody::Typing(Duration::from_secs(4));
 
-    thread::spawn(move || {
-        let query = send_typing_notification(base, &room_id, &userid, &params, &body)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            });
-
-        match query {
-            Err(err) => {
-                tx.send(BKResponse::SendTypingError(err))
-                    .expect_log("Connection closed");
-            }
-            _ => (),
-        }
-    });
-
-    Ok(())
+    send_typing_notification(base, &room_id, &user_id, &params, &body)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)
+                .map_err(Into::into)
+        })
+        .and(Ok(()))
 }
 
 pub fn redact_msg(
@@ -430,13 +417,13 @@ pub fn redact_msg(
     access_token: AccessToken,
     msg: &Message,
 ) -> Result<(), Error> {
-    let roomid = msg.room.clone();
+    let room_id: RoomId = msg.room.clone();
     let txnid = msg.id.clone();
 
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/redact/{}/{}", roomid, msg.id, txnid),
+        &format!("rooms/{}/redact/{}/{}", room_id, msg.id, txnid),
         vec![],
     )?;
 
@@ -446,8 +433,7 @@ pub fn redact_msg(
 
     let msgid = msg.id.clone();
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         url,
         &attrs,
         move |js: JsonValue| {
@@ -466,16 +452,12 @@ pub fn redact_msg(
     Ok(())
 }
 
-pub fn join_room(
-    bk: &Backend,
-    base: Url,
-    access_token: AccessToken,
-    roomid: String,
-) -> Result<(), Error> {
+pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: RoomId) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
 
-    let room_id_or_alias_id = RoomIdOrAliasId::try_from(roomid.as_str())?;
+    let room_id_or_alias_id = RoomIdOrAliasId::RoomId(room_id.clone());
+
     let params = JoinRoomParameters {
         access_token,
         server_name: Default::default(),
@@ -490,61 +472,46 @@ pub fn join_room(
                     .execute(request)
                     .map_err(Into::into)
             })
-            .map(|_| {
-                data.lock().unwrap().join_to_room = room_id_or_alias_id.to_string();
-            });
+            .and(Ok(()));
+
+        if let Ok(_) = query {
+            data.lock().unwrap().join_to_room = Some(room_id);
+        }
 
         tx.send(BKResponse::JoinRoom(query))
             .expect_log("Connection closed");
     });
-
-    Ok(())
 }
 
-pub fn leave_room(
-    bk: &Backend,
-    base: Url,
-    access_token: AccessToken,
-    roomid: String,
-) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-
-    let room_id = RoomId::try_from(roomid.as_str())?;
+pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<(), Error> {
     let params = LeaveRoomParameters { access_token };
 
-    thread::spawn(move || {
-        let query = leave_room_req(base, &room_id, &params)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            })
-            .and(Ok(()));
-
-        tx.send(BKResponse::LeaveRoom(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
+    leave_room_req(base, &room_id, &params)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)
+                .map_err(Into::into)
+        })
+        .and(Ok(()))
 }
 
 pub fn mark_as_read(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     eventid: String,
 ) -> Result<(), Error> {
     let url = bk.url(
         base.clone(),
         &access_token,
-        &format!("rooms/{}/receipt/m.read/{}", roomid, eventid),
+        &format!("rooms/{}/receipt/m.read/{}", room_id, eventid),
         vec![],
     )?;
 
-    let r = roomid.clone();
+    let r = room_id.clone();
     let e = eventid.clone();
     let tx = bk.tx.clone();
     post!(
@@ -566,7 +533,7 @@ pub fn mark_as_read(
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/read_markers", roomid),
+        &format!("rooms/{}/read_markers", room_id),
         vec![],
     )?;
     let attrs = json!({
@@ -582,13 +549,13 @@ pub fn set_room_name(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     name: String,
 ) -> Result<(), Error> {
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/state/m.room.name", roomid),
+        &format!("rooms/{}/state/m.room.name", room_id),
         vec![],
     )?;
 
@@ -597,8 +564,7 @@ pub fn set_room_name(
     });
 
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         url,
         &attrs,
         |_| {
@@ -618,13 +584,13 @@ pub fn set_room_topic(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     topic: String,
 ) -> Result<(), Error> {
     let url = bk.url(
         base,
         &access_token,
-        &format!("rooms/{}/state/m.room.topic", roomid),
+        &format!("rooms/{}/state/m.room.topic", room_id),
         vec![],
     )?;
 
@@ -633,8 +599,7 @@ pub fn set_room_topic(
     });
 
     let tx = bk.tx.clone();
-    query!(
-        "put",
+    put!(
         url,
         &attrs,
         |_| {
@@ -654,13 +619,13 @@ pub fn set_room_avatar(
     bk: &Backend,
     baseu: Url,
     tk: AccessToken,
-    roomid: String,
+    room_id: RoomId,
     avatar: String,
 ) -> Result<(), Error> {
     let roomurl = bk.url(
         baseu.clone(),
         &tk,
-        &format!("rooms/{}/state/m.room.avatar", roomid),
+        &format!("rooms/{}/state/m.room.avatar", room_id),
         vec![],
     )?;
 
@@ -777,7 +742,7 @@ pub fn new_room(
     access_token: AccessToken,
     name: String,
     privacy: RoomType,
-    internal_id: String,
+    internal_id: RoomId,
 ) -> Result<(), Error> {
     let url = bk.url(base, &access_token, "createRoom", vec![])?;
     let attrs = json!({
@@ -800,10 +765,14 @@ pub fn new_room(
         url,
         &attrs,
         move |r: JsonValue| {
-            let id = String::from(r["room_id"].as_str().unwrap_or_default());
-            let mut r = Room::new(id, RoomMembership::Joined(RoomTag::None));
-            r.name = Some(name);
-            tx.send(BKResponse::NewRoom(Ok(r), internal_id))
+            let room_res = RoomId::try_from(r["room_id"].as_str().unwrap_or_default())
+                .map_err(Into::into)
+                .map(|room_id| Room {
+                    name: Some(name),
+                    ..Room::new(room_id, RoomMembership::Joined(RoomTag::None))
+                });
+
+            tx.send(BKResponse::NewRoom(room_res, internal_id))
                 .expect_log("Connection closed");
         },
         |err| {
@@ -814,34 +783,36 @@ pub fn new_room(
     Ok(())
 }
 
-pub fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user: String, room: String) {
+fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user_id: UserId, room_id: RoomId) {
     get!(
         url.clone(),
         |r: JsonValue| {
-            let mut directs: HashMap<String, Vec<String>> = HashMap::new();
-            let direct_obj = r.as_object().unwrap();
+            let directs: Result<HashMap<UserId, Vec<RoomId>>, IdError> = r
+                .as_object()
+                .into_iter()
+                .flatten()
+                .map(|(uid, rooms)| {
+                    let roomlist = rooms
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|x| RoomId::try_from(x.as_str().unwrap_or_default()))
+                        .collect::<Result<Vec<RoomId>, IdError>>()?;
+                    Ok((UserId::try_from(uid.as_str())?, roomlist))
+                })
+                .collect();
 
-            direct_obj.iter().for_each(|(userid, rooms)| {
-                let roomlist: Vec<String> = rooms
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|x| x.as_str().unwrap().to_string())
-                    .collect();
-                directs.insert(userid.clone(), roomlist);
-            });
+            if let Ok(mut directs) = directs {
+                if let Some(v) = directs.get_mut(&user_id) {
+                    v.push(room_id);
+                } else {
+                    directs.insert(user_id, vec![room_id]);
+                }
+                data.lock().unwrap().m_direct = directs.clone();
 
-            if directs.contains_key(&user) {
-                if let Some(v) = directs.get_mut(&user) {
-                    v.push(room)
-                };
-            } else {
-                directs.insert(user, vec![room]);
+                let attrs = json!(directs);
+                put!(url, &attrs, |_| {}, |err| error!("{:?}", err));
             }
-            data.lock().unwrap().m_direct = directs.clone();
-
-            let attrs = json!(directs.clone());
-            put!(url, &attrs, |_| {}, |err| error!("{:?}", err));
         },
         |err| {
             error!("Can't set m.direct: {:?}", err);
@@ -853,9 +824,9 @@ pub fn direct_chat(
     bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    userid: String,
+    user_id: UserId,
     user: Member,
-    internal_id: String,
+    internal_id: RoomId,
 ) -> Result<(), Error> {
     let url = bk.url(base.clone(), &access_token, "createRoom", vec![])?;
     let attrs = json!({
@@ -875,7 +846,7 @@ pub fn direct_chat(
     let direct_url = bk.url(
         base,
         &access_token,
-        &format!("user/{}/account_data/m.direct", userid),
+        &format!("user/{}/account_data/m.direct", user_id),
         vec![],
     )?;
 
@@ -885,14 +856,24 @@ pub fn direct_chat(
         url,
         &attrs,
         move |r: JsonValue| {
-            let id = String::from(r["room_id"].as_str().unwrap_or_default());
-            let mut r = Room::new(id.clone(), RoomMembership::Joined(RoomTag::None));
-            r.name = user.alias.clone();
-            r.direct = true;
-            tx.send(BKResponse::NewRoom(Ok(r), internal_id))
-                .expect_log("Connection closed");
+            match RoomId::try_from(r["room_id"].as_str().unwrap_or_default()) {
+                Ok(room_id) => {
+                    let r = Room {
+                        name: user.alias.clone(),
+                        direct: true,
+                        ..Room::new(room_id.clone(), RoomMembership::Joined(RoomTag::None))
+                    };
 
-            update_direct_chats(direct_url, data, user.uid.clone(), id);
+                    tx.send(BKResponse::NewRoom(Ok(r), internal_id))
+                        .expect_log("Connection closed");
+
+                    update_direct_chats(direct_url, data, user.uid.clone(), room_id);
+                }
+                Err(err) => {
+                    tx.send(BKResponse::NewRoom(Err(err.into()), internal_id))
+                        .expect_log("Connection closed");
+                }
+            }
         },
         |err| {
             tx.send(BKResponse::NewRoom(Err(err), internal_id))
@@ -904,84 +885,58 @@ pub fn direct_chat(
 }
 
 pub fn add_to_fav(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    userid: String,
-    roomid: String,
+    user_id: UserId,
+    room_id: RoomId,
     tofav: bool,
-) -> Result<(), Error> {
-    let tx = bk.tx.clone();
+) -> Result<(RoomId, bool), Error> {
+    let request_res = if tofav {
+        let params = CreateTagParameters { access_token };
+        let body = CreateTagBody { order: Some(0.5) };
+        create_tag(base, &user_id, &room_id, "m.favourite", &params, &body)
+    } else {
+        let params = DeleteTagParameters { access_token };
+        delete_tag(base, &user_id, &room_id, "m.favourite", &params)
+    };
 
-    let room_id = RoomId::try_from(roomid.as_str())?;
-
-    thread::spawn(move || {
-        let request_res = if tofav {
-            let params = CreateTagParameters { access_token };
-            let body = CreateTagBody { order: Some(0.5) };
-            create_tag(base, &userid, &room_id, "m.favourite", &params, &body)
-        } else {
-            let params = DeleteTagParameters { access_token };
-            delete_tag(base, &userid, &room_id, "m.favourite", &params)
-        };
-
-        let query = request_res
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            })
-            .and(Ok((room_id.to_string(), tofav)));
-
-        tx.send(BKResponse::AddedToFav(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
+    request_res
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)
+                .map_err(Into::into)
+        })
+        .and(Ok((room_id, tofav)))
 }
 
 pub fn invite(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    roomid: String,
-    user_id: String,
+    room_id: RoomId,
+    user_id: UserId,
 ) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-
-    let room_id = RoomId::try_from(roomid.as_str())?;
     let params = InviteUserParameters { access_token };
     let body = InviteUserBody { user_id };
 
-    thread::spawn(move || {
-        let query = invite_user(base, &room_id, &params, &body)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            });
-
-        match query {
-            Err(err) => {
-                let _ = tx.send(BKResponse::InviteError(err));
-            }
-            _ => (),
-        }
-    });
-
-    Ok(())
+    invite_user(base, &room_id, &params, &body)
+        .map_err(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)
+                .map_err(Into::into)
+        })
+        .and(Ok(()))
 }
 
 pub fn set_language(
     bk: &Backend,
     access_token: AccessToken,
     server: Url,
-    userid: String,
-    roomid: String,
+    user_id: UserId,
+    room_id: RoomId,
     input_language: String,
 ) -> Result<(), Error> {
     let url = bk.url(
@@ -989,8 +944,7 @@ pub fn set_language(
         &access_token,
         &format!(
             "user/{}/rooms/{}/account_data/org.gnome.fractal.language",
-            userid,
-            roomid.clone()
+            user_id, room_id,
         ),
         vec![],
     )?;

@@ -2,7 +2,7 @@ use crate::r0::AccessToken;
 use reqwest::Client;
 use reqwest::Error;
 use reqwest::Request;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{RoomId, UserId};
 use serde::Serialize;
 use url::Url;
 
@@ -13,7 +13,7 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Body {
-    pub user_id: String,
+    pub user_id: UserId,
 }
 
 pub fn request(

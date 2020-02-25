@@ -5,11 +5,12 @@ use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
+use ruma_identifiers::{Error as IdError, RoomId, UserId};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
-use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
 use std::fs::{create_dir_all, write};
@@ -170,7 +171,7 @@ impl ContentType {
     }
 }
 
-pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
+pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<RoomId>>, IdError> {
     events
         .iter()
         .find(|x| x["type"] == "m.direct")
@@ -178,14 +179,14 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
         .cloned()
         .unwrap_or_default()
         .iter()
-        .map(|(k, v)| {
-            let value = v
+        .map(|(uid, rid)| {
+            let value = rid
                 .as_array()
                 .unwrap_or(&vec![])
                 .iter()
-                .map(|rid| rid.as_str().map(Into::into).unwrap_or_default())
-                .collect();
-            (k.clone(), value)
+                .map(|rid| RoomId::try_from(rid.as_str().unwrap_or_default()))
+                .collect::<Result<Vec<RoomId>, IdError>>()?;
+            Ok((UserId::try_from(uid.as_str())?, value))
         })
         .collect()
 }
@@ -193,12 +194,12 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<String, Vec<String>> {
 pub fn get_prev_batch_from(
     baseu: &Url,
     tk: &AccessToken,
-    roomid: &str,
+    room_id: &RoomId,
     evid: &str,
 ) -> Result<String, Error> {
     let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
 
-    let path = format!("rooms/{}/context/{}", roomid, evid);
+    let path = format!("rooms/{}/context/{}", room_id, evid);
     let url = client_url(baseu, &path, params)?;
 
     let r = json_q("get", url, &json!(null))?;
@@ -307,8 +308,8 @@ pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Er
     }
 }
 
-pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Error> {
-    let response = get_profile(base.clone(), &encode_uid(userid))
+pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String), Error> {
+    let response = get_profile(base.clone(), user_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
@@ -321,12 +322,12 @@ pub fn get_user_avatar(base: &Url, userid: &str) -> Result<(String, String), Err
     let name = response
         .displayname
         .filter(|n| !n.is_empty())
-        .unwrap_or(userid.to_string());
+        .unwrap_or(user_id.to_string());
 
     let img = response
         .avatar_url
         .map(|url| {
-            let dest = cache_dir_path(None, userid)?;
+            let dest = cache_dir_path(None, &user_id.to_string())?;
             dw_media(
                 base,
                 url.as_str(),
@@ -379,10 +380,6 @@ pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
         .to_str()
         .map(Into::into)
         .ok_or(Error::CacheError)
-}
-
-pub fn encode_uid(userid: &str) -> String {
-    utf8_percent_encode(userid, USERINFO_ENCODE_SET).collect::<String>()
 }
 
 pub trait ResultExpectLog {

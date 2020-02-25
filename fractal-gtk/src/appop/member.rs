@@ -1,8 +1,10 @@
 use fractal_api::clone;
+use fractal_api::identifiers::{RoomId, UserId};
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
@@ -22,26 +24,22 @@ pub enum SearchType {
 
 impl AppOp {
     pub fn member_level(&self, member: &Member) -> i32 {
-        if let Some(r) = self
-            .rooms
-            .get(&self.active_room.clone().unwrap_or_default())
-        {
-            if let Some(level) = r.admins.get(&member.uid) {
-                return *level;
-            }
-        }
-        0
+        self.active_room
+            .as_ref()
+            .and_then(|a_room| self.rooms.get(a_room)?.admins.get(&member.uid))
+            .copied()
+            .unwrap_or(0)
     }
 
-    pub fn set_room_members(&mut self, roomid: String, members: Vec<Member>) {
-        if let Some(r) = self.rooms.get_mut(&roomid) {
+    pub fn set_room_members(&mut self, room_id: RoomId, members: Vec<Member>) {
+        if let Some(r) = self.rooms.get_mut(&room_id) {
             r.members = HashMap::new();
             for m in members {
                 r.members.insert(m.uid.clone(), m);
             }
         }
 
-        self.recalculate_room_name(roomid.clone());
+        self.recalculate_room_name(room_id.clone());
 
         /* FIXME: update the current room settings insteat of creating a new one */
         if self.room_settings.is_some() && self.state == AppState::RoomSettings {
@@ -53,10 +51,10 @@ impl AppOp {
         // NOTE: maybe we should show this events in the message list to notify enters and leaves
         // to the user
 
-        let sender = ev.sender.clone();
+        let sender = ev.sender;
         match ev.content["membership"].as_str() {
             Some("leave") => {
-                if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
+                if let Some(r) = self.rooms.get_mut(&ev.room) {
                     r.members.remove(&sender);
                 }
             }
@@ -68,7 +66,7 @@ impl AppOp {
                     alias: Some(String::from(
                         ev.content["displayname"].as_str().unwrap_or_default(),
                     )),
-                    uid: sender.clone(),
+                    uid: sender,
                 };
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
                     r.members.insert(m.uid.clone(), m.clone());
@@ -158,16 +156,17 @@ impl AppOp {
         }
         scroll.hide();
 
-        let t = term.unwrap_or_default();
-        let uid_in_term = t.contains("@") && t.contains(":");
+        let uid_term = term.and_then(|t| UserId::try_from(t.as_str()).ok());
         // Adding a new user if the user
-        if uid_in_term && !users.iter().find(|u| u.uid == t).is_some() {
-            let member = Member {
-                avatar: None,
-                alias: None,
-                uid: t,
-            };
-            users.insert(0, member);
+        if let Some(uid) = uid_term {
+            if let None = users.iter().find(|u| u.uid == uid) {
+                let member = Member {
+                    avatar: None,
+                    alias: None,
+                    uid,
+                };
+                users.insert(0, member);
+            }
         }
 
         for (i, u) in users.iter().enumerate() {

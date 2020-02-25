@@ -2,6 +2,7 @@ use crate::types::Message;
 use crate::widgets;
 use chrono::prelude::DateTime;
 use chrono::prelude::Local;
+use fractal_api::identifiers::UserId;
 
 /* MessageContent contains all data needed to display one row
  * therefore it should contain only one Message body with one format
@@ -9,7 +10,7 @@ use chrono::prelude::Local;
 #[derive(Debug, Clone)]
 pub struct MessageContent {
     pub id: String,
-    pub sender: String,
+    pub sender: UserId,
     pub sender_name: Option<String>,
     pub mtype: RowType,
     pub body: String,
