@@ -90,6 +90,7 @@ impl LoginWidget {
                 } else {
                     format!("https://{}", &txt)
                 };
+                let txt = if !txt.ends_with("/") { txt + "/" } else { txt };
 
                 if !password.is_empty() && !username.is_empty() {
                     // take the user's homeserver value if the
