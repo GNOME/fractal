@@ -21,7 +21,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/user/{}/account_data/{}",
+            "_matrix/client/r0/user/{}/account_data/{}",
             user_id, event_type,
         ))
         .expect("Malformed URL in set_global_account_data");

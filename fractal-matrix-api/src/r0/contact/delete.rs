@@ -19,7 +19,7 @@ pub struct Body {
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/account/3pid/delete")
+        .join("_matrix/client/r0/account/3pid/delete")
         .expect("Malformed URL in contact delete");
 
     Client::new().post(url).query(params).json(body).build()

@@ -28,7 +28,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/media/r0/thumbnail/{}/{}",
+            "_matrix/media/r0/thumbnail/{}/{}",
             server, media_id,
         ))
         .expect("Malformed URL in get_content_thumbnail");

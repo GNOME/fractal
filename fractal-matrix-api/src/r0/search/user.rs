@@ -46,7 +46,7 @@ pub struct User {
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/user_directory/search")
+        .join("_matrix/client/r0/user_directory/search")
         .expect("Malformed URL in user_directory");
 
     Client::new().post(url).query(params).json(body).build()

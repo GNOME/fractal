@@ -27,7 +27,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/rooms/{}/send/{}/{}",
+            "_matrix/client/r0/rooms/{}/send/{}/{}",
             room_id, event_type, txn_id,
         ))
         .expect("Malformed URL in create_message_event");

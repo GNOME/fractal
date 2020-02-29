@@ -27,7 +27,7 @@ pub struct IDServerInfo {
 
 pub fn request(base: Url) -> Result<Request, Error> {
     let url = base
-        .join("/.well-known/matrix/client")
+        .join(".well-known/matrix/client")
         .expect("Malformed URL in domain_info");
 
     Client::new().get(url).build()
