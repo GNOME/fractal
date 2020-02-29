@@ -25,10 +25,7 @@ pub fn request(
     user_id: &UserId,
 ) -> Result<Request, Error> {
     let url = base
-        .join(&format!(
-            "/_matrix/client/r0/profile/{}/avatar_url",
-            user_id
-        ))
+        .join(&format!("_matrix/client/r0/profile/{}/avatar_url", user_id))
         .expect("Malformed URL in set_avatar_url");
 
     Client::new().put(url).query(params).json(body).build()

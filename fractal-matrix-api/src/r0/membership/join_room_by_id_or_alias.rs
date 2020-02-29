@@ -24,7 +24,7 @@ pub fn request(
     params: &Parameters,
 ) -> Result<Request, Error> {
     let url = base
-        .join(&format!("/_matrix/client/r0/join/{}", room_id_or_alias))
+        .join(&format!("_matrix/client/r0/join/{}", room_id_or_alias))
         .expect("Malformed URL in join_room_by_id_or_alias");
 
     Client::new().post(url).query(params).build()

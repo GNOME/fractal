@@ -25,7 +25,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/profile/{}/displayname",
+            "_matrix/client/r0/profile/{}/displayname",
             user_id
         ))
         .expect("Malformed URL in set_display_name");

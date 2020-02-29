@@ -12,7 +12,7 @@ pub struct Parameters {
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/logout")
+        .join("_matrix/client/r0/logout")
         .expect("Malformed URL in logout");
 
     Client::new().post(url).query(params).build()

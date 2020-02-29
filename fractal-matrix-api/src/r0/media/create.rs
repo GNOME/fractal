@@ -23,7 +23,7 @@ pub fn request(base: Url, params: &Parameters, contents: Vec<u8>) -> Result<Requ
     let (mime, _) = gio::content_type_guess(None, &contents);
 
     let url = base
-        .join("/_matrix/media/r0/upload")
+        .join("_matrix/media/r0/upload")
         .expect("Malformed URL in upload");
 
     Client::new()

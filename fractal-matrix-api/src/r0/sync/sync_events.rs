@@ -224,7 +224,7 @@ pub struct DeviceLists {
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/sync")
+        .join("_matrix/client/r0/sync")
         .expect("Malformed URL in sync_events");
 
     Client::new().get(url).query(params).build()

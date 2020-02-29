@@ -358,7 +358,7 @@ pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
 }
 
 pub fn client_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/client/r0/{}", path), params)
+    build_url(base, &format!("_matrix/client/r0/{}", path), params)
 }
 
 pub fn scalar_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
@@ -366,7 +366,7 @@ pub fn scalar_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<U
 }
 
 fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/media/r0/{}", path), params)
+    build_url(base, &format!("_matrix/media/r0/{}", path), params)
 }
 
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {

@@ -38,7 +38,7 @@ pub struct Response {
 
 pub fn request(base: Url, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/login")
+        .join("_matrix/client/r0/login")
         .expect("Malformed URL in login");
 
     Client::new().post(url).json(body).build()

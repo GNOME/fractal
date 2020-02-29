@@ -43,7 +43,7 @@ pub struct InfoFailed {
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/account/3pid/email/requestToken")
+        .join("_matrix/client/r0/account/3pid/email/requestToken")
         .expect("Malformed URL in request_verification_token_email");
 
     Client::new().post(url).query(params).json(body).build()

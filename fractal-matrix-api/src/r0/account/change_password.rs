@@ -20,7 +20,7 @@ pub struct Body {
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/account/password")
+        .join("_matrix/client/r0/account/password")
         .expect("Malformed URL in change_password");
 
     Client::new().post(url).query(params).json(body).build()
