@@ -28,7 +28,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/user/{}/rooms/{}/tags/{}",
+            "_matrix/client/r0/user/{}/rooms/{}/tags/{}",
             user_id, room_id, tag
         ))
         .expect("Malformed URL in create_tag");

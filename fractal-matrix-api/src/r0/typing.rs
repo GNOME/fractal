@@ -50,7 +50,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/rooms/{}/typing/{}",
+            "_matrix/client/r0/rooms/{}/typing/{}",
             room_id, user_id,
         ))
         .expect("Malformed URL in typing");
