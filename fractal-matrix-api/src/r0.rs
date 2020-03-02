@@ -8,6 +8,7 @@ pub mod message;
 pub mod profile;
 pub mod search;
 pub mod server;
+pub mod state;
 pub mod sync;
 pub mod tag;
 pub mod thirdparty;
