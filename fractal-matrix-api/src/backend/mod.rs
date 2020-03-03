@@ -17,6 +17,8 @@ use crate::cache::CacheMap;
 
 use crate::r0::AccessToken;
 
+use crate::globals;
+
 mod directory;
 mod media;
 pub mod register;
@@ -239,8 +241,19 @@ impl Backend {
                 room::get_room_messages_from_msg(self, server, access_token, room_id, from)
             }
             Ok(BKCommand::GetMessageContext(server, access_token, message)) => {
-                let r = room::get_message_context(self, server, access_token, message);
-                bkerror2!(r, tx, BKResponse::RoomMessagesTo);
+                thread::spawn(move || {
+                    let room_id = message.room.clone();
+                    let event_id = &message.id;
+                    let query = room::get_message_context(
+                        server,
+                        access_token,
+                        room_id,
+                        event_id,
+                        globals::PAGE_LIMIT as u64,
+                    );
+                    tx.send(BKResponse::RoomMessagesTo(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::SendMsg(server, access_token, msg)) => {
                 let r = room::send_msg(self, server, access_token, msg);

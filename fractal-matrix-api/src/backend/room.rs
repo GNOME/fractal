@@ -3,7 +3,6 @@ use serde_json::json;
 
 use ruma_identifiers::{Error as IdError, RoomId, RoomIdOrAliasId, UserId};
 use std::fs;
-use std::sync::mpsc::Sender;
 use url::Url;
 
 use std::collections::HashMap;
@@ -16,7 +15,6 @@ use crate::globals;
 use std::thread;
 
 use crate::util::cache_dir_path;
-use crate::util::client_url;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::json_q;
@@ -30,6 +28,9 @@ use crate::backend::types::Backend;
 use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
+use crate::r0::context::get_context::request as get_context;
+use crate::r0::context::get_context::Parameters as GetContextParameters;
+use crate::r0::context::get_context::Response as GetContextResponse;
 use crate::r0::filter::RoomEventFilter;
 use crate::r0::media::create::request as create_content;
 use crate::r0::media::create::Parameters as CreateContentParameters;
@@ -228,32 +229,32 @@ pub fn get_room_messages_from_msg(
     });
 }
 
-fn parse_context(
-    tx: Sender<BKResponse>,
-    tk: AccessToken,
-    baseu: Url,
+pub fn get_message_context(
+    base: Url,
+    access_token: AccessToken,
     room_id: RoomId,
     eid: &str,
-    limit: i32,
-) -> Result<(), Error> {
-    let url = client_url(
-        &baseu,
-        &format!("rooms/{}/context/{}", room_id, eid),
-        &[
-            ("limit", format!("{}", limit)),
-            ("access_token", tk.to_string()),
-        ],
-    )?;
+    limit: u64,
+) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
+    let params = GetContextParameters {
+        access_token: access_token.clone(),
+        limit,
+        filter: Default::default(),
+    };
 
-    get!(
-        url,
-        |response: JsonValue| {
+    get_context(base.clone(), &params, &room_id, eid)
+        .map_err(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<GetContextResponse>()?;
+
             let mut id: Option<String> = None;
 
-            let ms: Result<Vec<Message>, _> = response["events_before"]
-                .as_array()
-                .into_iter()
-                .flatten()
+            let ms: Result<Vec<Message>, _> = response
+                .events_before
+                .iter()
                 .rev()
                 .inspect(|msg| {
                     if id.is_none() {
@@ -267,42 +268,12 @@ fn parse_context(
             match (ms, id) {
                 (Ok(msgs), Some(ref id)) if msgs.is_empty() => {
                     // there's no messages so we'll try with a bigger context
-                    if let Err(err) = parse_context(tx.clone(), tk, baseu, room_id, id, limit * 2) {
-                        tx.send(BKResponse::RoomMessagesTo(Err(err)))
-                            .expect_log("Connection closed");
-                    }
+                    get_message_context(base, access_token, room_id, id, limit * 2)
                 }
-                (Ok(msgs), _) => {
-                    tx.send(BKResponse::RoomMessagesTo(Ok((msgs, room_id, None))))
-                        .expect_log("Connection closed");
-                }
-                (Err(err), _) => {
-                    tx.send(BKResponse::RoomMessagesTo(Err(err.into())))
-                        .expect_log("Connection closed");
-                }
+                (Ok(msgs), _) => Ok((msgs, room_id, None)),
+                (Err(err), _) => Err(err.into()),
             }
-        },
-        |err| {
-            tx.send(BKResponse::RoomMessagesTo(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
-
-    Ok(())
-}
-
-pub fn get_message_context(
-    bk: &Backend,
-    baseu: Url,
-    tk: AccessToken,
-    msg: Message,
-) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-    let room_id: RoomId = msg.room.clone();
-
-    parse_context(tx, tk, baseu, room_id, &msg.id, globals::PAGE_LIMIT)?;
-
-    Ok(())
+        })
 }
 
 pub fn send_msg(
