@@ -566,6 +566,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     let info = json!({
         "info": {
             "thumbnail_url": thumb_path,
+            "blurhash": calculate_blurhash(&thumb),
             "thumbnail_info": {
                 "w": thumb.get_width(),
                 "h": thumb.get_height(),
@@ -618,4 +619,14 @@ fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     });
 
     Some(info)
+}
+
+fn calculate_blurhash(image: &Pixbuf) -> String {
+    blurhash::encode(
+        4,
+        3,
+        image.get_width() as u32,
+        image.get_height() as u32,
+        unsafe { image.get_pixels() },
+    )
 }
