@@ -5,6 +5,8 @@ use gdk::prelude::*;
 use gdk_pixbuf::Pixbuf;
 use gio::{Settings, SettingsExt, SettingsSchemaSource};
 
+use log::error;
+
 use html2pango::{html_escape, markup_links};
 
 pub mod glib_thread_prelude {
@@ -70,7 +72,9 @@ pub fn set_markdown_schema(md: bool) {
         .and_then(|s| s.lookup("org.gnome.Fractal", true))
         .map(|_| {
             let settings: Settings = Settings::new("org.gnome.Fractal");
-            let _ = settings.set_boolean("markdown-active", md);
+            if let Err(err) = settings.set_boolean("markdown-active", md) {
+                error!("Can't save markdown active state: {:?}", err);
+            }
         });
 }
 
