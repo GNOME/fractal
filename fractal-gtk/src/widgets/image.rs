@@ -1,6 +1,7 @@
 use fractal_api::url::Url;
 use gdk::ContextExt;
 use gdk_pixbuf;
+use gdk_pixbuf::Colorspace;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
@@ -36,6 +37,7 @@ pub struct Image {
     pub circle: bool,
     pub fixed_size: bool,
     pub centered: bool,
+    pub blurhash: Option<Pixbuf>,
 }
 
 impl Image {
@@ -82,7 +84,23 @@ impl Image {
             fixed_size: false,
             centered: false,
             fit_to_width: false,
+            blurhash: None,
         }
+    }
+
+    pub fn blurhash(mut self, blurhash: Option<String>) -> Image {
+        if let Some(blurhash) = blurhash {
+            self.blurhash = Some(Pixbuf::new_from_mut_slice(
+                blurhash::decode(&blurhash, 128, 128, 1.0),
+                Colorspace::Rgb,
+                true,
+                8,
+                128,
+                128,
+                Pixbuf::calculate_rowstride(Colorspace::Rgb, true, 8, 128, 128),
+            ));
+        }
+        self
     }
 
     pub fn fit_to_width(mut self, f: bool) -> Image {
@@ -163,6 +181,7 @@ impl Image {
         let fixed_size = self.fixed_size;
         let centered = self.centered;
         let fit_to_width = self.fit_to_width;
+        let blurhash = self.blurhash.clone();
         da.connect_draw(move |da, g| {
             let widget_w = da.get_allocated_width();
             let widget_h = da.get_allocated_height();
@@ -253,7 +272,12 @@ impl Image {
                     *scaled.lock().unwrap() = Some(sc);
                 }
             } else {
-                gtk::render_activity(&context, g, 0.0, 0.0, rw as f64, height);
+                if let Some(blurhash) = &blurhash {
+                    g.set_source_pixbuf(blurhash, 0.0, 0.0);
+                    g.fill();
+                } else {
+                    gtk::render_activity(&context, g, 0.0, 0.0, rw as f64, height);
+                }
             }
 
             Inhibit(false)

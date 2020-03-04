@@ -25,3 +25,14 @@ Events to manage:
 
 Encription:
     https://matrix.org/docs/guides/e2e_implementation.html
+
+Blurhash:
+  * Why isin't the blurhash field getting sent? It dosen't seem to show up in extra_content
+  * Make Image draw blurhash with the size of the thumbnail
+
+  * Add video support
+  * Add support for inline images (<img>)
+
+  * Calculate blurhash with only a partial image, and then scale up
+  * Choose better x/y components for blurhash
+  * Clean up code
