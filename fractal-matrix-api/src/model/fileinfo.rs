@@ -3,6 +3,7 @@ use serde_json::Value as JsonValue;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Info {
+    pub blurhash: Option<String>,
     pub thumbnail_url: Option<String>,
     pub thumbnail_info: Option<JsonValue>,
     pub w: Option<u32>,

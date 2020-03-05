@@ -367,13 +367,7 @@ impl MessageBox {
         };
         let image = widgets::image::Image::new(&self.backend, self.server_url.clone(), &img_path)
             .size(Some(globals::MAX_IMAGE_SIZE))
-            .blurhash(
-                msg.msg
-                    .extra_content
-                    .as_ref()
-                    .map(|ec| ec.get("blurhash").map(|blurhash| blurhash.to_string()))
-                    .flatten(),
-            )
+            .blurhash(msg.blurhash.as_ref().cloned())
             .build();
 
         image.widget.get_style_context().add_class("image-widget");

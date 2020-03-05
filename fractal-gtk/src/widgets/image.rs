@@ -93,11 +93,11 @@ impl Image {
             self.blurhash = Some(Pixbuf::new_from_mut_slice(
                 blurhash::decode(&blurhash, 128, 128, 1.0),
                 Colorspace::Rgb,
-                true,
+                false,
                 8,
                 128,
                 128,
-                Pixbuf::calculate_rowstride(Colorspace::Rgb, true, 8, 128, 128),
+                Pixbuf::calculate_rowstride(Colorspace::Rgb, false, 8, 128, 128),
             ));
         }
         self

@@ -25,6 +25,7 @@ pub struct MessageContent {
     pub redactable: bool,
     pub last_viewed: bool,
     pub widget: Option<widgets::MessageBox>,
+    pub blurhash: Option<String>,
 }
 
 /* To-Do: this should be moved to a file collecting all structs used in the UI */

@@ -30,6 +30,7 @@ pub struct Message {
     // for example for images attachment the "info" field can be attached as
     // Some(json!({"info": {"h": 296, "w": 296, "mimetype": "image/png", "orientation": 0, "size": 8796}});
     pub extra_content: Option<JsonValue>,
+    pub blurhash: Option<String>,
 }
 
 impl PartialEq for Message {
@@ -67,6 +68,7 @@ impl Message {
             redacted: false,
             in_reply_to: None,
             extra_content: None,
+            blurhash: None,
         }
     }
 
@@ -124,6 +126,7 @@ impl Message {
             redacted,
             in_reply_to: None,
             extra_content: None,
+            blurhash: None,
         };
 
         let c = &msg["content"];
@@ -152,9 +155,11 @@ impl Message {
                 if t.is_empty() && !url.is_empty() {
                     t = url.clone();
                 }
+                let blurhash = c.get("blurhash").map(|blurhash| blurhash.to_string());
 
                 self.url = Some(url);
                 self.thumb = Some(t);
+                self.blurhash = blurhash;
             }
             "m.text" => {
                 // Only m.text messages can be replies for backward compatability

@@ -541,6 +541,7 @@ fn create_ui_message(
         highlights: highlights,
         redactable,
         widget: None,
+        blurhash: msg.blurhash,
     }
 }
 
@@ -565,8 +566,8 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 
     let info = json!({
         "info": {
-            "thumbnail_url": thumb_path,
             "blurhash": calculate_blurhash(&thumb),
+            "thumbnail_url": thumb_path,
             "thumbnail_info": {
                 "w": thumb.get_width(),
                 "h": thumb.get_height(),
@@ -622,11 +623,11 @@ fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
 }
 
 fn calculate_blurhash(image: &Pixbuf) -> String {
-    blurhash::encode(
-        4,
-        3,
-        image.get_width() as u32,
-        image.get_height() as u32,
-        unsafe { image.get_pixels() },
-    )
+    let pixels = image.read_pixel_bytes().unwrap();
+    let pixels = pixels
+        .chunks_exact(4)
+        .flat_map(|c| &c[0..3])
+        .copied()
+        .collect::<Vec<u8>>();
+    blurhash::encode(4, 3, 128, 128, &pixels)
 }
