@@ -258,10 +258,15 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         back.borrow_mut().push(AppState::MediaViewer);
     });
 
+    let mv_weak = Rc::downgrade(&op.lock().unwrap().media_viewer);
     // back_history is moved into this closure to keep it alive as long the action exists
     back.connect_activate(move |_, _| {
         // Remove the current state form the store
         back_history.borrow_mut().pop();
+        let mv = upgrade_weak!(mv_weak);
+        if let Some(mut mv) = mv.borrow_mut().take() {
+            mv.disconnect_signal_id();
+        }
         if let Some(state) = back_history.borrow().last() {
             debug!("Go back to state {:?}", state);
             if let Some(op) = App::get_op() {
