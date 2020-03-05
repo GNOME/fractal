@@ -42,6 +42,9 @@ use crate::r0::membership::join_room_by_id_or_alias::request as join_room_req;
 use crate::r0::membership::join_room_by_id_or_alias::Parameters as JoinRoomParameters;
 use crate::r0::membership::leave_room::request as leave_room_req;
 use crate::r0::membership::leave_room::Parameters as LeaveRoomParameters;
+use crate::r0::message::create_message_event::request as create_message_event;
+use crate::r0::message::create_message_event::Parameters as CreateMessageEventParameters;
+use crate::r0::message::create_message_event::Response as CreateMessageEventResponse;
 use crate::r0::message::get_message_events::request as get_messages_events;
 use crate::r0::message::get_message_events::Direction as GetMessagesEventsDirection;
 use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParams;
@@ -277,58 +280,51 @@ pub fn get_message_context(
 }
 
 pub fn send_msg(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(), Error> {
+) -> Result<(String, String), Error> {
     let room_id: RoomId = msg.room.clone();
 
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/send/m.room.message/{}", room_id, msg.id),
-        vec![],
-    )?;
+    let params = CreateMessageEventParameters { access_token };
 
-    let mut attrs = json!({
-        "body": msg.body.clone(),
-        "msgtype": msg.mtype.clone()
+    let mut body = json!({
+        "body": msg.body,
+        "msgtype": msg.mtype,
     });
 
-    if let Some(ref u) = msg.url {
-        attrs["url"] = json!(u);
+    if let Some(u) = msg.url.as_ref() {
+        body["url"] = json!(u);
     }
 
     if let (Some(f), Some(f_b)) = (msg.format.as_ref(), msg.formatted_body.as_ref()) {
-        attrs["formatted_body"] = json!(f_b);
-        attrs["format"] = json!(f);
+        body["formatted_body"] = json!(f_b);
+        body["format"] = json!(f);
     }
 
-    if let Some(xctx) = msg.extra_content.as_ref() {
-        if let Some(xctx) = xctx.as_object() {
-            for (k, v) in xctx {
-                attrs[k] = v.clone();
-            }
-        }
+    let extra_content_map = msg
+        .extra_content
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .cloned()
+        .unwrap_or_default();
+
+    for (k, v) in extra_content_map {
+        body[k] = v;
     }
 
-    let tx = bk.tx.clone();
-    put!(
-        url,
-        &attrs,
-        move |js: JsonValue| {
-            let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsg(Ok((msg.id, evid.to_string()))))
-                .expect_log("Connection closed");
-        },
-        |_| {
-            tx.send(BKResponse::SentMsg(Err(Error::SendMsgError(msg.id))))
-                .expect_log("Connection closed");
-        }
-    );
+    create_message_event(base, &params, &body, &room_id, "m.room.message", &msg.id)
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<CreateMessageEventResponse>()?;
 
-    Ok(())
+            let evid = response.event_id.unwrap_or_default();
+            Ok((msg.id.clone(), evid))
+        })
+        .or(Err(Error::SendMsgError(msg.id)))
 }
 
 pub fn send_typing(
@@ -611,7 +607,10 @@ pub fn attach_file(
     let itx = bk.internal_tx.clone();
 
     if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
-        return send_msg(bk, baseu, tk, msg);
+        tx.send(BKResponse::SentMsg(send_msg(baseu, tk, msg)))
+            .expect_log("Connection closed");
+
+        return Ok(());
     }
 
     thread::spawn(move || {
