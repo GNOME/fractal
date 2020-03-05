@@ -1,8 +1,8 @@
 use crate::r0::AccessToken;
 use crate::r0::ThreePIDCredentials;
-use reqwest::Client;
+use reqwest::blocking::Client;
+use reqwest::blocking::Request;
 use reqwest::Error;
-use reqwest::Request;
 use serde::Serialize;
 use std::ops::Not;
 use url::Url;

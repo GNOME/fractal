@@ -9,6 +9,8 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak};
 
+use log::error;
+
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
 use crate::backend::Backend;
@@ -211,7 +213,9 @@ impl App {
         app.main_window.connect_delete_event(move |window, _| {
             let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");
             let window_state = WindowState::from_window(window);
-            window_state.save_in_gsettings(&settings);
+            if let Err(err) = window_state.save_in_gsettings(&settings) {
+                error!("Can't save the window settings: {:?}", err);
+            }
             Inhibit(false)
         });
 

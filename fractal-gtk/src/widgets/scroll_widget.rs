@@ -4,6 +4,7 @@ use std::rc::Rc;
 use fractal_api::identifiers::RoomId;
 use gio::Action;
 use gio::ActionExt;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 
@@ -317,13 +318,13 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
                     let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
                     t = ease_out_cubic(t);
                     adj.set_value(start + t * (end - start));
-                    return glib::Continue(true);
+                    return Continue(true);
                 } else {
                     adj.set_value(end);
-                    return glib::Continue(false);
+                    return Continue(false);
                 }
             }
-            glib::Continue(false)
+            Continue(false)
         });
     } else {
         adj.set_value(adj.get_upper() - adj.get_page_size());

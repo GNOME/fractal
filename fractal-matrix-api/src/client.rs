@@ -49,8 +49,8 @@ impl ProxySettings {
 
     pub fn apply_to_client_builder(
         &self,
-        mut builder: reqwest::ClientBuilder,
-    ) -> Result<reqwest::ClientBuilder, reqwest::Error> {
+        mut builder: reqwest::blocking::ClientBuilder,
+    ) -> Result<reqwest::blocking::ClientBuilder, reqwest::Error> {
         // Reqwest only supports one proxy for each type
 
         if !self.http_proxy.is_empty() && self.http_proxy[0] != PROXY_DIRECT_URI {
@@ -74,7 +74,7 @@ thread_local! {
 
 #[derive(Debug)]
 struct ClientInner {
-    client: reqwest::Client,
+    client: reqwest::blocking::Client,
     proxy_settings: ProxySettings,
 }
 
@@ -87,13 +87,13 @@ impl Client {
     pub fn new() -> Client {
         Client {
             inner: Mutex::new(ClientInner {
-                client: Self::build(reqwest::Client::builder()),
+                client: Self::build(reqwest::blocking::Client::builder()),
                 proxy_settings: ProxySettings::direct(),
             }),
         }
     }
 
-    pub fn get_client(&self) -> Result<reqwest::Client, Error> {
+    pub fn get_client(&self) -> Result<reqwest::blocking::Client, Error> {
         // Lock first so we don't overwrite proxy settings with outdated information
         let mut inner = self.inner.lock().unwrap();
 
@@ -102,7 +102,7 @@ impl Client {
         if inner.proxy_settings == new_proxy_settings {
             Ok(inner.client.clone())
         } else {
-            let mut builder = reqwest::Client::builder();
+            let mut builder = reqwest::blocking::Client::builder();
             builder = new_proxy_settings.apply_to_client_builder(builder)?;
             let client = Self::build(builder);
 
@@ -113,7 +113,7 @@ impl Client {
         }
     }
 
-    fn build(builder: reqwest::ClientBuilder) -> reqwest::Client {
+    fn build(builder: reqwest::blocking::ClientBuilder) -> reqwest::blocking::Client {
         builder
             .gzip(true)
             .timeout(Duration::from_secs(globals::TIMEOUT))

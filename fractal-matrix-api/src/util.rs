@@ -279,7 +279,7 @@ pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Er
         conn = conn.header(CONTENT_LENGTH, 0);
     }
 
-    let mut res = conn.send()?;
+    let res = conn.send()?;
 
     //let mut content = String::new();
     //res.read_to_string(&mut content);

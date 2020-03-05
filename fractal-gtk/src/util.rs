@@ -1,9 +1,11 @@
 use cairo;
 use failure::format_err;
 use failure::Error;
-use gdk::ContextExt;
+use gdk::prelude::*;
 use gdk_pixbuf::Pixbuf;
 use gio::{Settings, SettingsExt, SettingsSchemaSource};
+
+use log::error;
 
 use html2pango::{html_escape, markup_links};
 
@@ -25,14 +27,14 @@ macro_rules! glib_thread {
         });
 
         gtk::timeout_add(50, move || match rx.try_recv() {
-            Err(TryRecvError::Empty) => gtk::Continue(true),
+            Err(TryRecvError::Empty) => Continue(true),
             Err(TryRecvError::Disconnected) => {
                 error!("glib_thread error");
-                gtk::Continue(false)
+                Continue(false)
             }
             Ok(output) => {
                 $glib_code(output);
-                gtk::Continue(false)
+                Continue(false)
             }
         });
     }};
@@ -70,7 +72,9 @@ pub fn set_markdown_schema(md: bool) {
         .and_then(|s| s.lookup("org.gnome.Fractal", true))
         .map(|_| {
             let settings: Settings = Settings::new("org.gnome.Fractal");
-            settings.set_boolean("markdown-active", md);
+            if let Err(err) = settings.set_boolean("markdown-active", md) {
+                error!("Can't save markdown active state: {:?}", err);
+            }
         });
 }
 

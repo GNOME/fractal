@@ -1,6 +1,7 @@
 use crate::app::App;
 use crate::backend::BKCommand;
 
+use glib::object::Cast;
 use gtk::prelude::*;
 
 // The TextBufferExt alias is necessary to avoid conflict with gtk's TextBufferExt

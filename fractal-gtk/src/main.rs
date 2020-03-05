@@ -23,8 +23,8 @@ use std::env::args;
 use std::error::Error;
 
 use crate::app::App;
+use gio::prelude::*;
 use gio::ApplicationExt;
-use gio::ApplicationExtManual;
 
 #[cfg(debug_assertions)]
 use log::Level;

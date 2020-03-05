@@ -1,11 +1,12 @@
 use fractal_api::url::Url;
-use gdk::ContextExt;
+use gdk::prelude::GdkContextExt;
 use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
 use gio::prelude::FileExt;
 use glib;
+use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
 use gtk::DrawingArea;
@@ -282,17 +283,17 @@ impl Image {
 
             da.get_style_context().add_class("image-spinner");
             gtk::timeout_add(50, move || match rx.try_recv() {
-                Err(TryRecvError::Empty) => gtk::Continue(true),
-                Err(TryRecvError::Disconnected) => gtk::Continue(false),
+                Err(TryRecvError::Empty) => Continue(true),
+                Err(TryRecvError::Disconnected) => Continue(false),
                 Ok(Ok(fname)) => {
                     *local_path.lock().unwrap() = Some(fname.clone());
                     load_pixbuf(pix.clone(), scaled.clone(), da.clone(), &fname);
                     da.get_style_context().remove_class("image-spinner");
-                    gtk::Continue(false)
+                    Continue(false)
                 }
                 Ok(Err(err)) => {
                     error!("Image path could not be found due to error: {:?}", err);
-                    gtk::Continue(false)
+                    Continue(false)
                 }
             });
         } else {
@@ -362,9 +363,9 @@ pub fn load_animation(
             *scaled.lock().unwrap() = None;
             widget.queue_draw();
         } else {
-            return gtk::Continue(false);
+            return Continue(false);
         }
-        gtk::Continue(true)
+        Continue(true)
     });
 }
 

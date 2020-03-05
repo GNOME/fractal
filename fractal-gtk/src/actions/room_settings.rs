@@ -6,7 +6,6 @@ use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use glib;
 use gtk;
-use gtk::prelude::*;
 use std::convert::TryFrom;
 use std::sync::mpsc::Sender;
 

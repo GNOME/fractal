@@ -45,11 +45,16 @@ impl WindowState {
         }
     }
 
-    pub fn save_in_gsettings(&self, settings: &gio::Settings) {
-        settings.set_int("main-window-state-x", self.x);
-        settings.set_int("main-window-state-y", self.y);
-        settings.set_int("main-window-state-width", self.width);
-        settings.set_int("main-window-state-height", self.height);
-        settings.set_boolean("main-window-state-maximized", self.is_maximized);
+    pub fn save_in_gsettings(
+        &self,
+        settings: &gio::Settings,
+    ) -> Result<(), glib::error::BoolError> {
+        settings.set_int("main-window-state-x", self.x)?;
+        settings.set_int("main-window-state-y", self.y)?;
+        settings.set_int("main-window-state-width", self.width)?;
+        settings.set_int("main-window-state-height", self.height)?;
+        settings.set_boolean("main-window-state-maximized", self.is_maximized)?;
+
+        Ok(())
     }
 }

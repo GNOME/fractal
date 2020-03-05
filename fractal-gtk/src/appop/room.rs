@@ -25,7 +25,7 @@ use crate::types::{Member, Reason, Room, RoomMembership, RoomTag};
 
 use crate::util::markup_text;
 
-use glib::functions::markup_escape_text;
+use glib::markup_escape_text;
 
 // The TextBufferExt alias is necessary to avoid conflict with gtk's TextBufferExt
 use gspell::{CheckerExt, TextBuffer, TextBufferExt as GspellTextBufferExt};

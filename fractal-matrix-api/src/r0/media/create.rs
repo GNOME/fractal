@@ -1,9 +1,9 @@
 use crate::r0::AccessToken;
 use crate::serde::url as serde_url;
+use reqwest::blocking::Client;
+use reqwest::blocking::Request;
 use reqwest::header::CONTENT_TYPE;
-use reqwest::Client;
 use reqwest::Error;
-use reqwest::Request;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
