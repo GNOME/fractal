@@ -45,7 +45,7 @@ pub struct Response {
 pub fn request(base: Url, params: &Parameters, room_id: &RoomId) -> Result<Request, Error> {
     let url = base
         .join(&format!("/_matrix/client/r0/rooms/{}/messages", room_id))
-        .expect("Malformed URL in user_directory");
+        .expect("Malformed URL in get_message_events");
 
     Client::new().get(url).query(params).build()
 }

@@ -49,6 +49,10 @@ use crate::r0::message::get_message_events::request as get_messages_events;
 use crate::r0::message::get_message_events::Direction as GetMessagesEventsDirection;
 use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParams;
 use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
+use crate::r0::redact::redact_event::request as redact_event;
+use crate::r0::redact::redact_event::Body as RedactEventBody;
+use crate::r0::redact::redact_event::Parameters as RedactEventParameters;
+use crate::r0::redact::redact_event::Response as RedactEventResponse;
 use crate::r0::state::get_state_events_for_key::request as get_state_events_for_key;
 use crate::r0::state::get_state_events_for_key::Parameters as GetStateEventsForKeyParameters;
 use crate::r0::sync::get_joined_members::request as get_joined_members;
@@ -348,44 +352,31 @@ pub fn send_typing(
 }
 
 pub fn redact_msg(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    msg: &Message,
-) -> Result<(), Error> {
-    let room_id: RoomId = msg.room.clone();
-    let txnid = msg.id.clone();
+    msg: Message,
+) -> Result<(String, String), Error> {
+    let room_id = msg.room.clone();
+    let txn_id = msg.id.clone();
 
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/redact/{}/{}", room_id, msg.id, txnid),
-        vec![],
-    )?;
+    let params = RedactEventParameters { access_token };
 
-    let attrs = json!({
-        "reason": "Deletion requested by the sender"
-    });
+    let body = RedactEventBody {
+        reason: "Deletion requested by the sender".into(),
+    };
 
-    let msgid = msg.id.clone();
-    let tx = bk.tx.clone();
-    put!(
-        url,
-        &attrs,
-        move |js: JsonValue| {
-            let evid = js["event_id"].as_str().unwrap_or_default();
-            tx.send(BKResponse::SentMsgRedaction(Ok((msgid, evid.to_string()))))
-                .expect_log("Connection closed");
-        },
-        |_| {
-            tx.send(BKResponse::SentMsgRedaction(Err(
-                Error::SendMsgRedactionError(msgid),
-            )))
-            .expect_log("Connection closed");
-        }
-    );
+    redact_event(base, &params, &body, &room_id, &msg.id, &txn_id)
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<RedactEventResponse>()?;
 
-    Ok(())
+            let evid = response.event_id.unwrap_or_default();
+            Ok((msg.id.clone(), evid))
+        })
+        .or(Err(Error::SendMsgRedactionError(msg.id)))
 }
 
 pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: RoomId) {
