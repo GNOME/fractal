@@ -22,7 +22,6 @@ fractal-gtk/res/ui/main_menu.ui
 fractal-gtk/res/ui/main_window.ui
 fractal-gtk/res/ui/markdown_popover.ui
 fractal-gtk/res/ui/media_viewer.ui
-fractal-gtk/res/ui/media_viewer_menu.ui
 fractal-gtk/res/ui/members.ui
 fractal-gtk/res/ui/message_menu.ui
 fractal-gtk/res/ui/msg_src_window.ui
