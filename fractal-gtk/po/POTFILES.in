@@ -35,8 +35,9 @@ fractal-gtk/res/ui/server_chooser_menu.ui
 # rust files
 fractal-gtk/src/actions/account_settings.rs
 fractal-gtk/src/actions/global.rs
+fractal-gtk/src/actions/login.rs
+fractal-gtk/src/actions/message.rs
 fractal-gtk/src/actions/mod.rs
-fractal-gtk/src/actions/room_history.rs
 fractal-gtk/src/actions/room_settings.rs
 fractal-gtk/src/app/backend_loop.rs
 fractal-gtk/src/app/connect/account.rs
@@ -46,6 +47,7 @@ fractal-gtk/src/app/connect/directory.rs
 fractal-gtk/src/app/connect/headerbar.rs
 fractal-gtk/src/app/connect/invite.rs
 fractal-gtk/src/app/connect/join_room.rs
+fractal-gtk/src/app/connect/language.rs
 fractal-gtk/src/app/connect/leave_room.rs
 fractal-gtk/src/app/connect/markdown.rs
 fractal-gtk/src/app/connect/mod.rs
@@ -53,6 +55,7 @@ fractal-gtk/src/app/connect/new_room.rs
 fractal-gtk/src/app/connect/roomlist_search.rs
 fractal-gtk/src/app/connect/send.rs
 fractal-gtk/src/app/mod.rs
+fractal-gtk/src/app/windowstate.rs
 fractal-gtk/src/appop/about.rs
 fractal-gtk/src/appop/account.rs
 fractal-gtk/src/appop/attach.rs
@@ -76,6 +79,7 @@ fractal-gtk/src/cache/state.rs
 fractal-gtk/src/globals.rs
 fractal-gtk/src/main.rs
 fractal-gtk/src/passwd.rs
+fractal-gtk/src/static_resources.rs
 fractal-gtk/src/uibuilder.rs
 fractal-gtk/src/uitypes.rs
 fractal-gtk/src/util.rs
@@ -88,6 +92,7 @@ fractal-gtk/src/widgets/file_dialog.rs
 fractal-gtk/src/widgets/image.rs
 fractal-gtk/src/widgets/inline_player.rs
 fractal-gtk/src/widgets/kicked_dialog.rs
+fractal-gtk/src/widgets/login.rs
 fractal-gtk/src/widgets/media_viewer.rs
 fractal-gtk/src/widgets/member.rs
 fractal-gtk/src/widgets/members_list.rs
