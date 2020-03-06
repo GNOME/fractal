@@ -263,8 +263,11 @@ impl Backend {
                 });
             }
             Ok(BKCommand::SendMsgRedaction(server, access_token, msg)) => {
-                let r = room::redact_msg(self, server, access_token, &msg);
-                bkerror2!(r, tx, BKResponse::SentMsgRedaction);
+                thread::spawn(move || {
+                    let query = room::redact_msg(server, access_token, msg);
+                    tx.send(BKResponse::SentMsgRedaction(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::SendTyping(server, access_token, uid, room_id)) => {
                 thread::spawn(move || {
