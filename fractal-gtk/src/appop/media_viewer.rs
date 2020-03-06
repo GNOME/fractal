@@ -1,8 +1,11 @@
 use gtk;
 use gtk::prelude::*;
 
+use log::error;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use crate::actions;
 
 use crate::appop::AppOp;
 use crate::appop::AppState;
@@ -42,9 +45,25 @@ impl AppOp {
                 &msg,
                 login_data.server_url,
                 login_data.access_token,
+                login_data.uid,
             );
             panel.display_media_viewer(msg);
             let (body, header) = panel.create()?;
+
+            if let Some(login_data) = self.login_data.clone() {
+                let back_history = self.room_back_history.clone();
+                let actions = actions::Message::new(
+                    self.backend.clone(),
+                    login_data.server_url,
+                    login_data.access_token,
+                    self.ui.clone(),
+                    back_history,
+                );
+                header.insert_action_group("message", Some(&actions));
+                body.insert_action_group("message", Some(&actions));
+            } else {
+                error!("No login data!");
+            }
 
             /* remove old panel */
             if let Some(widget) = stack.get_child_by_name("media-viewer") {

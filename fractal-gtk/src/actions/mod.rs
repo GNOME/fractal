@@ -7,7 +7,7 @@ use gtk::WidgetExt;
 pub mod account_settings;
 pub mod global;
 pub mod login;
-pub mod room_history;
+pub mod message;
 pub mod room_settings;
 
 pub use self::account_settings as AccountSettings;
@@ -16,7 +16,7 @@ pub use self::global::activate_action;
 pub use self::global::AppState;
 pub use self::login as Login;
 pub use self::login::LoginState;
-pub use self::room_history as RoomHistory;
+pub use self::message as Message;
 pub use self::room_settings as RoomSettings;
 
 #[derive(Debug, Clone, PartialEq)]

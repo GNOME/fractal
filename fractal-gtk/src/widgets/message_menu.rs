@@ -125,16 +125,20 @@ impl MessageMenu {
         id: &str,
         mtype: &RowType,
         redactable: &bool,
-        widget: &gtk::EventBox,
-        label: &gtk::Widget,
+        widget: Option<&gtk::EventBox>,
+        label: Option<&gtk::Widget>,
     ) -> MessageMenu {
         let menu = MessageMenu {
             widgets: Widgets::new(id, mtype, redactable),
         };
         /* Copy selected text works a little different then the other actions, because it need the
          * label */
-        menu.connect_copy_selected_text(label);
-        menu.show(widget);
+        if let Some(label) = label {
+            menu.connect_copy_selected_text(label);
+        }
+        if let Some(widget) = widget {
+            menu.show(widget);
+        }
         menu
     }
 

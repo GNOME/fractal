@@ -278,7 +278,7 @@ impl RoomHistory {
         let listbox = scroll.get_listbox();
 
         /* Add the action groupe to the room_history */
-        listbox.insert_action_group("room_history", Some(&actions));
+        listbox.insert_action_group("message", Some(&actions));
         let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
