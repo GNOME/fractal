@@ -49,6 +49,9 @@ use crate::r0::message::get_message_events::request as get_messages_events;
 use crate::r0::message::get_message_events::Direction as GetMessagesEventsDirection;
 use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParams;
 use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
+use crate::r0::read_marker::set_read_marker::request as set_read_marker;
+use crate::r0::read_marker::set_read_marker::Body as SetReadMarkerBody;
+use crate::r0::read_marker::set_read_marker::Parameters as SetReadMarkerParameters;
 use crate::r0::redact::redact_event::request as redact_event;
 use crate::r0::redact::redact_event::Body as RedactEventBody;
 use crate::r0::redact::redact_event::Parameters as RedactEventParameters;
@@ -416,60 +419,32 @@ pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resu
     leave_room_req(base, &room_id, &params)
         .map_err(Into::into)
         .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
+            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+
+            Ok(())
         })
-        .and(Ok(()))
 }
 
 pub fn mark_as_read(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
-    eventid: String,
-) -> Result<(), Error> {
-    let url = bk.url(
-        base.clone(),
-        &access_token,
-        &format!("rooms/{}/receipt/m.read/{}", room_id, eventid),
-        vec![],
-    )?;
+    event_id: String,
+) -> Result<(RoomId, String), Error> {
+    let params = SetReadMarkerParameters { access_token };
 
-    let r = room_id.clone();
-    let e = eventid.clone();
-    let tx = bk.tx.clone();
-    post!(
-        url,
-        move |_: JsonValue| {
-            tx.send(BKResponse::MarkedAsRead(Ok((r, e))))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::MarkedAsRead(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+    let body = SetReadMarkerBody {
+        fully_read: event_id.clone(),
+        read: Some(event_id.clone()),
+    };
 
-    // send fully_read event
-    // This event API call isn't in the current doc but I found this in the
-    // matrix-js-sdk
-    // https://github.com/matrix-org/matrix-js-sdk/blob/master/src/base-apis.js#L851
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/read_markers", room_id),
-        vec![],
-    )?;
-    let attrs = json!({
-        "m.fully_read": eventid,
-        "m.read": json!(null),
-    });
-    post!(url, &attrs, |_| {}, |_| {});
+    set_read_marker(base, &params, &body, &room_id)
+        .map_err(Into::into)
+        .and_then(|request| {
+            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
 
-    Ok(())
+            Ok((room_id, event_id))
+        })
 }
 
 pub fn set_room_name(
