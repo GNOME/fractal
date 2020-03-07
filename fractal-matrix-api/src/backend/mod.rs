@@ -299,8 +299,11 @@ impl Backend {
                 });
             }
             Ok(BKCommand::MarkAsRead(server, access_token, room_id, evid)) => {
-                let r = room::mark_as_read(self, server, access_token, room_id, evid);
-                bkerror2!(r, tx, BKResponse::MarkedAsRead);
+                thread::spawn(move || {
+                    let query = room::mark_as_read(server, access_token, room_id, evid);
+                    tx.send(BKResponse::MarkedAsRead(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::SetRoomName(server, access_token, room_id, name)) => {
                 let r = room::set_room_name(self, server, access_token, room_id, name);
