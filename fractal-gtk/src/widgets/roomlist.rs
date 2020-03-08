@@ -182,6 +182,16 @@ impl RoomListGroup {
         }
     }
 
+    pub fn rooms_with_notifications(&self) -> u32 {
+        self.rooms.iter().fold(0, |acc, (_, r)| {
+            if r.room.notifications > 0 || r.room.highlight > 0 {
+                acc + 1
+            } else {
+                acc
+            }
+        })
+    }
+
     pub fn set_room_notifications(&mut self, room_id: RoomId, n: i32, h: i32) {
         if let Some(ref mut r) = self.rooms.get_mut(&room_id) {
             r.set_notifications(n, h);
@@ -633,6 +643,12 @@ impl RoomList {
 
     pub fn set_room_avatar(&mut self, room_id: RoomId, av: Option<String>) {
         run_in_group!(self, &room_id, set_room_avatar, room_id, av);
+    }
+
+    pub fn rooms_with_notifications(&self) -> u32 {
+        self.inv.get().rooms_with_notifications()
+            + self.fav.get().rooms_with_notifications()
+            + self.rooms.get().rooms_with_notifications()
     }
 
     pub fn set_room_notifications(&mut self, room_id: RoomId, n: i32, h: i32) {
