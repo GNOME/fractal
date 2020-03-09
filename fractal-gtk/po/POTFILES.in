@@ -79,7 +79,6 @@ fractal-gtk/src/cache/state.rs
 fractal-gtk/src/globals.rs
 fractal-gtk/src/main.rs
 fractal-gtk/src/passwd.rs
-fractal-gtk/src/static_resources.rs
 fractal-gtk/src/uibuilder.rs
 fractal-gtk/src/uitypes.rs
 fractal-gtk/src/util.rs
