@@ -320,8 +320,11 @@ impl Backend {
                 });
             }
             Ok(BKCommand::SetRoomAvatar(server, access_token, room_id, fname)) => {
-                let r = room::set_room_avatar(self, server, access_token, room_id, fname);
-                bkerror2!(r, tx, BKResponse::SetRoomAvatar);
+                thread::spawn(move || {
+                    let query = room::set_room_avatar(server, access_token, room_id, fname);
+                    tx.send(BKResponse::SetRoomAvatar(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);

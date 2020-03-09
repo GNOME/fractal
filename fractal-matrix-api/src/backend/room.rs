@@ -490,38 +490,22 @@ pub fn set_room_topic(
 }
 
 pub fn set_room_avatar(
-    bk: &Backend,
-    baseu: Url,
-    tk: AccessToken,
+    base: Url,
+    access_token: AccessToken,
     room_id: RoomId,
     avatar: String,
 ) -> Result<(), Error> {
-    let roomurl = bk.url(
-        baseu.clone(),
-        &tk,
-        &format!("rooms/{}/state/m.room.avatar", room_id),
-        vec![],
-    )?;
+    let params = CreateStateEventsForKeyParameters {
+        access_token: access_token.clone(),
+    };
 
-    let tx = bk.tx.clone();
-    thread::spawn(move || {
-        let query = upload_file(baseu, tk, &avatar).and_then(|response| {
-            let js = json!({ "url": response.content_uri.as_str() });
+    upload_file(base.clone(), access_token, &avatar).and_then(|response| {
+        let body = json!({ "url": response.content_uri.as_str() });
+        let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.avatar")?;
+        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
 
-            HTTP_CLIENT
-                .get_client()?
-                .put(roomurl)
-                .json(&js)
-                .send()
-                .map_err(Into::into)
-                .and(Ok(()))
-        });
-
-        tx.send(BKResponse::SetRoomAvatar(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
+        Ok(())
+    })
 }
 
 pub fn attach_file(
