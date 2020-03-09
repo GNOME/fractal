@@ -469,38 +469,24 @@ pub fn set_room_name(
 }
 
 pub fn set_room_topic(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     topic: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/state/m.room.topic", room_id),
-        vec![],
-    )?;
+    let params = CreateStateEventsForKeyParameters { access_token };
 
-    let attrs = json!({
+    let body = json!({
         "topic": topic,
     });
 
-    let tx = bk.tx.clone();
-    put!(
-        url,
-        &attrs,
-        |_| {
-            tx.send(BKResponse::SetRoomTopic(Ok(())))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::SetRoomTopic(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+    create_state_events_for_key(base, &params, &body, &room_id, "m.room.topic")
+        .map_err(Into::into)
+        .and_then(|request| {
+            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
 
-    Ok(())
+            Ok(())
+        })
 }
 
 pub fn set_room_avatar(
