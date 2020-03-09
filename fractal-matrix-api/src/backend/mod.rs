@@ -313,8 +313,11 @@ impl Backend {
                 });
             }
             Ok(BKCommand::SetRoomTopic(server, access_token, room_id, topic)) => {
-                let r = room::set_room_topic(self, server, access_token, room_id, topic);
-                bkerror2!(r, tx, BKResponse::SetRoomTopic);
+                thread::spawn(move || {
+                    let query = room::set_room_topic(server, access_token, room_id, topic);
+                    tx.send(BKResponse::SetRoomTopic(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::SetRoomAvatar(server, access_token, room_id, fname)) => {
                 let r = room::set_room_avatar(self, server, access_token, room_id, fname);
