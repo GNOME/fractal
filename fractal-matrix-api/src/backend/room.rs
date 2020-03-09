@@ -56,6 +56,8 @@ use crate::r0::redact::redact_event::request as redact_event;
 use crate::r0::redact::redact_event::Body as RedactEventBody;
 use crate::r0::redact::redact_event::Parameters as RedactEventParameters;
 use crate::r0::redact::redact_event::Response as RedactEventResponse;
+use crate::r0::state::create_state_events_for_key::request as create_state_events_for_key;
+use crate::r0::state::create_state_events_for_key::Parameters as CreateStateEventsForKeyParameters;
 use crate::r0::state::get_state_events_for_key::request as get_state_events_for_key;
 use crate::r0::state::get_state_events_for_key::Parameters as GetStateEventsForKeyParameters;
 use crate::r0::sync::get_joined_members::request as get_joined_members;
@@ -397,12 +399,10 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
         let query = join_room_req(base, &room_id_or_alias_id, &params)
             .map_err(Into::into)
             .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)
-                    .map_err(Into::into)
-            })
-            .and(Ok(()));
+                let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+
+                Ok(())
+            });
 
         if let Ok(_) = query {
             data.lock().unwrap().join_to_room = Some(room_id);
@@ -448,38 +448,24 @@ pub fn mark_as_read(
 }
 
 pub fn set_room_name(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     name: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        base,
-        &access_token,
-        &format!("rooms/{}/state/m.room.name", room_id),
-        vec![],
-    )?;
+    let params = CreateStateEventsForKeyParameters { access_token };
 
-    let attrs = json!({
+    let body = json!({
         "name": name,
     });
 
-    let tx = bk.tx.clone();
-    put!(
-        url,
-        &attrs,
-        |_| {
-            tx.send(BKResponse::SetRoomName(Ok(())))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::SetRoomName(Err(err)))
-                .expect_log("Connection closed");
-        }
-    );
+    create_state_events_for_key(base, &params, &body, &room_id, "m.room.name")
+        .map_err(Into::into)
+        .and_then(|request| {
+            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
 
-    Ok(())
+            Ok(())
+        })
 }
 
 pub fn set_room_topic(
