@@ -225,12 +225,12 @@ row .timestamp {
 /** media viewer **/
 .fullscreen-control-box {
   background-color: rgba(0,0,0,.8);
-  padding: 12;
+  padding: 12px;
 }
 
 .window-control-box {
   background-color: rgba(0,0,0,.6);
-  padding: 6;
+  padding: 6px;
 }
 
 /** autocomplete popover **/
