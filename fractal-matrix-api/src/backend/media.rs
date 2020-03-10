@@ -52,7 +52,7 @@ pub fn get_media_list_async(
             // FIXME: This should never be an empty token
             .or_else(|| {
                 if let Some(ref id) = first_media_id {
-                    get_prev_batch_from(&baseu, &access_token, &room_id, id).ok()
+                    get_prev_batch_from(baseu.clone(), access_token.clone(), &room_id, id).ok()
                 } else {
                     None
                 }

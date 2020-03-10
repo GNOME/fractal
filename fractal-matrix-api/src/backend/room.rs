@@ -243,7 +243,7 @@ pub fn get_room_messages_from_msg(
     let itx = bk.internal_tx.clone();
 
     thread::spawn(move || {
-        if let Ok(from) = get_prev_batch_from(&baseu, &tk, &room_id, &msg.id) {
+        if let Ok(from) = get_prev_batch_from(baseu.clone(), tk.clone(), &room_id, &msg.id) {
             if let Some(t) = itx {
                 t.send(BKCommand::GetRoomMessages(baseu, tk, room_id, from))
                     .expect_log("Connection closed");
