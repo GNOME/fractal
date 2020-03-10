@@ -331,18 +331,11 @@ impl Backend {
                 bkerror2!(r, tx, BKResponse::AttachedFile);
             }
             Ok(BKCommand::NewRoom(server, access_token, name, privacy, internal_id)) => {
-                let r = room::new_room(
-                    self,
-                    server,
-                    access_token,
-                    name,
-                    privacy,
-                    internal_id.clone(),
-                );
-                if let Err(e) = r {
-                    tx.send(BKResponse::NewRoom(Err(e), internal_id))
+                thread::spawn(move || {
+                    let room_res = room::new_room(server, access_token, name, privacy);
+                    tx.send(BKResponse::NewRoom(room_res, internal_id))
                         .expect_log("Connection closed");
-                }
+                });
             }
             Ok(BKCommand::DirectChat(server, access_token, uid, user, internal_id)) => {
                 let r =
