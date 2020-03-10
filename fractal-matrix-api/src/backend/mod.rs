@@ -308,7 +308,7 @@ impl Backend {
             }
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);
-                bkerror2!(r, tx, BKResponse::AttachedFile);
+                bkerror!(r, tx, BKResponse::AttachedFile);
             }
             Ok(BKCommand::NewRoom(server, access_token, name, privacy, internal_id)) => {
                 thread::spawn(move || {
@@ -416,7 +416,7 @@ impl Backend {
                 };
 
                 let r = directory::room_search(self, server, access_token, hs, q, tp, more);
-                bkerror2!(r, tx, BKResponse::DirectorySearch);
+                bkerror!(r, tx, BKResponse::DirectorySearch);
             }
 
             // Internal commands
