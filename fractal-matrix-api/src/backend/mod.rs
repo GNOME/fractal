@@ -338,12 +338,13 @@ impl Backend {
                 });
             }
             Ok(BKCommand::DirectChat(server, access_token, uid, user, internal_id)) => {
-                let r =
-                    room::direct_chat(self, server, access_token, uid, user, internal_id.clone());
-                if let Err(e) = r {
-                    tx.send(BKResponse::NewRoom(Err(e), internal_id))
+                let data = self.data.clone();
+
+                thread::spawn(move || {
+                    let room_res = room::direct_chat(data, server, access_token, uid, user);
+                    tx.send(BKResponse::NewRoom(room_res, internal_id))
                         .expect_log("Connection closed");
-                }
+                });
             }
             Ok(BKCommand::AddToFav(server, access_token, uid, room_id, tofav)) => {
                 thread::spawn(move || {
