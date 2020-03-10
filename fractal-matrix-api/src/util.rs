@@ -204,7 +204,7 @@ pub fn get_prev_batch_from(
     let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
 
     let path = format!("rooms/{}/context/{}", room_id, evid);
-    let url = client_url(baseu, &path, params)?;
+    let url = build_url(baseu, &format!("/_matrix/client/r0/{}", path), params)?;
 
     let r = json_q("get", url, &json!(null))?;
     let prev_batch = r["start"].to_string().trim_matches('"').to_string();
@@ -237,7 +237,7 @@ pub fn dw_media(
         (vec![], format!("download/{}/{}", server, media))
     };
 
-    let url = media_url(base, &path, &params)?;
+    let url = build_url(base, &format!("/_matrix/media/r0/{}", path), &params)?;
 
     let fname = match dest {
         None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media)?,
@@ -359,18 +359,6 @@ pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Ur
     }
 
     Ok(url)
-}
-
-pub fn client_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/client/r0/{}", path), params)
-}
-
-pub fn scalar_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("api/{}", path), params)
-}
-
-fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
