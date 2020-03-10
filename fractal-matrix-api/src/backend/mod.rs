@@ -4,18 +4,12 @@ use std::sync::mpsc::RecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
-use url::Url;
 
-use crate::util::client_url;
 use crate::util::dw_media;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 
-use crate::error::Error;
-
 use crate::cache::CacheMap;
-
-use crate::r0::AccessToken;
 
 use crate::globals;
 
@@ -29,10 +23,8 @@ mod user;
 
 pub use self::types::BKCommand;
 pub use self::types::BKResponse;
-
 pub use self::types::Backend;
 pub use self::types::BackendData;
-
 pub use self::types::RoomType;
 
 impl Backend {
@@ -49,18 +41,6 @@ impl Backend {
             user_info_cache: CacheMap::new().timeout(60 * 60),
             limit_threads: Arc::new((Mutex::new(0u8), Condvar::new())),
         }
-    }
-
-    fn url(
-        &self,
-        base: Url,
-        tk: &AccessToken,
-        path: &str,
-        mut params: Vec<(&str, String)>,
-    ) -> Result<Url, Error> {
-        params.push(("access_token", tk.to_string()));
-
-        client_url(&base, path, &params)
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {
