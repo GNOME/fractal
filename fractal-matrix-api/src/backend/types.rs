@@ -53,7 +53,6 @@ pub enum BKCommand {
         Option<String>,
         Sender<(Vec<Message>, String)>,
     ),
-    GetFileAsync(Url, Sender<String>),
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
     GetMedia(Url, String),
     GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
@@ -137,7 +136,6 @@ pub enum BKResponse {
     GuestLoginError(Error),
     SendTypingError(Error),
     SetRoomError(Error),
-    GetFileAsyncError(Error),
     InviteError(Error),
     ChangeLanguage(Result<(), Error>),
 }
