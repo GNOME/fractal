@@ -90,7 +90,7 @@ macro_rules! clone {
 }
 
 #[macro_export]
-macro_rules! bkerror2 {
+macro_rules! bkerror {
     ($result: expr, $tx: ident, $type: expr) => {
         if let Err(e) = $result {
             let _ = $tx.send($type(Err(e)));
