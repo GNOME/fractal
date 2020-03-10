@@ -17,7 +17,6 @@ use std::thread;
 use crate::util::cache_dir_path;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
-use crate::util::json_q;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
@@ -32,6 +31,8 @@ use crate::r0::config::get_global_account_data::request as get_global_account_da
 use crate::r0::config::get_global_account_data::Parameters as GetGlobalAccountDataParameters;
 use crate::r0::config::set_global_account_data::request as set_global_account_data;
 use crate::r0::config::set_global_account_data::Parameters as SetGlobalAccountDataParameters;
+use crate::r0::config::set_room_account_data::request as set_room_account_data;
+use crate::r0::config::set_room_account_data::Parameters as SetRoomAccountDataParameters;
 use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
 use crate::r0::context::get_context::Response as GetContextResponse;
@@ -798,39 +799,45 @@ pub fn invite(
     invite_user(base, &room_id, &params, &body)
         .map_err(Into::into)
         .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
+            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+
+            Ok(())
         })
-        .and(Ok(()))
 }
 
 pub fn set_language(
-    bk: &Backend,
     access_token: AccessToken,
-    server: Url,
+    base: Url,
     user_id: UserId,
     room_id: RoomId,
     input_language: String,
 ) -> Result<(), Error> {
-    let url = bk.url(
-        server,
-        &access_token,
-        &format!(
-            "user/{}/rooms/{}/account_data/org.gnome.fractal.language",
-            user_id, room_id,
-        ),
-        vec![],
-    )?;
+    let params = SetRoomAccountDataParameters { access_token };
+
     let body = json!(Language { input_language });
 
+    let response = set_room_account_data(
+        base,
+        &params,
+        &body,
+        &user_id,
+        &room_id,
+        "org.gnome.fractal.language",
+    )
+    .map_err(Into::into)
+    .and_then(|request| {
+        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+
+        Ok(())
+    });
+
     // FIXME: Manage errors in the AppOp loop
-    put!(url, &body, |_| {}, |err| {
+    if let Err(ref err) = response {
         error!(
             "Matrix failed to set room language with error code: {:?}",
             err
-        )
-    });
-    Ok(())
+        );
+    }
+
+    response
 }

@@ -373,8 +373,11 @@ impl Backend {
                 });
             }
             Ok(BKCommand::ChangeLanguage(access_token, server, uid, room_id, lang)) => {
-                let r = room::set_language(self, access_token, server, uid, room_id, lang);
-                bkerror2!(r, tx, BKResponse::ChangeLanguage);
+                thread::spawn(move || {
+                    let query = room::set_language(access_token, server, uid, room_id, lang);
+                    tx.send(BKResponse::ChangeLanguage(query))
+                        .expect_log("Connection closed");
+                });
             }
 
             // Media module
