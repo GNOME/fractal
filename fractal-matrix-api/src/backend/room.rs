@@ -37,9 +37,9 @@ use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
 use crate::r0::context::get_context::Response as GetContextResponse;
 use crate::r0::filter::RoomEventFilter;
-use crate::r0::media::create::request as create_content;
-use crate::r0::media::create::Parameters as CreateContentParameters;
-use crate::r0::media::create::Response as CreateContentResponse;
+use crate::r0::media::create_content::request as create_content;
+use crate::r0::media::create_content::Parameters as CreateContentParameters;
+use crate::r0::media::create_content::Response as CreateContentResponse;
 use crate::r0::membership::invite_user::request as invite_user;
 use crate::r0::membership::invite_user::Body as InviteUserBody;
 use crate::r0::membership::invite_user::Parameters as InviteUserParameters;
@@ -154,10 +154,10 @@ pub fn get_room_avatar(
             let dest = cache_dir_path(None, &room_id.to_string()).ok();
             if let Some(ref avatar) = avatar {
                 let _ = dw_media(
-                    &base,
+                    base,
                     avatar.as_str(),
                     ContentType::default_thumbnail(),
-                    dest.as_ref().map(String::as_str),
+                    dest,
                 );
             }
 
