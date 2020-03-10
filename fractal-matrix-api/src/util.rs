@@ -23,11 +23,14 @@ use crate::error::Error;
 use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
 use crate::r0::context::get_context::Response as GetContextResponse;
+use crate::r0::media::get_content::request as get_content;
+use crate::r0::media::get_content::Parameters as GetContentParameters;
+use crate::r0::media::get_content_thumbnail::request as get_content_thumbnail;
+use crate::r0::media::get_content_thumbnail::Method;
+use crate::r0::media::get_content_thumbnail::Parameters as GetContentThumbnailParameters;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::AccessToken;
-
-use crate::globals;
 
 lazy_static! {
     pub static ref HTTP_CLIENT: Client = Client::new();
@@ -117,7 +120,7 @@ macro_rules! bkerror2 {
 
 pub enum ContentType {
     Download,
-    Thumbnail(i32, i32),
+    Thumbnail(u64, u64),
 }
 
 impl ContentType {
@@ -173,42 +176,43 @@ pub fn get_prev_batch_from(
 }
 
 pub fn dw_media(
-    base: &Url,
-    url: &str,
+    base: Url,
+    mxc: &str,
     media_type: ContentType,
-    dest: Option<&str>,
+    dest: Option<String>,
 ) -> Result<String, Error> {
-    let caps = globals::MATRIX_RE
-        .captures(url)
+    let mxc_url = Url::parse(mxc)?;
+
+    if mxc_url.scheme() != "mxc" {
+        return Err(Error::BackendError);
+    }
+
+    let server = mxc_url.host().ok_or(Error::BackendError)?.to_owned();
+    let media_id = mxc_url
+        .path_segments()
+        .and_then(|mut ps| ps.next())
+        .filter(|s| !s.is_empty())
         .ok_or(Error::BackendError)?;
-    let server = String::from(&caps["server"]);
-    let media = String::from(&caps["media"]);
 
-    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
-        (
-            vec![
-                ("width", w.to_string()),
-                ("height", h.to_string()),
-                ("method", String::from("crop")),
-            ],
-            format!("thumbnail/{}/{}", server, media),
-        )
+    let request = if let ContentType::Thumbnail(width, height) = media_type {
+        let params = GetContentThumbnailParameters {
+            width,
+            height,
+            method: Some(Method::Crop),
+            allow_remote: true,
+        };
+        get_content_thumbnail(base, &params, &server, &media_id)
     } else {
-        (vec![], format!("download/{}/{}", server, media))
-    };
-
-    let url = build_url(base, &format!("/_matrix/media/r0/{}", path), &params)?;
+        let params = GetContentParameters::default();
+        get_content(base, &params, &server, &media_id)
+    }?;
 
     let fname = match dest {
-        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media)?,
-        None => cache_dir_path(Some("medias"), &media)?,
-        Some(d) => String::from(d),
+        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media_id)?,
+        None => cache_dir_path(Some("medias"), &media_id)?,
+        Some(ref d) => d.clone(),
     };
 
-    download_file(url, fname, dest)
-}
-
-pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<String, Error> {
     let fpath = Path::new(&fname);
 
     // If the file is already cached and recent enough, don't download it
@@ -219,17 +223,16 @@ pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<Stri
     } else {
         HTTP_CLIENT
             .get_client()?
-            .get(url)
-            .send()?
+            .execute(request)?
             .bytes()
             .collect::<Result<Vec<u8>, std::io::Error>>()
             .and_then(|media| write(&fname, media))
             .and(Ok(fname))
-            .map_err(Error::from)
+            .map_err(Into::into)
     }
 }
 
-pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String), Error> {
+pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
     let response = get_profile(base.clone(), user_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
@@ -253,29 +256,12 @@ pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String),
                 base,
                 url.as_str(),
                 ContentType::default_thumbnail(),
-                Some(&dest),
+                Some(dest),
             )
         })
         .unwrap_or(Ok(Default::default()))?;
 
     Ok((name, img))
-}
-
-pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    let mut url = base.join(path)?;
-
-    {
-        // If len was 0 `?` would be appended without being needed.
-        if !params.is_empty() {
-            let mut query = url.query_pairs_mut();
-            query.clear();
-            for (k, v) in params {
-                query.append_pair(k, &v);
-            }
-        }
-    }
-
-    Ok(url)
 }
 
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {

@@ -46,9 +46,9 @@ use crate::r0::contact::request_verification_token_msisdn::request as request_co
 use crate::r0::contact::request_verification_token_msisdn::Body as PhoneTokenBody;
 use crate::r0::contact::request_verification_token_msisdn::Parameters as PhoneTokenParameters;
 use crate::r0::contact::request_verification_token_msisdn::Response as PhoneTokenResponse;
-use crate::r0::media::create::request as create_content;
-use crate::r0::media::create::Parameters as CreateContentParameters;
-use crate::r0::media::create::Response as CreateContentResponse;
+use crate::r0::media::create_content::request as create_content;
+use crate::r0::media::create_content::Parameters as CreateContentParameters;
+use crate::r0::media::create_content::Response as CreateContentResponse;
 use crate::r0::profile::get_display_name::request as get_display_name;
 use crate::r0::profile::get_display_name::Response as GetDisplayNameResponse;
 use crate::r0::profile::set_avatar_url::request as set_avatar_url;
@@ -340,7 +340,7 @@ pub fn account_destruction(
 }
 
 pub fn get_avatar(base: Url, userid: UserId) -> Result<String, Error> {
-    get_user_avatar(&base, &userid).map(|(_, fname)| fname)
+    get_user_avatar(base, &userid).map(|(_, fname)| fname)
 }
 
 pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sender<String>) {
@@ -349,7 +349,7 @@ pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sen
         let avatar = member.avatar.clone().unwrap_or_default();
 
         semaphore(bk.limit_threads.clone(), move || {
-            let fname = get_user_avatar_img(&base, &uid, &avatar).unwrap_or_default();
+            let fname = get_user_avatar_img(base, &uid, &avatar).unwrap_or_default();
             tx.send(fname).expect_log("Connection closed");
         });
     } else {
@@ -418,7 +418,7 @@ pub fn get_user_info_async(
     bk.user_info_cache.insert(uid.clone(), info.clone());
 
     semaphore(bk.limit_threads.clone(), move || {
-        match (get_user_avatar(&baseu, &uid), tx) {
+        match (get_user_avatar(baseu, &uid), tx) {
             (Ok(i0), Some(tx)) => {
                 tx.send(i0.clone()).expect_log("Connection closed");
                 *info.lock().unwrap() = i0;
@@ -454,16 +454,7 @@ pub fn search(
         .map(|response| response.results.into_iter().map(Into::into).collect())
 }
 
-fn get_user_avatar_img(baseu: &Url, userid: &UserId, avatar: &str) -> Result<String, Error> {
-    if avatar.is_empty() {
-        return Ok(String::new());
-    }
-
+fn get_user_avatar_img(baseu: Url, userid: &UserId, avatar: &str) -> Result<String, Error> {
     let dest = cache_dir_path(None, &userid.to_string())?;
-    dw_media(
-        baseu,
-        &avatar,
-        ContentType::default_thumbnail(),
-        Some(&dest),
-    )
+    dw_media(baseu, avatar, ContentType::default_thumbnail(), Some(dest))
 }

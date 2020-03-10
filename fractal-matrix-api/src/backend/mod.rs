@@ -385,14 +385,10 @@ impl Backend {
             ),
             Ok(BKCommand::GetMedia(server, media)) => {
                 thread::spawn(move || {
-                    let fname = dw_media(&server, &media, ContentType::Download, None);
+                    let fname = dw_media(server, &media, ContentType::Download, None);
                     tx.send(BKResponse::Media(fname))
                         .expect_log("Connection closed");
                 });
-            }
-            Ok(BKCommand::GetFileAsync(url, ctx)) => {
-                let r = media::get_file_async(url, ctx);
-                bkerror!(r, tx, BKResponse::GetFileAsyncError);
             }
 
             // Directory module
