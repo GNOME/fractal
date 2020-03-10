@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use log::error;
-use serde_json::json;
 
 use serde_json::Value as JsonValue;
 
@@ -21,6 +20,9 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::r0::context::get_context::request as get_context;
+use crate::r0::context::get_context::Parameters as GetContextParameters;
+use crate::r0::context::get_context::Response as GetContextResponse;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::AccessToken;
@@ -196,18 +198,20 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<UserId, Vec<RoomId>> {
 }
 
 pub fn get_prev_batch_from(
-    baseu: &Url,
-    tk: &AccessToken,
+    base: Url,
+    access_token: AccessToken,
     room_id: &RoomId,
-    evid: &str,
+    event_id: &str,
 ) -> Result<String, Error> {
-    let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
+    let params = GetContextParameters {
+        access_token,
+        limit: 0,
+        filter: Default::default(),
+    };
 
-    let path = format!("rooms/{}/context/{}", room_id, evid);
-    let url = build_url(baseu, &format!("/_matrix/client/r0/{}", path), params)?;
-
-    let r = json_q("get", url, &json!(null))?;
-    let prev_batch = r["start"].to_string().trim_matches('"').to_string();
+    let request = get_context(base, &params, room_id, event_id)?;
+    let response: GetContextResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let prev_batch = response.start.unwrap_or_default();
 
     Ok(prev_batch)
 }
