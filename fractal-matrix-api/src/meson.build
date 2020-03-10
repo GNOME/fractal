@@ -28,7 +28,7 @@ api_sources = files(
   'r0/contact/request_verification_token_email.rs',
   'r0/contact/request_verification_token_msisdn.rs',
   'r0/directory/post_public_rooms.rs',
-  'r0/media/create.rs',
+  'r0/media/create_content.rs',
   'r0/membership/invite_user.rs',
   'r0/membership/join_room_by_id_or_alias.rs',
   'r0/membership/leave_room.rs',
