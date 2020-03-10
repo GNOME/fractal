@@ -101,15 +101,6 @@ macro_rules! derror {
 }
 
 #[macro_export]
-macro_rules! bkerror {
-    ($result: ident, $tx: ident, $type: expr) => {
-        if let Err(e) = $result {
-            $tx.send($type(e)).expect_log("Connection closed");
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! bkerror2 {
     ($result: expr, $tx: ident, $type: expr) => {
         if let Err(e) = $result {
