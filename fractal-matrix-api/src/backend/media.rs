@@ -2,14 +2,10 @@ use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
 use ruma_identifiers::RoomId;
-use std::str::Split;
 use std::sync::mpsc::Sender;
-use std::thread;
 use url::Url;
 
 use crate::r0::AccessToken;
-use crate::util::cache_dir_path;
-use crate::util::download_file;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::semaphore;
@@ -26,14 +22,14 @@ use crate::types::Message;
 
 pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
     semaphore(bk.limit_threads.clone(), move || {
-        let fname = dw_media(&baseu, &media, ContentType::default_thumbnail(), None);
+        let fname = dw_media(baseu, &media, ContentType::default_thumbnail(), None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
 
 pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
     semaphore(bk.limit_threads.clone(), move || {
-        let fname = dw_media(&baseu, &media, ContentType::Download, None);
+        let fname = dw_media(baseu, &media, ContentType::Download, None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
@@ -69,21 +65,6 @@ pub fn get_media_list_async(
             .unwrap_or_default();
         tx.send(media_list).expect_log("Connection closed");
     });
-}
-
-pub fn get_file_async(url: Url, tx: Sender<String>) -> Result<(), Error> {
-    let name = url
-        .path_segments()
-        .and_then(Split::last)
-        .unwrap_or_default();
-    let fname = cache_dir_path(Some("files"), name)?;
-
-    thread::spawn(move || {
-        let fname = download_file(url, fname, None).unwrap_or_default();
-        tx.send(fname).expect_log("Connection closed");
-    });
-
-    Ok(())
 }
 
 fn get_room_media_list(
