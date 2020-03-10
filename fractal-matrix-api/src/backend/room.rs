@@ -56,6 +56,12 @@ use crate::r0::redact::redact_event::request as redact_event;
 use crate::r0::redact::redact_event::Body as RedactEventBody;
 use crate::r0::redact::redact_event::Parameters as RedactEventParameters;
 use crate::r0::redact::redact_event::Response as RedactEventResponse;
+use crate::r0::room::create_room::request as create_room;
+use crate::r0::room::create_room::Body as CreateRoomBody;
+use crate::r0::room::create_room::Parameters as CreateRoomParameters;
+use crate::r0::room::create_room::Response as CreateRoomResponse;
+use crate::r0::room::create_room::RoomPreset;
+use crate::r0::room::Visibility;
 use crate::r0::state::create_state_events_for_key::request as create_state_events_for_key;
 use crate::r0::state::create_state_events_for_key::Parameters as CreateStateEventsForKeyParameters;
 use crate::r0::state::get_state_events_for_key::request as get_state_events_for_key;
@@ -598,50 +604,38 @@ fn upload_file(
 }
 
 pub fn new_room(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
     name: String,
     privacy: RoomType,
-    internal_id: RoomId,
-) -> Result<(), Error> {
-    let url = bk.url(base, &access_token, "createRoom", vec![])?;
-    let attrs = json!({
-        "invite": [],
-        "invite_3pid": [],
-        "name": &name,
-        "visibility": match privacy {
-            RoomType::Public => "public",
-            RoomType::Private => "private",
-        },
-        "topic": "",
-        "preset": match privacy {
-            RoomType::Public => "public_chat",
-            RoomType::Private => "private_chat",
-        },
-    });
+) -> Result<Room, Error> {
+    let params = CreateRoomParameters { access_token };
 
-    let tx = bk.tx.clone();
-    post!(
-        url,
-        &attrs,
-        move |r: JsonValue| {
-            let room_res = RoomId::try_from(r["room_id"].as_str().unwrap_or_default())
-                .map_err(Into::into)
-                .map(|room_id| Room {
-                    name: Some(name),
-                    ..Room::new(room_id, RoomMembership::Joined(RoomTag::None))
-                });
+    let (visibility, preset) = match privacy {
+        RoomType::Public => (Visibility::Public, RoomPreset::PublicChat),
+        RoomType::Private => (Visibility::Private, RoomPreset::PrivateChat),
+    };
 
-            tx.send(BKResponse::NewRoom(room_res, internal_id))
-                .expect_log("Connection closed");
-        },
-        |err| {
-            tx.send(BKResponse::NewRoom(Err(err), internal_id))
-                .expect_log("Connection closed");
-        }
-    );
-    Ok(())
+    let body = CreateRoomBody {
+        name: Some(name.clone()),
+        visibility: Some(visibility),
+        preset: Some(preset),
+        ..Default::default()
+    };
+
+    create_room(base, &params, &body)
+        .map_err(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<CreateRoomResponse>()?;
+
+            Ok(Room {
+                name: Some(name),
+                ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
+            })
+        })
 }
 
 fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user_id: UserId, room_id: RoomId) {
