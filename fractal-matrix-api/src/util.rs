@@ -27,8 +27,6 @@ use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::AccessToken;
 
-use reqwest::header::CONTENT_LENGTH;
-
 use crate::globals;
 
 lazy_static! {
@@ -114,44 +112,6 @@ macro_rules! bkerror2 {
         if let Err(e) = $result {
             let _ = $tx.send($type(Err(e)));
         }
-    };
-}
-
-#[macro_export]
-macro_rules! get {
-    ($($args: expr),+) => {
-        query!("get", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! post {
-    ($($args: expr),+) => {
-        query!("post", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! put {
-    ($($args: expr),+) => {
-        query!("put", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! query {
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        thread::spawn(move || {
-            let js = json_q($method, $url, $attrs);
-
-            match js {
-                Ok(r) => $okcb(r),
-                Err(err) => $errcb(err),
-            }
-        });
-    };
-    ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        query!($method, $url, &json!(null), $okcb, $errcb)
     };
 }
 
@@ -270,49 +230,6 @@ pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<Stri
             .and_then(|media| write(&fname, media))
             .and(Ok(fname))
             .map_err(Error::from)
-    }
-}
-
-pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
-    let mut conn = match method {
-        "post" => HTTP_CLIENT.get_client()?.post(url),
-        "put" => HTTP_CLIENT.get_client()?.put(url),
-        "delete" => HTTP_CLIENT.get_client()?.delete(url),
-        _ => HTTP_CLIENT.get_client()?.get(url),
-    };
-
-    if !attrs.is_null() {
-        conn = conn.json(attrs);
-    } else if method == "post" {
-        conn = conn.header(CONTENT_LENGTH, 0);
-    }
-
-    let res = conn.send()?;
-
-    //let mut content = String::new();
-    //res.read_to_string(&mut content);
-    //cb(content);
-
-    if !res.status().is_success() {
-        return match res.json() {
-            Ok(js) => Err(Error::MatrixError(js)),
-            Err(err) => Err(Error::ReqwestError(err)),
-        };
-    }
-
-    let json: Result<JsonValue, reqwest::Error> = res.json();
-    match json {
-        Ok(js) => {
-            let js2 = js.clone();
-            if let Some(error) = js.as_object() {
-                if error.contains_key("errcode") {
-                    error!("{:#?}", js2);
-                    return Err(Error::MatrixError(js2));
-                }
-            }
-            Ok(js)
-        }
-        Err(_) => Err(Error::BackendError),
     }
 }
 
