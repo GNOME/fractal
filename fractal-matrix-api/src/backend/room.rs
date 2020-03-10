@@ -28,6 +28,10 @@ use crate::backend::types::Backend;
 use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
+use crate::r0::config::get_global_account_data::request as get_global_account_data;
+use crate::r0::config::get_global_account_data::Parameters as GetGlobalAccountDataParameters;
+use crate::r0::config::set_global_account_data::request as set_global_account_data;
+use crate::r0::config::set_global_account_data::Parameters as SetGlobalAccountDataParameters;
 use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
 use crate::r0::context::get_context::Response as GetContextResponse;
@@ -638,11 +642,27 @@ pub fn new_room(
         })
 }
 
-fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user_id: UserId, room_id: RoomId) {
-    get!(
-        url.clone(),
-        |r: JsonValue| {
-            let directs: Result<HashMap<UserId, Vec<RoomId>>, IdError> = r
+fn update_direct_chats(
+    data: Arc<Mutex<BackendData>>,
+    base: Url,
+    access_token: AccessToken,
+    user_id: UserId,
+    room_id: RoomId,
+    user: Member,
+) {
+    let params = GetGlobalAccountDataParameters {
+        access_token: access_token.clone(),
+    };
+
+    let directs = get_global_account_data(base.clone(), &params, &user_id, "m.direct")
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<JsonValue>()?;
+
+            response
                 .as_object()
                 .into_iter()
                 .flatten()
@@ -655,88 +675,88 @@ fn update_direct_chats(url: Url, data: Arc<Mutex<BackendData>>, user_id: UserId,
                         .collect::<Result<Vec<RoomId>, IdError>>()?;
                     Ok((UserId::try_from(uid.as_str())?, roomlist))
                 })
-                .collect();
+                .collect::<Result<HashMap<UserId, Vec<RoomId>>, IdError>>()
+                .map_err(Into::into)
+        });
 
-            if let Ok(mut directs) = directs {
-                if let Some(v) = directs.get_mut(&user_id) {
-                    v.push(room_id);
-                } else {
-                    directs.insert(user_id, vec![room_id]);
-                }
-                data.lock().unwrap().m_direct = directs.clone();
-
-                let attrs = json!(directs);
-                put!(url, &attrs, |_| {}, |err| error!("{:?}", err));
+    match directs {
+        Ok(mut directs) => {
+            if let Some(v) = directs.get_mut(&user.uid) {
+                v.push(room_id);
+            } else {
+                directs.insert(user.uid, vec![room_id]);
             }
-        },
-        |err| {
-            error!("Can't set m.direct: {:?}", err);
+            data.lock().unwrap().m_direct = directs.clone();
+
+            let params = SetGlobalAccountDataParameters {
+                access_token: access_token.clone(),
+            };
+
+            if let Err(err) =
+                set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")
+                    .map_err::<Error, _>(Into::into)
+                    .and_then(|request| {
+                        HTTP_CLIENT
+                            .get_client()?
+                            .execute(request)
+                            .map_err(Into::into)
+                    })
+            {
+                error!("{:?}", err);
+            };
         }
-    );
+        Err(err) => error!("Can't set m.direct: {:?}", err),
+    };
 }
 
 pub fn direct_chat(
-    bk: &Backend,
+    data: Arc<Mutex<BackendData>>,
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
     user: Member,
-    internal_id: RoomId,
-) -> Result<(), Error> {
-    let url = bk.url(base.clone(), &access_token, "createRoom", vec![])?;
-    let attrs = json!({
-        "invite": [user.uid.clone()],
-        "invite_3pid": [],
-        "visibility": "private",
-        "preset": "private_chat",
-        "is_direct": true,
-        "state_event": {
+) -> Result<Room, Error> {
+    let params = CreateRoomParameters {
+        access_token: access_token.clone(),
+    };
+
+    let body = CreateRoomBody {
+        invite: vec![user.uid.clone()],
+        visibility: Some(Visibility::Private),
+        preset: Some(RoomPreset::PrivateChat),
+        is_direct: true,
+        initial_state: vec![json!({
             "type": "m.room.history_visibility",
             "content": {
                 "history_visibility": "invited"
             }
-        }
-    });
+        })],
+        ..Default::default()
+    };
 
-    let direct_url = bk.url(
-        base,
-        &access_token,
-        &format!("user/{}/account_data/m.direct", user_id),
-        vec![],
-    )?;
+    create_room(base.clone(), &params, &body)
+        .map_err(Into::into)
+        .and_then(|request| {
+            let response = HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<CreateRoomResponse>()?;
 
-    let tx = bk.tx.clone();
-    let data = bk.data.clone();
-    post!(
-        url,
-        &attrs,
-        move |r: JsonValue| {
-            match RoomId::try_from(r["room_id"].as_str().unwrap_or_default()) {
-                Ok(room_id) => {
-                    let r = Room {
-                        name: user.alias.clone(),
-                        direct: true,
-                        ..Room::new(room_id.clone(), RoomMembership::Joined(RoomTag::None))
-                    };
+            update_direct_chats(
+                data,
+                base,
+                access_token,
+                user_id,
+                response.room_id.clone(),
+                user.clone(),
+            );
 
-                    tx.send(BKResponse::NewRoom(Ok(r), internal_id))
-                        .expect_log("Connection closed");
-
-                    update_direct_chats(direct_url, data, user.uid.clone(), room_id);
-                }
-                Err(err) => {
-                    tx.send(BKResponse::NewRoom(Err(err.into()), internal_id))
-                        .expect_log("Connection closed");
-                }
-            }
-        },
-        |err| {
-            tx.send(BKResponse::NewRoom(Err(err), internal_id))
-                .expect_log("Connection closed");
-        }
-    );
-
-    Ok(())
+            Ok(Room {
+                name: user.alias.clone(),
+                direct: true,
+                ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
+            })
+        })
 }
 
 pub fn add_to_fav(
