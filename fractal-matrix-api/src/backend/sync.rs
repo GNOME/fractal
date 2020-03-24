@@ -243,9 +243,7 @@ pub fn sync(
                             }
                         });
                 } else {
-                    if let Ok(m_direct) = parse_m_direct(&response.account_data.events) {
-                        data.lock().unwrap().m_direct = m_direct;
-                    }
+                    data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
 
                     let rooms_def =
                         Room::from_sync_response(&response, user_id, &base)

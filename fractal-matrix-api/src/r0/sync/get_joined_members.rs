@@ -23,6 +23,7 @@ pub struct Response {
 pub struct RoomMember {
     pub display_name: Option<String>,
     #[serde(with = "option_url")]
+    #[serde(default)]
     pub avatar_url: Option<Url>,
 }
 
