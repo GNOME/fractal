@@ -10,3 +10,5 @@ vendor
 # Files configured by meson
 fractal-gtk/src/config.rs
 fractal-gtk/src/static_resources.rs
+subprojects/*
+!subprojects/*.wrap
