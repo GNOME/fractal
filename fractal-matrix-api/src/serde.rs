@@ -40,8 +40,8 @@ pub mod url {
 pub mod option_url {
     use super::url as serde_url;
     use serde::de::{Error, Visitor};
-    use serde::Deserializer;
     use serde::Serializer;
+    use serde::{Deserialize, Deserializer};
     use std::fmt::{self, Formatter};
     use url::Url;
 
@@ -72,7 +72,18 @@ pub mod option_url {
         where
             D: Deserializer<'de>,
         {
-            serde_url::deserialize(de).map(Some)
+            // serde_url::deserialize(de).map(Some)
+            //
+            // Using an alternative way because Synapse sends empty strings
+            // as url (see #606 "relative URL without a base" error)
+
+            let url_str = String::deserialize(de)?;
+
+            if url_str.is_empty() {
+                Ok(None)
+            } else {
+                Url::parse(&url_str).map(Some).map_err(D::Error::custom)
+            }
         }
     }
 
