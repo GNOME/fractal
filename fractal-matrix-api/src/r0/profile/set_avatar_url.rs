@@ -15,6 +15,7 @@ pub struct Parameters {
 #[derive(Clone, Debug, Serialize)]
 pub struct Body {
     #[serde(with = "option_url")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar_url: Option<Url>,
 }
 

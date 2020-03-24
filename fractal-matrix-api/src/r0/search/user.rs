@@ -37,7 +37,6 @@ pub struct Response {
 #[derive(Clone, Debug, Deserialize)]
 pub struct User {
     pub user_id: UserId,
-    #[serde(default)]
     pub display_name: Option<String>,
     #[serde(with = "option_url")]
     #[serde(default)]
