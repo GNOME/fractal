@@ -175,11 +175,16 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<Roo
     events
         .iter()
         .find(|x| x["type"] == "m.direct")
+        .map(|js| {
+            println!("{:#}", js);
+            js
+        })
         .and_then(|js| js["content"].as_object())
         .cloned()
         .unwrap_or_default()
         .iter()
         .map(|(uid, rid)| {
+            dbg!(uid, rid);
             let value = rid
                 .as_array()
                 .unwrap_or(&vec![])

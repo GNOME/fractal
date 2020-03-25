@@ -135,7 +135,7 @@ impl Room {
         baseu: &Url,
     ) -> Result<Vec<Self>, IdError> {
         // getting the list of direct rooms
-        let direct: HashSet<RoomId> = parse_m_direct(&response.account_data.events)?
+        let direct: HashSet<RoomId> = dbg!(parse_m_direct(&response.account_data.events))?
             .values()
             .flatten()
             .cloned()
