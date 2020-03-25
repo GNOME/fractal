@@ -171,7 +171,7 @@ impl ContentType {
     }
 }
 
-pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<RoomId>>, IdError> {
+pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<UserId, Vec<RoomId>> {
     events
         .iter()
         .find(|x| x["type"] == "m.direct")
@@ -179,14 +179,18 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<Roo
         .cloned()
         .unwrap_or_default()
         .iter()
-        .map(|(uid, rid)| {
+        // Synapse sometimes sends an object with the key "[object Object]"
+        // instead of a user ID, so we have to skip those invalid objects
+        // in the array in order to avoid discarding everything
+        .filter_map(|(uid, rid)| {
             let value = rid
                 .as_array()
                 .unwrap_or(&vec![])
                 .iter()
                 .map(|rid| RoomId::try_from(rid.as_str().unwrap_or_default()))
-                .collect::<Result<Vec<RoomId>, IdError>>()?;
-            Ok((UserId::try_from(uid.as_str())?, value))
+                .collect::<Result<Vec<RoomId>, IdError>>()
+                .ok()?;
+            Some((UserId::try_from(uid.as_str()).ok()?, value))
         })
         .collect()
 }

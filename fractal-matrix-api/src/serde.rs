@@ -72,7 +72,13 @@ pub mod option_url {
         where
             D: Deserializer<'de>,
         {
-            serde_url::deserialize(de).map(Some)
+            // serde_url::deserialize(de).map(Some)
+            //
+            // Using an alternative way because Synapse sends empty strings
+            // and junk data as url, so instead of failing it returns an
+            // empty value (see #606 "relative URL without a base" error)
+
+            Ok(serde_url::deserialize(de).ok())
         }
     }
 
