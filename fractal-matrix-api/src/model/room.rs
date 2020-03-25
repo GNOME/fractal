@@ -350,7 +350,7 @@ fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
 }
 
 fn get_admins(stevents: &Vec<JsonValue>) -> Result<HashMap<UserId, i32>, IdError> {
-    stevents
+    dbg!(stevents
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
         .filter_map(|ev| ev["content"]["users"].as_object())
@@ -361,7 +361,7 @@ fn get_admins(stevents: &Vec<JsonValue>) -> Result<HashMap<UserId, i32>, IdError
                 v.as_i64().map(|v| v as i32).unwrap_or_default(),
             ))
         })
-        .collect()
+        .collect())
 }
 
 fn get_default_power_level(stevents: &Vec<JsonValue>) -> i32 {
