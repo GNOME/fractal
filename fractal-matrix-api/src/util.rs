@@ -180,6 +180,7 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<Roo
         .unwrap_or_default()
         .iter()
         .map(|(uid, rid)| {
+            dbg!(uid, rid);
             let value = rid
                 .as_array()
                 .unwrap_or(&vec![])
