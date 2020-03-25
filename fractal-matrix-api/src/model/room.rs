@@ -167,7 +167,7 @@ impl Room {
                 notifications: room.unread_notifications.notification_count,
                 highlight: room.unread_notifications.highlight_count,
                 prev_batch: timeline.prev_batch.clone(),
-                messages: Message::from_json_events_iter(&k, timeline.events.iter())?,
+                messages: dbg!(Message::from_json_events_iter(&k, timeline.events.iter()))?,
                 admins: get_admins(stevents)?,
                 default_power_level: get_default_power_level(stevents),
                 members: stevents
