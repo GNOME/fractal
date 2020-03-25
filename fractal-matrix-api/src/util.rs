@@ -172,14 +172,18 @@ impl ContentType {
 }
 
 pub fn parse_m_direct(events: &Vec<JsonValue>) -> Result<HashMap<UserId, Vec<RoomId>>, IdError> {
-    events
+    let json_map = events
         .iter()
         .find(|x| x["type"] == "m.direct")
         .and_then(|js| js["content"].as_object())
         .cloned()
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    println!("{:#}", JsonValue::Object(json_map.clone()));
+    json_map
         .iter()
         .map(|(uid, rid)| {
+            dbg!(uid, rid);
             let value = rid
                 .as_array()
                 .unwrap_or(&vec![])
