@@ -78,6 +78,7 @@ pub mod option_url {
             // as url (see #606 "relative URL without a base" error)
 
             let url_str = String::deserialize(de)?;
+            eprinln!("{}", url_str);
 
             if url_str.is_empty() {
                 Ok(None)
