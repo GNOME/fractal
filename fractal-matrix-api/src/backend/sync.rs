@@ -1,6 +1,7 @@
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::client::ProxySettings;
+use crate::error::Error;
 use crate::globals;
 use crate::r0::filter::EventFilter;
 use crate::r0::filter::Filter;
@@ -101,10 +102,19 @@ pub fn sync(
                 .apply_to_client_builder(client_builder_timeout)?
                 .build()?;
             let request = sync_events(base.clone(), &params)?;
-            client
-                .execute(request)?
-                .json::<SyncResponse>()
-                .map_err(Into::into)
+
+            let response = client.execute(request)?;
+            let status = response.status();
+
+            if !status.is_success() {
+                // TODO: Real error handling
+                // https://matrix.org/docs/spec/client_server/latest#api-standards
+                // status.as_u16(), status.canonical_reason()
+                // let matrix_error = response.json::<StandardErrorResponse>();
+                return Err(Error::MatrixSyncError);
+            }
+
+            response.json::<SyncResponse>().map_err(Into::into)
         });
 
         match query {
