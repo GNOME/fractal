@@ -47,7 +47,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 BKResponse::GetTokenEmail(Err(Error::Denied)) => {
-                    let error = i18n("Please enter a valid email adress.");
+                    let error = i18n("Please enter a valid email address.");
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 BKResponse::GetTokenPhone(Err(Error::TokenUsed)) => {

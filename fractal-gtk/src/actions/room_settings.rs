@@ -25,7 +25,7 @@ pub fn new(
     access_token: AccessToken,
 ) -> gio::SimpleActionGroup {
     let actions = SimpleActionGroup::new();
-    // TODO create two stats loading interaction and conect it to the avatar box
+    // TODO create two stats loading interaction and connect it to the avatar box
     let change_avatar = SimpleAction::new_stateful(
         "change-avatar",
         glib::VariantTy::new("s").ok(),

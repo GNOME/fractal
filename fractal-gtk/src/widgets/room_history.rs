@@ -433,7 +433,7 @@ impl RoomHistory {
         let queue = self.queue.clone();
         let rows = self.rows.clone();
 
-        /* TO-DO: we could set the listbox height the 52 * length of messages, to descrease jumps of the
+        /* TO-DO: we could set the listbox height the 52 * length of messages, to decrease jumps of the
          * scrollbar. 52 is the normal height of a message with one line
          * self.listbox.set_size_request(-1, 52 * messages.len() as i32); */
 
@@ -495,7 +495,7 @@ impl RoomHistory {
                         rows.borrow_mut().add_top(day_divider);
                     }
                 } else {
-                    /* Remove the source id, since the closure is destoryed */
+                    /* Remove the source id, since the closure is destroyed */
                     source_id.borrow_mut().take();
                     return Continue(false);
                 }
@@ -511,7 +511,7 @@ impl RoomHistory {
         }
     }
 
-    /* This is a temporary function to make the listbox accesibile from outside the history, it is
+    /* This is a temporary function to make the listbox accessible from outside the history, it is
      * currently needed for temp messages (which should also be moved to the room history) */
     pub fn get_listbox(&self) -> gtk::ListBox {
         let listbox = self.rows.borrow().listbox.clone();
@@ -644,7 +644,7 @@ impl RoomHistory {
     }
 }
 
-/* This function creates the content for a Row based on the conntent of msg */
+/* This function creates the content for a Row based on the content of msg */
 fn create_row(
     row: MessageContent,
     has_header: bool,
