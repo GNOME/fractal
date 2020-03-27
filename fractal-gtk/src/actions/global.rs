@@ -255,10 +255,16 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         back.borrow_mut().push(AppState::MediaViewer);
     });
 
+    let mv_weak = Rc::downgrade(&op.lock().unwrap().media_viewer);
     let back_weak = Rc::downgrade(&back_history);
     back.connect_activate(move |_, _| {
+        let mv = upgrade_weak!(mv_weak);
+        if let Some(mut mv) = mv.borrow_mut().take() {
+            mv.disconnect_signal_id();
+        }
+
+        // Remove the current state from the store
         back_weak.upgrade().map(|back| {
-            // Remove the current state form the store
             back.borrow_mut().pop();
             if let Some(state) = back.borrow().last() {
                 debug!("Go back to state {:?}", state);
@@ -267,7 +273,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
                     op.set_state(state.clone());
                 }
             } else {
-                // Falback when there is no back history
+                // Fallback when there is no back history
                 debug!("There is no state to go back to. Go back to state NoRoom");
                 if let Some(op) = App::get_op() {
                     let mut op = op.lock().unwrap();
