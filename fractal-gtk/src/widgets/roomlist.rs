@@ -9,6 +9,7 @@ use pango;
 use fractal_api::url::Url;
 use gtk;
 use gtk::prelude::*;
+use log::info;
 use std::collections::HashMap;
 
 use crate::globals;
@@ -652,10 +653,10 @@ impl RoomList {
         if r.membership.is_invited() {
             self.inv.get().add_room(r);
         } else if r.membership.match_joined_tag(RoomTag::Favourite) {
-            println!("We have fav rooms");
+            info!("We have fav rooms");
             self.fav.get().add_room(r);
         } else {
-            println!("We have non fav rooms");
+            info!("We have non fav rooms");
             self.rooms.get().add_room(r);
         }
         self.show_and_hide();
