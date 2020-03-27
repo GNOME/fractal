@@ -42,13 +42,13 @@ impl NewMessageDivider {
 
         /* Self destruction
          * destroy the NewMessageDivider after it's added to the History with a couple of
-         * secounds delay */
+         * seconds delay */
         let revealer_weak = revealer.downgrade();
         row.connect_parent_set(move |_, _| {
             revealer_weak.upgrade().map(|revealer| {
                 let revealer_weak = revealer.downgrade();
                 gtk::timeout_add(5000, move || {
-                    /* when the user closes the room the divider gets destroyed and this tiemout
+                    /* when the user closes the room the divider gets destroyed and this timeout
                      * does nothing, but that's fine */
                     revealer_weak.upgrade().map(|r| {
                         r.set_reveal_child(false);

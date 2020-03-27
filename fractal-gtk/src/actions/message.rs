@@ -48,7 +48,7 @@ pub fn new(
     let delete = SimpleAction::new("delete", glib::VariantTy::new("s").ok());
     let show_source = SimpleAction::new("show_source", glib::VariantTy::new("s").ok());
 
-    /* TODO: use statefull action to keep  track if the user already reqeusted new messages */
+    /* TODO: use stateful action to keep  track if the user already requested new messages */
     let load_more_messages =
         SimpleAction::new("request_older_messages", glib::VariantTy::new("s").ok());
 

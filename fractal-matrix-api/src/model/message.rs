@@ -157,7 +157,7 @@ impl Message {
                 self.thumb = Some(t);
             }
             "m.text" => {
-                // Only m.text messages can be replies for backward compatability
+                // Only m.text messages can be replies for backward compatibility
                 // https://matrix.org/docs/spec/client_server/r0.4.0.html#rich-replies
                 self.in_reply_to = c["m.relates_to"]["m.in_reply_to"]["event_id"]
                     .as_str()
