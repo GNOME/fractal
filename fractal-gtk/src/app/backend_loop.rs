@@ -1,6 +1,7 @@
 use crate::app::App;
 use crate::i18n::i18n;
 use log::{error, info};
+use regex::Regex;
 
 use crate::actions::{activate_action, AppState};
 
@@ -194,12 +195,20 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 // errors
                 BKResponse::AccountDestruction(Err(err)) => {
                     let error = i18n("Couldn’t delete the account");
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 BKResponse::ChangePassword(Err(err)) => {
                     let error = i18n("Couldn’t change the password");
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(show_password_error_dialog, (error));
                 }
                 BKResponse::GetThreePID(Err(_)) => {
@@ -212,16 +221,28 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 BKResponse::GetTokenEmail(Err(err)) => {
                     let error = i18n("Couldn’t add the email address.");
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 BKResponse::GetTokenPhone(Err(err)) => {
                     let error = i18n("Couldn’t add the phone number.");
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
                 BKResponse::NewRoom(Err(err), internal_id) => {
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
 
                     let error = i18n("Can’t create the room, try again");
                     let state = AppState::NoRoom;
@@ -230,14 +251,23 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_state, (state));
                 }
                 BKResponse::JoinRoom(Err(err)) => {
-                    error!("{:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "{}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
+
                     let error = format!("{}", i18n("Can’t join the room, try again."));
                     let state = AppState::NoRoom;
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
                 BKResponse::ChangeLanguage(Err(err)) => {
-                    error!("Error forming url to set room language: {:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "Error forming url to set room language: {}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                 }
                 BKResponse::LoginError(_) => {
                     let error = i18n("Can’t login, try again");
@@ -247,7 +277,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(set_state, (st));
                 }
                 BKResponse::AttachedFile(Err(err)) => {
-                    error!("attaching {:?}: retrying send", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "attaching {}: retrying send",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(retry_send);
                 }
                 BKResponse::SentMsg(Err(err)) => match err {
@@ -270,13 +304,39 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                 }
                 BKResponse::Sync(Err(err)) => {
-                    error!("SYNC Error: {:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "SYNC Error: {}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                     APPOP!(sync_error);
                 }
                 err => {
-                    error!("Query error: {:?}", err);
+                    let err_str = format!("{:?}", err);
+                    error!(
+                        "Query error: {}",
+                        remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                    );
                 }
             };
         }
     });
+}
+
+/// This function removes the value of the `access_token` query from a URL used for accessing the Matrix API.
+/// The primary use case is the removing of sensitive information for logging.
+/// Specifically, the URL is expected to be contained within quotes and the token is replaced wiht `<redacted>`.
+/// Returns `Some` on removal, otherwise `None`.
+fn remove_matrix_access_token_if_present<'a>(message: &'a str) -> Option<String> {
+    let re = Regex::new(
+        r#""((http)|(https))://([^"]+)/_matrix/([^"]+)\?access_token=(?P<token>[^&"]+)([^"]*)""#,
+    )
+    .expect("This only fails if the regular expression is malformed.");
+    // If the supplied string doesn't contain a match for the regex, we return `None`.
+    let cap = re.captures(message)?;
+    let captured_token = cap
+        .name("token")
+        .expect("Due to the plus operator in `token`, this always succeeds.")
+        .as_str();
+    Some(message.replace(captured_token, "<redacted>"))
 }
