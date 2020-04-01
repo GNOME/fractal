@@ -247,7 +247,8 @@ pub struct VideoPlayerWidget {
 impl Default for VideoPlayerWidget {
     fn default() -> Self {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
-        let sink = gst::ElementFactory::make("gtksink", None).unwrap();
+        let sink = gst::ElementFactory::make("gtksink", None)
+            .expect("Missing dependency: element gtksink is needed (usually, in gstreamer-plugins-good or in gst-plugin-gtk).");
         let renderer = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink).upcast();
         let player = gst_player::Player::new(
             Some(&renderer),
