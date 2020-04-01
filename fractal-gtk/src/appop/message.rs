@@ -286,6 +286,7 @@ impl AppOp {
                         "audio/aac" => "m.audio",
                         "audio/mpeg" => "m.audio",
                         "audio/ogg" => "m.audio",
+                        "audio/x-vorbis+ogg" => "m.audio",
                         "audio/wave" => "m.audio",
                         "audio/wav" => "m.audio",
                         "audio/x-wav" => "m.audio",
