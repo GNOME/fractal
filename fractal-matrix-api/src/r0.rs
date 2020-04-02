@@ -1,12 +1,19 @@
 pub mod account;
+pub mod config;
 pub mod contact;
+pub mod context;
 pub mod directory;
 pub mod filter;
 pub mod media;
 pub mod membership;
+pub mod message;
 pub mod profile;
+pub mod read_marker;
+pub mod redact;
+pub mod room;
 pub mod search;
 pub mod server;
+pub mod state;
 pub mod sync;
 pub mod tag;
 pub mod thirdparty;
@@ -93,4 +100,8 @@ impl From<String> for AccessToken {
     fn from(token: String) -> Self {
         Self(token)
     }
+}
+
+pub(crate) fn u64_is_10(number: &u64) -> bool {
+    number == &10
 }

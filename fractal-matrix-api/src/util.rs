@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use log::error;
-use serde_json::json;
 
 use serde_json::Value as JsonValue;
 
@@ -21,13 +20,17 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::r0::context::get_context::request as get_context;
+use crate::r0::context::get_context::Parameters as GetContextParameters;
+use crate::r0::context::get_context::Response as GetContextResponse;
+use crate::r0::media::get_content::request as get_content;
+use crate::r0::media::get_content::Parameters as GetContentParameters;
+use crate::r0::media::get_content_thumbnail::request as get_content_thumbnail;
+use crate::r0::media::get_content_thumbnail::Method;
+use crate::r0::media::get_content_thumbnail::Parameters as GetContentThumbnailParameters;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::AccessToken;
-
-use reqwest::header::CONTENT_LENGTH;
-
-use crate::globals;
 
 lazy_static! {
     pub static ref HTTP_CLIENT: Client = Client::new();
@@ -87,27 +90,7 @@ macro_rules! clone {
 }
 
 #[macro_export]
-macro_rules! derror {
-    ($from: path, $to: path) => {
-        impl From<$from> for Error {
-            fn from(_: $from) -> Error {
-                $to
-            }
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! bkerror {
-    ($result: ident, $tx: ident, $type: expr) => {
-        if let Err(e) = $result {
-            $tx.send($type(e)).expect_log("Connection closed");
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! bkerror2 {
     ($result: expr, $tx: ident, $type: expr) => {
         if let Err(e) = $result {
             let _ = $tx.send($type(Err(e)));
@@ -115,47 +98,9 @@ macro_rules! bkerror2 {
     };
 }
 
-#[macro_export]
-macro_rules! get {
-    ($($args: expr),+) => {
-        query!("get", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! post {
-    ($($args: expr),+) => {
-        query!("post", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! put {
-    ($($args: expr),+) => {
-        query!("put", $($args),+)
-    };
-}
-
-#[macro_export]
-macro_rules! query {
-    ($method: expr, $url: expr, $attrs: expr, $okcb: expr, $errcb: expr) => {
-        thread::spawn(move || {
-            let js = json_q($method, $url, $attrs);
-
-            match js {
-                Ok(r) => $okcb(r),
-                Err(err) => $errcb(err),
-            }
-        });
-    };
-    ($method: expr, $url: expr, $okcb: expr, $errcb: expr) => {
-        query!($method, $url, &json!(null), $okcb, $errcb)
-    };
-}
-
 pub enum ContentType {
     Download,
-    Thumbnail(i32, i32),
+    Thumbnail(u64, u64),
 }
 
 impl ContentType {
@@ -196,59 +141,62 @@ pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<UserId, Vec<RoomId>> {
 }
 
 pub fn get_prev_batch_from(
-    baseu: &Url,
-    tk: &AccessToken,
+    base: Url,
+    access_token: AccessToken,
     room_id: &RoomId,
-    evid: &str,
+    event_id: &str,
 ) -> Result<String, Error> {
-    let params = &[("access_token", tk.to_string()), ("limit", 0.to_string())];
+    let params = GetContextParameters {
+        access_token,
+        limit: 0,
+        filter: Default::default(),
+    };
 
-    let path = format!("rooms/{}/context/{}", room_id, evid);
-    let url = client_url(baseu, &path, params)?;
-
-    let r = json_q("get", url, &json!(null))?;
-    let prev_batch = r["start"].to_string().trim_matches('"').to_string();
+    let request = get_context(base, &params, room_id, event_id)?;
+    let response: GetContextResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let prev_batch = response.start.unwrap_or_default();
 
     Ok(prev_batch)
 }
 
 pub fn dw_media(
-    base: &Url,
-    url: &str,
+    base: Url,
+    mxc: &str,
     media_type: ContentType,
-    dest: Option<&str>,
+    dest: Option<String>,
 ) -> Result<String, Error> {
-    let caps = globals::MATRIX_RE
-        .captures(url)
+    let mxc_url = Url::parse(mxc)?;
+
+    if mxc_url.scheme() != "mxc" {
+        return Err(Error::BackendError);
+    }
+
+    let server = mxc_url.host().ok_or(Error::BackendError)?.to_owned();
+    let media_id = mxc_url
+        .path_segments()
+        .and_then(|mut ps| ps.next())
+        .filter(|s| !s.is_empty())
         .ok_or(Error::BackendError)?;
-    let server = String::from(&caps["server"]);
-    let media = String::from(&caps["media"]);
 
-    let (params, path) = if let ContentType::Thumbnail(w, h) = media_type {
-        (
-            vec![
-                ("width", w.to_string()),
-                ("height", h.to_string()),
-                ("method", String::from("crop")),
-            ],
-            format!("thumbnail/{}/{}", server, media),
-        )
+    let request = if let ContentType::Thumbnail(width, height) = media_type {
+        let params = GetContentThumbnailParameters {
+            width,
+            height,
+            method: Some(Method::Crop),
+            allow_remote: true,
+        };
+        get_content_thumbnail(base, &params, &server, &media_id)
     } else {
-        (vec![], format!("download/{}/{}", server, media))
-    };
-
-    let url = media_url(base, &path, &params)?;
+        let params = GetContentParameters::default();
+        get_content(base, &params, &server, &media_id)
+    }?;
 
     let fname = match dest {
-        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media)?,
-        None => cache_dir_path(Some("medias"), &media)?,
-        Some(d) => String::from(d),
+        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media_id)?,
+        None => cache_dir_path(Some("medias"), &media_id)?,
+        Some(ref d) => d.clone(),
     };
 
-    download_file(url, fname, dest)
-}
-
-pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<String, Error> {
     let fpath = Path::new(&fname);
 
     // If the file is already cached and recent enough, don't download it
@@ -259,60 +207,16 @@ pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<Stri
     } else {
         HTTP_CLIENT
             .get_client()?
-            .get(url)
-            .send()?
+            .execute(request)?
             .bytes()
             .collect::<Result<Vec<u8>, std::io::Error>>()
             .and_then(|media| write(&fname, media))
             .and(Ok(fname))
-            .map_err(Error::from)
+            .map_err(Into::into)
     }
 }
 
-pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
-    let mut conn = match method {
-        "post" => HTTP_CLIENT.get_client()?.post(url),
-        "put" => HTTP_CLIENT.get_client()?.put(url),
-        "delete" => HTTP_CLIENT.get_client()?.delete(url),
-        _ => HTTP_CLIENT.get_client()?.get(url),
-    };
-
-    if !attrs.is_null() {
-        conn = conn.json(attrs);
-    } else if method == "post" {
-        conn = conn.header(CONTENT_LENGTH, 0);
-    }
-
-    let res = conn.send()?;
-
-    //let mut content = String::new();
-    //res.read_to_string(&mut content);
-    //cb(content);
-
-    if !res.status().is_success() {
-        return match res.json() {
-            Ok(js) => Err(Error::MatrixError(js)),
-            Err(err) => Err(Error::ReqwestError(err)),
-        };
-    }
-
-    let json: Result<JsonValue, reqwest::Error> = res.json();
-    match json {
-        Ok(js) => {
-            let js2 = js.clone();
-            if let Some(error) = js.as_object() {
-                if error.contains_key("errcode") {
-                    error!("{:#?}", js2);
-                    return Err(Error::MatrixError(js2));
-                }
-            }
-            Ok(js)
-        }
-        Err(_) => Err(Error::BackendError),
-    }
-}
-
-pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String), Error> {
+pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
     let response = get_profile(base.clone(), user_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
@@ -336,41 +240,12 @@ pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String),
                 base,
                 url.as_str(),
                 ContentType::default_thumbnail(),
-                Some(&dest),
+                Some(dest),
             )
         })
         .unwrap_or(Ok(Default::default()))?;
 
     Ok((name, img))
-}
-
-pub fn build_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    let mut url = base.join(path)?;
-
-    {
-        // If len was 0 `?` would be appended without being needed.
-        if !params.is_empty() {
-            let mut query = url.query_pairs_mut();
-            query.clear();
-            for (k, v) in params {
-                query.append_pair(k, &v);
-            }
-        }
-    }
-
-    Ok(url)
-}
-
-pub fn client_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/client/r0/{}", path), params)
-}
-
-pub fn scalar_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("api/{}", path), params)
-}
-
-fn media_url(base: &Url, path: &str, params: &[(&str, String)]) -> Result<Url, Error> {
-    build_url(base, &format!("/_matrix/media/r0/{}", path), params)
 }
 
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {

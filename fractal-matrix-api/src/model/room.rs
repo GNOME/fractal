@@ -132,7 +132,7 @@ impl Room {
     pub fn from_sync_response(
         response: &SyncResponse,
         user_id: UserId,
-        baseu: &Url,
+        baseu: Url,
     ) -> Result<Vec<Self>, IdError> {
         // getting the list of direct rooms
         let direct: HashSet<RoomId> = parse_m_direct(&response.account_data.events)
@@ -206,7 +206,7 @@ impl Room {
                 if leave_id != user_id {
                     let kick_reason = &last_event["content"]["reason"];
                     if let Some((kicker_alias, kicker_avatar)) =
-                        get_user_avatar(baseu, &leave_id).ok()
+                        get_user_avatar(baseu.clone(), &leave_id).ok()
                     {
                         let kicker = Member {
                             alias: Some(kicker_alias),
@@ -245,7 +245,7 @@ impl Room {
                     })
                     .map_or(Ok(None), |ev| {
                         Ok(get_user_avatar(
-                            baseu,
+                            baseu.clone(),
                             &UserId::try_from(ev["sender"].as_str().unwrap_or_default())?,
                         )
                         .ok())

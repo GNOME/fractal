@@ -113,7 +113,7 @@ pub fn sync(
                     let join = &response.rooms.join;
 
                     // New rooms
-                    let rs = Room::from_sync_response(&response, user_id.clone(), &base)
+                    let rs = Room::from_sync_response(&response, user_id.clone(), base)
                         .map_err(Into::into);
                     tx.send(BKResponse::UpdateRooms(rs))
                         .expect_log("Connection closed");
@@ -246,7 +246,7 @@ pub fn sync(
                     data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
 
                     let rooms_def =
-                        Room::from_sync_response(&response, user_id, &base)
+                        Room::from_sync_response(&response, user_id, base)
                             .map(|rooms| {
                                 let def =
                                     data.lock().unwrap().join_to_room.as_ref().and_then(|jtr| {
