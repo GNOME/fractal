@@ -325,7 +325,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
 
 /// This function removes the value of the `access_token` query from a URL used for accessing the Matrix API.
 /// The primary use case is the removing of sensitive information for logging.
-/// Specifically, the URL is expected to be contained within quotes and the token is replaced wiht `<redacted>`.
+/// Specifically, the URL is expected to be contained within quotes and the token is replaced with `<redacted>`.
 /// Returns `Some` on removal, otherwise `None`.
 fn remove_matrix_access_token_if_present<'a>(message: &'a str) -> Option<String> {
     let re = Regex::new(
