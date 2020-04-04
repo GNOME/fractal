@@ -15,8 +15,6 @@ use url::Url;
 use std::fs::{create_dir_all, write};
 
 use std::sync::mpsc::SendError;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
@@ -39,35 +37,6 @@ lazy_static! {
         .map(ProjectDirs::cache_dir)
         .map(Into::into)
         .unwrap_or(std::env::temp_dir().join("fractal"));
-}
-
-pub fn semaphore<F>(thread_count: Arc<(Mutex<u8>, Condvar)>, func: F)
-where
-    F: FnOnce() + Send + 'static,
-{
-    thread::spawn(move || {
-        // waiting, less than 20 threads at the same time
-        // this is a semaphore
-        // TODO: use std::sync::Semaphore when it's on stable version
-        // https://doc.rust-lang.org/1.1.0/std/sync/struct.Semaphore.html
-        let &(ref num, ref cvar) = &*thread_count;
-        {
-            let mut start = num.lock().unwrap();
-            while *start >= 20 {
-                start = cvar.wait(start).unwrap()
-            }
-            *start += 1;
-        }
-
-        func();
-
-        // freeing the cvar for new threads
-        {
-            let mut counter = num.lock().unwrap();
-            *counter -= 1;
-        }
-        cvar.notify_one();
-    });
 }
 
 // from https://stackoverflow.com/a/43992218/1592377

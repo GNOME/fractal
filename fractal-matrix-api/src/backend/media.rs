@@ -8,7 +8,6 @@ use url::Url;
 use crate::r0::AccessToken;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
-use crate::util::semaphore;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
@@ -21,14 +20,14 @@ use crate::r0::message::get_message_events::Response as GetMessagesEventsRespons
 use crate::types::Message;
 
 pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
-    semaphore(bk.limit_threads.clone(), move || {
+    bk.thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::default_thumbnail(), None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
 
 pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
-    semaphore(bk.limit_threads.clone(), move || {
+    bk.thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::Download, None);
         tx.send(fname).expect_log("Connection closed");
     });
@@ -43,7 +42,7 @@ pub fn get_media_list_async(
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
-    semaphore(bk.limit_threads.clone(), move || {
+    bk.thread_pool.run(move || {
         let media_list = prev_batch
             // FIXME: This should never be an empty token
             .or_else(|| {
