@@ -1,5 +1,6 @@
 use crate::app::App;
 use crate::i18n::i18n;
+use lazy_static::lazy_static;
 use log::{error, info};
 use regex::Regex;
 
@@ -327,16 +328,17 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
 /// The primary use case is the removing of sensitive information for logging.
 /// Specifically, the URL is expected to be contained within quotes and the token is replaced with `<redacted>`.
 /// Returns `Some` on removal, otherwise `None`.
-fn remove_matrix_access_token_if_present<'a>(message: &'a str) -> Option<String> {
-    let re = Regex::new(
-        r#""((http)|(https))://([^"]+)/_matrix/([^"]+)\?access_token=(?P<token>[^&"]+)([^"]*)""#,
-    )
-    .expect("Malformed regular expression.");
+fn remove_matrix_access_token_if_present(message: &str) -> Option<String> {
+    lazy_static! {
+    static ref RE: Regex =
+        Regex::new(r#""((http)|(https))://([^"]+)/_matrix/([^"]+)\?access_token=(?P<token>[^&"]+)([^"]*)""#,)
+        .expect("Malformed regular expression.");
+    }
     // If the supplied string doesn't contain a match for the regex, we return `None`.
-    let cap = re.captures(message)?;
+    let cap = RE.captures(message)?;
     let captured_token = cap
         .name("token")
-        .expect("Due to the plus operator in `token`, this always succeeds.")
+        .expect("'token' capture group not present.")
         .as_str();
     Some(message.replace(captured_token, "<redacted>"))
 }
