@@ -156,7 +156,6 @@ pub struct BackendData {
 pub struct Backend {
     pub tx: Sender<BKResponse>,
     pub data: Arc<Mutex<BackendData>>,
-    pub internal_tx: Option<Sender<BKCommand>>,
 
     // user info cache, uid -> (name, avatar)
     pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,

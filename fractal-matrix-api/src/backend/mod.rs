@@ -36,7 +36,6 @@ impl Backend {
         };
         Backend {
             tx,
-            internal_tx: None,
             data: Arc::new(Mutex::new(data)),
             user_info_cache: CacheMap::new().timeout(60 * 60),
             limit_threads: Arc::new((Mutex::new(0u8), Condvar::new())),
@@ -46,7 +45,6 @@ impl Backend {
     pub fn run(mut self) -> Sender<BKCommand> {
         let (apptx, rx): (Sender<BKCommand>, Receiver<BKCommand>) = channel();
 
-        self.internal_tx = Some(apptx.clone());
         thread::spawn(move || loop {
             let cmd = rx.recv();
             if !self.command_recv(cmd) {
@@ -218,7 +216,12 @@ impl Backend {
                 });
             }
             Ok(BKCommand::GetRoomMessagesFromMsg(server, access_token, room_id, from)) => {
-                room::get_room_messages_from_msg(self, server, access_token, room_id, from)
+                thread::spawn(move || {
+                    let query =
+                        room::get_room_messages_from_msg(server, access_token, room_id, from);
+                    tx.send(BKResponse::RoomMessagesTo(query))
+                        .expect_log("Connection closed");
+                });
             }
             Ok(BKCommand::GetMessageContext(server, access_token, message)) => {
                 thread::spawn(move || {
