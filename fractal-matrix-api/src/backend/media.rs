@@ -91,7 +91,6 @@ fn get_room_media_list(
         .map_err(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<GetMessagesEventsResponse>()?;
 
