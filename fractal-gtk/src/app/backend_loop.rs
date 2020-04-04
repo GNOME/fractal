@@ -331,7 +331,7 @@ fn remove_matrix_access_token_if_present<'a>(message: &'a str) -> Option<String>
     let re = Regex::new(
         r#""((http)|(https))://([^"]+)/_matrix/([^"]+)\?access_token=(?P<token>[^&"]+)([^"]*)""#,
     )
-    .expect("This only fails if the regular expression is malformed.");
+    .expect("Malformed regular expression.");
     // If the supplied string doesn't contain a match for the regex, we return `None`.
     let cap = re.captures(message)?;
     let captured_token = cap
