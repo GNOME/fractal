@@ -4,6 +4,7 @@ use log::error;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
+use reqwest::blocking::Client;
 use ruma_identifiers::{Error as IdError, RoomId, UserId};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -18,7 +19,6 @@ use std::sync::mpsc::SendError;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
-use crate::client::Client;
 use crate::error::Error;
 use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
@@ -153,7 +153,7 @@ pub fn get_prev_batch_from(
     };
 
     let request = get_context(base, &params, room_id, event_id)?;
-    let response: GetContextResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: GetContextResponse = HTTP_CLIENT.execute(request)?.json()?;
     let prev_batch = response.start.unwrap_or_default();
 
     Ok(prev_batch)
@@ -206,7 +206,6 @@ pub fn dw_media(
         Ok(fname)
     } else {
         HTTP_CLIENT
-            .get_client()?
             .execute(request)?
             .bytes()
             .collect::<Result<Vec<u8>, std::io::Error>>()
@@ -221,7 +220,6 @@ pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), 
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<GetProfileResponse>()
                 .map_err(Into::into)

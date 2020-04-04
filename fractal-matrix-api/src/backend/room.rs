@@ -123,10 +123,7 @@ fn get_room_detail(
     get_state_events_for_key(base, &params, &room_id, &keys)
         .map_err(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JsonValue>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<JsonValue>()?;
 
             let k = keys.split('.').last().unwrap();
             let value = response[&k].as_str().map(Into::into).unwrap_or_default();
@@ -145,10 +142,7 @@ pub fn get_room_avatar(
     get_state_events_for_key(base.clone(), &params, &room_id, "m.room.avatar")
         .map_err(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JsonValue>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<JsonValue>()?;
 
             let avatar = response["url"].as_str().and_then(|s| Url::parse(s).ok());
             let dest = cache_dir_path(None, &room_id.to_string()).ok();
@@ -184,7 +178,6 @@ pub fn get_room_members(
         .map_err(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<JoinedMembersResponse>()?;
 
@@ -219,7 +212,6 @@ pub fn get_room_messages(
         .map_err(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<GetMessagesEventsResponse>()?;
 
@@ -268,10 +260,7 @@ pub fn get_message_context(
     get_context(base.clone(), &params, &room_id, eid)
         .map_err(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<GetContextResponse>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<GetContextResponse>()?;
 
             let mut id: Option<String> = None;
 
@@ -337,7 +326,6 @@ pub fn send_msg(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<CreateMessageEventResponse>()?;
 
@@ -358,12 +346,7 @@ pub fn send_typing(
 
     send_typing_notification(base, &room_id, &user_id, &params, &body)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(()))
 }
 
@@ -385,7 +368,6 @@ pub fn redact_msg(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<RedactEventResponse>()?;
 
@@ -410,7 +392,7 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
         let query = join_room_req(base, &room_id_or_alias_id, &params)
             .map_err(Into::into)
             .and_then(|request| {
-                let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+                let _ = HTTP_CLIENT.execute(request)?;
 
                 Ok(())
             });
@@ -430,7 +412,7 @@ pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resu
     leave_room_req(base, &room_id, &params)
         .map_err(Into::into)
         .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+            let _ = HTTP_CLIENT.execute(request)?;
 
             Ok(())
         })
@@ -452,7 +434,7 @@ pub fn mark_as_read(
     set_read_marker(base, &params, &body, &room_id)
         .map_err(Into::into)
         .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+            let _ = HTTP_CLIENT.execute(request)?;
 
             Ok((room_id, event_id))
         })
@@ -473,7 +455,7 @@ pub fn set_room_name(
     create_state_events_for_key(base, &params, &body, &room_id, "m.room.name")
         .map_err(Into::into)
         .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+            let _ = HTTP_CLIENT.execute(request)?;
 
             Ok(())
         })
@@ -494,7 +476,7 @@ pub fn set_room_topic(
     create_state_events_for_key(base, &params, &body, &room_id, "m.room.topic")
         .map_err(Into::into)
         .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+            let _ = HTTP_CLIENT.execute(request)?;
 
             Ok(())
         })
@@ -513,7 +495,7 @@ pub fn set_room_avatar(
     upload_file(base.clone(), access_token, &avatar).and_then(|response| {
         let body = json!({ "url": response.content_uri.as_str() });
         let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.avatar")?;
-        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+        let _ = HTTP_CLIENT.execute(request)?;
 
         Ok(())
     })
@@ -601,7 +583,6 @@ fn upload_file(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<CreateContentResponse>()
                 .map_err(Into::into)
@@ -631,10 +612,7 @@ pub fn new_room(
     create_room(base, &params, &body)
         .map_err(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<CreateRoomResponse>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<CreateRoomResponse>()?;
 
             Ok(Room {
                 name: Some(name),
@@ -658,10 +636,7 @@ fn update_direct_chats(
     let directs = get_global_account_data(base.clone(), &params, &user_id, "m.direct")
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JsonValue>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<JsonValue>()?;
 
             response
                 .as_object()
@@ -696,12 +671,7 @@ fn update_direct_chats(
             if let Err(err) =
                 set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")
                     .map_err::<Error, _>(Into::into)
-                    .and_then(|request| {
-                        HTTP_CLIENT
-                            .get_client()?
-                            .execute(request)
-                            .map_err(Into::into)
-                    })
+                    .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
             {
                 error!("{:?}", err);
             };
@@ -738,10 +708,7 @@ pub fn direct_chat(
     create_room(base.clone(), &params, &body)
         .map_err(Into::into)
         .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<CreateRoomResponse>()?;
+            let response = HTTP_CLIENT.execute(request)?.json::<CreateRoomResponse>()?;
 
             update_direct_chats(
                 data,
@@ -778,12 +745,7 @@ pub fn add_to_fav(
 
     request_res
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok((room_id, tofav)))
 }
 
@@ -799,7 +761,7 @@ pub fn invite(
     invite_user(base, &room_id, &params, &body)
         .map_err(Into::into)
         .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+            let _ = HTTP_CLIENT.execute(request)?;
 
             Ok(())
         })
@@ -826,7 +788,7 @@ pub fn set_language(
     )
     .map_err(Into::into)
     .and_then(|request| {
-        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+        let _ = HTTP_CLIENT.execute(request)?;
 
         Ok(())
     });
