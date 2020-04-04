@@ -33,7 +33,6 @@ pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolIns
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<SupportedProtocolsResponse>()
                 .map_err(Into::into)
@@ -100,7 +99,6 @@ pub fn room_search(
             .map_err(Into::into)
             .and_then(|request| {
                 HTTP_CLIENT
-                    .get_client()?
                     .execute(request)?
                     .json::<PublicRoomsResponse>()
                     .map_err(Into::into)
