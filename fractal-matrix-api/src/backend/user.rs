@@ -70,7 +70,6 @@ pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<GetDisplayNameResponse>()
                 .map_err(Into::into)
@@ -85,7 +84,6 @@ pub fn get_username_async(base: Url, uid: UserId) -> String {
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<GetDisplayNameResponse>()
                 .map_err(Into::into)
@@ -108,12 +106,7 @@ pub fn set_username(
 
     set_display_name(base, &params, &body, &uid)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(username))
 }
 
@@ -127,7 +120,6 @@ pub fn get_threepid(
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<ThirdPartyIDResponse>()
                 .map_err(Into::into)
@@ -155,7 +147,6 @@ pub fn get_email_token(
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<EmailTokenResponse>()
                 .map_err(Into::into)
@@ -194,7 +185,6 @@ pub fn get_phone_token(
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<PhoneTokenResponse>()
                 .map_err(Into::into)
@@ -231,12 +221,7 @@ pub fn add_threepid(
 
     create_contact(base, &params, &body)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(()))
 }
 
@@ -256,7 +241,6 @@ pub fn submit_phone_token(
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<SubmitPhoneTokenResponse>()
                 .map_err(Into::into)
@@ -275,12 +259,7 @@ pub fn delete_three_pid(
 
     delete_contact(base, &params, &body)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(()))
 }
 
@@ -303,12 +282,7 @@ pub fn change_password(
 
     change_password_req(base, &params, &body)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(()))
 }
 
@@ -329,12 +303,7 @@ pub fn account_destruction(
 
     deactivate(base, &params, &body)
         .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
+        .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         .and(Ok(()))
 }
 
@@ -374,7 +343,6 @@ pub fn set_user_avatar(
                 .map_err::<Error, _>(Into::into)
                 .and_then(|request| {
                     HTTP_CLIENT
-                        .get_client()?
                         .execute(request)?
                         .json::<CreateContentResponse>()
                         .map_err(Into::into)
@@ -387,12 +355,7 @@ pub fn set_user_avatar(
 
             set_avatar_url(base, &params_avatar, &body, &uid)
                 .map_err(Into::into)
-                .and_then(|request| {
-                    HTTP_CLIENT
-                        .get_client()?
-                        .execute(request)
-                        .map_err(Into::into)
-                })
+                .and_then(|request| HTTP_CLIENT.execute(request).map_err(Into::into))
         })
         .and(Ok(avatar))
 }
@@ -445,7 +408,6 @@ pub fn search(
         .map_err(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
                 .execute(request)?
                 .json::<UserDirectoryResponse>()
                 .map_err(Into::into)
