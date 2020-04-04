@@ -5,7 +5,6 @@ pub mod globals;
 
 pub mod backend;
 pub mod cache;
-mod client;
 pub mod identity;
 mod model;
 pub mod r0;

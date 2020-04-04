@@ -57,7 +57,6 @@ api_sources = files(
   'r0/thirdparty.rs',
   'r0/typing.rs',
   'cache.rs',
-  'client.rs',
   'error.rs',
   'globals.rs',
   'identity.rs',
