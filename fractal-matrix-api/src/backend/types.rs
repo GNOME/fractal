@@ -2,6 +2,7 @@ use ruma_identifiers::{RoomId, UserId};
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
+use std::thread;
 
 use crate::error::Error;
 
@@ -146,13 +147,54 @@ pub enum RoomType {
     Private,
 }
 
+pub struct ThreadPool {
+    thread_count: Arc<(Mutex<u8>, Condvar)>,
+    limit: u8,
+}
+
+impl ThreadPool {
+    pub fn new(limit: u8) -> Self {
+        ThreadPool {
+            thread_count: Arc::new((Mutex::new(0), Condvar::new())),
+            limit,
+        }
+    }
+
+    pub fn run<F>(&self, func: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let thread_count = self.thread_count.clone();
+        let limit = self.limit;
+        thread::spawn(move || {
+            // waiting, less than {limit} threads at the same time
+            let &(ref num, ref cvar) = &*thread_count;
+            {
+                let mut start = num.lock().unwrap();
+                while *start >= limit {
+                    start = cvar.wait(start).unwrap()
+                }
+                *start += 1;
+            }
+
+            func();
+
+            // freeing the cvar for new threads
+            {
+                let mut counter = num.lock().unwrap();
+                *counter -= 1;
+            }
+            cvar.notify_one();
+        });
+    }
+}
+
 pub struct BackendData {
     pub rooms_since: String,
     pub join_to_room: Option<RoomId>,
     pub m_direct: HashMap<UserId, Vec<RoomId>>,
 }
 
-#[derive(Clone)]
 pub struct Backend {
     pub tx: Sender<BKResponse>,
     pub data: Arc<Mutex<BackendData>>,
@@ -160,6 +202,5 @@ pub struct Backend {
 
     // user info cache, uid -> (name, avatar)
     pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,
-    // semaphore to limit the number of threads downloading images
-    pub limit_threads: Arc<(Mutex<u8>, Condvar)>,
+    pub thread_pool: ThreadPool,
 }
