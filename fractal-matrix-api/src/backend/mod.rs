@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::RecvError;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::util::dw_media;
@@ -12,6 +12,8 @@ use crate::util::ResultExpectLog;
 use crate::cache::CacheMap;
 
 use crate::globals;
+
+use self::types::ThreadPool;
 
 mod directory;
 mod media;
@@ -39,7 +41,7 @@ impl Backend {
             internal_tx: None,
             data: Arc::new(Mutex::new(data)),
             user_info_cache: CacheMap::new().timeout(60 * 60),
-            limit_threads: Arc::new((Mutex::new(0u8), Condvar::new())),
+            thread_pool: ThreadPool::new(20),
         }
     }
 
