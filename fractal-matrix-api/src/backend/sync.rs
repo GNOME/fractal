@@ -1,7 +1,6 @@
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::client::ProxySettings;
-use crate::error::Error;
 use crate::globals;
 use crate::r0::filter::EventFilter;
 use crate::r0::filter::Filter;
@@ -19,6 +18,7 @@ use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
+use crate::util::matrix_response;
 use crate::util::parse_m_direct;
 use crate::util::ResultExpectLog;
 
@@ -102,19 +102,9 @@ pub fn sync(
                 .apply_to_client_builder(client_builder_timeout)?
                 .build()?;
             let request = sync_events(base.clone(), &params)?;
-
             let response = client.execute(request)?;
-            let status = response.status();
 
-            if !status.is_success() {
-                // TODO: Real error handling
-                // https://matrix.org/docs/spec/client_server/latest#api-standards
-                // status.as_u16(), status.canonical_reason()
-                // let matrix_error = response.json::<StandardErrorResponse>();
-                return Err(Error::MatrixSyncError);
-            }
-
-            response.json::<SyncResponse>().map_err(Into::into)
+            matrix_response::<SyncResponse>(response)
         });
 
         match query {
