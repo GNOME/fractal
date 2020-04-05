@@ -191,9 +191,10 @@ pub fn dw_media(
 /// Returns the deserialized response to the given request. Handles Matrix errors.
 pub fn matrix_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
     if !response.status().is_success() {
+        let status = response.status();
         return match response.json::<StandardErrorResponse>() {
             Ok(error_response) => Err(Error::from(error_response)),
-            Err(_) => Err(Error::BackendError),
+            Err(_) => Err(Error::NetworkError(status)),
         };
     }
 

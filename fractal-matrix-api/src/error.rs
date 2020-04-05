@@ -28,6 +28,7 @@ pub enum Error {
     BackendError,
     CacheError,
     ReqwestError(reqwest::Error),
+    NetworkError(reqwest::StatusCode),
     MatrixError(MatrixErrorCode, String),
     SendMsgError(String),
     SendMsgRedactionError(String),
