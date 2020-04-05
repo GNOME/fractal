@@ -34,7 +34,6 @@ pub enum Error {
     TokenUsed,
     Denied,
     NotLoggedIn,
-    MatrixSyncError,
 }
 
 impl From<reqwest::Error> for Error {
