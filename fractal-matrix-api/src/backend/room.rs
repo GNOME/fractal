@@ -164,9 +164,7 @@ pub fn get_room_avatar(
             Ok((room_id.clone(), avatar))
         })
         .or_else(|err| match err {
-            Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
-            {
+            Error::MatrixError(errcode, _) if errcode == "M_NOT_FOUND" => {
                 Ok((room_id, None))
             }
             error => Err(error),

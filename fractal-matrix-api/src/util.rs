@@ -1,6 +1,8 @@
 use lazy_static::lazy_static;
 use log::error;
 
+use reqwest::blocking::Response;
+use serde::de::DeserializeOwned;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
@@ -20,6 +22,7 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::error::StandardErrorResponse;
 use crate::r0::context::get_context::request as get_context;
 use crate::r0::context::get_context::Parameters as GetContextParameters;
 use crate::r0::context::get_context::Response as GetContextResponse;
@@ -214,6 +217,18 @@ pub fn dw_media(
             .and(Ok(fname))
             .map_err(Into::into)
     }
+}
+
+/// Returns the deserialized response to the given request. Handles Matrix errors.
+pub fn matrix_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
+    if !response.status().is_success() {
+        return match response.json::<StandardErrorResponse>() {
+            Ok(error_response) => Err(Error::from(error_response)),
+            Err(_) => Err(Error::BackendError),
+        };
+    }
+
+    response.json::<T>().map_err(Into::into)
 }
 
 pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
