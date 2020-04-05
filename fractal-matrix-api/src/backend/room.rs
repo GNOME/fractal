@@ -145,9 +145,7 @@ pub fn get_room_avatar(
                 .expect_log("Connection closed");
         },
         |err: Error| match err {
-            Error::MatrixError(ref js)
-                if js["errcode"].as_str().unwrap_or_default() == "M_NOT_FOUND" =>
-            {
+            Error::MatrixError(errcode, _) if errcode == "M_NOT_FOUND" => {
                 tx.send(BKResponse::RoomAvatar(Ok((room_id, None))))
                     .expect_log("Connection closed");
             }

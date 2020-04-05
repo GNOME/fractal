@@ -2,6 +2,8 @@ use lazy_static::lazy_static;
 use log::error;
 use serde_json::json;
 
+use reqwest::blocking::Response;
+use serde::de::DeserializeOwned;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
@@ -21,6 +23,7 @@ use std::thread;
 
 use crate::client::Client;
 use crate::error::Error;
+use crate::error::StandardErrorResponse;
 use crate::r0::profile::get_profile::request as get_profile;
 use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::AccessToken;
@@ -269,6 +272,18 @@ pub fn download_file(url: Url, fname: String, dest: Option<&str>) -> Result<Stri
     }
 }
 
+/// Returns the deserialized response to the given request. Handles Matrix errors.
+pub fn matrix_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
+    if !response.status().is_success() {
+        return match response.json::<StandardErrorResponse>() {
+            Ok(error_response) => Err(Error::from(error_response)),
+            Err(_) => Err(Error::BackendError),
+        };
+    }
+
+    response.json::<T>().map_err(Into::into)
+}
+
 pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Error> {
     let mut conn = match method {
         "post" => HTTP_CLIENT.get_client()?.post(url),
@@ -285,31 +300,7 @@ pub fn json_q(method: &str, url: Url, attrs: &JsonValue) -> Result<JsonValue, Er
 
     let res = conn.send()?;
 
-    //let mut content = String::new();
-    //res.read_to_string(&mut content);
-    //cb(content);
-
-    if !res.status().is_success() {
-        return match res.json() {
-            Ok(js) => Err(Error::MatrixError(js)),
-            Err(err) => Err(Error::ReqwestError(err)),
-        };
-    }
-
-    let json: Result<JsonValue, reqwest::Error> = res.json();
-    match json {
-        Ok(js) => {
-            let js2 = js.clone();
-            if let Some(error) = js.as_object() {
-                if error.contains_key("errcode") {
-                    error!("{:#?}", js2);
-                    return Err(Error::MatrixError(js2));
-                }
-            }
-            Ok(js)
-        }
-        Err(_) => Err(Error::BackendError),
-    }
+    matrix_response(res)
 }
 
 pub fn get_user_avatar(base: &Url, user_id: &UserId) -> Result<(String, String), Error> {

@@ -2,14 +2,22 @@ use glib;
 use std::io;
 use std::time::SystemTimeError;
 
-use serde_json::Value as JsonValue;
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct StandardErrorResponse {
+    pub errcode: String,
+    pub error: String,
+}
+
+type MatrixErrorCode = String;
 
 #[derive(Debug)]
 pub enum Error {
     BackendError,
     CacheError,
     ReqwestError(reqwest::Error),
-    MatrixError(JsonValue),
+    MatrixError(MatrixErrorCode, String),
     SendMsgError(String),
     SendMsgRedactionError(String),
     TokenUsed,
@@ -21,6 +29,12 @@ pub enum Error {
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Error {
         Error::ReqwestError(err)
+    }
+}
+
+impl From<StandardErrorResponse> for Error {
+    fn from(resp: StandardErrorResponse) -> Error {
+        Error::MatrixError(resp.errcode, resp.error)
     }
 }
 
