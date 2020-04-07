@@ -1,0 +1,117 @@
+name: fractal
+adopt-info: fractal
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict
+base: core18
+architectures:
+  - build-on: amd64
+
+slots:
+  # for GtkApplication registration
+  fractal:
+    interface: dbus
+    bus: session
+    name: org.gnome.Fractal
+
+apps:
+  fractal:
+    extensions: [gnome-3-34]
+    command: fractal
+    common-id: org.gnome.Fractal.desktop
+    desktop: usr/share/applications/org.gnome.Fractal.desktop
+    plugs:
+      - gsettings
+      - network
+      - opengl
+      - password-manager-service
+
+parts:
+  enchant:
+    source: https://github.com/AbiWord/enchant.git
+    plugin: autotools
+    configflags:
+      - --prefix=/usr
+    organize:
+      snap/fractal/current/usr: usr
+    build-packages:
+      - gtk-doc-tools
+      - intltool
+      - gnome-common
+
+  gspell:
+    after: [enchant]
+    source: https://gitlab.gnome.org/GNOME/gspell.git
+    plugin: autotools
+    configflags:
+      - --prefix=/usr
+      - --enable-gtk-doc=no
+      - --enable-tests=no
+      - --enable-vala=no
+      - --enable-introspection=no
+    organize:
+      snap/fractal/current/usr: usr
+    build-packages:
+      - gtk-doc-tools
+      - intltool
+      - gnome-common
+      - gobject-introspection
+      - valac
+
+  fractal:
+    after: [gspell]
+    parse-info: [usr/share/metainfo/org.gnome.Fractal.appdata.xml]
+    source: .
+    source-type: git
+    plugin: meson
+    meson-parameters: [--prefix=/usr]
+    organize:
+      snap/fractal/current/usr: usr
+    build-packages:
+      - curl
+      - libssl-dev
+      - libgstreamer1.0-dev
+      - libgstreamer-plugins-bad1.0-dev
+      - libgstreamer-plugins-base1.0-dev
+      - libgstreamer-plugins-good1.0-dev
+      - libges-1.0-dev
+    stage-packages:
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-plugins-base
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-ugly
+      - libges-1.0-0
+      - libgstreamer1.0-0
+      - libgstreamer-plugins-bad1.0-0
+      - libgstreamer-plugins-base1.0-0
+      - libgstreamer-plugins-good1.0-0
+      - libusb-1.0-0
+      - libslang2
+      - libgpm2
+    build-environment:
+      - PATH: $HOME/.cargo/bin:$PATH
+      - PKG_CONFIG_PATH: $SNAPCRAFT_STAGE/usr/lib/pkgconfig:$PKG_CONFIG_PATH
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version $(git describe --tags --abbrev=10)
+    override-build: |
+      curl https://sh.rustup.rs -sSf | sh -s -- -y
+      . $HOME/.cargo/env
+      rustup toolchain install nightly
+      rustup default nightly
+      snapcraftctl build
+    prime:
+      - -usr/lib/*/libpango*
+      - -usr/lib/*/libfribidi*
+      - -usr/lib/*/libharf*
+
+  # Find files provided by the base and platform snap and ensure they aren't
+  # duplicated in this snap
+  cleanup:
+    after: [fractal]
+    plugin: nil
+    build-snaps: [core18, gnome-3-34-1804]
+    override-prime: |
+      set -eux
+      for snap in "core18" "gnome-3-34-1804"; do
+        cd "/snap/$snap/current" && find . -type f,l -name *.so.* -exec rm -f "$SNAPCRAFT_PRIME/{}" \;
+      done
