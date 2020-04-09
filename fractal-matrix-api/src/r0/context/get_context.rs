@@ -42,7 +42,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/rooms/{}/context/{}",
+            "_matrix/client/r0/rooms/{}/context/{}",
             room_id, event_id,
         ))
         .expect("Malformed URL in post_public_rooms");

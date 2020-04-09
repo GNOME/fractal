@@ -18,7 +18,7 @@ pub struct Response {
 
 pub fn request(base: Url, body: &Body) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/identity/api/v1/validate/msisdn/submitToken")
+        .join("_matrix/identity/api/v1/validate/msisdn/submitToken")
         .expect("Malformed URL in msisdn submit_token");
 
     Client::new().post(url).json(body).build()

@@ -16,7 +16,7 @@ pub struct Response {
 
 pub fn request(base: Url, user_id: &UserId) -> Result<Request, Error> {
     let url = base
-        .join(&format!("/_matrix/client/r0/profile/{}", user_id))
+        .join(&format!("_matrix/client/r0/profile/{}", user_id))
         .expect("Malformed URL in get_profile_avatar");
 
     Client::new().get(url).build()

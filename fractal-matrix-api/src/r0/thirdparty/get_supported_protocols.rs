@@ -49,7 +49,7 @@ pub struct ProtocolInstance {
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/thirdparty/protocols")
+        .join("_matrix/client/r0/thirdparty/protocols")
         .expect("Wrong URL in get_supported_protocols");
 
     Client::new().get(url).query(params).build()

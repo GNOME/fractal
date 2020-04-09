@@ -32,7 +32,7 @@ pub fn request(
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
-            "/_matrix/client/r0/rooms/{}/redact/{}/{}",
+            "_matrix/client/r0/rooms/{}/redact/{}/{}",
             room_id, event_type, txn_id,
         ))
         .expect("Malformed URL in redact_event");

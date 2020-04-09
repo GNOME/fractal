@@ -27,7 +27,7 @@ pub struct ThirdPartyIdentifier {
 
 pub fn request(base: Url, params: &Parameters) -> Result<Request, Error> {
     let url = base
-        .join("/_matrix/client/r0/account/3pid")
+        .join("_matrix/client/r0/account/3pid")
         .expect("Malformed URL in get_identifiers");
 
     Client::new().get(url).query(params).build()
