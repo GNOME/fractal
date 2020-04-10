@@ -21,7 +21,6 @@ use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
-use crate::backend::types::BKCommand;
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::backend::types::BackendData;
@@ -93,23 +92,22 @@ use serde_json::Value as JsonValue;
 
 // FIXME: Remove this function, this is used only to request information we should already have
 // when opening a room
-pub fn set_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: RoomId) {
-    if let Some(itx) = bk.internal_tx.clone() {
-        itx.send(BKCommand::GetRoomAvatar(
-            base.clone(),
-            access_token.clone(),
-            room_id.clone(),
-        ))
-        .expect_log("Connection closed");
+pub fn set_room(bk: &Backend, server: Url, access_token: AccessToken, room_id: RoomId) {
+    let tx = bk.tx.clone();
 
-        let tx = bk.tx.clone();
+    thread::spawn(clone!(server, access_token, room_id => move || {
+        let query = get_room_avatar(server, access_token, room_id);
+        tx.send(BKResponse::RoomAvatar(query))
+            .expect_log("Connection closed");
+    }));
 
-        thread::spawn(move || {
-            let query = get_room_detail(base, access_token, room_id, "m.room.topic".into());
-            tx.send(BKResponse::RoomDetail(query))
-                .expect_log("Connection closed");
-        });
-    }
+    let tx = bk.tx.clone();
+
+    thread::spawn(move || {
+        let query = get_room_detail(server, access_token, room_id, "m.room.topic".into());
+        tx.send(BKResponse::RoomDetail(query))
+            .expect_log("Connection closed");
+    });
 }
 
 fn get_room_detail(
@@ -232,24 +230,15 @@ pub fn get_room_messages(
 }
 
 pub fn get_room_messages_from_msg(
-    bk: &Backend,
-    baseu: Url,
-    tk: AccessToken,
+    base: Url,
+    access_token: AccessToken,
     room_id: RoomId,
     msg: Message,
-) {
+) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
-    let itx = bk.internal_tx.clone();
-
-    thread::spawn(move || {
-        if let Ok(from) = get_prev_batch_from(baseu.clone(), tk.clone(), &room_id, &msg.id) {
-            if let Some(t) = itx {
-                t.send(BKCommand::GetRoomMessages(baseu, tk, room_id, from))
-                    .expect_log("Connection closed");
-            }
-        }
-    });
+    get_prev_batch_from(base.clone(), access_token.clone(), &room_id, &msg.id)
+        .and_then(|from| get_room_messages(base, access_token, room_id, from))
 }
 
 pub fn get_message_context(
@@ -537,7 +526,6 @@ pub fn attach_file(
         .unwrap_or_default();
 
     let tx = bk.tx.clone();
-    let itx = bk.internal_tx.clone();
 
     if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
         tx.send(BKResponse::SentMsg(send_msg(baseu, tk, msg)))
@@ -570,10 +558,11 @@ pub fn attach_file(
 
         let query = upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
             msg.url = Some(response.content_uri.to_string());
-            if let Some(t) = itx {
-                t.send(BKCommand::SendMsg(baseu, tk, msg.clone()))
+            thread::spawn(clone!(msg, tx => move || {
+                let query = redact_msg(baseu, tk, msg);
+                tx.send(BKResponse::SentMsgRedaction(query))
                     .expect_log("Connection closed");
-            }
+            }));
 
             msg
         });
