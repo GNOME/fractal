@@ -55,6 +55,17 @@ impl App {
             _ => Inhibit(false),
         });
 
+        let send = self.ui.sventry.send.clone();
+        send.hide();
+        let buffer = self.ui.sventry.buffer.clone();
+        buffer.connect_changed(move |buffer| {
+            if 0 < buffer.get_char_count() {
+                send.show();
+            } else {
+                send.hide();
+            }
+        });
+
         op = self.op.clone();
         msg_entry.connect_key_release_event(move |_, _| {
             op.lock().unwrap().send_typing();
