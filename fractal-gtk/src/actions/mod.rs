@@ -43,7 +43,7 @@ impl From<bool> for ButtonState {
 
 impl From<ButtonState> for bool {
     fn from(v: ButtonState) -> bool {
-        (v == ButtonState::Sensitive)
+        v == ButtonState::Sensitive
     }
 }
 
