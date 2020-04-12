@@ -171,8 +171,21 @@ impl Autocomplete {
 
                     return glib::signal::Inhibit(false);
                 }
-                /* Tab and Enter key */
-                gdk::enums::key::Tab | gdk::enums::key::Return => {
+                /* Tab key */
+                gdk::enums::key::Tab => {
+                    if own.borrow().popover_position.is_some() {
+                        let widget = {
+                            own.borrow_mut().popover_closing = true;
+                            own.borrow_mut().autocomplete_arrow(0)
+                        };
+                        if let Some(w) = widget {
+                            let ev: &gdk::Event = ev;
+                            let _ = w.emit("button-press-event", &[ev]);
+                        }
+                    }
+                }
+                /* Enter key */
+                gdk::enums::key::Return => {
                     if own.borrow().popover_position.is_some() {
                         let widget = {
                             own.borrow_mut().popover_closing = true;
@@ -183,9 +196,7 @@ impl Autocomplete {
                             let _ = w.emit("button-press-event", &[ev]);
                         }
                     } else {
-                        if ev.get_keyval() != gdk::enums::key::Tab {
-                            return glib::signal::Inhibit(false);
-                        }
+                        return glib::signal::Inhibit(false);
                     }
                 }
                 /* Arrow key */
