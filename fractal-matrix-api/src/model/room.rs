@@ -400,10 +400,10 @@ fn calculate_room_name(events: &Vec<JsonValue>, user_id: &UserId) -> Option<Stri
     let members: Vec<&str> = events
         .iter()
         .filter(|x| {
-            (x["type"] == "m.room.member"
+            x["type"] == "m.room.member"
                 && ((x["content"]["membership"] == "join" && x["sender"] != userid.as_str())
                     || (x["content"]["membership"] == "invite"
-                        && x["state_key"] != userid.as_str())))
+                        && x["state_key"] != userid.as_str()))
         })
         .take(3)
         .map(|m| {
