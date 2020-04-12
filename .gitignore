@@ -6,6 +6,7 @@ Makefile
 _build
 vendor
 *.gresource
+.vscode
 
 # Files configured by meson
 fractal-gtk/src/config.rs
