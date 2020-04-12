@@ -221,7 +221,20 @@ impl Autocomplete {
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |e, ev| {
             if let Some(buffer) = e.get_buffer() {
-                let is_tab = ev.get_keyval() == gdk::enums::key::Tab;
+                /* prevent firing autocomplete when
+                 * switching windows (e.g. w/ ALT-TAB) */
+                let is_tab = match ev.get_state() {
+                    gdk::ModifierType::CONTROL_MASK |
+                    gdk::ModifierType::MOD1_MASK |
+                    gdk::ModifierType::MOD2_MASK |
+                    gdk::ModifierType::MOD3_MASK |
+                    gdk::ModifierType::MOD4_MASK |
+                    gdk::ModifierType::MOD5_MASK |
+                    gdk::ModifierType::SUPER_MASK |
+                    gdk::ModifierType::HYPER_MASK |
+                    gdk::ModifierType::META_MASK => false,
+                    _ => ev.get_keyval() == gdk::enums::key::Tab,
+                };
 
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
