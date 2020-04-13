@@ -279,12 +279,8 @@ impl ScrollWidget {
     }
 
     pub fn typing_notification(&self, typing_str: &str) {
-        if typing_str.len() == 0 {
-            self.widgets.typing_label.set_visible(false);
-        } else {
-            self.widgets.typing_label.set_visible(true);
-            self.widgets.typing_label.set_markup(typing_str);
-        }
+        self.widgets.typing_label.set_visible(true);
+        self.widgets.typing_label.set_markup(typing_str);
     }
 }
 
