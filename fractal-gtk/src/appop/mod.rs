@@ -14,6 +14,8 @@ use fractal_api::url::Url;
 use crate::backend;
 use crate::backend::BKCommand;
 
+use crate::i18n;
+
 use crate::types::Member;
 use crate::types::Room;
 use crate::types::RoomList;
@@ -72,6 +74,7 @@ pub struct AppOp {
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
     pub roomlist: widgets::RoomList,
+    unread_rooms: usize,
     pub unsent_messages: HashMap<RoomId, (String, i32)>,
     pub typing: HashMap<RoomId, std::time::Instant>,
 
@@ -114,6 +117,7 @@ impl AppOp {
             state: AppState::Login,
             room_back_history: Rc::new(RefCell::new(vec![])),
             roomlist: widgets::RoomList::new(None, None),
+            unread_rooms: 0,
             since: None,
             unsent_messages: HashMap::new(),
             typing: HashMap::new(),
@@ -154,14 +158,30 @@ impl AppOp {
         }
     }
 
-    pub fn activate(&self) {
-        let window: gtk::Window = self
-            .ui
+    fn get_window(&self) -> gtk::Window {
+        self.ui
             .builder
             .get_object("main_window")
-            .expect("Couldn't find main_window in ui file.");
+            .expect("Couldn't find main_window in ui file.")
+    }
+
+    pub fn activate(&self) {
+        let window = self.get_window();
         window.show();
         window.present();
+    }
+
+    pub fn update_title(&mut self) {
+        let unread = self.roomlist.rooms_with_notifications();
+        if self.unread_rooms != unread {
+            let window = self.get_window();
+            if unread == 0 {
+                window.set_title(&i18n::i18n("Fractal"));
+            } else {
+                window.set_title(&i18n::i18n_f("Fractal [{}]", &[&unread.to_string()]));
+            }
+            self.unread_rooms = unread;
+        }
     }
 
     pub fn quit(&self) {
