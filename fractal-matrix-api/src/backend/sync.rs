@@ -18,6 +18,7 @@ use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
+use crate::util::matrix_response;
 use crate::util::parse_m_direct;
 use crate::util::ResultExpectLog;
 
@@ -101,10 +102,9 @@ pub fn sync(
                 .apply_to_client_builder(client_builder_timeout)?
                 .build()?;
             let request = sync_events(base.clone(), &params)?;
-            client
-                .execute(request)?
-                .json::<SyncResponse>()
-                .map_err(Into::into)
+            let response = client.execute(request)?;
+
+            matrix_response::<SyncResponse>(response)
         });
 
         match query {
