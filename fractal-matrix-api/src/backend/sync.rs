@@ -56,6 +56,7 @@ pub fn sync(
                 }),
                 timeline: Some(RoomEventFilter {
                     types: Some(vec!["m.room.message", "m.sticker"]),
+                    not_types: vec!["m.call.*"],
                     limit: Some(globals::PAGE_LIMIT),
                     ..Default::default()
                 }),
