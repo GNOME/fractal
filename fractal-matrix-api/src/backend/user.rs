@@ -7,7 +7,6 @@ use crate::error::Error;
 use crate::util::cache_dir_path;
 use crate::util::dw_media;
 use crate::util::get_user_avatar;
-use crate::util::semaphore;
 use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
@@ -348,7 +347,7 @@ pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sen
         let uid = member.uid.clone();
         let avatar = member.avatar.clone().unwrap_or_default();
 
-        semaphore(bk.limit_threads.clone(), move || {
+        bk.thread_pool.run(move || {
             let fname = get_user_avatar_img(base, &uid, &avatar).unwrap_or_default();
             tx.send(fname).expect_log("Connection closed");
         });
@@ -417,7 +416,7 @@ pub fn get_user_info_async(
     let info: Arc<Mutex<(String, String)>> = Default::default();
     bk.user_info_cache.insert(uid.clone(), info.clone());
 
-    semaphore(bk.limit_threads.clone(), move || {
+    bk.thread_pool.run(move || {
         match (get_user_avatar(baseu, &uid), tx) {
             (Ok(i0), Some(tx)) => {
                 tx.send(i0.clone()).expect_log("Connection closed");
