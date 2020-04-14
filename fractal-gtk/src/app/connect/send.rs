@@ -39,7 +39,7 @@ impl App {
                 if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK)
                     && !autocomplete_popover.is_visible() =>
             {
-                activate_action("app", "send");
+                activate_action("app", "send-message");
                 Inhibit(true)
             }
             _ => Inhibit(false),
