@@ -178,6 +178,8 @@ impl AppOp {
             if unread == 0 {
                 window.set_title(&i18n::i18n("Fractal"));
             } else {
+                // Translators: The placeholder is for the number of unread messages in the
+                // application
                 window.set_title(&i18n::i18n_f("Fractal [{}]", &[&unread.to_string()]));
             }
             self.unread_rooms = unread;
