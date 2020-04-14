@@ -90,7 +90,7 @@ impl Default for SVEntry {
         send.set_valign(gtk::Align::End);
         send.set_receives_default(true);
         send.get_style_context().add_class("suggested-action");
-        send.set_action_name(Some("message.send"));
+        send.set_action_name(Some("app.send-message"));
 
         container.pack_start(&attach, false, false, 0);
         container.pack_start(&markdown, false, false, 0);
