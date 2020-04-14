@@ -90,6 +90,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let room_settings = SimpleAction::new("open-room-settings", None);
     // TODO: send file should be a message action
     let send_file = SimpleAction::new("send-file", None);
+    let send_message = SimpleAction::new("send-message", None);
 
     let previous_room = SimpleAction::new("previous-room", None);
     let next_room = SimpleAction::new("next-room", None);
@@ -122,6 +123,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.add_action(&account);
 
     app.add_action(&send_file);
+    app.add_action(&send_message);
 
     app.add_action(&previous_room);
     app.add_action(&next_room);
@@ -292,6 +294,30 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
             if let Some(path) = open(&window, i18n("Select a file").as_str(), &[]) {
                 APPOP!(attach_message, (path));
             }
+        }
+    });
+
+    send_message.connect_activate(clone!(op => move |_, _| {
+        let msg_entry = op.lock().unwrap().ui.sventry.view.clone();
+        if let Some(buffer) = msg_entry.get_buffer() {
+            let start = buffer.get_start_iter();
+            let end = buffer.get_end_iter();
+
+            if let Some(text) = buffer.get_text(&start, &end, false) {
+                op.lock().unwrap().send_message(text.to_string());
+            }
+
+            buffer.set_text("");
+        }
+    }));
+
+    send_message.set_enabled(false);
+    let buffer = op.lock().unwrap().ui.sventry.buffer.clone();
+    buffer.connect_changed(move |buffer| {
+        if 0 < buffer.get_char_count() {
+            send_message.set_enabled(true);
+        } else {
+            send_message.set_enabled(false);
         }
     });
 
