@@ -16,6 +16,12 @@ Fractal Flatpak on Flathub.
 <img src="https://flathub.org/assets/badges/flathub-badge-i-en.png" width="190px" />
 </a>
 
+Fractal can also be installed as a snap on any distro with snap support enabled
+
+<a href="https://snapcraft.io/fractal">
+<img src="https://github.com/snapcore/snap-store-badges/raw/master/EN/[EN]-snap-store-white.png" width="182px" />
+</a>
+
 ## Build Instructions
 
 ### Flatpak
@@ -42,10 +48,25 @@ Then you go ahead and build Fractal.
 flatpak-builder --user --install fractal flatpak/org.gnome.Fractal.json
 ```
 
+### Snap
+
+To build as a snap simply install snapcraft
+
+```
+snap install --classic snapcraft
+snapcraft
+```
+
+The snapcraft build will produce a file that ends with .snap that can be easily installed with the snap command
+
+```
+snap install --dangerous FILENAME.snap
+```
+
 ### GNU/Linux
 
 If you decide to ignore our recommendation and build on your host system,
-outside of Flatpak, you will need Meson and Ninja (as well as Rust and Cargo).
+outside of Flatpak or snap, you will need Meson and Ninja (as well as Rust and Cargo).
 
 ```sh
 meson . _build --prefix=/usr/local
