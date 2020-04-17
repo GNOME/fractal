@@ -13,7 +13,7 @@ use crate::globals;
 
 use self::types::ThreadPool;
 
-mod directory;
+pub mod directory;
 mod media;
 pub mod register;
 mod room;
@@ -269,13 +269,6 @@ impl Backend {
             ),
 
             // Directory module
-            Ok(BKCommand::DirectoryProtocols(server, access_token)) => {
-                thread::spawn(move || {
-                    let query = directory::protocols(server, access_token);
-                    tx.send(BKResponse::DirectoryProtocols(query))
-                        .expect_log("Connection closed");
-                });
-            }
             Ok(BKCommand::DirectorySearch(server, access_token, dhs, dq, dtp, more)) => {
                 let hs = match dhs {
                     ref a if a.is_empty() => None,

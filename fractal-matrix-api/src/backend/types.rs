@@ -46,7 +46,6 @@ pub enum BKCommand {
     SendTyping(Url, AccessToken, UserId, RoomId),
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
-    DirectoryProtocols(Url, AccessToken),
     DirectorySearch(Url, AccessToken, String, String, String, bool),
     JoinRoom(Url, AccessToken, RoomId),
     MarkAsRead(Url, AccessToken, RoomId, String),
