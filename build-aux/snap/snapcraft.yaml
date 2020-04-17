@@ -37,6 +37,7 @@ parts:
       - gtk-doc-tools
       - intltool
       - gnome-common
+      - libltdl-dev
 
   gspell:
     after: [enchant]
@@ -61,7 +62,6 @@ parts:
     after: [gspell]
     parse-info: [usr/share/metainfo/org.gnome.Fractal.appdata.xml]
     source: .
-    source-type: git
     plugin: meson
     meson-parameters: [--prefix=/usr]
     organize:
