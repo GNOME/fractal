@@ -21,7 +21,7 @@ pub mod register;
 mod room;
 mod sync;
 mod types;
-mod user;
+pub mod user;
 
 pub use self::types::BKCommand;
 pub use self::types::BKResponse;
@@ -78,123 +78,11 @@ impl Backend {
             Ok(BKCommand::Guest(server, id_url)) => register::guest(self, server, id_url),
 
             // User module
-            Ok(BKCommand::GetUsername(server, uid)) => {
-                thread::spawn(move || {
-                    let query = user::get_username(server, uid);
-                    tx.send(BKResponse::Name(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::SetUserName(server, access_token, uid, username)) => {
-                thread::spawn(move || {
-                    let query = user::set_username(server, access_token, uid, username);
-                    tx.send(BKResponse::SetUserName(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::GetThreePID(server, access_token)) => {
-                thread::spawn(move || {
-                    let query = user::get_threepid(server, access_token);
-                    tx.send(BKResponse::GetThreePID(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::GetTokenEmail(server, access_token, identity, email, client_secret)) => {
-                thread::spawn(move || {
-                    let query =
-                        user::get_email_token(server, access_token, identity, email, client_secret);
-                    tx.send(BKResponse::GetTokenEmail(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::GetTokenPhone(server, access_token, identity, phone, client_secret)) => {
-                thread::spawn(move || {
-                    let query =
-                        user::get_phone_token(server, access_token, identity, phone, client_secret);
-                    tx.send(BKResponse::GetTokenPhone(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::SubmitPhoneToken(server, client_secret, sid, token)) => {
-                thread::spawn(move || {
-                    let query = user::submit_phone_token(server, client_secret, sid, token);
-                    tx.send(BKResponse::SubmitPhoneToken(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::AddThreePID(server, access_token, identity, client_secret, sid)) => {
-                thread::spawn(move || {
-                    let query =
-                        user::add_threepid(server, access_token, identity, client_secret, sid);
-                    tx.send(BKResponse::AddThreePID(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::DeleteThreePID(server, access_token, medium, address)) => {
-                thread::spawn(move || {
-                    let query = user::delete_three_pid(server, access_token, medium, address);
-                    tx.send(BKResponse::DeleteThreePID(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::ChangePassword(
-                server,
-                access_token,
-                user,
-                old_password,
-                new_password,
-            )) => {
-                thread::spawn(move || {
-                    let query = user::change_password(
-                        server,
-                        access_token,
-                        user,
-                        old_password,
-                        new_password,
-                    );
-                    tx.send(BKResponse::ChangePassword(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::AccountDestruction(server, access_token, user, password)) => {
-                thread::spawn(move || {
-                    let query = user::account_destruction(server, access_token, user, password);
-                    tx.send(BKResponse::AccountDestruction(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::GetAvatar(server, uid)) => {
-                thread::spawn(move || {
-                    let query = user::get_avatar(server, uid);
-                    tx.send(BKResponse::Avatar(query))
-                        .expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::SetUserAvatar(server, access_token, uid, file)) => {
-                thread::spawn(move || {
-                    let query = user::set_user_avatar(server, access_token, uid, file);
-                    tx.send(BKResponse::SetUserAvatar(query))
-                        .expect_log("Connection closed");
-                });
-            }
             Ok(BKCommand::GetAvatarAsync(server, member, ctx)) => {
                 user::get_avatar_async(self, server, member, ctx)
             }
             Ok(BKCommand::GetUserInfoAsync(server, sender, ctx)) => {
                 user::get_user_info_async(self, server, sender, ctx)
-            }
-            Ok(BKCommand::GetUserNameAsync(server, sender, ctx)) => {
-                thread::spawn(move || {
-                    let query = user::get_username_async(server, sender);
-                    ctx.send(query).expect_log("Connection closed");
-                });
-            }
-            Ok(BKCommand::UserSearch(server, access_token, term)) => {
-                thread::spawn(move || {
-                    let query = user::search(server, access_token, term);
-                    tx.send(BKResponse::UserSearch(query))
-                        .expect_log("Connection closed");
-                });
             }
 
             // Sync module
