@@ -1,6 +1,7 @@
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
+use fractal_api::util::{dw_media, ContentType, ResultExpectLog};
 use log::error;
 use std::cell::RefCell;
 use std::convert::TryFrom;
@@ -9,9 +10,10 @@ use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 
 use crate::actions::AppState;
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
@@ -121,7 +123,13 @@ pub fn new(
     open_with.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
-            let _ = b.send(BKCommand::GetMedia(server_url.clone(), url));
+            let server_url = server_url.clone();
+            let tx = b.clone();
+            thread::spawn(move || {
+                let fname = dw_media(server_url, &url, ContentType::Download, None);
+                tx.send(BKCommand::SendBKResponse(BKResponse::Media(fname)))
+                    .expect_log("Connection closed");
+            });
         }
     }));
 
