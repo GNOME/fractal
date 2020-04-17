@@ -65,13 +65,6 @@ impl Backend {
             Ok(BKCommand::Login(user, passwd, server, id_url)) => {
                 register::login(self, user, passwd, server, id_url)
             }
-            Ok(BKCommand::Logout(server, access_token)) => {
-                thread::spawn(move || {
-                    let query = register::logout(server, access_token);
-                    tx.send(BKResponse::Logout(query))
-                        .expect_log("Connection closed");
-                });
-            }
             Ok(BKCommand::Register(user, passwd, server, id_url)) => {
                 register::register(self, user, passwd, server, id_url)
             }

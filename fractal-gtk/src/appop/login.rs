@@ -1,7 +1,9 @@
 use log::error;
 
+use fractal_api::backend::register;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
+use fractal_api::util::ResultExpectLog;
 
 use fractal_api::url::Url;
 
@@ -14,6 +16,7 @@ use crate::cache;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 
 use crate::app::backend_loop;
 
@@ -178,12 +181,12 @@ impl AppOp {
     pub fn logout(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let _ = self.delete_pass("fractal");
-        self.backend
-            .send(BKCommand::Logout(
-                login_data.server_url,
-                login_data.access_token,
-            ))
-            .unwrap();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = register::logout(login_data.server_url, login_data.access_token);
+            tx.send(BKCommand::SendBKResponse(BKResponse::Logout(query)))
+                .expect_log("Connection closed");
+        });
         self.bk_logout();
         *self.room_back_history.borrow_mut() = vec![];
     }

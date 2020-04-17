@@ -21,7 +21,6 @@ use url::Url;
 #[derive(Debug)]
 pub enum BKCommand {
     Login(String, String, Url, Url),
-    Logout(Url, AccessToken),
     Register(String, String, Url, Url),
     Guest(Url, Url),
     Sync(Url, AccessToken, UserId, Option<String>, bool),
