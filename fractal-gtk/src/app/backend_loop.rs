@@ -83,12 +83,10 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(account_destruction_logoff);
                 }
                 BKResponse::Avatar(Ok(path)) => {
-                    let av = Some(path);
-                    APPOP!(set_avatar, (av));
+                    APPOP!(set_avatar, (path));
                 }
                 BKResponse::SetUserAvatar(Ok(path)) => {
-                    let av = Some(path);
-                    APPOP!(show_new_avatar, (av));
+                    APPOP!(show_new_avatar, (path));
                 }
                 BKResponse::Sync(Ok(since)) => {
                     info!("SYNC");

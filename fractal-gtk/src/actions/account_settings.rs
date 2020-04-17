@@ -1,16 +1,18 @@
 use crate::i18n::i18n;
+use fractal_api::backend::user;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
+use fractal_api::util::ResultExpectLog;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use gtk;
 use std::sync::mpsc::Sender;
+use std::thread;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 
-use crate::widgets::ErrorDialog;
 use crate::widgets::FileDialog::open;
 
 use crate::actions::ButtonState;
@@ -18,7 +20,7 @@ use crate::actions::ButtonState;
 // This creates all actions a user can perform in the account settings
 pub fn new(
     window: &gtk::Window,
-    backend: &Sender<BKCommand>,
+    tx: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
     uid: UserId,
@@ -31,24 +33,22 @@ pub fn new(
     actions.add_action(&change_avatar);
 
     let window_weak = window.downgrade();
-    let backend = backend.clone();
     change_avatar.connect_activate(move |a, _| {
         let window = upgrade_weak!(window_weak);
         let filter = gtk::FileFilter::new();
         filter.add_mime_type("image/*");
         filter.set_name(Some(i18n("Images").as_str()));
         if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
-            if let Some(file) = path.to_str() {
-                a.change_state(&ButtonState::Insensitive.into());
-                let _ = backend.send(BKCommand::SetUserAvatar(
-                    server_url.clone(),
-                    access_token.clone(),
-                    uid.clone(),
-                    file.to_string(),
-                ));
-            } else {
-                ErrorDialog::new(false, &i18n("Couldn’t open file"));
-            }
+            a.change_state(&ButtonState::Insensitive.into());
+            let tx = tx.clone();
+            let server_url = server_url.clone();
+            let access_token = access_token.clone();
+            let uid = uid.clone();
+            thread::spawn(move || {
+                let query = user::set_user_avatar(server_url, access_token, uid, path);
+                tx.send(BKCommand::SendBKResponse(BKResponse::SetUserAvatar(query)))
+                    .expect_log("Connection closed");
+            });
         }
     });
 

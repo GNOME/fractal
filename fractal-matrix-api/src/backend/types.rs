@@ -1,5 +1,6 @@
 use ruma_identifiers::{RoomId, UserId};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -9,7 +10,6 @@ use crate::error::Error;
 use crate::r0::contact::get_identifiers::ThirdPartyIdentifier;
 use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use crate::r0::AccessToken;
-use crate::r0::Medium;
 use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
@@ -22,22 +22,8 @@ use url::Url;
 pub enum BKCommand {
     Login(String, String, Url, Url),
     Logout(Url, AccessToken),
-    #[allow(dead_code)]
     Register(String, String, Url, Url),
-    #[allow(dead_code)]
     Guest(Url, Url),
-    GetUsername(Url, UserId),
-    SetUserName(Url, AccessToken, UserId, String),
-    GetThreePID(Url, AccessToken),
-    GetTokenEmail(Url, AccessToken, Url, String, String),
-    GetTokenPhone(Url, AccessToken, Url, String, String),
-    SubmitPhoneToken(Url, String, String, String),
-    AddThreePID(Url, AccessToken, Url, String, String),
-    DeleteThreePID(Url, AccessToken, Medium, String),
-    ChangePassword(Url, AccessToken, String, String, String),
-    AccountDestruction(Url, AccessToken, String, String),
-    GetAvatar(Url, UserId),
-    SetUserAvatar(Url, AccessToken, UserId, String),
     Sync(Url, AccessToken, UserId, Option<String>, bool),
     GetRoomMembers(Url, AccessToken, RoomId),
     GetRoomMessages(Url, AccessToken, RoomId, String),
@@ -57,7 +43,6 @@ pub enum BKCommand {
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
     GetMedia(Url, String),
     GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
-    GetUserNameAsync(Url, UserId, Sender<String>),
     SendMsg(Url, AccessToken, Message),
     SendMsgRedaction(Url, AccessToken, Message),
     SendTyping(Url, AccessToken, UserId, RoomId),
@@ -77,7 +62,6 @@ pub enum BKCommand {
     AddToFav(Url, AccessToken, UserId, RoomId, bool),
     AcceptInv(Url, AccessToken, RoomId),
     RejectInv(Url, AccessToken, RoomId),
-    UserSearch(Url, AccessToken, String),
     Invite(Url, AccessToken, RoomId, UserId),
     ChangeLanguage(AccessToken, Url, UserId, RoomId, String),
     SendBKResponse(BKResponse),
@@ -98,8 +82,8 @@ pub enum BKResponse {
     DeleteThreePID(Result<(), Error>),
     ChangePassword(Result<(), Error>),
     AccountDestruction(Result<(), Error>),
-    Avatar(Result<String, Error>),
-    SetUserAvatar(Result<String, Error>),
+    Avatar(Result<PathBuf, Error>),
+    SetUserAvatar(Result<PathBuf, Error>),
     Sync(Result<String, Error>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
