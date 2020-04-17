@@ -5,8 +5,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::util::dw_media;
-use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 
 use crate::cache::CacheMap;
@@ -269,13 +267,6 @@ impl Backend {
                 prev_batch,
                 ctx,
             ),
-            Ok(BKCommand::GetMedia(server, media)) => {
-                thread::spawn(move || {
-                    let fname = dw_media(server, &media, ContentType::Download, None);
-                    tx.send(BKResponse::Media(fname))
-                        .expect_log("Connection closed");
-                });
-            }
 
             // Directory module
             Ok(BKCommand::DirectoryProtocols(server, access_token)) => {

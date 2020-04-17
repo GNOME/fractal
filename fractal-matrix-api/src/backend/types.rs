@@ -40,7 +40,6 @@ pub enum BKCommand {
         Sender<(Vec<Message>, String)>,
     ),
     GetAvatarAsync(Url, Option<Member>, Sender<String>),
-    GetMedia(Url, String),
     GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
     SendMsg(Url, AccessToken, Message),
     SendMsgRedaction(Url, AccessToken, Message),
