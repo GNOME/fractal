@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
@@ -53,7 +54,7 @@ pub struct LoginData {
     pub access_token: AccessToken,
     pub uid: UserId,
     pub username: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<PathBuf>,
     pub server_url: Url,
     pub identity_url: Url,
 }

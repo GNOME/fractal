@@ -236,7 +236,6 @@ impl MessageBox {
             data.clone(),
         );
         download_to_cache_username(
-            self.backend.clone(),
             self.server_url.clone(),
             uid,
             self.username.clone(),
@@ -594,7 +593,6 @@ impl MessageBox {
         let markup = markup_text(body);
 
         download_to_cache_username_emote(
-            self.backend.clone(),
             self.server_url.clone(),
             msg.sender.clone(),
             &markup,

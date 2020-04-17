@@ -1,11 +1,18 @@
 use gtk;
 use gtk::prelude::*;
 
+use fractal_api::backend::user;
+use fractal_api::clone;
+use fractal_api::util::ResultExpectLog;
+
+use std::path::PathBuf;
+use std::thread;
+
 use crate::appop::AppOp;
 
 use crate::cache::download_to_cache;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 use crate::widgets::AvatarExt;
 
@@ -14,15 +21,19 @@ use super::LoginData;
 impl AppOp {
     pub fn get_username(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        self.backend
-            .send(BKCommand::GetUsername(
-                login_data.server_url.clone(),
-                login_data.uid.clone(),
-            ))
-            .unwrap();
-        self.backend
-            .send(BKCommand::GetAvatar(login_data.server_url, login_data.uid))
-            .unwrap();
+        let tx = self.backend.clone();
+
+        thread::spawn(clone!(login_data, tx => move || {
+            let query = user::get_username(login_data.server_url, login_data.uid);
+            tx.send(BKCommand::SendBKResponse(BKResponse::Name(query)))
+                .expect_log("Connection closed");
+        }));
+
+        thread::spawn(clone!(login_data, tx => move || {
+            let query = user::get_avatar(login_data.server_url, login_data.uid);
+            tx.send(BKCommand::SendBKResponse(BKResponse::Avatar(query)))
+                .expect_log("Connection closed");
+        }));
     }
 
     pub fn show_user_info(&self) {
@@ -126,10 +137,10 @@ impl AppOp {
         });
     }
 
-    pub fn set_avatar(&mut self, fname: Option<String>) {
+    pub fn set_avatar(&mut self, path: PathBuf) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         self.set_login_data(LoginData {
-            avatar: fname,
+            avatar: Some(path),
             ..login_data
         });
     }

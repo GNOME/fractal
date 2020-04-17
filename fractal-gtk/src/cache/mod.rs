@@ -1,8 +1,11 @@
+use fractal_api::backend::user;
 use fractal_api::url::Url;
+use fractal_api::util::ResultExpectLog;
 use glib::source::Continue;
 use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
+use std::thread;
 
 use crate::types::Room;
 use crate::types::RoomList;
@@ -120,16 +123,16 @@ pub fn download_to_cache(
 
 /* Get username based on the MXID, we should cache the username */
 pub fn download_to_cache_username(
-    backend: Sender<BKCommand>,
     server_url: Url,
     uid: UserId,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend
-        .send(BKCommand::GetUserNameAsync(server_url, uid, tx))
-        .unwrap();
+    let (ctx, rx): (Sender<String>, Receiver<String>) = channel();
+    thread::spawn(move || {
+        let query = user::get_username_async(server_url, uid);
+        ctx.send(query).expect_log("Connection closed");
+    });
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => Continue(true),
         Err(TryRecvError::Disconnected) => Continue(false),
@@ -148,17 +151,17 @@ pub fn download_to_cache_username(
 /* Download username for a given MXID and update a emote message
  * FIXME: We should cache this request and do it before we need to display the username in an emote*/
 pub fn download_to_cache_username_emote(
-    backend: Sender<BKCommand>,
     server_url: Url,
     uid: UserId,
     text: &str,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel();
-    backend
-        .send(BKCommand::GetUserNameAsync(server_url, uid, tx))
-        .unwrap();
+    let (ctx, rx): (Sender<String>, Receiver<String>) = channel();
+    thread::spawn(move || {
+        let query = user::get_username_async(server_url, uid);
+        ctx.send(query).expect_log("Connection closed");
+    });
     let text = text.to_string();
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => Continue(true),

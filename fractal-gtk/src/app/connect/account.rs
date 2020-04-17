@@ -79,7 +79,7 @@ impl App {
         let window = self.main_window.upcast_ref::<gtk::Window>();
         let actions = AccountSettings::new(
             &window,
-            &backend,
+            backend,
             login_data.server_url,
             login_data.access_token,
             login_data.uid,

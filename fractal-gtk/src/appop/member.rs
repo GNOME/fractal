@@ -1,14 +1,17 @@
+use fractal_api::backend::user;
 use fractal_api::clone;
 use fractal_api::identifiers::{RoomId, UserId};
+use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::thread;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 use crate::App;
 use glib;
@@ -188,15 +191,13 @@ impl AppOp {
         }
     }
 
-    pub fn search_invite_user(&self, term: Option<String>) {
-        if let (Some(t), Some(login_data)) = (term, self.login_data.clone()) {
-            self.backend
-                .send(BKCommand::UserSearch(
-                    login_data.server_url,
-                    login_data.access_token,
-                    t,
-                ))
-                .unwrap();
-        }
+    pub fn search_invite_user(&self, term: String) {
+        let login_data = unwrap_or_unit_return!(self.login_data.clone());
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = user::search(login_data.server_url, login_data.access_token, term);
+            tx.send(BKCommand::SendBKResponse(BKResponse::UserSearch(query)))
+                .expect_log("Connection closed");
+        });
     }
 }
