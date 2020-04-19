@@ -87,7 +87,7 @@ impl Default for SVEntry {
         let send = gtk::Button::new();
         let send_img = gtk::Image::new_from_icon_name(Some("send-symbolic"), size);
         send.set_image(Some(&send_img));
-        send.set_valign(gtk::Align::End);
+        send.set_valign(gtk::Align::Fill);
         send.set_receives_default(true);
         send.get_style_context().add_class("suggested-action");
         send.set_action_name(Some("app.send-message"));
