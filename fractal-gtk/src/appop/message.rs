@@ -1,5 +1,7 @@
 use comrak::{markdown_to_html, ComrakOptions};
+use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
+use fractal_api::util::ResultExpectLog;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
 use glib::source::Continue;
@@ -13,12 +15,13 @@ use serde_json::Value as JsonValue;
 use std::env::temp_dir;
 use std::fs;
 use std::path::PathBuf;
+use std::thread;
 
 use crate::appop::room::Force;
 use crate::appop::AppOp;
 use crate::App;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -130,7 +133,7 @@ impl AppOp {
             /* Move the last viewed mark to the last message */
             let active_room_id = self.active_room.as_ref()?;
             let room = self.rooms.get_mut(active_room_id)?;
-            let uid = login_data.uid;
+            let uid = login_data.uid.clone();
             room.messages.iter_mut().for_each(|msg| {
                 if msg.receipt.contains_key(&uid) {
                     msg.receipt.remove(&uid);
@@ -139,14 +142,19 @@ impl AppOp {
             let last_message = room.messages.last_mut()?;
             last_message.receipt.insert(uid, 0);
 
-            self.backend
-                .send(BKCommand::MarkAsRead(
+            let room_id = last_message.room.clone();
+            let event_id = last_message.id.clone();
+            let tx = self.backend.clone();
+            thread::spawn(move || {
+                let query = room::mark_as_read(
                     login_data.server_url,
                     login_data.access_token,
-                    last_message.room.clone(),
-                    last_message.id.clone(),
-                ))
-                .unwrap();
+                    room_id,
+                    event_id,
+                );
+                tx.send(BKCommand::SendBKResponse(BKResponse::MarkedAsRead(query)))
+                    .expect_log("Connection closed");
+            });
         }
         None
     }
@@ -196,13 +204,13 @@ impl AppOp {
                         .unwrap();
                 }
                 _ => {
-                    self.backend
-                        .send(BKCommand::SendMsg(
-                            login_data.server_url,
-                            login_data.access_token,
-                            msg,
-                        ))
-                        .unwrap();
+                    let tx = self.backend.clone();
+                    thread::spawn(move || {
+                        let query =
+                            room::send_msg(login_data.server_url, login_data.access_token, msg);
+                        tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(query)))
+                            .expect_log("Connection closed");
+                    });
                 }
             }
         } else {

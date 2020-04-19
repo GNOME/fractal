@@ -1,9 +1,12 @@
+use fractal_api::backend::room;
 use fractal_api::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
+use fractal_api::util::ResultExpectLog;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::thread;
 
 use crate::i18n::ni18n_f;
 use fractal_api::url::Url;
@@ -13,7 +16,7 @@ use gtk::prelude::*;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::types::Member;
 use crate::util::markup_text;
 use crate::widgets;
@@ -428,11 +431,15 @@ impl RoomSettings {
             }
         }
 
-        let _ = self.backend.send(BKCommand::GetRoomAvatar(
-            self.server_url.clone(),
-            self.access_token.clone(),
-            self.room.id.clone(),
-        ));
+        let server = self.server_url.clone();
+        let access_token = self.access_token.clone();
+        let room_id = self.room.id.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = room::get_room_avatar(server, access_token, room_id);
+            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(query)))
+                .expect_log("Connection closed");
+        });
         let image = widgets::Avatar::avatar_new(Some(100));
         let _data = image.circle(
             self.room.id.to_string(),
@@ -491,13 +498,15 @@ impl RoomSettings {
         button.set_sensitive(false);
         entry.set_editable(false);
 
-        let command = BKCommand::SetRoomName(
-            self.server_url.clone(),
-            self.access_token.clone(),
-            room.id.clone(),
-            new_name.clone(),
-        );
-        self.backend.send(command).unwrap();
+        let server = self.server_url.clone();
+        let access_token = self.access_token.clone();
+        let room_id = room.id.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = room::set_room_name(server, access_token, room_id, new_name);
+            tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomName(query)))
+                .expect_log("Connection closed");
+        });
 
         None
     }
@@ -543,13 +552,15 @@ impl RoomSettings {
         button.set_sensitive(false);
         name.set_editable(false);
 
-        let command = BKCommand::SetRoomTopic(
-            self.server_url.clone(),
-            self.access_token.clone(),
-            room.id.clone(),
-            topic.clone(),
-        );
-        self.backend.send(command).unwrap();
+        let server = self.server_url.clone();
+        let access_token = self.access_token.clone();
+        let room_id = room.id.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = room::set_room_topic(server, access_token, room_id, topic);
+            tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomTopic(query)))
+                .expect_log("Connection closed");
+        });
 
         None
     }
