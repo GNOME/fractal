@@ -1,13 +1,16 @@
 use crate::i18n::{i18n, i18n_k};
 
+use fractal_api::backend::room;
 use fractal_api::identifiers::{RoomId, UserId};
+use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
+use std::thread;
 
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 
 use crate::globals;
 
@@ -160,14 +163,18 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let &Some(ref r) = &self.active_room {
             for user in &self.invite_list {
-                self.backend
-                    .send(BKCommand::Invite(
-                        login_data.server_url.clone(),
-                        login_data.access_token.clone(),
-                        r.clone(),
-                        user.0.uid.clone(),
-                    ))
-                    .unwrap();
+                let server = login_data.server_url.clone();
+                let access_token = login_data.access_token.clone();
+                let room_id = r.clone();
+                let user_id = user.0.uid.clone();
+                let tx = self.backend.clone();
+                thread::spawn(move || {
+                    let query = room::invite(server, access_token, room_id, user_id);
+                    if let Err(err) = query {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::InviteError(err)))
+                            .expect_log("Connection closed");
+                    }
+                });
             }
         }
         self.close_invite_dialog();
@@ -227,13 +234,14 @@ impl AppOp {
                     ))
                     .unwrap();
             } else {
-                self.backend
-                    .send(BKCommand::RejectInv(
-                        login_data.server_url,
-                        login_data.access_token,
-                        rid.clone(),
-                    ))
-                    .unwrap();
+                let room_id = rid.clone();
+                let tx = self.backend.clone();
+                thread::spawn(move || {
+                    let query =
+                        room::leave_room(login_data.server_url, login_data.access_token, room_id);
+                    tx.send(BKCommand::SendBKResponse(BKResponse::LeaveRoom(query)))
+                        .expect_log("Connection closed");
+                });
             }
             self.remove_inv(rid);
         }
