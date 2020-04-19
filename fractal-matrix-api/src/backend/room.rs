@@ -555,8 +555,8 @@ pub fn attach_file(
         let query = upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
             msg.url = Some(response.content_uri.to_string());
             thread::spawn(clone!(msg, tx => move || {
-                let query = redact_msg(baseu, tk, msg);
-                tx.send(BKResponse::SentMsgRedaction(query))
+                let query = send_msg(baseu, tk, msg);
+                tx.send(BKResponse::SentMsg(query))
                     .expect_log("Connection closed");
             }));
 
