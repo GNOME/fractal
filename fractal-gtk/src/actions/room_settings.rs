@@ -1,6 +1,8 @@
+use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
+use fractal_api::util::ResultExpectLog;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
@@ -8,8 +10,9 @@ use glib;
 use gtk;
 use std::convert::TryFrom;
 use std::sync::mpsc::Sender;
+use std::thread;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::i18n::i18n;
 
 use crate::widgets::ErrorDialog;
@@ -37,7 +40,7 @@ pub fn new(
     let window_weak = window.downgrade();
     let backend = backend.clone();
     change_avatar.connect_activate(move |a, data| {
-        if let Some(id) = data
+        if let Some(room_id) = data
             .and_then(|x| x.get_str())
             .and_then(|rid| RoomId::try_from(rid).ok())
         {
@@ -46,14 +49,16 @@ pub fn new(
             filter.set_name(Some(i18n("Images").as_str()));
             filter.add_mime_type("image/*");
             if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
-                if let Some(file) = path.to_str() {
+                if let Some(file) = path.to_str().map(Into::into) {
                     a.change_state(&ButtonState::Insensitive.into());
-                    let _ = backend.send(BKCommand::SetRoomAvatar(
-                        server_url.clone(),
-                        access_token.clone(),
-                        id,
-                        file.to_string(),
-                    ));
+                    let tx = backend.clone();
+                    let server = server_url.clone();
+                    let access_token = access_token.clone();
+                    thread::spawn(move || {
+                        let query = room::set_room_avatar(server, access_token, room_id, file);
+                        tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomAvatar(query)))
+                            .expect_log("Connection closed");
+                    });
                 } else {
                     ErrorDialog::new(false, &i18n("Couldn’t open file"));
                 }

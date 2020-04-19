@@ -1,8 +1,11 @@
 use crate::app::App;
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 
+use fractal_api::backend::room;
+use fractal_api::util::ResultExpectLog;
 use glib::object::Cast;
 use gtk::prelude::*;
+use std::thread;
 
 // The TextBufferExt alias is necessary to avoid conflict with gtk's TextBufferExt
 use gspell::{CheckerExt, TextBuffer, TextBufferExt as GspellTextBufferExt};
@@ -26,13 +29,17 @@ impl App {
                     due to the user switching rooms, the op mutex is locked already.
                     If the checker is modified by gtk due to the user switching the language, the op mutex is unlocked. */
                     if let Ok(op) = op.try_lock() {
-                        if let (Some(active_room), Some(login_data)) = (&op.active_room, &op.login_data) {
+                        if let (Some(active_room), Some(login_data)) = (op.active_room.as_ref(), op.login_data.as_ref()) {
                             let server = login_data.server_url.clone();
                             let access_token = login_data.access_token.clone();
                             let uid = login_data.uid.clone();
-                            op.backend
-                                .send(BKCommand::ChangeLanguage(access_token, server, uid, active_room.clone(), lang_code))
-                                .unwrap();
+                            let room_id = active_room.clone();
+                            let tx = op.backend.clone();
+                            thread::spawn(move || {
+                                let query = room::set_language(access_token, server, uid, room_id, lang_code);
+                                tx.send(BKCommand::SendBKResponse(BKResponse::ChangeLanguage(query)))
+                                    .expect_log("Connection closed");
+                            });
                         }
                     }
                 }

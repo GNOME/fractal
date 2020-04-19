@@ -32,9 +32,6 @@ use crate::r0::config::set_global_account_data::request as set_global_account_da
 use crate::r0::config::set_global_account_data::Parameters as SetGlobalAccountDataParameters;
 use crate::r0::config::set_room_account_data::request as set_room_account_data;
 use crate::r0::config::set_room_account_data::Parameters as SetRoomAccountDataParameters;
-use crate::r0::context::get_context::request as get_context;
-use crate::r0::context::get_context::Parameters as GetContextParameters;
-use crate::r0::context::get_context::Response as GetContextResponse;
 use crate::r0::filter::RoomEventFilter;
 use crate::r0::media::create_content::request as create_content;
 use crate::r0::media::create_content::Parameters as CreateContentParameters;
@@ -235,53 +232,6 @@ pub fn get_room_messages_from_msg(
     // normal get_room_messages
     get_prev_batch_from(base.clone(), access_token.clone(), &room_id, &msg.id)
         .and_then(|from| get_room_messages(base, access_token, room_id, from))
-}
-
-pub fn get_message_context(
-    base: Url,
-    access_token: AccessToken,
-    room_id: RoomId,
-    eid: &str,
-    limit: u64,
-) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
-    let params = GetContextParameters {
-        access_token: access_token.clone(),
-        limit,
-        filter: Default::default(),
-    };
-
-    get_context(base.clone(), &params, &room_id, eid)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<GetContextResponse>()?;
-
-            let mut id: Option<String> = None;
-
-            let ms: Result<Vec<Message>, _> = response
-                .events_before
-                .iter()
-                .rev()
-                .inspect(|msg| {
-                    if id.is_none() {
-                        id = Some(msg["event_id"].as_str().unwrap_or_default().to_string());
-                    }
-                })
-                .filter(|msg| Message::supported_event(&&msg))
-                .map(|msg| Message::parse_room_message(&room_id, msg))
-                .collect();
-
-            match (ms, id) {
-                (Ok(msgs), Some(ref id)) if msgs.is_empty() => {
-                    // there's no messages so we'll try with a bigger context
-                    get_message_context(base, access_token, room_id, id, limit * 2)
-                }
-                (Ok(msgs), _) => Ok((msgs, room_id, None)),
-                (Err(err), _) => Err(err.into()),
-            }
-        })
 }
 
 pub fn send_msg(
