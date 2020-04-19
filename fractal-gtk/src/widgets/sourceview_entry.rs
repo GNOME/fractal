@@ -35,7 +35,7 @@ impl Default for SVEntry {
         let attach = gtk::Button::new();
         let attach_img = gtk::Image::new_from_icon_name(Some("mail-attachment-symbolic"), size);
         attach.set_image(Some(&attach_img));
-        attach.set_valign(gtk::Align::End);
+        attach.set_valign(gtk::Align::Fill);
         attach.set_receives_default(true);
         attach.set_action_name(Some("app.send-file"));
         // TODO: there was an a11y object in the xml
@@ -49,7 +49,7 @@ impl Default for SVEntry {
         let markdown_img =
             gtk::Image::new_from_icon_name(Some("format-justify-left-symbolic"), size);
         markdown.set_image(Some(&markdown_img));
-        markdown.set_valign(gtk::Align::End);
+        markdown.set_valign(gtk::Align::Fill);
         markdown.set_receives_default(true);
         // TODO: there was an a11y object in the xml
         /*
