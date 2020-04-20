@@ -5,6 +5,7 @@ use gtk;
 use gtk::prelude::*;
 use sourceview4::BufferExt;
 
+use crate::actions::activate_action;
 use crate::app::App;
 
 const MAX_INPUT_HEIGHT: i32 = 100;
@@ -33,29 +34,18 @@ impl App {
             .get_object::<gtk::Popover>("autocomplete_popover")
             .expect("Can't find autocomplete_popover in ui file.");
 
-        let mut op = self.op.clone();
-        msg_entry.connect_key_press_event(move |entry, key| match key.get_keyval() {
+        msg_entry.connect_key_press_event(move |_, key| match key.get_keyval() {
             gdk::enums::key::Return | gdk::enums::key::KP_Enter
                 if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK)
                     && !autocomplete_popover.is_visible() =>
             {
-                if let Some(buffer) = entry.get_buffer() {
-                    let start = buffer.get_start_iter();
-                    let end = buffer.get_end_iter();
-
-                    if let Some(text) = buffer.get_text(&start, &end, false) {
-                        op.lock().unwrap().send_message(text.to_string());
-                    }
-
-                    buffer.set_text("");
-                }
-
+                activate_action("app", "send-message");
                 Inhibit(true)
             }
             _ => Inhibit(false),
         });
 
-        op = self.op.clone();
+        let mut op = self.op.clone();
         msg_entry.connect_key_release_event(move |_, _| {
             op.lock().unwrap().send_typing();
             Inhibit(false)

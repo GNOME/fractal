@@ -15,6 +15,7 @@ pub struct SVEntry {
     pub scroll: gtk::ScrolledWindow,
     pub view: sourceview4::View,
     pub buffer: sourceview4::Buffer,
+    pub send: gtk::Button,
 }
 
 impl Default for SVEntry {
@@ -83,9 +84,18 @@ impl Default for SVEntry {
         scroll.set_propagate_natural_height(true);
         entry_box.add(&scroll);
 
+        let send = gtk::Button::new();
+        let send_img = gtk::Image::new_from_icon_name(Some("send-symbolic"), size);
+        send.set_image(Some(&send_img));
+        send.set_valign(gtk::Align::End);
+        send.set_receives_default(true);
+        send.get_style_context().add_class("suggested-action");
+        send.set_action_name(Some("app.send-message"));
+
         container.pack_start(&attach, false, false, 0);
         container.pack_start(&markdown, false, false, 0);
         container.pack_start(&entry_box, false, true, 0);
+        container.pack_start(&send, false, false, 0);
 
         column.add(&container);
         column.show_all();
@@ -103,6 +113,7 @@ impl Default for SVEntry {
             scroll,
             view,
             buffer,
+            send,
         }
     }
 }
