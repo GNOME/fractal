@@ -11,6 +11,7 @@ use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use std::convert::TryInto;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -338,8 +339,8 @@ pub fn account_destruction(
         .and(Ok(()))
 }
 
-pub fn get_avatar(base: Url, userid: UserId) -> Result<String, Error> {
-    get_user_avatar(base, &userid).map(|(_, fname)| fname)
+pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, Error> {
+    get_user_avatar(base, &userid).map(|(_, fname)| fname.into())
 }
 
 pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sender<String>) {
@@ -360,8 +361,8 @@ pub fn set_user_avatar(
     base: Url,
     access_token: AccessToken,
     uid: UserId,
-    avatar: String,
-) -> Result<String, Error> {
+    avatar: PathBuf,
+) -> Result<PathBuf, Error> {
     let params_upload = CreateContentParameters {
         access_token: access_token.clone(),
         filename: None,

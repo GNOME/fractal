@@ -1,10 +1,14 @@
 use gtk;
 use gtk::prelude::*;
 use libhandy::Column;
+use std::thread;
+
+use fractal_api::backend::directory;
+use fractal_api::util::ResultExpectLog;
 
 use crate::appop::AppOp;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 
 use crate::types::Room;
@@ -13,12 +17,14 @@ use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 impl AppOp {
     pub fn init_protocols(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        self.backend
-            .send(BKCommand::DirectoryProtocols(
-                login_data.server_url,
-                login_data.access_token,
-            ))
-            .unwrap();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = directory::protocols(login_data.server_url, login_data.access_token);
+            tx.send(BKCommand::SendBKResponse(BKResponse::DirectoryProtocols(
+                query,
+            )))
+            .expect_log("Connection closed");
+        });
     }
 
     pub fn set_protocols(&self, protocols: Vec<ProtocolInstance>) {

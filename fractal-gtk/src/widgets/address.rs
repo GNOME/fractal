@@ -1,15 +1,18 @@
+use fractal_api::backend::user;
 use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use fractal_api::url::Url;
+use fractal_api::util::ResultExpectLog;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
+use std::thread;
 
 use crate::appop::AppOp;
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 
 #[derive(Debug, Clone)]
 pub enum AddressType {
@@ -184,23 +187,27 @@ impl<'a> Address<'a> {
 
             match action {
                 Some(AddressAction::Delete) => {
-                    delete_address(
-                        &backend,
-                        medium,
-                        address.clone(),
-                        server_url.clone(),
-                        access_token.clone(),
-                    );
+                    if let Some(address) = address.clone() {
+                        delete_address(
+                            backend.clone(),
+                            medium,
+                            address,
+                            server_url.clone(),
+                            access_token.clone(),
+                        );
+                    }
                 }
                 Some(AddressAction::Add) => {
-                    add_address(
-                        &backend,
-                        medium,
-                        id_server.clone(),
-                        entry.get_text().map_or(None, |gstr| Some(gstr.to_string())),
-                        server_url.clone(),
-                        access_token.clone(),
-                    );
+                    if let Some(address) = entry.get_text().map(|gstr| gstr.to_string()) {
+                        add_address(
+                            backend.clone(),
+                            medium,
+                            id_server.clone(),
+                            address,
+                            server_url.clone(),
+                            access_token.clone(),
+                        );
+                    }
                 }
                 _ => {}
             }
@@ -209,55 +216,38 @@ impl<'a> Address<'a> {
 }
 
 fn delete_address(
-    backend: &Sender<BKCommand>,
+    tx: Sender<BKCommand>,
     medium: Medium,
-    address: Option<String>,
+    address: String,
     server_url: Url,
     access_token: AccessToken,
-) -> Option<String> {
-    backend
-        .send(BKCommand::DeleteThreePID(
-            server_url,
-            access_token,
-            medium,
-            address?,
-        ))
-        .unwrap();
-    None
+) {
+    thread::spawn(move || {
+        let query = user::delete_three_pid(server_url, access_token, medium, address);
+        tx.send(BKCommand::SendBKResponse(BKResponse::DeleteThreePID(query)))
+            .expect_log("Connection closed");
+    });
 }
 
 fn add_address(
-    backend: &Sender<BKCommand>,
+    tx: Sender<BKCommand>,
     medium: Medium,
     id_server: Url,
-    address: Option<String>,
+    address: String,
     server_url: Url,
     access_token: AccessToken,
-) -> Option<String> {
+) {
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
-    match medium {
+    thread::spawn(move || match medium {
         Medium::MsIsdn => {
-            backend
-                .send(BKCommand::GetTokenPhone(
-                    server_url,
-                    access_token,
-                    id_server,
-                    address?,
-                    secret,
-                ))
-                .unwrap();
+            let query = user::get_phone_token(server_url, access_token, id_server, address, secret);
+            tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenPhone(query)))
+                .expect_log("Connection closed");
         }
         Medium::Email => {
-            backend
-                .send(BKCommand::GetTokenEmail(
-                    server_url,
-                    access_token,
-                    id_server,
-                    address?,
-                    secret,
-                ))
-                .unwrap();
+            let query = user::get_email_token(server_url, access_token, id_server, address, secret);
+            tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenEmail(query)))
+                .expect_log("Connection closed");
         }
-    }
-    None
+    });
 }
