@@ -53,6 +53,7 @@ impl UI {
         )));
         sventry_disabled.set_hexpand(false);
         sventry_disabled.get_style_context().add_class("dim-label");
+        sventry_disabled.set_line_wrap(true);
         sventry_disabled.set_line_wrap_mode(pango::WrapMode::WordChar);
         sventry_stack.add_named(&sventry_disabled, "Disabled Entry");
 
