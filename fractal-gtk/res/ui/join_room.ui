@@ -64,6 +64,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
+                <property name="placeholder_text">#example_room:example_server.org</property>
                 <accessibility>
                   <relation type="labelled-by" target="join_room_name_label"/>
                 </accessibility>
