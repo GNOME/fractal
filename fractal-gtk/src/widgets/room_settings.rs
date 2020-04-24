@@ -16,6 +16,7 @@ use gtk::prelude::*;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
+use crate::app::App;
 use crate::backend::{BKCommand, BKResponse};
 use crate::types::Member;
 use crate::util::markup_text;
@@ -435,11 +436,17 @@ impl RoomSettings {
         let access_token = self.access_token.clone();
         let room_id = self.room.id.clone();
         let tx = self.backend.clone();
-        thread::spawn(move || {
-            let query = room::get_room_avatar(server, access_token, room_id);
-            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(query)))
-                .expect_log("Connection closed");
-        });
+        thread::spawn(
+            move || match room::get_room_avatar(server, access_token, room_id) {
+                Ok((room, avatar)) => {
+                    APPOP!(set_room_avatar, (room, avatar));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                        .expect_log("Connection closed");
+                }
+            },
+        );
         let image = widgets::Avatar::avatar_new(Some(100));
         let _data = image.circle(
             self.room.id.to_string(),
@@ -502,11 +509,17 @@ impl RoomSettings {
         let access_token = self.access_token.clone();
         let room_id = room.id.clone();
         let tx = self.backend.clone();
-        thread::spawn(move || {
-            let query = room::set_room_name(server, access_token, room_id, new_name);
-            tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomName(query)))
-                .expect_log("Connection closed");
-        });
+        thread::spawn(
+            move || match room::set_room_name(server, access_token, room_id, new_name) {
+                Ok(_) => {
+                    APPOP!(show_new_room_name);
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomNameError(err)))
+                        .expect_log("Connection closed");
+                }
+            },
+        );
 
         None
     }
@@ -556,11 +569,19 @@ impl RoomSettings {
         let access_token = self.access_token.clone();
         let room_id = room.id.clone();
         let tx = self.backend.clone();
-        thread::spawn(move || {
-            let query = room::set_room_topic(server, access_token, room_id, topic);
-            tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomTopic(query)))
-                .expect_log("Connection closed");
-        });
+        thread::spawn(
+            move || match room::set_room_topic(server, access_token, room_id, topic) {
+                Ok(_) => {
+                    APPOP!(show_new_room_topic);
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomTopicError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            },
+        );
 
         None
     }

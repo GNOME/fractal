@@ -12,6 +12,7 @@ use std::convert::TryFrom;
 use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::App;
 use crate::backend::{BKCommand, BKResponse};
 use crate::i18n::i18n;
 
@@ -55,9 +56,17 @@ pub fn new(
                     let server = server_url.clone();
                     let access_token = access_token.clone();
                     thread::spawn(move || {
-                        let query = room::set_room_avatar(server, access_token, room_id, file);
-                        tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomAvatar(query)))
-                            .expect_log("Connection closed");
+                        match room::set_room_avatar(server, access_token, room_id, file) {
+                            Ok(_) => {
+                                APPOP!(show_new_room_avatar);
+                            }
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomAvatarError(
+                                    err,
+                                )))
+                                .expect_log("Connection closed");
+                            }
+                        }
                     });
                 } else {
                     ErrorDialog::new(false, &i18n("Couldn’t open file"));

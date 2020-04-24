@@ -7,6 +7,7 @@ use log::error;
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::fs;
+use std::process::Command;
 use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
@@ -127,9 +128,18 @@ pub fn new(
             let server_url = server_url.clone();
             let tx = b.clone();
             thread::spawn(move || {
-                let fname = dw_media(server_url, &url, ContentType::Download, None);
-                tx.send(BKCommand::SendBKResponse(BKResponse::Media(fname)))
-                    .expect_log("Connection closed");
+                match dw_media(server_url, &url, ContentType::Download, None) {
+                    Ok(fname) => {
+                        Command::new("xdg-open")
+                            .arg(&fname)
+                            .spawn()
+                            .expect("failed to execute process");
+                    }
+                    Err(err) => {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::MediaError(err)))
+                            .expect_log("Connection closed");
+                    }
+                }
             });
         }
     }));
@@ -250,10 +260,12 @@ pub fn new(
             let tx = b.clone();
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
-                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsgRedaction(
-                    query,
-                )))
-                .expect_log("Connection closed");
+                if let Err(err) = query {
+                    tx.send(BKCommand::SendBKResponse(
+                        BKResponse::SentMsgRedactionError(err),
+                    ))
+                    .expect_log("Connection closed");
+                }
             });
         }
     });
@@ -296,24 +308,48 @@ fn request_more_messages(
     let r = op.rooms.get(&id)?;
     if let Some(prev_batch) = r.prev_batch.clone() {
         thread::spawn(move || {
-            let query = room::get_room_messages(server_url, access_token, id, prev_batch);
-            tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesTo(query)))
-                .expect_log("Connection closed");
+            match room::get_room_messages(server_url, access_token, id, prev_batch) {
+                Ok((msgs, room, prev_batch)) => {
+                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
         });
     } else if let Some(msg) = r.messages.iter().next().cloned() {
         // no prev_batch so we use the last message to calculate that in the backend
         thread::spawn(move || {
-            let query = room::get_room_messages_from_msg(server_url, access_token, id, msg);
-            tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesTo(query)))
-                .expect_log("Connection closed");
+            match room::get_room_messages_from_msg(server_url, access_token, id, msg) {
+                Ok((msgs, room, prev_batch)) => {
+                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
         });
     } else if let Some(from) = op.since.clone() {
         // no messages and no prev_batch so we use the last since
-        thread::spawn(move || {
-            let query = room::get_room_messages(server_url, access_token, id, from);
-            tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesTo(query)))
-                .expect_log("Connection closed");
-        });
+        thread::spawn(
+            move || match room::get_room_messages(server_url, access_token, id, from) {
+                Ok((msgs, room, prev_batch)) => {
+                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            },
+        );
     }
     None
 }

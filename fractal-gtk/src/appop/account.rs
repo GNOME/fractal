@@ -6,6 +6,7 @@ use log::info;
 use std::path::PathBuf;
 use std::thread;
 
+use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::AppState;
 
@@ -29,9 +30,16 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let tx = self.backend.clone();
         thread::spawn(move || {
-            let query = user::get_threepid(login_data.server_url, login_data.access_token);
-            tx.send(BKCommand::SendBKResponse(BKResponse::GetThreePID(query)))
-                .expect_log("Connection closed");
+            match user::get_threepid(login_data.server_url, login_data.access_token) {
+                Ok(list) => {
+                    let l = Some(list);
+                    APPOP!(set_three_pid, (l));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::GetThreePIDError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
         });
     }
 
@@ -45,15 +53,21 @@ impl AppOp {
             if let Some(secret) = secret {
                 let tx = self.backend.clone();
                 thread::spawn(move || {
-                    let query = user::add_threepid(
+                    match user::add_threepid(
                         login_data.server_url,
                         login_data.access_token,
                         login_data.identity_url,
                         secret,
                         sid,
-                    );
-                    tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePID(query)))
-                        .expect_log("Connection closed");
+                    ) {
+                        Ok(_) => {
+                            APPOP!(added_three_pid);
+                        }
+                        Err(err) => {
+                            tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(err)))
+                                .expect_log("Connection closed");
+                        }
+                    }
                 });
             }
         } else {
@@ -115,11 +129,18 @@ impl AppOp {
                         let sid = sid.clone();
                         let tx = backend.clone();
                         thread::spawn(move || {
-                            let query = user::submit_phone_token(server_url, secret, sid, token);
-                            tx.send(BKCommand::SendBKResponse(BKResponse::SubmitPhoneToken(
-                                query,
-                            )))
-                            .expect_log("Connection closed");
+                            match user::submit_phone_token(server_url, secret, sid, token) {
+                                Ok((sid, secret)) => {
+                                    let secret = Some(secret);
+                                    APPOP!(valid_phone_token, (sid, secret));
+                                }
+                                Err(err) => {
+                                    tx.send(BKCommand::SendBKResponse(
+                                        BKResponse::SubmitPhoneTokenError(err),
+                                    ))
+                                    .expect_log("Connection closed");
+                                }
+                            }
                         });
                     }
                 }
@@ -159,15 +180,23 @@ impl AppOp {
                     let sid = sid.clone();
                     let tx = backend.clone();
                     thread::spawn(move || {
-                        let query = user::add_threepid(
+                        match user::add_threepid(
                             login_data.server_url,
                             login_data.access_token,
                             login_data.identity_url,
                             secret,
                             sid,
-                        );
-                        tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePID(query)))
-                            .expect_log("Connection closed");
+                        ) {
+                            Ok(_) => {
+                                APPOP!(added_three_pid);
+                            }
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(
+                                    err,
+                                )))
+                                .expect_log("Connection closed");
+                            }
+                        }
                     });
                 }
                 _ => {}
@@ -599,14 +628,21 @@ impl AppOp {
             button.set_sensitive(false);
             name.set_editable(false);
             thread::spawn(move || {
-                let query = user::set_username(
+                match user::set_username(
                     login_data.server_url,
                     login_data.access_token,
                     login_data.uid,
                     username,
-                );
-                tx.send(BKCommand::SendBKResponse(BKResponse::SetUserName(query)))
-                    .expect_log("Connection closed");
+                ) {
+                    Ok(username) => {
+                        let u = Some(username);
+                        APPOP!(show_new_username, (u));
+                    }
+                    Err(err) => {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::SetUserNameError(err)))
+                            .expect_log("Connection closed");
+                    }
+                }
             });
         } else {
             button.hide();
@@ -665,15 +701,23 @@ impl AppOp {
                     password_btn_stack.set_visible_child_name("spinner");
                     let tx = self.backend.clone();
                     thread::spawn(move || {
-                        let query = user::change_password(
+                        match user::change_password(
                             login_data.server_url,
                             login_data.access_token,
                             login_data.uid.localpart().into(),
                             old.to_string(),
                             new.to_string(),
-                        );
-                        tx.send(BKCommand::SendBKResponse(BKResponse::ChangePassword(query)))
-                            .expect_log("Connection closed");
+                        ) {
+                            Ok(_) => {
+                                APPOP!(password_changed);
+                            }
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(
+                                    BKResponse::ChangePasswordError(err),
+                                ))
+                                .expect_log("Connection closed");
+                            }
+                        }
                     });
                 }
             }
@@ -780,16 +824,22 @@ impl AppOp {
                         let password = password.clone();
                         let login_data = login_data.clone();
                         thread::spawn(move || {
-                            let query = user::account_destruction(
+                            match user::account_destruction(
                                 login_data.server_url.clone(),
                                 login_data.access_token.clone(),
                                 login_data.uid.localpart().into(),
                                 password,
-                            );
-                            tx.send(BKCommand::SendBKResponse(BKResponse::AccountDestruction(
-                                query,
-                            )))
-                            .expect_log("Connection closed");
+                            ) {
+                                Ok(_) => {
+                                    APPOP!(account_destruction_logoff);
+                                }
+                                Err(err) => {
+                                    tx.send(BKCommand::SendBKResponse(
+                                        BKResponse::AccountDestructionError(err),
+                                    ))
+                                    .expect_log("Connection closed");
+                                }
+                            }
                         });
                     }
                     _ => {}

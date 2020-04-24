@@ -8,6 +8,7 @@ use fractal_api::util::ResultExpectLog;
 use std::path::PathBuf;
 use std::thread;
 
+use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::cache::download_to_cache;
@@ -24,15 +25,27 @@ impl AppOp {
         let tx = self.backend.clone();
 
         thread::spawn(clone!(login_data, tx => move || {
-            let query = user::get_username(login_data.server_url, login_data.uid);
-            tx.send(BKCommand::SendBKResponse(BKResponse::Name(query)))
-                .expect_log("Connection closed");
+            match user::get_username(login_data.server_url, login_data.uid) {
+                Ok(username) => {
+                    APPOP!(set_username, (username));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::NameError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
         }));
 
         thread::spawn(clone!(login_data, tx => move || {
-            let query = user::get_avatar(login_data.server_url, login_data.uid);
-            tx.send(BKCommand::SendBKResponse(BKResponse::Avatar(query)))
-                .expect_log("Connection closed");
+            match user::get_avatar(login_data.server_url, login_data.uid) {
+                Ok(path) => {
+                    APPOP!(set_avatar, (path));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::AvatarError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
         }));
     }
 

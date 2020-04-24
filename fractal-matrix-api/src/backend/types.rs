@@ -1,14 +1,11 @@
 use ruma_identifiers::{RoomId, UserId};
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 use crate::error::Error;
 
-use crate::r0::contact::get_identifiers::ThirdPartyIdentifier;
-use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use crate::r0::AccessToken;
 use crate::types::Event;
 use crate::types::Member;
@@ -50,19 +47,6 @@ pub enum BKCommand {
 pub enum BKResponse {
     ShutDown,
     Token(UserId, AccessToken, Option<String>, Url, Url),
-    Logout(Result<(), Error>),
-    Name(Result<Option<String>, Error>),
-    SetUserName(Result<String, Error>),
-    GetThreePID(Result<Vec<ThirdPartyIdentifier>, Error>),
-    GetTokenEmail(Result<(String, String), Error>),
-    GetTokenPhone(Result<(String, String), Error>),
-    SubmitPhoneToken(Result<(Option<String>, String), Error>),
-    AddThreePID(Result<(), Error>),
-    DeleteThreePID(Result<(), Error>),
-    ChangePassword(Result<(), Error>),
-    AccountDestruction(Result<(), Error>),
-    Avatar(Result<PathBuf, Error>),
-    SetUserAvatar(Result<PathBuf, Error>),
     Sync(Result<String, Error>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
@@ -72,28 +56,16 @@ pub enum BKResponse {
     RoomMemberEvent(Event),
     RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
-    RoomMessagesTo(Result<(Vec<Message>, RoomId, Option<String>), Error>),
-    RoomMembers(Result<(RoomId, Vec<Member>), Error>),
     SentMsg(Result<(String, String), Error>),
-    SentMsgRedaction(Result<(String, String), Error>),
-    DirectoryProtocols(Result<Vec<ProtocolInstance>, Error>),
     DirectorySearch(Result<Vec<Room>, Error>),
     JoinRoom(Result<(), Error>),
-    LeaveRoom(Result<(), Error>),
-    MarkedAsRead(Result<(RoomId, String), Error>),
-    SetRoomName(Result<(), Error>),
-    SetRoomTopic(Result<(), Error>),
-    SetRoomAvatar(Result<(), Error>),
     RemoveMessage(Result<(RoomId, String), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
-    Media(Result<String, Error>),
     MediaUrl(Url),
     AttachedFile(Result<Message, Error>),
     NewRoom(Result<Room, Error>, RoomId),
-    AddedToFav(Result<(RoomId, bool), Error>),
     RoomNotifications(RoomId, i32, i32),
-    UserSearch(Result<Vec<Member>, Error>),
 
     //errors
     LoginError(Error),
@@ -101,7 +73,32 @@ pub enum BKResponse {
     SendTypingError(Error),
     SetRoomError(Error),
     InviteError(Error),
-    ChangeLanguage(Result<(), Error>),
+    ChangeLanguageError(Error),
+    NameError(Error),
+    AvatarError(Error),
+    MarkedAsReadError(Error),
+    UserSearchError(Error),
+    LogoutError(Error),
+    LeaveRoomError(Error),
+    DirectoryProtocolsError(Error),
+    RoomMembersError(Error),
+    AddedToFavError(Error),
+    GetThreePIDError(Error),
+    AddThreePIDError(Error),
+    SubmitPhoneTokenError(Error),
+    SetUserNameError(Error),
+    ChangePasswordError(Error),
+    AccountDestructionError(Error),
+    DeleteThreePIDError(Error),
+    GetTokenPhoneError(Error),
+    GetTokenEmailError(Error),
+    SetRoomNameError(Error),
+    SetRoomTopicError(Error),
+    SetUserAvatarError(Error),
+    SetRoomAvatarError(Error),
+    RoomMessagesToError(Error),
+    MediaError(Error),
+    SentMsgRedactionError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
