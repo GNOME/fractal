@@ -195,9 +195,15 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let tx = self.backend.clone();
         thread::spawn(move || {
-            let query = user::search(login_data.server_url, login_data.access_token, term);
-            tx.send(BKCommand::SendBKResponse(BKResponse::UserSearch(query)))
-                .expect_log("Connection closed");
+            match user::search(login_data.server_url, login_data.access_token, term) {
+                Ok(users) => {
+                    APPOP!(user_search_finished, (users));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::UserSearchError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
         });
     }
 }

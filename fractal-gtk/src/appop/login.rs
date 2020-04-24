@@ -7,6 +7,7 @@ use fractal_api::util::ResultExpectLog;
 
 use fractal_api::url::Url;
 
+use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::backend::BKCommand;
@@ -183,9 +184,15 @@ impl AppOp {
         let _ = self.delete_pass("fractal");
         let tx = self.backend.clone();
         thread::spawn(move || {
-            let query = register::logout(login_data.server_url, login_data.access_token);
-            tx.send(BKCommand::SendBKResponse(BKResponse::Logout(query)))
-                .expect_log("Connection closed");
+            match register::logout(login_data.server_url, login_data.access_token) {
+                Ok(_) => {
+                    APPOP!(bk_logout);
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::LogoutError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
         });
         self.bk_logout();
         *self.room_back_history.borrow_mut() = vec![];

@@ -7,7 +7,6 @@ use regex::Regex;
 use crate::actions::{activate_action, AppState};
 
 use glib;
-use std::process::Command;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
@@ -23,70 +22,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 BKResponse::Token(uid, tk, dev, server_url, id_url) => {
                     APPOP!(bk_login, (uid, tk, dev, server_url, id_url));
-                }
-                BKResponse::Logout(Ok(_)) => {
-                    APPOP!(bk_logout);
-                }
-                BKResponse::Name(Ok(username)) => {
-                    APPOP!(set_username, (username));
-                }
-                BKResponse::GetThreePID(Ok(list)) => {
-                    let l = Some(list);
-                    APPOP!(set_three_pid, (l));
-                }
-                BKResponse::GetTokenEmail(Ok((sid, secret))) => {
-                    let sid = Some(sid);
-                    let secret = Some(secret);
-                    APPOP!(get_token_email, (sid, secret));
-                }
-                BKResponse::GetTokenPhone(Ok((sid, secret))) => {
-                    let sid = Some(sid);
-                    let secret = Some(secret);
-                    APPOP!(get_token_phone, (sid, secret));
-                }
-                BKResponse::GetTokenEmail(Err(Error::TokenUsed)) => {
-                    let error = i18n("Email is already in use");
-                    APPOP!(show_error_dialog_in_settings, (error));
-                }
-                BKResponse::GetTokenEmail(Err(Error::Denied)) => {
-                    let error = i18n("Please enter a valid email address.");
-                    APPOP!(show_error_dialog_in_settings, (error));
-                }
-                BKResponse::GetTokenPhone(Err(Error::TokenUsed)) => {
-                    let error = i18n("Phone number is already in use");
-                    APPOP!(show_error_dialog_in_settings, (error));
-                }
-                BKResponse::GetTokenPhone(Err(Error::Denied)) => {
-                    let error = i18n(
-                        "Please enter your phone number in the format: \n + your country code and your phone number.",
-                    );
-                    APPOP!(show_error_dialog_in_settings, (error));
-                }
-                BKResponse::SubmitPhoneToken(Ok((sid, secret))) => {
-                    let secret = Some(secret);
-                    APPOP!(valid_phone_token, (sid, secret));
-                }
-                BKResponse::AddThreePID(Ok(_)) => {
-                    APPOP!(added_three_pid);
-                }
-                BKResponse::DeleteThreePID(Ok(_)) => {
-                    APPOP!(get_three_pid);
-                }
-                BKResponse::ChangePassword(Ok(_)) => {
-                    APPOP!(password_changed);
-                }
-                BKResponse::SetUserName(Ok(username)) => {
-                    let u = Some(username);
-                    APPOP!(show_new_username, (u));
-                }
-                BKResponse::AccountDestruction(Ok(_)) => {
-                    APPOP!(account_destruction_logoff);
-                }
-                BKResponse::Avatar(Ok(path)) => {
-                    APPOP!(set_avatar, (path));
-                }
-                BKResponse::SetUserAvatar(Ok(path)) => {
-                    APPOP!(show_new_avatar, (path));
                 }
                 BKResponse::Sync(Ok(since)) => {
                     info!("SYNC");
@@ -113,22 +48,13 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::RoomAvatar(Ok((room, avatar))) => {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
-                BKResponse::RoomMembers(Ok((room, members))) => {
-                    APPOP!(set_room_members, (room, members));
-                }
                 BKResponse::RoomMessages(Ok(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
-                }
-                BKResponse::RoomMessagesTo(Ok((msgs, room, prev_batch))) => {
-                    APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 BKResponse::SentMsg(Ok((txid, evid))) => {
                     APPOP!(msg_sent, (txid, evid));
                     let initial = false;
                     APPOP!(sync, (initial));
-                }
-                BKResponse::DirectoryProtocols(Ok(protocols)) => {
-                    APPOP!(set_protocols, (protocols));
                 }
                 BKResponse::DirectorySearch(Ok(rooms)) => {
                     APPOP!(append_directory_rooms, (rooms));
@@ -137,26 +63,12 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::JoinRoom(Ok(_)) => {
                     APPOP!(reload_rooms);
                 }
-                BKResponse::LeaveRoom(Ok(_)) => {}
-                BKResponse::SetRoomName(Ok(_)) => {
-                    APPOP!(show_new_room_name);
-                }
-                BKResponse::SetRoomTopic(Ok(_)) => {
-                    APPOP!(show_new_room_topic);
-                }
-                BKResponse::SetRoomAvatar(Ok(_)) => {
-                    APPOP!(show_new_room_avatar);
-                }
                 BKResponse::RemoveMessage(Ok((room, msg))) => {
                     APPOP!(remove_message, (room, msg));
-                }
-                BKResponse::MarkedAsRead(Ok((r, _))) => {
-                    APPOP!(clear_room_notifications, (r));
                 }
                 BKResponse::RoomNotifications(r, n, h) => {
                     APPOP!(set_room_notifications, (r, n, h));
                 }
-
                 BKResponse::RoomName(roomid, name) => {
                     let n = Some(name);
                     APPOP!(room_name_change, (roomid, n));
@@ -171,12 +83,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::RoomMemberEvent(ev) => {
                     APPOP!(room_member_event, (ev));
                 }
-                BKResponse::Media(Ok(fname)) => {
-                    Command::new("xdg-open")
-                        .arg(&fname)
-                        .spawn()
-                        .expect("failed to execute process");
-                }
                 BKResponse::AttachedFile(Ok(msg)) => {
                     APPOP!(attached_file, (msg));
                 }
@@ -184,15 +90,9 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let id = Some(internal_id);
                     APPOP!(new_room, (r, id));
                 }
-                BKResponse::AddedToFav(Ok((r, tofav))) => {
-                    APPOP!(added_to_fav, (r, tofav));
-                }
-                BKResponse::UserSearch(Ok(users)) => {
-                    APPOP!(user_search_finished, (users));
-                }
 
                 // errors
-                BKResponse::AccountDestruction(Err(err)) => {
+                BKResponse::AccountDestructionError(err) => {
                     let error = i18n("Couldn’t delete the account");
                     let err_str = format!("{:?}", err);
                     error!(
@@ -201,7 +101,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
-                BKResponse::ChangePassword(Err(err)) => {
+                BKResponse::ChangePasswordError(err) => {
                     let error = i18n("Couldn’t change the password");
                     let err_str = format!("{:?}", err);
                     error!(
@@ -210,7 +110,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(show_password_error_dialog, (error));
                 }
-                BKResponse::GetThreePID(Err(_)) => {
+                BKResponse::GetThreePIDError(_) => {
                     let error = i18n("Sorry, account settings can’t be loaded.");
                     APPOP!(show_load_settings_error_dialog, (error));
                     let ctx = glib::MainContext::default();
@@ -218,7 +118,15 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         activate_action("app", "back");
                     })
                 }
-                BKResponse::GetTokenEmail(Err(err)) => {
+                BKResponse::GetTokenEmailError(Error::TokenUsed) => {
+                    let error = i18n("Email is already in use");
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
+                BKResponse::GetTokenEmailError(Error::Denied) => {
+                    let error = i18n("Please enter a valid email address.");
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
+                BKResponse::GetTokenEmailError(err) => {
                     let error = i18n("Couldn’t add the email address.");
                     let err_str = format!("{:?}", err);
                     error!(
@@ -227,7 +135,17 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
-                BKResponse::GetTokenPhone(Err(err)) => {
+                BKResponse::GetTokenPhoneError(Error::TokenUsed) => {
+                    let error = i18n("Phone number is already in use");
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
+                BKResponse::GetTokenPhoneError(Error::Denied) => {
+                    let error = i18n(
+                        "Please enter your phone number in the format: \n + your country code and your phone number.",
+                    );
+                    APPOP!(show_error_dialog_in_settings, (error));
+                }
+                BKResponse::GetTokenPhoneError(err) => {
                     let error = i18n("Couldn’t add the phone number.");
                     let err_str = format!("{:?}", err);
                     error!(
@@ -261,7 +179,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
-                BKResponse::ChangeLanguage(Err(err)) => {
+                BKResponse::ChangeLanguageError(err) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "Error forming url to set room language: {}",
@@ -293,11 +211,11 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                         APPOP!(show_error, (error));
                     }
                 },
-                BKResponse::SentMsgRedaction(Err(_)) => {
+                BKResponse::SentMsgRedactionError(_) => {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));
                 }
-                BKResponse::DirectoryProtocols(Err(_)) | BKResponse::DirectorySearch(Err(_)) => {
+                BKResponse::DirectoryProtocolsError(_) | BKResponse::DirectorySearch(Err(_)) => {
                     let error = i18n("Error searching for rooms");
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));

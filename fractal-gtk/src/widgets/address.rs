@@ -11,6 +11,7 @@ use rand::{thread_rng, Rng};
 use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::App;
 use crate::appop::AppOp;
 use crate::backend::{BKCommand, BKResponse};
 
@@ -223,9 +224,17 @@ fn delete_address(
     access_token: AccessToken,
 ) {
     thread::spawn(move || {
-        let query = user::delete_three_pid(server_url, access_token, medium, address);
-        tx.send(BKCommand::SendBKResponse(BKResponse::DeleteThreePID(query)))
-            .expect_log("Connection closed");
+        match user::delete_three_pid(server_url, access_token, medium, address) {
+            Ok(_) => {
+                APPOP!(get_three_pid);
+            }
+            Err(err) => {
+                tx.send(BKCommand::SendBKResponse(BKResponse::DeleteThreePIDError(
+                    err,
+                )))
+                .expect_log("Connection closed");
+            }
+        }
     });
 }
 
@@ -240,14 +249,34 @@ fn add_address(
     let secret: String = thread_rng().sample_iter(&Alphanumeric).take(36).collect();
     thread::spawn(move || match medium {
         Medium::MsIsdn => {
-            let query = user::get_phone_token(server_url, access_token, id_server, address, secret);
-            tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenPhone(query)))
-                .expect_log("Connection closed");
+            match user::get_phone_token(server_url, access_token, id_server, address, secret) {
+                Ok((sid, secret)) => {
+                    let sid = Some(sid);
+                    let secret = Some(secret);
+                    APPOP!(get_token_phone, (sid, secret))
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenPhoneError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
         }
         Medium::Email => {
-            let query = user::get_email_token(server_url, access_token, id_server, address, secret);
-            tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenEmail(query)))
-                .expect_log("Connection closed");
+            match user::get_email_token(server_url, access_token, id_server, address, secret) {
+                Ok((sid, secret)) => {
+                    let sid = Some(sid);
+                    let secret = Some(secret);
+                    APPOP!(get_token_email, (sid, secret));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenEmailError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
         }
     });
 }

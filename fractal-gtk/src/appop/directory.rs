@@ -6,6 +6,7 @@ use std::thread;
 use fractal_api::backend::directory;
 use fractal_api::util::ResultExpectLog;
 
+use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::backend::{BKCommand, BKResponse};
@@ -19,11 +20,17 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let tx = self.backend.clone();
         thread::spawn(move || {
-            let query = directory::protocols(login_data.server_url, login_data.access_token);
-            tx.send(BKCommand::SendBKResponse(BKResponse::DirectoryProtocols(
-                query,
-            )))
-            .expect_log("Connection closed");
+            match directory::protocols(login_data.server_url, login_data.access_token) {
+                Ok(protocols) => {
+                    APPOP!(set_protocols, (protocols));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(
+                        BKResponse::DirectoryProtocolsError(err),
+                    ))
+                    .expect_log("Connection closed");
+                }
+            }
         });
     }
 

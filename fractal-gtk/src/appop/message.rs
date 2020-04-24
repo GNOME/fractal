@@ -146,14 +146,22 @@ impl AppOp {
             let event_id = last_message.id.clone();
             let tx = self.backend.clone();
             thread::spawn(move || {
-                let query = room::mark_as_read(
+                match room::mark_as_read(
                     login_data.server_url,
                     login_data.access_token,
                     room_id,
                     event_id,
-                );
-                tx.send(BKCommand::SendBKResponse(BKResponse::MarkedAsRead(query)))
-                    .expect_log("Connection closed");
+                ) {
+                    Ok((r, _)) => {
+                        APPOP!(clear_room_notifications, (r));
+                    }
+                    Err(err) => {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::MarkedAsReadError(
+                            err,
+                        )))
+                        .expect_log("Connection closed");
+                    }
+                }
             });
         }
         None
@@ -206,10 +214,17 @@ impl AppOp {
                 _ => {
                     let tx = self.backend.clone();
                     thread::spawn(move || {
-                        let query =
-                            room::send_msg(login_data.server_url, login_data.access_token, msg);
-                        tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(query)))
-                            .expect_log("Connection closed");
+                        match room::send_msg(login_data.server_url, login_data.access_token, msg) {
+                            Ok((txid, evid)) => {
+                                APPOP!(msg_sent, (txid, evid));
+                                let initial = false;
+                                APPOP!(sync, (initial));
+                            }
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(Err(err))))
+                                    .expect_log("Connection closed");
+                            }
+                        }
                     });
                 }
             }

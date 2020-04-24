@@ -11,6 +11,7 @@ use gtk;
 use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::App;
 use crate::backend::{BKCommand, BKResponse};
 
 use crate::widgets::FileDialog::open;
@@ -45,9 +46,17 @@ pub fn new(
             let access_token = access_token.clone();
             let uid = uid.clone();
             thread::spawn(move || {
-                let query = user::set_user_avatar(server_url, access_token, uid, path);
-                tx.send(BKCommand::SendBKResponse(BKResponse::SetUserAvatar(query)))
-                    .expect_log("Connection closed");
+                match user::set_user_avatar(server_url, access_token, uid, path) {
+                    Ok(path) => {
+                        APPOP!(show_new_avatar, (path));
+                    }
+                    Err(err) => {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::SetUserAvatarError(
+                            err,
+                        )))
+                        .expect_log("Connection closed");
+                    }
+                }
             });
         }
     });

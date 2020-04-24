@@ -37,8 +37,10 @@ impl App {
                             let tx = op.backend.clone();
                             thread::spawn(move || {
                                 let query = room::set_language(access_token, server, uid, room_id, lang_code);
-                                tx.send(BKCommand::SendBKResponse(BKResponse::ChangeLanguage(query)))
-                                    .expect_log("Connection closed");
+                                if let Err(err) = query {
+                                    tx.send(BKCommand::SendBKResponse(BKResponse::ChangeLanguageError(err)))
+                                        .expect_log("Connection closed");
+                                }
                             });
                         }
                     }

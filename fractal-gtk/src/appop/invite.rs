@@ -239,8 +239,10 @@ impl AppOp {
                 thread::spawn(move || {
                     let query =
                         room::leave_room(login_data.server_url, login_data.access_token, room_id);
-                    tx.send(BKCommand::SendBKResponse(BKResponse::LeaveRoom(query)))
-                        .expect_log("Connection closed");
+                    if let Err(err) = query {
+                        tx.send(BKCommand::SendBKResponse(BKResponse::LeaveRoomError(err)))
+                            .expect_log("Connection closed");
+                    }
                 });
             }
             self.remove_inv(rid);
