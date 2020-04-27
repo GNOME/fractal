@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 use serde_json::json;
 
 use ruma_identifiers::{Error as IdError, RoomId, RoomIdOrAliasId, UserId};
@@ -291,6 +291,7 @@ pub fn send_typing(
     let params = TypingNotificationParameters { access_token };
     let body = TypingNotificationBody::Typing(Duration::from_secs(4));
 
+    info!("Sending typing notification");
     send_typing_notification(base, &room_id, &user_id, &params, &body)
         .map_err(Into::into)
         .and_then(|request| {
