@@ -1,14 +1,14 @@
 use chrono::prelude::*;
 use chrono::DateTime;
 use chrono::TimeZone;
-use ruma_identifiers::{Error as IdError, RoomId, UserId};
+use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-//FIXME make properties privat
+//FIXME make properties private
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub sender: UserId,
@@ -18,14 +18,19 @@ pub struct Message {
     pub room: RoomId,
     pub thumb: Option<String>,
     pub url: Option<String>,
-    pub id: String,
+    // FIXME: This should be a required field but it is mandatory
+    // to do it this way because because this struct is used both
+    // for received messages and messages to send. At the moment
+    // of writing this, using two separate data structures for each
+    // use case is just too difficult.
+    pub id: Option<EventId>,
     pub formatted_body: Option<String>,
     pub format: Option<String>,
     pub source: Option<String>,
     pub receipt: HashMap<UserId, i64>, // This `HashMap` associates the user ID with a timestamp
     pub redacted: bool,
     // The event ID of the message this is in reply to.
-    pub in_reply_to: Option<String>,
+    pub in_reply_to: Option<EventId>,
     // This can be used for the client to add more values to the message on sending
     // for example for images attachment the "info" field can be attached as
     // Some(json!({"info": {"h": 296, "w": 296, "mimetype": "image/png", "orientation": 0, "size": 8796}});
@@ -33,13 +38,13 @@ pub struct Message {
 }
 
 impl PartialEq for Message {
-    fn eq(&self, other: &Message) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
 impl PartialOrd for Message {
-    fn partial_cmp(&self, other: &Message) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self == other {
             Some(Ordering::Equal)
         } else {
@@ -49,10 +54,16 @@ impl PartialOrd for Message {
 }
 
 impl Message {
-    pub fn new(room: RoomId, sender: UserId, body: String, mtype: String) -> Self {
+    pub fn new(
+        room: RoomId,
+        sender: UserId,
+        body: String,
+        mtype: String,
+        id: Option<EventId>,
+    ) -> Self {
         let date = Local::now();
         Message {
-            id: get_txn_id(&room, &body, &date.to_string()),
+            id,
             sender,
             mtype,
             body,
@@ -68,6 +79,17 @@ impl Message {
             in_reply_to: None,
             extra_content: None,
         }
+    }
+
+    /// Generates an unique transaction id for this message
+    /// The txn_id is generated using the md5sum of a concatenation of the message room id, the
+    /// message body and the date.
+    ///
+    /// https://matrix.org/docs/spec/client_server/r0.3.0.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid
+    pub fn get_txn_id(&self) -> String {
+        let msg_str = format!("{}{}{}", self.room, self.body, self.date);
+        let digest = md5::compute(msg_str.as_bytes());
+        format!("{:x}", digest)
     }
 
     /// List all supported types. By default a message map a m.room.message event, but there's
@@ -103,7 +125,7 @@ impl Message {
         let timestamp = msg["origin_server_ts"].as_i64().unwrap_or_default() / 1000;
         let server_timestamp: DateTime<Local> = Local.timestamp(timestamp, 0);
 
-        let id = msg["event_id"].as_str().unwrap_or_default();
+        let id: EventId = msg["event_id"].as_str().unwrap_or_default().try_into()?;
         let type_ = msg["type"].as_str().unwrap_or_default();
 
         let redacted = msg["unsigned"].get("redacted_because") != None;
@@ -112,7 +134,9 @@ impl Message {
             sender,
             date: server_timestamp,
             room: room_id.clone(),
-            id: id.to_string(),
+            // It is mandatory for a message event to have
+            // an event_id field
+            id: Some(id),
             mtype: type_.to_string(),
             body: String::new(),
             url: None,
@@ -161,7 +185,7 @@ impl Message {
                 // https://matrix.org/docs/spec/client_server/r0.4.0.html#rich-replies
                 self.in_reply_to = c["m.relates_to"]["m.in_reply_to"]["event_id"]
                     .as_str()
-                    .map(String::from);
+                    .and_then(|evid| evid.try_into().ok());
             }
             _ => {}
         };
@@ -207,14 +231,4 @@ impl Message {
     pub fn set_receipt(&mut self, receipt: HashMap<UserId, i64>) {
         self.receipt = receipt;
     }
-}
-/// Generates an unique transaction id for this message
-/// The txn_id is generated using the md5sum of a concatenation of the message room id, the
-/// message body and the date.
-
-/// https://matrix.org/docs/spec/client_server/r0.3.0.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid
-pub fn get_txn_id(room: &RoomId, body: &str, date: &str) -> String {
-    let msg = format!("{}{}{}", room, body, date);
-    let digest = md5::compute(msg.as_bytes());
-    format!("{:x}", digest)
 }

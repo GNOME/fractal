@@ -1,7 +1,7 @@
 use log::{error, info};
 use serde_json::json;
 
-use ruma_identifiers::{Error as IdError, RoomId, RoomIdOrAliasId, UserId};
+use ruma_identifiers::{Error as IdError, EventId, RoomId, RoomIdOrAliasId, UserId};
 use std::fs;
 use url::Url;
 
@@ -228,9 +228,11 @@ pub fn get_room_messages_from_msg(
     room_id: RoomId,
     msg: Message,
 ) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
+    let event_id = msg.id.as_ref().ok_or(Error::BackendError)?;
+
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
-    get_prev_batch_from(base.clone(), access_token.clone(), &room_id, &msg.id)
+    get_prev_batch_from(base.clone(), access_token.clone(), &room_id, event_id)
         .and_then(|from| get_room_messages(base, access_token, room_id, from))
 }
 
@@ -238,7 +240,7 @@ pub fn send_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(String, String), Error> {
+) -> Result<(String, Option<EventId>), Error> {
     let room_id: RoomId = msg.room.clone();
 
     let params = CreateMessageEventParameters { access_token };
@@ -268,7 +270,9 @@ pub fn send_msg(
         body[k] = v;
     }
 
-    create_message_event(base, &params, &body, &room_id, "m.room.message", &msg.id)
+    let txn_id = msg.get_txn_id();
+
+    create_message_event(base, &params, &body, &room_id, "m.room.message", &txn_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
@@ -276,10 +280,9 @@ pub fn send_msg(
                 .execute(request)?
                 .json::<CreateMessageEventResponse>()?;
 
-            let evid = response.event_id.unwrap_or_default();
-            Ok((msg.id.clone(), evid))
+            Ok((txn_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgError(msg.id)))
+        .or(Err(Error::SendMsgError(txn_id)))
 }
 
 pub fn send_typing(
@@ -307,9 +310,10 @@ pub fn redact_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(String, String), Error> {
-    let room_id = msg.room.clone();
-    let txn_id = msg.id.clone();
+) -> Result<(EventId, Option<EventId>), Error> {
+    let room_id = &msg.room;
+    let txn_id = msg.get_txn_id();
+    let event_id = msg.id.clone().ok_or(Error::BackendError)?;
 
     let params = RedactEventParameters { access_token };
 
@@ -317,7 +321,7 @@ pub fn redact_msg(
         reason: "Deletion requested by the sender".into(),
     };
 
-    redact_event(base, &params, &body, &room_id, &msg.id, &txn_id)
+    redact_event(base, &params, &body, room_id, &event_id, &txn_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
@@ -325,10 +329,9 @@ pub fn redact_msg(
                 .execute(request)?
                 .json::<RedactEventResponse>()?;
 
-            let evid = response.event_id.unwrap_or_default();
-            Ok((msg.id.clone(), evid))
+            Ok((event_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgRedactionError(msg.id)))
+        .or(Err(Error::SendMsgRedactionError(event_id)))
 }
 
 pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: RoomId) {
@@ -376,8 +379,8 @@ pub fn mark_as_read(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
-    event_id: String,
-) -> Result<(RoomId, String), Error> {
+    event_id: EventId,
+) -> Result<(RoomId, EventId), Error> {
     let params = SetReadMarkerParameters { access_token };
 
     let body = SetReadMarkerBody {

@@ -412,7 +412,12 @@ impl MessageBox {
         );
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
-        let data = glib::Variant::from(msg.id.as_str());
+        let evid = msg
+            .id
+            .as_ref()
+            .map(|evid| evid.to_string())
+            .unwrap_or_default();
+        let data = glib::Variant::from(evid);
         download_btn.set_action_target_value(Some(&data));
         download_btn.set_action_name(Some("message.save_as"));
 
@@ -463,7 +468,12 @@ impl MessageBox {
         play_button.get_style_context().add_class("osd");
         play_button.get_style_context().add_class("play-icon");
         play_button.get_style_context().add_class("flat");
-        let data = glib::Variant::from(msg.id.as_str());
+        let evid = msg
+            .id
+            .as_ref()
+            .map(|evid| evid.to_string())
+            .unwrap_or_default();
+        let data = glib::Variant::from(evid);
         play_button.set_action_name(Some("app.open-media-viewer"));
         play_button.set_action_target_value(Some(&data));
         overlay.add_overlay(&play_button);
@@ -486,9 +496,9 @@ impl MessageBox {
         });
         overlay.add_overlay(&menu_button);
 
-        let id = msg.id.clone();
+        let evid = msg.id.as_ref();
         let redactable = msg.redactable.clone();
-        let menu = MessageMenu::new(id.as_str(), &RowType::Video, &redactable, None, None);
+        let menu = MessageMenu::new(evid, &RowType::Video, &redactable, None, None);
         menu_button.set_popover(Some(&menu.get_popover()));
 
         bx.pack_start(&overlay, true, true, 0);
@@ -518,7 +528,13 @@ impl MessageBox {
         );
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
-        let data = glib::Variant::from(msg.id.as_str());
+        let evid = msg
+            .id
+            .as_ref()
+            .map(|evid| evid.to_string())
+            .unwrap_or_default();
+
+        let data = glib::Variant::from(&evid);
         download_btn.set_action_target_value(Some(&data));
         download_btn.set_action_name(Some("message.save_as"));
 
@@ -528,7 +544,7 @@ impl MessageBox {
         );
         open_btn.set_tooltip_text(Some(i18n("Open").as_str()));
 
-        let data = glib::Variant::from(msg.id.as_str());
+        let data = glib::Variant::from(&evid);
         open_btn.set_action_target_value(Some(&data));
         open_btn.set_action_name(Some("message.open_with"));
 
@@ -609,7 +625,6 @@ impl MessageBox {
     }
 
     fn connect_right_click_menu(&self, msg: &Message, label: Option<&gtk::Label>) -> Option<()> {
-        let id = msg.id.clone();
         let mtype = msg.mtype.clone();
         let redactable = msg.redactable.clone();
         let eventbox_weak = self.eventbox.downgrade();
@@ -620,29 +635,37 @@ impl MessageBox {
         };
 
         let evbox = eventbox_weak.clone();
-        let i = id.clone();
+        let id = msg.id.clone();
         widget.connect_button_press_event(move |w, e| {
             if e.get_button() == 3 {
                 let eventbox = upgrade_weak!(evbox, gtk::Inhibit(false));
-                MessageMenu::new(i.as_str(), &mtype, &redactable, Some(&eventbox), Some(w));
+                MessageMenu::new(id.as_ref(), &mtype, &redactable, Some(&eventbox), Some(w));
                 Inhibit(true)
             } else {
                 Inhibit(false)
             }
         });
 
+        let id = msg.id.clone();
         let widget_weak = widget.downgrade();
         self.gesture.connect_pressed(move |_, _, _| {
             let eventbox = upgrade_weak!(eventbox_weak);
             let widget = upgrade_weak!(widget_weak);
 
-            MessageMenu::new(&id, &mtype, &redactable, Some(&eventbox), Some(&widget));
+            MessageMenu::new(
+                id.as_ref(),
+                &mtype,
+                &redactable,
+                Some(&eventbox),
+                Some(&widget),
+            );
         });
         None
     }
 
     fn connect_media_viewer(&self, msg: &Message) -> Option<()> {
-        let data = glib::Variant::from(msg.id.as_str());
+        let evid = msg.id.as_ref()?.to_string();
+        let data = glib::Variant::from(evid);
         self.row.set_action_name(Some("app.open-media-viewer"));
         self.row.set_action_target_value(Some(&data));
         None

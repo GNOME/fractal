@@ -614,7 +614,8 @@ impl Data {
         };
         let admin = self.admins.get(&self.uid).map(|n| *n).unwrap_or_default();
         let redactable = admin != 0 || self.uid == msg.sender;
-        let menu = MessageMenu::new(msg.id.as_str(), &mtype, &redactable, None, None);
+        let event_id = msg.id.as_ref();
+        let menu = MessageMenu::new(event_id, &mtype, &redactable, None, None);
         let popover = &menu.get_popover();
         let menu_button = self
             .builder
@@ -1041,7 +1042,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
     let roomid = msg.room.clone();
-    let first_media_id = Some(msg.id.clone());
+    let first_media_id = unwrap_or_unit_return!(msg.id.clone());
     let prev_batch = data.borrow().prev_batch.clone();
     let server_url = data.borrow().server_url.clone();
     let access_token = data.borrow().access_token.clone();

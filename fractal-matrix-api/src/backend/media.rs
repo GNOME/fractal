@@ -1,7 +1,7 @@
 use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{EventId, RoomId};
 use std::sync::mpsc::Sender;
 use url::Url;
 
@@ -38,20 +38,14 @@ pub fn get_media_list_async(
     baseu: Url,
     access_token: AccessToken,
     room_id: RoomId,
-    first_media_id: Option<String>,
+    first_media_id: EventId,
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
     bk.thread_pool.run(move || {
         let media_list = prev_batch
             // FIXME: This should never be an empty token
-            .or_else(|| {
-                if let Some(ref id) = first_media_id {
-                    get_prev_batch_from(baseu.clone(), access_token.clone(), &room_id, id).ok()
-                } else {
-                    None
-                }
-            })
+            .or_else(|| get_prev_batch_from(baseu.clone(), access_token.clone(), &room_id, &first_media_id).ok())
             .and_then(|from| {
                 get_room_media_list(
                     baseu,
