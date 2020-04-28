@@ -1,3 +1,4 @@
+use fractal_api::identifiers::EventId;
 use gdk;
 use gdk::prelude::*;
 use gtk;
@@ -21,7 +22,7 @@ struct Widgets {
 }
 
 impl Widgets {
-    pub fn new(id: &str, mtype: &RowType, redactable: &bool) -> Widgets {
+    pub fn new(id: Option<&EventId>, mtype: &RowType, redactable: &bool) -> Widgets {
         let builder = gtk::Builder::new();
         builder
             .add_from_resource("/org/gnome/Fractal/ui/message_menu.ui")
@@ -81,7 +82,8 @@ impl Widgets {
         copy_image_button.set_visible(mtype == &RowType::Image);
         copy_text_button.set_visible(mtype != &RowType::Image && mtype != &RowType::Video);
 
-        let data = glib::Variant::from(id);
+        let evid = id.map(|evid| evid.to_string()).unwrap_or_default();
+        let data = glib::Variant::from(evid);
         reply_button.set_action_target_value(Some(&data));
         open_with_button.set_action_target_value(Some(&data));
         view_source_button.set_action_target_value(Some(&data));
@@ -122,7 +124,7 @@ pub struct MessageMenu {
 
 impl MessageMenu {
     pub fn new(
-        id: &str,
+        id: Option<&EventId>,
         mtype: &RowType,
         redactable: &bool,
         widget: Option<&gtk::EventBox>,

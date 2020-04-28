@@ -2,7 +2,7 @@ use crate::r0::AccessToken;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{EventId, RoomId};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -19,7 +19,7 @@ pub struct Body {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    pub event_id: Option<String>,
+    pub event_id: Option<EventId>,
 }
 
 pub fn request(
@@ -27,13 +27,13 @@ pub fn request(
     params: &Parameters,
     body: &Body,
     room_id: &RoomId,
-    event_type: &str, // TODO: Use EventType
+    event_id: &EventId,
     txn_id: &str,
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(
             "_matrix/client/r0/rooms/{}/redact/{}/{}",
-            room_id, event_type, txn_id,
+            room_id, event_id, txn_id,
         ))
         .expect("Malformed URL in redact_event");
 

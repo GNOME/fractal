@@ -8,7 +8,7 @@ use crate::appop::AppOp;
 use crate::i18n::i18n;
 use crate::widgets::FileDialog::open;
 use crate::App;
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
@@ -354,16 +354,16 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     //op.lock().unwrap().mark_active_room_messages();
 }
 
-fn get_room_id(data: Option<&glib::Variant>) -> Option<RoomId> {
+pub fn get_room_id(data: Option<&glib::Variant>) -> Option<RoomId> {
     data?.get_str().and_then(|rid| rid.try_into().ok())
 }
 
-fn get_message(data: Option<&glib::Variant>) -> Option<Message> {
-    get_message_by_id(data.as_ref()?.get_str()?)
+pub fn get_event_id(data: Option<&glib::Variant>) -> Option<EventId> {
+    data?.get_str().and_then(|evid| evid.try_into().ok())
 }
 
-/* TODO: get message from stroage once implemented */
-fn get_message_by_id(id: &str) -> Option<Message> {
+/* TODO: get message from storage once implemented */
+pub fn get_message_by_id(id: &EventId) -> Option<Message> {
     let op = App::get_op()?;
     let op = op.lock().unwrap();
     let room_id = op.active_room.as_ref()?;
@@ -371,7 +371,7 @@ fn get_message_by_id(id: &str) -> Option<Message> {
 }
 
 fn open_viewer(data: Option<&glib::Variant>) -> Option<()> {
-    let msg = get_message(data)?;
+    let msg = get_event_id(data).as_ref().and_then(get_message_by_id)?;
     let op = App::get_op()?;
     let mut op = op.lock().unwrap();
     op.create_media_viewer(msg);

@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value as JsonValue;
 
 use directories::ProjectDirs;
-use ruma_identifiers::{Error as IdError, RoomId, UserId};
+use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::Read;
@@ -116,7 +116,7 @@ pub fn get_prev_batch_from(
     base: Url,
     access_token: AccessToken,
     room_id: &RoomId,
-    event_id: &str,
+    event_id: &EventId,
 ) -> Result<String, Error> {
     let params = GetContextParameters {
         access_token,

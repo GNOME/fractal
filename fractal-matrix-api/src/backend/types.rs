@@ -1,4 +1,4 @@
-use ruma_identifiers::{RoomId, UserId};
+use ruma_identifiers::{EventId, RoomId, UserId};
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
@@ -27,7 +27,7 @@ pub enum BKCommand {
         Url,
         AccessToken,
         RoomId,
-        Option<String>,
+        EventId,
         Option<String>,
         Sender<(Vec<Message>, String)>,
     ),
@@ -56,10 +56,10 @@ pub enum BKResponse {
     RoomMemberEvent(Event),
     RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
-    SentMsg(Result<(String, String), Error>),
+    SentMsg(Result<(String, Option<EventId>), Error>),
     DirectorySearch(Result<Vec<Room>, Error>),
     JoinRoom(Result<(), Error>),
-    RemoveMessage(Result<(RoomId, String), Error>),
+    RemoveMessage(Result<(RoomId, EventId), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
     MediaUrl(Url),
