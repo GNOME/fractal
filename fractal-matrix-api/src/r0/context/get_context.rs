@@ -5,7 +5,7 @@ use crate::r0::AccessToken;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{EventId, RoomId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use url::Url;
@@ -38,7 +38,7 @@ pub fn request(
     base: Url,
     params: &Parameters,
     room_id: &RoomId,
-    event_id: &str, // TODO: Use EventId
+    event_id: &EventId,
 ) -> Result<Request, Error> {
     let url = base
         .join(&format!(

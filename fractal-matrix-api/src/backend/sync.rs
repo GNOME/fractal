@@ -27,7 +27,7 @@ use reqwest::blocking::Client;
 use ruma_identifiers::UserId;
 use serde_json::value::from_value;
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     thread,
     time::{self, Duration},
 };
@@ -197,8 +197,7 @@ pub fn sync(
                                     content: ev["content"].clone(),
                                     redacts: ev["redacts"]
                                         .as_str()
-                                        .map(Into::into)
-                                        .unwrap_or_default(),
+                                        .and_then(|r| r.try_into().ok()),
                                     stype: ev["type"].as_str().map(Into::into).unwrap_or_default(),
                                     id: ev["id"].as_str().map(Into::into).unwrap_or_default(),
                                 })
@@ -235,7 +234,7 @@ pub fn sync(
                                 "m.room.redaction" => {
                                     let _ = tx.send(BKResponse::RemoveMessage(Ok((
                                         ev.room.clone(),
-                                        ev.redacts,
+                                        ev.redacts.expect("Events of type m.room.redaction should have a 'redacts' field"),
                                     ))));
                                 }
                                 _ => {

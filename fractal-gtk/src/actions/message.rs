@@ -5,7 +5,6 @@ use fractal_api::r0::AccessToken;
 use fractal_api::util::{dw_media, ContentType, ResultExpectLog};
 use log::error;
 use std::cell::RefCell;
-use std::convert::TryFrom;
 use std::fs;
 use std::process::Command;
 use std::rc::Rc;
@@ -29,6 +28,8 @@ use gio::SimpleActionGroup;
 use glib::source::Continue;
 use gtk;
 use gtk::prelude::*;
+
+use super::global::{get_event_id, get_message_by_id, get_room_id};
 
 use crate::widgets::ErrorDialog;
 use crate::widgets::FileDialog::save;
@@ -278,22 +279,8 @@ pub fn new(
     actions
 }
 
-fn get_message(data: Option<&glib::Variant>) -> Option<Message> {
-    get_message_by_id(data?.get_str()?)
-}
-
-/* TODO: get message from stroage once implemented */
-fn get_message_by_id(id: &str) -> Option<Message> {
-    let op = App::get_op()?;
-    let op = op.lock().unwrap();
-    let room_id = op.active_room.as_ref()?;
-    op.get_message_by_id(room_id, id)
-}
-
-fn get_room_id(data: Option<&glib::Variant>) -> Option<RoomId> {
-    data.as_ref()?
-        .get_str()
-        .and_then(|rid| RoomId::try_from(rid).ok())
+fn get_message(id: Option<&glib::Variant>) -> Option<Message> {
+    get_event_id(id).as_ref().and_then(get_message_by_id)
 }
 
 fn request_more_messages(
