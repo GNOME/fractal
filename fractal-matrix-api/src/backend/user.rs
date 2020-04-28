@@ -67,16 +67,10 @@ use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
 
 pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
-    get_display_name(base, &uid)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<GetDisplayNameResponse>()
-                .map_err(Into::into)
-        })
-        .map(|response| response.displayname)
+    let request = get_display_name(base, &uid)?;
+    let response: GetDisplayNameResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+
+    Ok(response.displayname)
 }
 
 // FIXME: This function manages errors *really* wrong and isn't more async
@@ -107,15 +101,10 @@ pub fn set_username(
         displayname: Some(username.clone()),
     };
 
-    set_display_name(base, &params, &body, &uid)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(username))
+    let request = set_display_name(base, &params, &body, &uid)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(username)
 }
 
 pub fn get_threepid(
@@ -124,16 +113,10 @@ pub fn get_threepid(
 ) -> Result<Vec<ThirdPartyIdentifier>, Error> {
     let params = ThirdPartyIDParameters { access_token };
 
-    get_identifiers(base, &params)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<ThirdPartyIDResponse>()
-                .map_err(Into::into)
-        })
-        .map(|response| response.threepids)
+    let request = get_identifiers(base, &params)?;
+    let response: ThirdPartyIDResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+
+    Ok(response.threepids)
 }
 
 pub fn get_email_token(
@@ -143,6 +126,8 @@ pub fn get_email_token(
     email: String,
     client_secret: String,
 ) -> Result<(String, String), Error> {
+    use EmailTokenResponse::*;
+
     let params = EmailTokenParameters { access_token };
     let body = EmailTokenBody {
         id_server: identity.try_into()?,
@@ -152,26 +137,17 @@ pub fn get_email_token(
         next_link: None,
     };
 
-    request_contact_verification_token_email(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<EmailTokenResponse>()
-                .map_err(Into::into)
-        })
-        .and_then(|response| match response {
-            EmailTokenResponse::Passed(info) => Ok(info.sid),
-            EmailTokenResponse::Failed(info) => {
-                if info.errcode == "M_THREEPID_IN_USE" {
-                    Err(Error::TokenUsed)
-                } else {
-                    Err(Error::Denied)
-                }
-            }
-        })
-        .map(|response| (response, client_secret))
+    let request = request_contact_verification_token_email(base, &params, &body)?;
+
+    match HTTP_CLIENT
+        .get_client()?
+        .execute(request)?
+        .json::<EmailTokenResponse>()?
+    {
+        Passed(info) => Ok((info.sid, client_secret)),
+        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(Error::TokenUsed),
+        Failed(_) => Err(Error::Denied),
+    }
 }
 
 pub fn get_phone_token(
@@ -181,6 +157,8 @@ pub fn get_phone_token(
     phone: String,
     client_secret: String,
 ) -> Result<(String, String), Error> {
+    use PhoneTokenResponse::*;
+
     let params = PhoneTokenParameters { access_token };
     let body = PhoneTokenBody {
         id_server: identity.try_into()?,
@@ -191,26 +169,17 @@ pub fn get_phone_token(
         next_link: None,
     };
 
-    request_contact_verification_token_msisdn(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<PhoneTokenResponse>()
-                .map_err(Into::into)
-        })
-        .and_then(|response| match response {
-            PhoneTokenResponse::Passed(info) => Ok(info.sid),
-            PhoneTokenResponse::Failed(info) => {
-                if info.errcode == "M_THREEPID_IN_USE" {
-                    Err(Error::TokenUsed)
-                } else {
-                    Err(Error::Denied)
-                }
-            }
-        })
-        .map(|response| (response, client_secret))
+    let request = request_contact_verification_token_msisdn(base, &params, &body)?;
+
+    match HTTP_CLIENT
+        .get_client()?
+        .execute(request)?
+        .json::<PhoneTokenResponse>()?
+    {
+        Passed(info) => Ok((info.sid, client_secret)),
+        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(Error::TokenUsed),
+        Failed(_) => Err(Error::Denied),
+    }
 }
 
 pub fn add_threepid(
@@ -230,15 +199,10 @@ pub fn add_threepid(
         bind: true,
     };
 
-    create_contact(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = create_contact(base, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn submit_phone_token(
@@ -253,16 +217,10 @@ pub fn submit_phone_token(
         token,
     };
 
-    submit_phone_token_req(base, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<SubmitPhoneTokenResponse>()
-                .map_err(Into::into)
-        })
-        .map(|response| (Some(sid).filter(|_| response.success), client_secret))
+    let request = submit_phone_token_req(base, &body)?;
+    let response: SubmitPhoneTokenResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+
+    Ok((Some(sid).filter(|_| response.success), client_secret))
 }
 
 pub fn delete_three_pid(
@@ -274,15 +232,10 @@ pub fn delete_three_pid(
     let params = DeleteThreePIDParameters { access_token };
     let body = DeleteThreePIDBody { address, medium };
 
-    delete_contact(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = delete_contact(base, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn change_password(
@@ -302,15 +255,10 @@ pub fn change_password(
         }),
     };
 
-    change_password_req(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = change_password_req(base, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn account_destruction(
@@ -328,15 +276,10 @@ pub fn account_destruction(
         }),
     };
 
-    deactivate(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = deactivate(base, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, Error> {
@@ -368,34 +311,20 @@ pub fn set_user_avatar(
         filename: None,
     };
 
-    fs::read(&avatar)
-        .map_err(Into::into)
-        .and_then(|contents| {
-            let upload_response = create_content(base.clone(), &params_upload, contents)
-                .map_err::<Error, _>(Into::into)
-                .and_then(|request| {
-                    HTTP_CLIENT
-                        .get_client()?
-                        .execute(request)?
-                        .json::<CreateContentResponse>()
-                        .map_err(Into::into)
-                })?;
+    let contents = fs::read(&avatar)?;
+    let request = create_content(base.clone(), &params_upload, contents)?;
+    let upload_response: CreateContentResponse =
+        HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            let params_avatar = SetAvatarUrlParameters { access_token };
-            let body = SetAvatarUrlBody {
-                avatar_url: Some(upload_response.content_uri),
-            };
+    let params_avatar = SetAvatarUrlParameters { access_token };
+    let body = SetAvatarUrlBody {
+        avatar_url: Some(upload_response.content_uri),
+    };
 
-            set_avatar_url(base, &params_avatar, &body, &uid)
-                .map_err(Into::into)
-                .and_then(|request| {
-                    HTTP_CLIENT
-                        .get_client()?
-                        .execute(request)
-                        .map_err(Into::into)
-                })
-        })
-        .and(Ok(avatar))
+    let request = set_avatar_url(base, &params_avatar, &body, &uid)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(avatar)
 }
 
 pub fn get_user_info_async(
@@ -442,19 +371,14 @@ pub fn search(
         ..Default::default()
     };
 
-    user_directory(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<UserDirectoryResponse>()
-                .map_err(Into::into)
-        })
-        .map(|response| response.results.into_iter().map(Into::into).collect())
+    let request = user_directory(base, &params, &body)?;
+    let response: UserDirectoryResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+
+    Ok(response.results.into_iter().map(Into::into).collect())
 }
 
 fn get_user_avatar_img(baseu: Url, userid: &UserId, avatar: &str) -> Result<String, Error> {
     let dest = cache_dir_path(None, &userid.to_string())?;
+
     dw_media(baseu, avatar, ContentType::default_thumbnail(), Some(dest))
 }

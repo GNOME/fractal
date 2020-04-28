@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::error;
 use serde_json::json;
 
 use ruma_identifiers::{Error as IdError, RoomId, RoomIdOrAliasId, UserId};
@@ -115,19 +115,13 @@ fn get_room_detail(
 ) -> Result<(RoomId, String, String), Error> {
     let params = GetStateEventsForKeyParameters { access_token };
 
-    get_state_events_for_key(base, &params, &room_id, &keys)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JsonValue>()?;
+    let request = get_state_events_for_key(base, &params, &room_id, &keys)?;
+    let response: JsonValue = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            let k = keys.split('.').last().unwrap();
-            let value = response[&k].as_str().map(Into::into).unwrap_or_default();
+    let k = keys.split('.').last().ok_or(Error::BackendError)?;
+    let value = response[&k].as_str().map(Into::into).unwrap_or_default();
 
-            Ok((room_id, keys, value))
-        })
+    Ok((room_id, keys, value))
 }
 
 pub fn get_room_avatar(
@@ -171,18 +165,12 @@ pub fn get_room_members(
 ) -> Result<(RoomId, Vec<Member>), Error> {
     let params = JoinedMembersParameters { access_token };
 
-    get_joined_members(base, &room_id, &params)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JoinedMembersResponse>()?;
+    let request = get_joined_members(base, &room_id, &params)?;
+    let response: JoinedMembersResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            let ms = response.joined.into_iter().map(Member::from).collect();
+    let ms = response.joined.into_iter().map(Member::from).collect();
 
-            Ok((room_id, ms))
-        })
+    Ok((room_id, ms))
 }
 
 /* Load older messages starting by prev_batch
@@ -206,20 +194,14 @@ pub fn get_room_messages(
         },
     };
 
-    get_messages_events(base, &params, &room_id)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<GetMessagesEventsResponse>()?;
+    let request = get_messages_events(base, &params, &room_id)?;
+    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            let prev_batch = response.end;
-            let evs = response.chunk.iter().rev();
-            Message::from_json_events_iter(&room_id, evs)
-                .map(|list| (list, room_id, prev_batch))
-                .map_err(Into::into)
-        })
+    let prev_batch = response.end;
+    let evs = response.chunk.iter().rev();
+    let list = Message::from_json_events_iter(&room_id, evs)?;
+
+    Ok((list, room_id, prev_batch))
 }
 
 pub fn get_room_messages_from_msg(
@@ -230,8 +212,9 @@ pub fn get_room_messages_from_msg(
 ) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
-    get_prev_batch_from(base.clone(), access_token.clone(), &room_id, &msg.id)
-        .and_then(|from| get_room_messages(base, access_token, room_id, from))
+    let from = get_prev_batch_from(base.clone(), access_token.clone(), &room_id, &msg.id)?;
+
+    get_room_messages(base, access_token, room_id, from)
 }
 
 pub fn send_msg(
@@ -291,16 +274,10 @@ pub fn send_typing(
     let params = TypingNotificationParameters { access_token };
     let body = TypingNotificationBody::Typing(Duration::from_secs(4));
 
-    info!("Sending typing notification");
-    send_typing_notification(base, &room_id, &user_id, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = send_typing_notification(base, &room_id, &user_id, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn redact_msg(
@@ -363,13 +340,10 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
 pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<(), Error> {
     let params = LeaveRoomParameters { access_token };
 
-    leave_room_req(base, &room_id, &params)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = leave_room_req(base, &room_id, &params)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-            Ok(())
-        })
+    Ok(())
 }
 
 pub fn mark_as_read(
@@ -385,13 +359,10 @@ pub fn mark_as_read(
         read: Some(event_id.clone()),
     };
 
-    set_read_marker(base, &params, &body, &room_id)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = set_read_marker(base, &params, &body, &room_id)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-            Ok((room_id, event_id))
-        })
+    Ok((room_id, event_id))
 }
 
 pub fn set_room_name(
@@ -406,13 +377,10 @@ pub fn set_room_name(
         "name": name,
     });
 
-    create_state_events_for_key(base, &params, &body, &room_id, "m.room.name")
-        .map_err(Into::into)
-        .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.name")?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-            Ok(())
-        })
+    Ok(())
 }
 
 pub fn set_room_topic(
@@ -427,13 +395,10 @@ pub fn set_room_topic(
         "topic": topic,
     });
 
-    create_state_events_for_key(base, &params, &body, &room_id, "m.room.topic")
-        .map_err(Into::into)
-        .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.topic")?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-            Ok(())
-        })
+    Ok(())
 }
 
 pub fn set_room_avatar(
@@ -446,13 +411,13 @@ pub fn set_room_avatar(
         access_token: access_token.clone(),
     };
 
-    upload_file(base.clone(), access_token, &avatar).and_then(|response| {
-        let body = json!({ "url": response.content_uri.as_str() });
-        let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.avatar")?;
-        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let upload_file_response = upload_file(base.clone(), access_token, &avatar)?;
 
-        Ok(())
-    })
+    let body = json!({ "url": upload_file_response.content_uri.as_str() });
+    let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.avatar")?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn attach_file(
@@ -532,16 +497,13 @@ fn upload_file(
     };
 
     let contents = fs::read(fname)?;
+    let request = create_content(base, &params_upload, contents)?;
 
-    create_content(base, &params_upload, contents)
-        .map_err::<Error, _>(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<CreateContentResponse>()
-                .map_err(Into::into)
-        })
+    HTTP_CLIENT
+        .get_client()?
+        .execute(request)?
+        .json()
+        .map_err(Into::into)
 }
 
 pub fn new_room(
@@ -564,19 +526,13 @@ pub fn new_room(
         ..Default::default()
     };
 
-    create_room(base, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<CreateRoomResponse>()?;
+    let request = create_room(base, &params, &body)?;
+    let response: CreateRoomResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            Ok(Room {
-                name: Some(name),
-                ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
-            })
-        })
+    Ok(Room {
+        name: Some(name),
+        ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
+    })
 }
 
 fn update_direct_chats(
@@ -671,29 +627,23 @@ pub fn direct_chat(
         ..Default::default()
     };
 
-    create_room(base.clone(), &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<CreateRoomResponse>()?;
+    let request = create_room(base.clone(), &params, &body)?;
+    let response: CreateRoomResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            update_direct_chats(
-                data,
-                base,
-                access_token,
-                user_id,
-                response.room_id.clone(),
-                user.clone(),
-            );
+    update_direct_chats(
+        data,
+        base,
+        access_token,
+        user_id,
+        response.room_id.clone(),
+        user.clone(),
+    );
 
-            Ok(Room {
-                name: user.alias.clone(),
-                direct: true,
-                ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
-            })
-        })
+    Ok(Room {
+        name: user.alias.clone(),
+        direct: true,
+        ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
+    })
 }
 
 pub fn add_to_fav(
@@ -703,24 +653,18 @@ pub fn add_to_fav(
     room_id: RoomId,
     tofav: bool,
 ) -> Result<(RoomId, bool), Error> {
-    let request_res = if tofav {
+    let request = if tofav {
         let params = CreateTagParameters { access_token };
         let body = CreateTagBody { order: Some(0.5) };
         create_tag(base, &user_id, &room_id, "m.favourite", &params, &body)
     } else {
         let params = DeleteTagParameters { access_token };
         delete_tag(base, &user_id, &room_id, "m.favourite", &params)
-    };
+    }?;
 
-    request_res
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok((room_id, tofav)))
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok((room_id, tofav))
 }
 
 pub fn invite(
@@ -732,13 +676,10 @@ pub fn invite(
     let params = InviteUserParameters { access_token };
     let body = InviteUserBody { user_id };
 
-    invite_user(base, &room_id, &params, &body)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = invite_user(base, &room_id, &params, &body)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-            Ok(())
-        })
+    Ok(())
 }
 
 pub fn set_language(
