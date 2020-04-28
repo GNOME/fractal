@@ -125,15 +125,10 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
 pub fn logout(server: Url, access_token: AccessToken) -> Result<(), Error> {
     let params = LogoutParameters { access_token };
 
-    logout_req(server, &params)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)
-                .map_err(Into::into)
-        })
-        .and(Ok(()))
+    let request = logout_req(server, &params)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn register(bk: &Backend, user: String, password: String, server: Url, id_url: Url) {
@@ -176,11 +171,11 @@ pub fn register(bk: &Backend, user: String, password: String, server: Url, id_ur
 }
 
 pub fn get_well_known(domain: Url) -> Result<DomainInfoResponse, Error> {
-    domain_info(domain).map_err(Into::into).and_then(|request| {
-        HTTP_CLIENT
-            .get_client()?
-            .execute(request)?
-            .json::<DomainInfoResponse>()
-            .map_err(Into::into)
-    })
+    let request = domain_info(domain)?;
+
+    HTTP_CLIENT
+        .get_client()?
+        .execute(request)?
+        .json()
+        .map_err(Into::into)
 }

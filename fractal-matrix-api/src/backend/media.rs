@@ -86,18 +86,12 @@ fn get_room_media_list(
         },
     };
 
-    get_messages_events_req(baseu, &params, room_id)
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<GetMessagesEventsResponse>()?;
+    let request = get_messages_events_req(baseu, &params, room_id)?;
+    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            let prev_batch = response.end.unwrap_or_default();
-            let evs = response.chunk.iter().rev();
-            let media_list = Message::from_json_events_iter(room_id, evs)?;
+    let prev_batch = response.end.unwrap_or_default();
+    let evs = response.chunk.iter().rev();
+    let media_list = Message::from_json_events_iter(room_id, evs)?;
 
-            Ok((media_list, prev_batch))
-        })
+    Ok((media_list, prev_batch))
 }
