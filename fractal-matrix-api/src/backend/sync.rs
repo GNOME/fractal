@@ -1,6 +1,5 @@
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
-use crate::client::ProxySettings;
 use crate::globals;
 use crate::r0::filter::EventFilter;
 use crate::r0::filter::Filter;
@@ -95,18 +94,16 @@ pub fn sync(
     };
 
     thread::spawn(move || {
-        let client_builder_timeout =
-            Client::builder().timeout(Some(Duration::from_secs(globals::TIMEOUT) + timeout));
+        let query = Client::builder()
+            .timeout(Some(Duration::from_secs(globals::TIMEOUT) + timeout))
+            .build()
+            .map_err(Into::into)
+            .and_then(|client| {
+                let request = sync_events(base.clone(), &params)?;
+                let response = client.execute(request)?;
 
-        let query = ProxySettings::current().and_then(|proxy_settings| {
-            let client = proxy_settings
-                .apply_to_client_builder(client_builder_timeout)?
-                .build()?;
-            let request = sync_events(base.clone(), &params)?;
-            let response = client.execute(request)?;
-
-            matrix_response::<SyncResponse>(response)
-        });
+                matrix_response::<SyncResponse>(response)
+            });
 
         match query {
             Ok(response) => {
