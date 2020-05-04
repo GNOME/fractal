@@ -1,5 +1,4 @@
 use crate::r0::AccessToken;
-use crate::serde::option_url;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
@@ -22,8 +21,6 @@ pub struct Response {
 #[derive(Clone, Debug, Deserialize)]
 pub struct RoomMember {
     pub display_name: Option<String>,
-    #[serde(with = "option_url")]
-    #[serde(default)]
     pub avatar_url: Option<Url>,
 }
 

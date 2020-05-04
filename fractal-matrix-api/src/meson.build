@@ -64,7 +64,6 @@ api_sources = files(
   'lib.rs',
   'meson.build',
   'r0.rs',
-  'serde.rs',
   'types.rs',
   'util.rs'
 )
