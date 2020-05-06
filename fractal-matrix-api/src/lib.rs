@@ -9,7 +9,6 @@ mod client;
 pub mod identity;
 mod model;
 pub mod r0;
-mod serde;
 pub mod types;
 
 pub use ruma_identifiers as identifiers;

@@ -1,5 +1,4 @@
 use crate::r0::AccessToken;
-use crate::serde::host_list;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
@@ -11,7 +10,6 @@ use url::Url;
 #[derive(Clone, Debug, Serialize)]
 pub struct Parameters {
     pub access_token: AccessToken,
-    #[serde(with = "host_list")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub server_name: Vec<Host>,
 }

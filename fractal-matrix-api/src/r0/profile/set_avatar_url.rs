@@ -1,5 +1,4 @@
 use crate::r0::AccessToken;
-use crate::serde::option_url;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
@@ -14,7 +13,6 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Body {
-    #[serde(with = "option_url")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar_url: Option<Url>,
 }

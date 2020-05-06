@@ -1,5 +1,4 @@
 use crate::r0::AccessToken;
-use crate::serde::url as serde_url;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::header::CONTENT_TYPE;
@@ -15,7 +14,6 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
-    #[serde(with = "serde_url")]
     pub content_uri: Url,
 }
 

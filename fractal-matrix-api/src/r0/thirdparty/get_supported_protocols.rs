@@ -1,5 +1,4 @@
 use crate::r0::AccessToken;
-use crate::serde::option_url;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
@@ -22,8 +21,6 @@ pub struct Protocol {
     pub location_fields: Vec<String>,
     // This field is documented as "required",
     // but for some reason matrix.org does not send this
-    #[serde(with = "option_url")]
-    #[serde(default)]
     pub icon: Option<Url>,
     pub field_types: BTreeMap<String, FieldType>,
     pub instances: Vec<ProtocolInstance>,
@@ -41,8 +38,6 @@ pub struct ProtocolInstance {
     #[serde(rename = "network_id")]
     pub id: String,
     pub desc: String,
-    #[serde(with = "option_url")]
-    #[serde(default)]
     pub icon: Option<Url>,
     pub fields: JsonValue,
 }

@@ -1,6 +1,5 @@
 use crate::r0::AccessToken;
 use crate::r0::HostAndPort;
-use crate::serde::option_url;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
@@ -18,7 +17,6 @@ pub struct Body {
     pub email: String,
     pub id_server: HostAndPort<String>,
     pub send_attempt: u64,
-    #[serde(with = "option_url")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_link: Option<Url>,
 }
