@@ -28,22 +28,14 @@ use crate::types::Room;
 
 pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolInstance>, Error> {
     let params = SupportedProtocolsParameters { access_token };
+    let request = get_supported_protocols(base, &params)?;
+    let response: SupportedProtocolsResponse =
+        HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-    get_supported_protocols(base, &params)
-        .map_err(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<SupportedProtocolsResponse>()
-                .map_err(Into::into)
-        })
-        .map(|response| {
-            response
-                .into_iter()
-                .flat_map(|(_, protocol)| protocol.instances.into_iter())
-                .collect()
-        })
+    Ok(response
+        .into_iter()
+        .flat_map(|(_, protocol)| protocol.instances.into_iter())
+        .collect())
 }
 
 pub fn room_search(
