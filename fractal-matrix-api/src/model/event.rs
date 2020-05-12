@@ -1,4 +1,4 @@
-use ruma_identifiers::{RoomId, UserId};
+use ruma_identifiers::{EventId, RoomId, UserId};
 use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone)]
@@ -7,7 +7,7 @@ pub struct Event {
     pub stype: String,
     pub room: RoomId,
     pub id: String,
-    pub redacts: String,
+    pub redacts: Option<EventId>,
     pub content: JsonValue,
 }
 

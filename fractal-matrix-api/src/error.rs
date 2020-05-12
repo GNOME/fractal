@@ -1,4 +1,5 @@
 use glib;
+use ruma_identifiers::EventId;
 use std::io;
 use std::time::SystemTimeError;
 
@@ -31,7 +32,7 @@ pub enum Error {
     NetworkError(reqwest::StatusCode),
     MatrixError(MatrixErrorCode, String),
     SendMsgError(String),
-    SendMsgRedactionError(String),
+    SendMsgRedactionError(EventId),
     TokenUsed,
     Denied,
     NotLoggedIn,

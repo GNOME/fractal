@@ -1,4 +1,4 @@
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{EventId, RoomId};
 use gio::ApplicationExt;
 use gio::FileExt;
 use gio::Notification;
@@ -42,7 +42,7 @@ impl AppOp {
         inapp.set_reveal_child(false);
     }
 
-    pub fn notify(&self, app: gtk::Application, room_id: &RoomId, id: &str) -> Option<()> {
+    pub fn notify(&self, app: gtk::Application, room_id: &RoomId, id: &EventId) -> Option<()> {
         let server_url = self.login_data.clone()?.server_url;
         let msg = self.get_message_by_id(room_id, id)?;
         let r = self.rooms.get(room_id)?;

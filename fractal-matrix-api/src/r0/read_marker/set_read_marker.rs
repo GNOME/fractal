@@ -2,7 +2,7 @@ use crate::r0::AccessToken;
 use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::Error;
-use ruma_identifiers::RoomId;
+use ruma_identifiers::{EventId, RoomId};
 use serde::Serialize;
 use url::Url;
 
@@ -14,9 +14,9 @@ pub struct Parameters {
 #[derive(Clone, Debug, Serialize)]
 pub struct Body {
     #[serde(rename = "m.fully_read")]
-    pub fully_read: String, // TODO: Use EventId
+    pub fully_read: EventId,
     #[serde(rename = "m.read")]
-    pub read: Option<String>, // TODO: Use EventId
+    pub read: Option<EventId>,
 }
 
 pub fn request(

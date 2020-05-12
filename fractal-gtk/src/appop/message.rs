@@ -1,6 +1,6 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use fractal_api::backend::room;
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::util::ResultExpectLog;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
@@ -34,12 +34,10 @@ pub struct TmpMsg {
 }
 
 impl AppOp {
-    pub fn get_message_by_id(&self, room_id: &RoomId, id: &str) -> Option<Message> {
+    pub fn get_message_by_id(&self, room_id: &RoomId, id: &EventId) -> Option<Message> {
         let room = self.rooms.get(room_id)?;
-        room.messages
-            .iter()
-            .find(|m| m.id == id.to_string())
-            .cloned()
+        let id = Some(id);
+        room.messages.iter().find(|m| m.id.as_ref() == id).cloned()
     }
 
     /// This function is used to mark as read the last message of a room when the focus comes in,
@@ -143,7 +141,7 @@ impl AppOp {
             last_message.receipt.insert(uid, 0);
 
             let room_id = last_message.room.clone();
-            let event_id = last_message.id.clone();
+            let event_id = last_message.id.clone()?;
             let tx = self.backend.clone();
             thread::spawn(move || {
                 match room::mark_as_read(
@@ -167,7 +165,7 @@ impl AppOp {
         None
     }
 
-    pub fn msg_sent(&mut self, _txid: String, evid: String) {
+    pub fn msg_sent(&mut self, _txid: String, evid: Option<EventId>) {
         if let Some(ref mut m) = self.msg_queue.pop() {
             if let Some(ref w) = m.widget {
                 w.destroy();
@@ -244,7 +242,7 @@ impl AppOp {
             if let Some(sender) = self.login_data.as_ref().map(|ld| ld.uid.clone()) {
                 let body = msg.clone();
                 let mtype = String::from("m.text");
-                let mut m = Message::new(room, sender, body, mtype);
+                let mut m = Message::new(room, sender, body, mtype, None);
 
                 if msg.starts_with("/me ") {
                     m.body = msg.trim_start_matches("/me ").to_owned();
@@ -313,7 +311,8 @@ impl AppOp {
                         .unwrap_or_default();
                     let path_string = path.to_str().unwrap_or_default();
 
-                    let mut m = Message::new(room, sender, body.to_string(), mtype.to_string());
+                    let mut m =
+                        Message::new(room, sender, body.to_string(), mtype.to_string(), None);
                     let info = match mtype {
                         "m.image" => get_image_media_info(path_string, mime.as_ref()),
                         "m.audio" => get_audio_video_media_info(path_string, mime.as_ref()),
@@ -377,8 +376,8 @@ impl AppOp {
                     .builder
                     .get_object("main_window")
                     .expect("Can't find main_window in ui file.");
-                if let Some(app) = window.get_application() {
-                    self.notify(app, &msg.room, &msg.id);
+                if let (Some(app), Some(event_id)) = (window.get_application(), msg.id.as_ref()) {
+                    self.notify(app, &msg.room, event_id);
                 }
             }
 
@@ -429,7 +428,7 @@ impl AppOp {
         }
     }
 
-    pub fn remove_message(&mut self, room_id: RoomId, id: String) -> Option<()> {
+    pub fn remove_message(&mut self, room_id: RoomId, id: EventId) -> Option<()> {
         let message = self.get_message_by_id(&room_id, &id);
 
         if let Some(msg) = message {

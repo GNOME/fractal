@@ -8,7 +8,7 @@ use crate::r0::sync::sync_events::Response as SyncResponse;
 use crate::util::get_user_avatar;
 use crate::util::parse_m_direct;
 use log::{debug, info};
-use ruma_identifiers::{Error as IdError, RoomId, UserId};
+use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::convert::{TryFrom, TryInto};
@@ -191,8 +191,7 @@ impl Room {
             if let Some(ev) = dataevs
                 .into_iter()
                 .find(|x| x["type"] == "m.fully_read")
-                .and_then(|fread| fread["content"]["event_id"].as_str())
-                .map(ToOwned::to_owned)
+                .and_then(|fread| fread["content"]["event_id"].as_str()?.try_into().ok())
             {
                 r.add_receipt_from_fully_read(user_id.clone(), ev);
             }
@@ -278,12 +277,13 @@ impl Room {
     }
 
     pub fn add_receipt_from_json(&mut self, mut events: Vec<&JsonValue>) {
-        let receipts: HashMap<String, HashMap<UserId, i64>> = events
+        let receipts: HashMap<EventId, HashMap<UserId, i64>> = events
             .pop()
             .and_then(|ev| ev["content"].as_object())
             .into_iter()
             .flatten()
             .filter_map(|(mid, obj)| {
+                let event_id = mid.as_str().try_into().ok()?;
                 let receipts = obj["m.read"]
                     .as_object()?
                     .iter()
@@ -298,22 +298,24 @@ impl Room {
                     .collect::<Result<HashMap<UserId, i64>, IdError>>()
                     .ok()?;
 
-                Some((mid.to_string(), receipts))
+                Some((event_id, receipts))
             })
             .collect();
 
         for msg in self.messages.iter_mut() {
-            if let Some(r) = receipts.get(&msg.id) {
+            if let Some(r) = msg.id.as_ref().and_then(|evid| receipts.get(evid)) {
                 msg.set_receipt(r.clone());
             }
         }
     }
 
-    pub fn add_receipt_from_fully_read(&mut self, uid: UserId, evid: String) {
+    pub fn add_receipt_from_fully_read(&mut self, uid: UserId, event_id: EventId) {
+        let event_id = Some(event_id);
+
         let _ = self
             .messages
             .iter_mut()
-            .filter(|msg| msg.id == evid)
+            .filter(|msg| msg.id == event_id)
             .map(|msg| msg.receipt.insert(uid.clone(), 0));
     }
 }

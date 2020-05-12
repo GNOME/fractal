@@ -87,7 +87,15 @@ impl Model for AppRoom {
 
 impl Model for AppMsg {
     fn key(&self) -> String {
-        format!("msg:{}:{}", self.msg.room, self.msg.id)
+        format!(
+            "msg:{}:{}",
+            self.msg.room,
+            self.msg
+                .id
+                .as_ref()
+                .map(|evid| evid.to_string())
+                .unwrap_or_default(),
+        )
     }
 }
 
