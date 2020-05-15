@@ -60,7 +60,7 @@ parts:
 
   fractal:
     after: [gspell]
-    parse-info: [usr/share/metainfo/org.gnome.Fractal.appdata.xml]
+    parse-info: [usr/share/metainfo/org.gnome.Fractal.metainfo.xml]
     source: .
     plugin: meson
     meson-parameters: [--prefix=/usr]

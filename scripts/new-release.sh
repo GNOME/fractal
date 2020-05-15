@@ -24,7 +24,7 @@ esac
 sed -i "s/$current/$next/" meson.build
 sed -i "s/$current/$next/" fractal-gtk/Cargo.toml
 sed -i "s/$current/$next/" fractal-matrix-api/Cargo.toml
-sed -i "s/version=\"$current\".*/version=\"$next\" date=\"$(date +%Y-%m-%d)\"\/>/" fractal-gtk/res/org.gnome.Fractal.appdata.xml.in.in
+sed -i "s/version=\"$current\".*/version=\"$next\" date=\"$(date +%Y-%m-%d)\"\/>/" fractal-gtk/res/org.gnome.Fractal.metainfo.xml.in.in
 
 cargo check
 
