@@ -47,6 +47,7 @@ impl AppOp {
             );
             panel.display_media_viewer(msg);
             let (body, header) = panel.create()?;
+            *self.media_viewer.borrow_mut() = Some(panel);
 
             if let Some(login_data) = self.login_data.clone() {
                 let back_history = self.room_back_history.clone();
