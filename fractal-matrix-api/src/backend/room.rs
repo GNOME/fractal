@@ -1,7 +1,7 @@
 use log::error;
 use serde_json::json;
 
-use ruma_identifiers::{Error as IdError, EventId, RoomId, RoomIdOrAliasId, UserId};
+use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use std::fs;
 use url::Url;
 
@@ -315,7 +315,7 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
     let tx = bk.tx.clone();
     let data = bk.data.clone();
 
-    let room_id_or_alias_id = RoomIdOrAliasId::RoomId(room_id.clone());
+    let room_id_or_alias_id = room_id.clone().into();
 
     let params = JoinRoomParameters {
         access_token,

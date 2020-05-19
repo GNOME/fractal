@@ -37,6 +37,10 @@ serde_json = "1.0.48"
 git = "https://gitlab.gnome.org/World/Rust/sourceview4-rs.git"
 rev = "fa8819fa7ecbe56f44d951656d3825f468915754"
 
+[dependencies.ruma-identifiers]
+version = "0.16"
+features = ["rand"]
+
 [dependencies.gst]
 version = "0.15.3"
 package = "gstreamer"
