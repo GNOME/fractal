@@ -13,7 +13,7 @@ impl AppOp {
         }
     }
 
-    pub fn sync(&mut self, initial: bool) {
+    pub fn sync(&mut self, initial: bool, number_tries: u64) {
         if let (Some(login_data), true) = (self.login_data.clone(), !self.syncing) {
             self.syncing = true;
             // for the initial sync we set the since to None to avoid long syncing
@@ -28,6 +28,7 @@ impl AppOp {
                     login_data.uid,
                     since,
                     initial,
+                    number_tries,
                 ))
                 .unwrap();
         }
@@ -36,12 +37,12 @@ impl AppOp {
     pub fn synced(&mut self, since: Option<String>) {
         self.syncing = false;
         self.since = since;
-        self.sync(false);
+        self.sync(false, 0);
         self.initial_sync(false);
     }
 
-    pub fn sync_error(&mut self) {
+    pub fn sync_error(&mut self, number_tries: u64) {
         self.syncing = false;
-        self.sync(false);
+        self.sync(false, number_tries);
     }
 }

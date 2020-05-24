@@ -20,7 +20,7 @@ pub enum BKCommand {
     Login(String, String, Url, Url),
     Register(String, String, Url, Url),
     Guest(Url, Url),
-    Sync(Url, AccessToken, UserId, Option<String>, bool),
+    Sync(Url, AccessToken, UserId, Option<String>, bool, u64),
     GetThumbAsync(Url, String, Sender<Result<String, Error>>),
     GetMediaAsync(Url, String, Sender<Result<String, Error>>),
     GetMediaListAsync(
@@ -47,7 +47,7 @@ pub enum BKCommand {
 pub enum BKResponse {
     ShutDown,
     Token(UserId, AccessToken, Option<String>, Url, Url),
-    Sync(Result<String, Error>),
+    Sync(Result<String, (Error, u64)>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
     RoomDetail(Result<(RoomId, String, String), Error>),

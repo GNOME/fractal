@@ -216,7 +216,8 @@ impl AppOp {
                             Ok((txid, evid)) => {
                                 APPOP!(msg_sent, (txid, evid));
                                 let initial = false;
-                                APPOP!(sync, (initial));
+                                let number_tries = 0;
+                                APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
                                 tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(Err(err))))

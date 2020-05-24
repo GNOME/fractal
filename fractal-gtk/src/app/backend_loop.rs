@@ -54,7 +54,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::SentMsg(Ok((txid, evid))) => {
                     APPOP!(msg_sent, (txid, evid));
                     let initial = false;
-                    APPOP!(sync, (initial));
+                    let number_tries = 0;
+                    APPOP!(sync, (initial, number_tries));
                 }
                 BKResponse::DirectorySearch(Ok(rooms)) => {
                     APPOP!(append_directory_rooms, (rooms));
@@ -220,13 +221,14 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));
                 }
-                BKResponse::Sync(Err(err)) => {
+                BKResponse::Sync(Err((err, number_tries))) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "SYNC Error: {}",
                         remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
                     );
-                    APPOP!(sync_error);
+                    let new_number_tries = number_tries + 1;
+                    APPOP!(sync_error, (new_number_tries));
                 }
                 err => {
                     let err_str = format!("{:?}", err);

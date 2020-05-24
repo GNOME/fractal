@@ -75,8 +75,16 @@ impl Backend {
             }
 
             // Sync module
-            Ok(BKCommand::Sync(server, access_token, uid, since, initial)) => {
-                sync::sync(self, server, access_token, uid, since, initial)
+            Ok(BKCommand::Sync(server, access_token, uid, since, initial, number_tries)) => {
+                sync::sync(
+                    self,
+                    server,
+                    access_token,
+                    uid,
+                    since,
+                    initial,
+                    number_tries,
+                )
             }
 
             // Room module

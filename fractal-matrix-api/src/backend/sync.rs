@@ -1,6 +1,7 @@
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
 use crate::client::ProxySettings;
+use crate::error::Error;
 use crate::globals;
 use crate::r0::filter::EventFilter;
 use crate::r0::filter::Filter;
@@ -40,6 +41,7 @@ pub fn sync(
     user_id: UserId,
     since: Option<String>,
     initial: bool,
+    number_tries: u64,
 ) {
     let tx = bk.tx.clone();
     let data = bk.data.clone();
@@ -265,10 +267,28 @@ pub fn sync(
             }
             Err(err) => {
                 // we wait if there's an error to avoid 100% CPU
-                error!("Sync Error, waiting 10 seconds to respond for the next sync");
-                thread::sleep(time::Duration::from_secs(10));
+                // we wait even longer, if it's a 429 (Too Many Requests) error
+                let waiting_time =
+                // Once the Rust issue https://github.com/rust-lang/rust/issues/53667 is resolved, we can hopefully write 
+                // if let Error::NetworkError(status) = err && status.as_u16() == 429
+                    if let Error::NetworkError(status) = err {
+                        if status.as_u16() == 429 {
+                            10 * 2_u64.pow(number_tries.try_into().expect(
+                                "The number of sync tries couldn't be transformed into a u32.",
+                            ))
+                        } else {
+                            10
+                        }
+                    } else {
+                        10
+                    };
+                error!(
+                    "Sync Error, waiting {:?} seconds to respond for the next sync",
+                    waiting_time
+                );
+                thread::sleep(time::Duration::from_secs(waiting_time));
 
-                tx.send(BKResponse::Sync(Err(err)))
+                tx.send(BKResponse::Sync(Err((err, number_tries))))
                     .expect_log("Connection closed");
             }
         }
