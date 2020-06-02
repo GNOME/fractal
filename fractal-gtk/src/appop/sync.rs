@@ -26,6 +26,7 @@ impl AppOp {
                     login_data.server_url,
                     login_data.access_token,
                     login_data.uid,
+                    self.join_to_room.clone(),
                     since,
                     initial,
                     number_tries,

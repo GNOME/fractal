@@ -29,7 +29,6 @@ impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
             rooms_since: String::new(),
-            join_to_room: None,
             m_direct: HashMap::new(),
         };
         Backend {
@@ -75,12 +74,13 @@ impl Backend {
             }
 
             // Sync module
-            Ok(BKCommand::Sync(server, access_token, uid, since, initial, number_tries)) => {
+            Ok(BKCommand::Sync(server, access_token, uid, jtr, since, initial, number_tries)) => {
                 sync::sync(
                     self,
                     server,
                     access_token,
                     uid,
+                    jtr,
                     since,
                     initial,
                     number_tries,
@@ -90,9 +90,6 @@ impl Backend {
             // Room module
             Ok(BKCommand::SetRoom(server, access_token, room_id)) => {
                 room::set_room(self, server, access_token, room_id)
-            }
-            Ok(BKCommand::JoinRoom(server, access_token, room_id)) => {
-                room::join_room(self, server, access_token, room_id)
             }
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);
@@ -106,9 +103,6 @@ impl Backend {
                     tx.send(BKResponse::NewRoom(room_res, internal_id))
                         .expect_log("Connection closed");
                 });
-            }
-            Ok(BKCommand::AcceptInv(server, access_token, room_id)) => {
-                room::join_room(self, server, access_token, room_id)
             }
 
             // Media module

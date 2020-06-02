@@ -311,10 +311,7 @@ pub fn redact_msg(
         .or(Err(Error::SendMsgRedactionError(event_id)))
 }
 
-pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: RoomId) {
-    let tx = bk.tx.clone();
-    let data = bk.data.clone();
-
+pub fn join_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<RoomId, Error> {
     let room_id_or_alias_id = room_id.clone().into();
 
     let params = JoinRoomParameters {
@@ -322,22 +319,10 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
         server_name: Default::default(),
     };
 
-    thread::spawn(move || {
-        let query = join_room_req(base, &room_id_or_alias_id, &params)
-            .map_err(Into::into)
-            .and_then(|request| {
-                let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+    let request = join_room_req(base, &room_id_or_alias_id, &params)?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
 
-                Ok(())
-            });
-
-        if let Ok(_) = query {
-            data.lock().unwrap().join_to_room = Some(room_id);
-        }
-
-        tx.send(BKResponse::JoinRoom(query))
-            .expect_log("Connection closed");
-    });
+    Ok(room_id)
 }
 
 pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<(), Error> {

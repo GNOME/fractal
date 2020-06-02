@@ -71,6 +71,7 @@ pub struct AppOp {
     pub device_id: Option<String>,
 
     pub active_room: Option<RoomId>,
+    pub join_to_room: Option<RoomId>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
@@ -107,6 +108,7 @@ impl AppOp {
             ui: ui,
             backend: tx,
             active_room: None,
+            join_to_room: None,
             rooms: HashMap::new(),
             room_settings: None,
             history: None,

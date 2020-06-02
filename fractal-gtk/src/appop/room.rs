@@ -180,6 +180,10 @@ impl AppOp {
         self.set_state(AppState::NoRoom);
     }
 
+    pub fn set_join_to_room(&mut self, jtr: Option<RoomId>) {
+        self.join_to_room = jtr;
+    }
+
     pub fn set_active_room_by_id(&mut self, id: RoomId) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(room) = self.rooms.get(&id) {
@@ -541,24 +545,24 @@ impl AppOp {
             .get_text()
             .map_or(String::new(), |gstr| gstr.to_string());
 
-        match RoomId::try_from(name.trim()) {
-            Ok(room_id) => {
-                self.backend
-                    .send(BKCommand::JoinRoom(
-                        login_data.server_url,
-                        login_data.access_token,
-                        room_id,
-                    ))
-                    .unwrap();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            match RoomId::try_from(name.trim())
+                .map_err(Into::into)
+                .and_then(|room_id| {
+                    room::join_room(login_data.server_url, login_data.access_token, room_id)
+                }) {
+                Ok(jtr) => {
+                    let jtr = Some(jtr);
+                    APPOP!(set_join_to_room, (jtr));
+                    APPOP!(reload_rooms);
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                        .expect_log("Connection closed");
+                }
             }
-            Err(err) => {
-                self.backend
-                    .send(BKCommand::SendBKResponse(BKResponse::JoinRoom(Err(
-                        err.into()
-                    ))))
-                    .unwrap();
-            }
-        }
+        });
     }
 
     pub fn new_room(&mut self, r: Room, internal_id: Option<RoomId>) {

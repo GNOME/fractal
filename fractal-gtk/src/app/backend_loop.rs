@@ -32,6 +32,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let clear_room_list = true;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                     // Open the newly joined room
+                    let jtr = default.as_ref().map(|r| r.id.clone());
+                    APPOP!(set_join_to_room, (jtr));
                     if let Some(room) = default {
                         let room_id = room.id;
                         APPOP!(set_active_room_by_id, (room_id));
@@ -61,9 +63,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(append_directory_rooms, (rooms));
                 }
 
-                BKResponse::JoinRoom(Ok(_)) => {
-                    APPOP!(reload_rooms);
-                }
                 BKResponse::RemoveMessage(Ok((room, msg))) => {
                     APPOP!(remove_message, (room, msg));
                 }
@@ -168,7 +167,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
-                BKResponse::JoinRoom(Err(err)) => {
+                BKResponse::JoinRoomError(err) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "{}",
