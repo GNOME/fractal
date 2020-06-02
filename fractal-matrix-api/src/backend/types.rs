@@ -20,7 +20,15 @@ pub enum BKCommand {
     Login(String, String, Url, Url),
     Register(String, String, Url, Url),
     Guest(Url, Url),
-    Sync(Url, AccessToken, UserId, Option<String>, bool, u64),
+    Sync(
+        Url,
+        AccessToken,
+        UserId,
+        Option<RoomId>,
+        Option<String>,
+        bool,
+        u64,
+    ),
     GetThumbAsync(Url, String, Sender<Result<String, Error>>),
     GetMediaAsync(Url, String, Sender<Result<String, Error>>),
     GetMediaListAsync(
@@ -36,10 +44,8 @@ pub enum BKCommand {
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
     DirectorySearch(Url, AccessToken, String, String, String, bool),
-    JoinRoom(Url, AccessToken, RoomId),
     AttachFile(Url, AccessToken, Message),
     DirectChat(Url, AccessToken, UserId, Member, RoomId),
-    AcceptInv(Url, AccessToken, RoomId),
     SendBKResponse(BKResponse),
 }
 
@@ -58,7 +64,6 @@ pub enum BKResponse {
     RoomMessagesInit(Vec<Message>),
     SentMsg(Result<(String, Option<EventId>), Error>),
     DirectorySearch(Result<Vec<Room>, Error>),
-    JoinRoom(Result<(), Error>),
     RemoveMessage(Result<(RoomId, EventId), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
@@ -99,6 +104,7 @@ pub enum BKResponse {
     RoomMessagesToError(Error),
     MediaError(Error),
     SentMsgRedactionError(Error),
+    JoinRoomError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -151,7 +157,6 @@ impl ThreadPool {
 
 pub struct BackendData {
     pub rooms_since: String,
-    pub join_to_room: Option<RoomId>,
     pub m_direct: HashMap<UserId, Vec<RoomId>>,
 }
 
