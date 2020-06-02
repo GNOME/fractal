@@ -77,7 +77,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
             auth: Auth::Password { password },
             identifier: Identifier::new(UserIdentifier::ThirdParty {
                 medium: Medium::Email,
-                address: user.clone(),
+                address: user,
             }),
             initial_device_display_name: Some(globals::DEVICE_NAME.into()),
             device_id: None,
@@ -85,7 +85,7 @@ pub fn login(bk: &Backend, user: String, password: String, server: Url, id_url: 
     } else {
         LoginBody {
             auth: Auth::Password { password },
-            identifier: Identifier::new(UserIdentifier::User { user: user.clone() }),
+            identifier: Identifier::new(UserIdentifier::User { user }),
             initial_device_display_name: Some(globals::DEVICE_NAME.into()),
             device_id: None,
         }
