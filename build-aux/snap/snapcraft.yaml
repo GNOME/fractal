@@ -67,6 +67,7 @@ parts:
     organize:
       snap/fractal/current/usr: usr
     build-packages:
+      - appstream
       - curl
       - libssl-dev
       - libgstreamer1.0-dev
