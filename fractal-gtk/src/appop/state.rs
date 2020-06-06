@@ -78,7 +78,7 @@ impl AppOp {
         }
 
         if let AppState::Directory = self.state {
-            self.search_rooms(false);
+            self.search_rooms(None);
         }
     }
 

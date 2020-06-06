@@ -43,7 +43,6 @@ pub enum BKCommand {
     GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
-    DirectorySearch(Url, AccessToken, String, String, String, bool),
     AttachFile(Url, AccessToken, Message),
     DirectChat(Url, AccessToken, UserId, Member, RoomId),
     SendBKResponse(BKResponse),
@@ -63,7 +62,6 @@ pub enum BKResponse {
     RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
     SentMsg(Result<(String, Option<EventId>), Error>),
-    DirectorySearch(Result<Vec<Room>, Error>),
     RemoveMessage(Result<(RoomId, EventId), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
@@ -105,6 +103,7 @@ pub enum BKResponse {
     MediaError(Error),
     SentMsgRedactionError(Error),
     JoinRoomError(Error),
+    DirectorySearchError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -156,7 +155,6 @@ impl ThreadPool {
 }
 
 pub struct BackendData {
-    pub rooms_since: String,
     pub m_direct: HashMap<UserId, Vec<RoomId>>,
 }
 

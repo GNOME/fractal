@@ -28,7 +28,6 @@ pub use self::types::RoomType;
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
         let data = BackendData {
-            rooms_since: String::new(),
             m_direct: HashMap::new(),
         };
         Backend {
@@ -128,27 +127,6 @@ impl Backend {
                 prev_batch,
                 ctx,
             ),
-
-            // Directory module
-            Ok(BKCommand::DirectorySearch(server, access_token, dhs, dq, dtp, more)) => {
-                let hs = match dhs {
-                    ref a if a.is_empty() => None,
-                    b => Some(b),
-                };
-
-                let q = match dq {
-                    ref a if a.is_empty() => None,
-                    b => Some(b),
-                };
-
-                let tp = match dtp {
-                    ref a if a.is_empty() => None,
-                    b => Some(b),
-                };
-
-                let r = directory::room_search(self, server, access_token, hs, q, tp, more);
-                bkerror!(r, tx, BKResponse::DirectorySearch);
-            }
 
             // Internal commands
             Ok(BKCommand::SendBKResponse(response)) => {
