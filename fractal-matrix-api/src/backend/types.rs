@@ -1,5 +1,4 @@
 use ruma_identifiers::{EventId, RoomId, UserId};
-use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -44,7 +43,6 @@ pub enum BKCommand {
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
     AttachFile(Url, AccessToken, Message),
-    DirectChat(Url, AccessToken, UserId, Member, RoomId),
     SendBKResponse(BKResponse),
 }
 
@@ -67,7 +65,6 @@ pub enum BKResponse {
     RoomTopic(RoomId, String),
     MediaUrl(Url),
     AttachedFile(Result<Message, Error>),
-    NewRoom(Result<Room, Error>, RoomId),
     RoomNotifications(RoomId, i32, i32),
 
     //errors
@@ -104,6 +101,7 @@ pub enum BKResponse {
     SentMsgRedactionError(Error),
     JoinRoomError(Error),
     DirectorySearchError(Error),
+    NewRoomError(Error, RoomId),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -154,13 +152,8 @@ impl ThreadPool {
     }
 }
 
-pub struct BackendData {
-    pub m_direct: HashMap<UserId, Vec<RoomId>>,
-}
-
 pub struct Backend {
     pub tx: Sender<BKResponse>,
-    pub data: Arc<Mutex<BackendData>>,
 
     // user info cache, uid -> (name, avatar)
     pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,

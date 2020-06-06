@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::RecvError;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::util::ResultExpectLog;
@@ -22,17 +20,12 @@ pub mod user;
 pub use self::types::BKCommand;
 pub use self::types::BKResponse;
 pub use self::types::Backend;
-pub use self::types::BackendData;
 pub use self::types::RoomType;
 
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
-        let data = BackendData {
-            m_direct: HashMap::new(),
-        };
         Backend {
             tx,
-            data: Arc::new(Mutex::new(data)),
             user_info_cache: CacheMap::new().timeout(60 * 60),
             thread_pool: ThreadPool::new(20),
         }
@@ -93,15 +86,6 @@ impl Backend {
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);
                 bkerror!(r, tx, BKResponse::AttachedFile);
-            }
-            Ok(BKCommand::DirectChat(server, access_token, uid, user, internal_id)) => {
-                let data = self.data.clone();
-
-                thread::spawn(move || {
-                    let room_res = room::direct_chat(data, server, access_token, uid, user);
-                    tx.send(BKResponse::NewRoom(room_res, internal_id))
-                        .expect_log("Connection closed");
-                });
             }
 
             // Media module

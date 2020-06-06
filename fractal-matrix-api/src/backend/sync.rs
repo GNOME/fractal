@@ -20,7 +20,6 @@ use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
 use crate::util::matrix_response;
-use crate::util::parse_m_direct;
 use crate::util::ResultExpectLog;
 
 use log::error;
@@ -45,7 +44,6 @@ pub fn sync(
     number_tries: u64,
 ) {
     let tx = bk.tx.clone();
-    let data = bk.data.clone();
 
     let (timeout, filter) = if !initial {
         (time::Duration::from_secs(30), Default::default())
@@ -246,8 +244,6 @@ pub fn sync(
                             }
                         });
                 } else {
-                    data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
-
                     let rooms_def = Room::from_sync_response(&response, user_id, base)
                         .map(|rooms| {
                             let def = join_to_room

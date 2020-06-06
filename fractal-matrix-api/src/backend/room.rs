@@ -7,7 +7,6 @@ use url::Url;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::error::Error;
@@ -23,7 +22,6 @@ use crate::util::HTTP_CLIENT;
 
 use crate::backend::types::BKResponse;
 use crate::backend::types::Backend;
-use crate::backend::types::BackendData;
 use crate::backend::types::RoomType;
 
 use crate::r0::config::get_global_account_data::request as get_global_account_data;
@@ -524,74 +522,51 @@ pub fn new_room(
 }
 
 fn update_direct_chats(
-    data: Arc<Mutex<BackendData>>,
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
     room_id: RoomId,
     user: Member,
-) {
+) -> Result<(), Error> {
     let params = GetGlobalAccountDataParameters {
         access_token: access_token.clone(),
     };
 
-    let directs = get_global_account_data(base.clone(), &params, &user_id, "m.direct")
-        .map_err::<Error, _>(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()?
-                .execute(request)?
-                .json::<JsonValue>()?;
+    let request = get_global_account_data(base.clone(), &params, &user_id, "m.direct")?;
+    let response: JsonValue = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-            response
-                .as_object()
-                .into_iter()
-                .flatten()
-                .map(|(uid, rooms)| {
-                    let roomlist = rooms
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .map(|x| RoomId::try_from(x.as_str().unwrap_or_default()))
-                        .collect::<Result<Vec<RoomId>, IdError>>()?;
-                    Ok((UserId::try_from(uid.as_str())?, roomlist))
-                })
-                .collect::<Result<HashMap<UserId, Vec<RoomId>>, IdError>>()
-                .map_err(Into::into)
-        });
+    let mut directs = response
+        .as_object()
+        .into_iter()
+        .flatten()
+        .map(|(uid, rooms)| {
+            let roomlist = rooms
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|x| RoomId::try_from(x.as_str().unwrap_or_default()))
+                .collect::<Result<Vec<RoomId>, IdError>>()?;
+            Ok((UserId::try_from(uid.as_str())?, roomlist))
+        })
+        .collect::<Result<HashMap<UserId, Vec<RoomId>>, IdError>>()?;
 
-    match directs {
-        Ok(mut directs) => {
-            if let Some(v) = directs.get_mut(&user.uid) {
-                v.push(room_id);
-            } else {
-                directs.insert(user.uid, vec![room_id]);
-            }
-            data.lock().unwrap().m_direct = directs.clone();
+    if let Some(v) = directs.get_mut(&user.uid) {
+        v.push(room_id);
+    } else {
+        directs.insert(user.uid, vec![room_id]);
+    }
 
-            let params = SetGlobalAccountDataParameters {
-                access_token: access_token.clone(),
-            };
-
-            if let Err(err) =
-                set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")
-                    .map_err::<Error, _>(Into::into)
-                    .and_then(|request| {
-                        HTTP_CLIENT
-                            .get_client()?
-                            .execute(request)
-                            .map_err(Into::into)
-                    })
-            {
-                error!("{:?}", err);
-            };
-        }
-        Err(err) => error!("Can't set m.direct: {:?}", err),
+    let params = SetGlobalAccountDataParameters {
+        access_token: access_token.clone(),
     };
+
+    let request = set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")?;
+    HTTP_CLIENT.get_client()?.execute(request)?;
+
+    Ok(())
 }
 
 pub fn direct_chat(
-    data: Arc<Mutex<BackendData>>,
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
@@ -618,14 +593,18 @@ pub fn direct_chat(
     let request = create_room(base.clone(), &params, &body)?;
     let response: CreateRoomResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-    update_direct_chats(
-        data,
+    let directs = update_direct_chats(
         base,
         access_token,
         user_id,
         response.room_id.clone(),
         user.clone(),
     );
+
+    if let Err(err) = directs {
+        error!("Can't set m.direct: {:?}", err);
+        return Err(err);
+    }
 
     Ok(Room {
         name: user.alias.clone(),

@@ -16,8 +16,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::backend;
-use crate::backend::BKCommand;
-use crate::backend::BKResponse;
+use crate::backend::{BKCommand, BKResponse};
 use fractal_api::util::cache_dir_path;
 
 use crate::actions;
@@ -400,9 +399,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoom(
-                        Err(err),
-                        int_id,
+                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoomError(
+                        err, int_id,
                     )))
                     .expect_log("Connection closed");
                 }
