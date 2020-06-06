@@ -83,10 +83,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::AttachedFile(Ok(msg)) => {
                     APPOP!(attached_file, (msg));
                 }
-                BKResponse::NewRoom(Ok(r), internal_id) => {
-                    let id = Some(internal_id);
-                    APPOP!(new_room, (r, id));
-                }
 
                 // errors
                 BKResponse::AccountDestructionError(err) => {
@@ -151,7 +147,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
-                BKResponse::NewRoom(Err(err), internal_id) => {
+                BKResponse::NewRoomError(err, internal_id) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "{}",
