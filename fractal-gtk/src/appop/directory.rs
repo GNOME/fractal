@@ -47,7 +47,7 @@ impl AppOp {
         }
     }
 
-    pub fn search_rooms(&mut self, more: bool) {
+    pub fn search_rooms(&mut self, rooms_since: Option<String>) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let other_protocol_radio = self
             .ui
@@ -107,7 +107,7 @@ impl AppOp {
             String::new()
         };
 
-        if !more {
+        if rooms_since.is_none() {
             let directory = self
                 .ui
                 .builder
@@ -134,23 +134,39 @@ impl AppOp {
             q.set_sensitive(false);
         }
 
-        self.backend
-            .send(BKCommand::DirectorySearch(
+        let search_term = q.get_text().unwrap().to_string();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = directory::room_search(
                 login_data.server_url,
                 login_data.access_token,
                 homeserver,
-                q.get_text().unwrap().to_string(),
+                search_term,
                 protocol,
-                more,
-            ))
-            .unwrap();
+                rooms_since,
+            );
+
+            match query {
+                Ok((rooms, rooms_since)) => {
+                    APPOP!(append_directory_rooms, (rooms, rooms_since));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::DirectorySearchError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
+        });
     }
 
     pub fn load_more_rooms(&mut self) {
-        self.search_rooms(true);
+        self.search_rooms(self.rooms_since.clone());
     }
 
-    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>) {
+    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>, rooms_since: Option<String>) {
+        self.rooms_since = rooms_since;
+
         let directory = self
             .ui
             .builder

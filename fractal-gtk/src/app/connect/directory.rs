@@ -118,7 +118,7 @@ impl App {
 
         op = self.op.clone();
         q.connect_activate(move |_| {
-            op.lock().unwrap().search_rooms(false);
+            op.lock().unwrap().search_rooms(None);
         });
 
         default_matrix_server_radio.connect_toggled(clone!(directory_choice_label, default_matrix_server_radio, protocol_combo, other_homeserver_url_entry => move |_| {

@@ -82,6 +82,7 @@ pub struct AppOp {
 
     pub media_viewer: Rc<RefCell<Option<widgets::MediaViewer>>>,
 
+    pub rooms_since: Option<String>, // This is for directory searches
     pub state: AppState,
     pub since: Option<String>,
     pub room_back_history: Rc<RefCell<Vec<AppState>>>,
@@ -120,6 +121,7 @@ impl AppOp {
             state: AppState::Login,
             room_back_history: Rc::new(RefCell::new(vec![])),
             roomlist: widgets::RoomList::new(None, None),
+            rooms_since: None,
             unread_rooms: 0,
             since: None,
             unsent_messages: HashMap::new(),
