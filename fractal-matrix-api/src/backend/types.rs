@@ -7,11 +7,9 @@ use crate::error::Error;
 
 use crate::r0::AccessToken;
 use crate::types::Event;
-use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
 
-use crate::cache::CacheMap;
 use url::Url;
 
 #[derive(Debug)]
@@ -28,18 +26,6 @@ pub enum BKCommand {
         bool,
         u64,
     ),
-    GetThumbAsync(Url, String, Sender<Result<String, Error>>),
-    GetMediaAsync(Url, String, Sender<Result<String, Error>>),
-    GetMediaListAsync(
-        Url,
-        AccessToken,
-        RoomId,
-        EventId,
-        Option<String>,
-        Sender<(Vec<Message>, String)>,
-    ),
-    GetAvatarAsync(Url, Option<Member>, Sender<String>),
-    GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
     SetRoom(Url, AccessToken, RoomId),
     ShutDown,
     AttachFile(Url, AccessToken, Message),
@@ -110,6 +96,7 @@ pub enum RoomType {
     Private,
 }
 
+#[derive(Clone, Debug)]
 pub struct ThreadPool {
     thread_count: Arc<(Mutex<u8>, Condvar)>,
     limit: u8,
@@ -154,8 +141,4 @@ impl ThreadPool {
 
 pub struct Backend {
     pub tx: Sender<BKResponse>,
-
-    // user info cache, uid -> (name, avatar)
-    pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,
-    pub thread_pool: ThreadPool,
 }

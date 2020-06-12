@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 
 use crate::appop::AppOp;
 use crate::backend::BKCommand;
@@ -18,7 +19,9 @@ use crate::uitypes::RowType;
 use crate::globals;
 use crate::widgets;
 use crate::widgets::{PlayerExt, VideoPlayerWidget};
-use fractal_api::identifiers::RoomId;
+use fractal_api::backend::ThreadPool;
+use fractal_api::cache::CacheMap;
+use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
@@ -293,7 +296,12 @@ impl RoomHistory {
         Some(rh)
     }
 
-    pub fn create(&mut self, mut messages: Vec<MessageContent>) -> Option<()> {
+    pub fn create(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        mut messages: Vec<MessageContent>,
+    ) -> Option<()> {
         let mut position = messages.len();
         /* Find position of last viewed message */
         for (i, item) in messages.iter().enumerate() {
@@ -303,9 +311,9 @@ impl RoomHistory {
         }
         let bottom = messages.split_off(position);
         messages.reverse();
-        self.add_old_messages_in_batch(messages);
+        self.add_old_messages_in_batch(thread_pool.clone(), user_info_cache.clone(), messages);
         /* Add the rest of the messages after the new message divider */
-        self.add_new_messages_in_batch(bottom);
+        self.add_new_messages_in_batch(thread_pool, user_info_cache, bottom);
 
         let weak_rows = Rc::downgrade(&self.rows);
         let id = timeout_add(250, move || {
@@ -428,7 +436,11 @@ impl RoomHistory {
         });
     }
 
-    fn run_queue(&mut self) -> Option<()> {
+    fn run_queue(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+    ) -> Option<()> {
         let backend = self.backend.clone();
         let queue = self.queue.clone();
         let rows = self.rows.clone();
@@ -484,6 +496,8 @@ impl RoomHistory {
                         rows.borrow_mut().new_divider_index = Some(new_divider_index);
                     }
                     item.widget = Some(create_row(
+                        thread_pool.clone(),
+                        user_info_cache.clone(),
                         item.clone(),
                         has_header,
                         backend.clone(),
@@ -519,7 +533,12 @@ impl RoomHistory {
     }
 
     /* This adds new incomming messages at then end of the list */
-    pub fn add_new_message(&mut self, mut item: MessageContent) -> Option<()> {
+    pub fn add_new_message(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        mut item: MessageContent,
+    ) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
         let mut day_divider = None;
         let has_header = {
@@ -550,6 +569,8 @@ impl RoomHistory {
         }
 
         let b = create_row(
+            thread_pool,
+            user_info_cache,
             item.clone(),
             has_header,
             self.backend.clone(),
@@ -561,7 +582,12 @@ impl RoomHistory {
         None
     }
 
-    pub fn remove_message(&mut self, item: MessageContent) -> Option<()> {
+    pub fn remove_message(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        item: MessageContent,
+    ) -> Option<()> {
         let mut rows = self.rows.borrow_mut();
         let (i, ref mut msg) = rows
             .list
@@ -604,27 +630,37 @@ impl RoomHistory {
                     msg_next_cloned.redactable && msg_next_cloned.sender == msg_sender
                 })
             {
-                msg_widget.update_header(msg_next_cloned, true);
+                msg_widget.update_header(thread_pool, user_info_cache, msg_next_cloned, true);
             }
         }
         None
     }
 
-    pub fn add_new_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
+    pub fn add_new_messages_in_batch(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        messages: Vec<MessageContent>,
+    ) -> Option<()> {
         /* TODO: use lazy loading */
         for item in messages {
-            self.add_new_message(item);
+            self.add_new_message(thread_pool.clone(), user_info_cache.clone(), item);
         }
         None
     }
 
-    pub fn add_old_messages_in_batch(&mut self, messages: Vec<MessageContent>) -> Option<()> {
+    pub fn add_old_messages_in_batch(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        messages: Vec<MessageContent>,
+    ) -> Option<()> {
         self.rows.borrow().view.reset_request_sent();
         /* TODO: Try if extend would be faster then append */
         self.queue
             .borrow_mut()
             .append(&mut VecDeque::from(messages));
-        self.run_queue();
+        self.run_queue(thread_pool, user_info_cache);
 
         None
     }
@@ -646,6 +682,8 @@ impl RoomHistory {
 
 /* This function creates the content for a Row based on the content of msg */
 fn create_row(
+    thread_pool: ThreadPool,
+    user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     row: MessageContent,
     has_header: bool,
     backend: Sender<BKCommand>,
@@ -655,7 +693,13 @@ fn create_row(
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
     let mut mb = widgets::MessageBox::new(backend, server_url);
-    mb.create(&row, has_header && row.mtype != RowType::Emote, false);
+    mb.create(
+        thread_pool,
+        user_info_cache,
+        &row,
+        has_header && row.mtype != RowType::Emote,
+        false,
+    );
 
     match row.mtype {
         RowType::Video => {

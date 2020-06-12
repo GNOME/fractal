@@ -5,12 +5,8 @@ use std::thread;
 
 use crate::util::ResultExpectLog;
 
-use crate::cache::CacheMap;
-
-use self::types::ThreadPool;
-
 pub mod directory;
-mod media;
+pub mod media;
 pub mod register;
 pub mod room;
 mod sync;
@@ -21,14 +17,11 @@ pub use self::types::BKCommand;
 pub use self::types::BKResponse;
 pub use self::types::Backend;
 pub use self::types::RoomType;
+pub use self::types::ThreadPool;
 
 impl Backend {
     pub fn new(tx: Sender<BKResponse>) -> Backend {
-        Backend {
-            tx,
-            user_info_cache: CacheMap::new().timeout(60 * 60),
-            thread_pool: ThreadPool::new(20),
-        }
+        Backend { tx }
     }
 
     pub fn run(mut self) -> Sender<BKCommand> {
@@ -57,14 +50,6 @@ impl Backend {
             }
             Ok(BKCommand::Guest(server, id_url)) => register::guest(self, server, id_url),
 
-            // User module
-            Ok(BKCommand::GetAvatarAsync(server, member, ctx)) => {
-                user::get_avatar_async(self, server, member, ctx)
-            }
-            Ok(BKCommand::GetUserInfoAsync(server, sender, ctx)) => {
-                user::get_user_info_async(self, server, sender, ctx)
-            }
-
             // Sync module
             Ok(BKCommand::Sync(server, access_token, uid, jtr, since, initial, number_tries)) => {
                 sync::sync(
@@ -87,30 +72,6 @@ impl Backend {
                 let r = room::attach_file(self, server, access_token, msg);
                 bkerror!(r, tx, BKResponse::AttachedFile);
             }
-
-            // Media module
-            Ok(BKCommand::GetThumbAsync(server, media, ctx)) => {
-                media::get_thumb_async(self, server, media, ctx)
-            }
-            Ok(BKCommand::GetMediaAsync(server, media, ctx)) => {
-                media::get_media_async(self, server, media, ctx)
-            }
-            Ok(BKCommand::GetMediaListAsync(
-                server,
-                access_token,
-                room_id,
-                first_media_id,
-                prev_batch,
-                ctx,
-            )) => media::get_media_list_async(
-                self,
-                server,
-                access_token,
-                room_id,
-                first_media_id,
-                prev_batch,
-                ctx,
-            ),
 
             // Internal commands
             Ok(BKCommand::SendBKResponse(response)) => {

@@ -2,12 +2,10 @@ use ruma_identifiers::UserId;
 use std::fs;
 use url::Url;
 
-use crate::backend::types::Backend;
+use crate::backend::types::ThreadPool;
+use crate::cache::CacheMap;
 use crate::error::Error;
-use crate::util::cache_dir_path;
-use crate::util::dw_media;
 use crate::util::get_user_avatar;
-use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use std::convert::TryInto;
@@ -286,20 +284,6 @@ pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, Error> {
     get_user_avatar(base, &userid).map(|(_, fname)| fname.into())
 }
 
-pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sender<String>) {
-    if let Some(member) = member {
-        let uid = member.uid.clone();
-        let avatar = member.avatar.clone().unwrap_or_default();
-
-        bk.thread_pool.run(move || {
-            let fname = get_user_avatar_img(base, &uid, &avatar).unwrap_or_default();
-            tx.send(fname).expect_log("Connection closed");
-        });
-    } else {
-        tx.send(Default::default()).expect_log("Connection closed");
-    }
-}
-
 pub fn set_user_avatar(
     base: Url,
     access_token: AccessToken,
@@ -328,35 +312,28 @@ pub fn set_user_avatar(
 }
 
 pub fn get_user_info_async(
-    bk: &mut Backend,
+    thread_pool: ThreadPool,
+    user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     baseu: Url,
     uid: UserId,
-    tx: Option<Sender<(String, String)>>,
+    tx: Sender<(String, String)>,
 ) {
-    if let Some(info) = bk.user_info_cache.get(&uid).cloned() {
-        if let Some(tx) = tx.clone() {
-            thread::spawn(move || {
-                let i = info.lock().unwrap().clone();
-                tx.send(i).expect_log("Connection closed");
-            });
-        }
+    if let Some(info) = user_info_cache.lock().unwrap().get(&uid).cloned() {
+        thread::spawn(move || {
+            tx.send(info).expect_log("Connection closed");
+        });
         return;
     }
 
-    let info: Arc<Mutex<(String, String)>> = Default::default();
-    bk.user_info_cache.insert(uid.clone(), info.clone());
+    thread_pool.run(move || {
+        let info = get_user_avatar(baseu, &uid);
 
-    bk.thread_pool.run(move || {
-        match (get_user_avatar(baseu, &uid), tx) {
-            (Ok(i0), Some(tx)) => {
-                tx.send(i0.clone()).expect_log("Connection closed");
-                *info.lock().unwrap() = i0;
-            }
-            (Err(_), Some(tx)) => {
-                tx.send(Default::default()).expect_log("Connection closed");
-            }
-            _ => {}
-        };
+        if let Ok(ref i0) = info {
+            user_info_cache.lock().unwrap().insert(uid, i0.clone());
+        }
+
+        tx.send(info.unwrap_or_default())
+            .expect_log("Connection closed");
     });
 }
 
@@ -375,10 +352,4 @@ pub fn search(
     let response: UserDirectoryResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
     Ok(response.results.into_iter().map(Into::into).collect())
-}
-
-fn get_user_avatar_img(baseu: Url, userid: &UserId, avatar: &str) -> Result<String, Error> {
-    let dest = cache_dir_path(None, &userid.to_string())?;
-
-    dw_media(baseu, avatar, ContentType::default_thumbnail(), Some(dest))
 }

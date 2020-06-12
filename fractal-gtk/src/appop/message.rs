@@ -49,7 +49,11 @@ impl AppOp {
     pub fn add_room_message(&mut self, msg: &Message) -> Option<()> {
         if let Some(ui_msg) = self.create_new_room_message(msg) {
             if let Some(ref mut history) = self.history {
-                history.add_new_message(ui_msg);
+                history.add_new_message(
+                    self.thread_pool.clone(),
+                    self.user_info_cache.clone(),
+                    ui_msg,
+                );
             }
         }
         None
@@ -58,7 +62,11 @@ impl AppOp {
     pub fn remove_room_message(&mut self, msg: &Message) {
         if let Some(ui_msg) = self.create_new_room_message(msg) {
             if let Some(ref mut history) = self.history {
-                history.remove_message(ui_msg);
+                history.remove_message(
+                    self.thread_pool.clone(),
+                    self.user_info_cache.clone(),
+                    ui_msg,
+                );
             }
         }
     }
@@ -68,7 +76,11 @@ impl AppOp {
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
             let backend = self.backend.clone();
-            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(&ui_msg);
+            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(
+                self.thread_pool.clone(),
+                self.user_info_cache.clone(),
+                &ui_msg,
+            );
             let m = mb.get_listbox_row();
             messages.add(m);
 
@@ -104,7 +116,11 @@ impl AppOp {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
                 let backend = self.backend.clone();
                 let mb = widgets::MessageBox::new(backend, login_data.server_url.clone())
-                    .tmpwidget(&ui_msg);
+                    .tmpwidget(
+                        self.thread_pool.clone(),
+                        self.user_info_cache.clone(),
+                        &ui_msg,
+                    );
                 let m = mb.get_listbox_row();
                 messages.add(m);
 
@@ -425,7 +441,11 @@ impl AppOp {
         }
 
         if let Some(ref mut history) = self.history {
-            history.add_old_messages_in_batch(list);
+            history.add_old_messages_in_batch(
+                self.thread_pool.clone(),
+                self.user_info_cache.clone(),
+                list,
+            );
         }
     }
 

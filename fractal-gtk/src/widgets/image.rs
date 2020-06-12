@@ -1,3 +1,5 @@
+use fractal_api::backend::media;
+use fractal_api::backend::ThreadPool;
 use fractal_api::url::Url;
 use gdk::prelude::GdkContextExt;
 use gdk_pixbuf;
@@ -119,9 +121,9 @@ impl Image {
         self
     }
 
-    pub fn build(self) -> Image {
+    pub fn build(self, thread_pool: ThreadPool) -> Image {
         self.draw();
-        self.load_async();
+        self.load_async(thread_pool);
 
         self
     }
@@ -263,7 +265,7 @@ impl Image {
 
     /// If `path` starts with mxc this func download the img async, in other case the image is loaded
     /// in the `image` widget scaled to size
-    pub fn load_async(&self) {
+    pub fn load_async(&self, thread_pool: ThreadPool) {
         if self.path.starts_with("mxc:") {
             // asyn load
             let (tx, rx): (
@@ -271,11 +273,16 @@ impl Image {
                 Receiver<Result<String, Error>>,
             ) = channel();
             let command = if self.thumb {
-                BKCommand::GetThumbAsync(self.server_url.clone(), self.path.to_string(), tx)
+                media::get_thumb_async
             } else {
-                BKCommand::GetMediaAsync(self.server_url.clone(), self.path.to_string(), tx)
+                media::get_media_async
             };
-            self.backend.send(command).unwrap();
+            command(
+                thread_pool,
+                self.server_url.clone(),
+                self.path.to_string(),
+                tx,
+            );
             let local_path = self.local_path.clone();
             let pix = self.pixbuf.clone();
             let scaled = self.scaled.clone();

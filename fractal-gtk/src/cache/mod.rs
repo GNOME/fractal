@@ -1,4 +1,6 @@
 use fractal_api::backend::user;
+use fractal_api::backend::ThreadPool;
+use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;
 use glib::source::Continue;
@@ -16,11 +18,11 @@ use std::collections::HashMap;
 use crate::globals;
 
 /* includes for avatar download */
-use crate::backend::BKCommand;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::TryRecvError;
+use std::sync::{Arc, Mutex};
 
 use crate::widgets::AvatarData;
 use std::cell::RefCell;
@@ -103,13 +105,14 @@ pub fn load() -> Result<CacheData, Error> {
 
 /// this downloads a avatar and stores it in the cache folder
 pub fn download_to_cache(
-    backend: Sender<BKCommand>,
+    thread_pool: ThreadPool,
+    user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     server_url: Url,
     uid: UserId,
     data: Rc<RefCell<AvatarData>>,
 ) {
     let (tx, rx) = channel::<(String, String)>();
-    let _ = backend.send(BKCommand::GetUserInfoAsync(server_url, uid, Some(tx)));
+    user::get_user_info_async(thread_pool, user_info_cache, server_url, uid, tx);
 
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => Continue(true),
