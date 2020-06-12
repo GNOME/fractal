@@ -26,7 +26,6 @@ pub enum BKCommand {
         bool,
         u64,
     ),
-    SetRoom(Url, AccessToken, RoomId),
     ShutDown,
     AttachFile(Url, AccessToken, Message),
     SendBKResponse(BKResponse),
@@ -39,8 +38,6 @@ pub enum BKResponse {
     Sync(Result<String, (Error, u64)>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
-    RoomDetail(Result<(RoomId, String, String), Error>),
-    RoomAvatar(Result<(RoomId, Option<Url>), Error>),
     NewRoomAvatar(RoomId),
     RoomMemberEvent(Event),
     RoomMessages(Result<Vec<Message>, Error>),
@@ -88,6 +85,8 @@ pub enum BKResponse {
     JoinRoomError(Error),
     DirectorySearchError(Error),
     NewRoomError(Error, RoomId),
+    RoomDetailError(Error),
+    RoomAvatarError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]

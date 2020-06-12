@@ -65,9 +65,6 @@ impl Backend {
             }
 
             // Room module
-            Ok(BKCommand::SetRoom(server, access_token, room_id)) => {
-                room::set_room(self, server, access_token, room_id)
-            }
             Ok(BKCommand::AttachFile(server, access_token, msg)) => {
                 let r = room::attach_file(self, server, access_token, msg);
                 bkerror!(r, tx, BKResponse::AttachedFile);

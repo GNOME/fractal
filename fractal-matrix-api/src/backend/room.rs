@@ -85,27 +85,7 @@ use crate::types::{Room, RoomMembership, RoomTag};
 
 use serde_json::Value as JsonValue;
 
-// FIXME: Remove this function, this is used only to request information we should already have
-// when opening a room
-pub fn set_room(bk: &Backend, server: Url, access_token: AccessToken, room_id: RoomId) {
-    let tx = bk.tx.clone();
-
-    thread::spawn(clone!(server, access_token, room_id => move || {
-        let query = get_room_avatar(server, access_token, room_id);
-        tx.send(BKResponse::RoomAvatar(query))
-            .expect_log("Connection closed");
-    }));
-
-    let tx = bk.tx.clone();
-
-    thread::spawn(move || {
-        let query = get_room_detail(server, access_token, room_id, "m.room.topic".into());
-        tx.send(BKResponse::RoomDetail(query))
-            .expect_log("Connection closed");
-    });
-}
-
-fn get_room_detail(
+pub fn get_room_detail(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,

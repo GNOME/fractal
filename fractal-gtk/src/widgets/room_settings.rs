@@ -442,7 +442,7 @@ impl RoomSettings {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
                         .expect_log("Connection closed");
                 }
             },

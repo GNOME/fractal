@@ -106,7 +106,7 @@ impl AppOp {
                             APPOP!(set_room_avatar, (room, avatar));
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
                                 .expect_log("Connection closed");
                         }
                     },
@@ -250,13 +250,38 @@ impl AppOp {
         self.roomlist.select(&active_room);
 
         // getting room details
-        self.backend
-            .send(BKCommand::SetRoom(
-                login_data.server_url.clone(),
-                login_data.access_token.clone(),
-                active_room.clone(),
-            ))
-            .unwrap();
+        let server_url = login_data.server_url.clone();
+        let access_token = login_data.access_token.clone();
+        let a_room = active_room.clone();
+        let tx = self.backend.clone();
+        thread::spawn(
+            move || match room::get_room_avatar(server_url, access_token, a_room) {
+                Ok((room, avatar)) => {
+                    APPOP!(set_room_avatar, (room, avatar));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                        .expect_log("Connection closed");
+                }
+            },
+        );
+
+        let server_url = login_data.server_url.clone();
+        let access_token = login_data.access_token.clone();
+        let a_room = active_room.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            match room::get_room_detail(server_url, access_token, a_room, "m.room.topic".into()) {
+                Ok((room, key, value)) => {
+                    let v = Some(value);
+                    APPOP!(set_room_detail, (room, key, v));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomDetailError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
+        });
 
         /* create the intitial list of messages to fill the new room history */
         let mut messages = vec![];
@@ -707,7 +732,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
                         .expect_log("Connection closed");
                 }
             }
