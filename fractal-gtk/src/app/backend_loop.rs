@@ -43,13 +43,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let clear_room_list = false;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                 }
-                BKResponse::RoomDetail(Ok((room, key, value))) => {
-                    let v = Some(value);
-                    APPOP!(set_room_detail, (room, key, v));
-                }
-                BKResponse::RoomAvatar(Ok((room, avatar))) => {
-                    APPOP!(set_room_avatar, (room, avatar));
-                }
                 BKResponse::RoomMessages(Ok(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
                 }
