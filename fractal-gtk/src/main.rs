@@ -58,12 +58,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     gst::init()?;
 
     // Create a Application with default flags
-    let application = gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::empty())?;
+    let application = gtk::Application::new(
+        Some(config::APP_ID),
+        gio::ApplicationFlags::HANDLES_COMMAND_LINE,
+    )?;
 
     application.set_resource_base_path(Some("/org/gnome/Fractal"));
 
     application.connect_startup(|application| {
         App::on_startup(application);
+    });
+
+    application.connect_command_line(|app, command| {
+        for arg in command.get_arguments() {
+            match arg.to_str() {
+                Some("-V") | Some("--version") => {
+                    println!("{}", config::VERSION);
+                    app.quit();
+                }
+                _ => {}
+            };
+        }
+
+        0
     });
 
     application.run(&args().collect::<Vec<_>>());
