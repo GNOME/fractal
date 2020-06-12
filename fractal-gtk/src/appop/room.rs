@@ -285,6 +285,7 @@ impl AppOp {
 
         let back_history = self.room_back_history.clone();
         let actions = actions::Message::new(
+            self.thread_pool.clone(),
             self.backend.clone(),
             login_data.server_url,
             login_data.access_token,
@@ -293,7 +294,11 @@ impl AppOp {
         );
         let history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         self.history = if let Some(mut history) = history {
-            history.create(messages);
+            history.create(
+                self.thread_pool.clone(),
+                self.user_info_cache.clone(),
+                messages,
+            );
             Some(history)
         } else {
             None

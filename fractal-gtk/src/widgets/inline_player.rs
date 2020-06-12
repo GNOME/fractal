@@ -17,6 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use fractal_api::backend::{media, ThreadPool};
 use fractal_api::clone;
 
 use gst::prelude::*;
@@ -46,7 +47,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use fractal_api::url::Url;
 
 use crate::app::App;
-use crate::backend::BKCommand;
 use crate::error::Error;
 use crate::i18n::i18n;
 
@@ -56,9 +56,9 @@ pub trait PlayerExt {
     fn stop(&self);
     fn initialize_stream(
         player: &Rc<Self>,
-        backend: &Sender<BKCommand>,
         media_url: &String,
         server_url: &Url,
+        thread_pool: ThreadPool,
         bx: &gtk::Box,
         start_playing: bool,
     );
@@ -496,9 +496,9 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
 
     fn initialize_stream(
         player: &Rc<Self>,
-        backend: &Sender<BKCommand>,
         media_url: &String,
         server_url: &Url,
+        thread_pool: ThreadPool,
         bx: &gtk::Box,
         start_playing: bool,
     ) {
@@ -507,13 +507,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
             Sender<Result<String, Error>>,
             Receiver<Result<String, Error>>,
         ) = channel();
-        backend
-            .send(BKCommand::GetMediaAsync(
-                server_url.clone(),
-                media_url.clone(),
-                tx,
-            ))
-            .unwrap();
+        media::get_media_async(thread_pool, server_url.clone(), media_url.clone(), tx);
         let local_path = player.get_local_path_access();
         gtk::timeout_add(
             50,

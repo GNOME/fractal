@@ -94,7 +94,8 @@ impl AppOp {
                 None,
             );
             download_to_cache(
-                self.backend.clone(),
+                self.thread_pool.clone(),
+                self.user_info_cache.clone(),
                 login_data.server_url.clone(),
                 login_data.uid.clone(),
                 data.clone(),
@@ -118,7 +119,8 @@ impl AppOp {
                     None,
                 );
                 download_to_cache(
-                    self.backend.clone(),
+                    self.thread_pool.clone(),
+                    self.user_info_cache.clone(),
                     login_data.server_url.clone(),
                     login_data.uid.clone(),
                     data.clone(),

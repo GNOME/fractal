@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::r0::AccessToken;
@@ -10,6 +12,8 @@ use fractal_api::r0::AccessToken;
 use gtk;
 use gtk::prelude::*;
 
+use fractal_api::backend::ThreadPool;
+use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 
 use crate::backend;
@@ -94,6 +98,9 @@ pub struct AppOp {
 
     pub directory: Vec<Room>,
     pub leaflet: libhandy::Leaflet,
+
+    pub thread_pool: ThreadPool,
+    pub user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
 }
 
 impl PasswordStorage for AppOp {}
@@ -135,6 +142,11 @@ impl AppOp {
 
             directory: vec![],
             leaflet: leaflet,
+
+            thread_pool: ThreadPool::new(20),
+            user_info_cache: Arc::new(Mutex::new(
+                CacheMap::new().timeout(Duration::from_secs(60 * 60)),
+            )),
         }
     }
 

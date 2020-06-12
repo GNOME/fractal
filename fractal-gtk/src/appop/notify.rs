@@ -1,3 +1,4 @@
+use fractal_api::backend::user;
 use fractal_api::identifiers::{EventId, RoomId};
 use gio::ApplicationExt;
 use gio::FileExt;
@@ -13,7 +14,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::i18n::i18n;
 
 use crate::appop::AppOp;
-use crate::backend::BKCommand;
 
 use crate::widgets::ErrorDialog;
 
@@ -59,11 +59,13 @@ impl AppOp {
         };
 
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
-        let _ = self.backend.send(BKCommand::GetUserInfoAsync(
+        user::get_user_info_async(
+            self.thread_pool.clone(),
+            self.user_info_cache.clone(),
             server_url,
             msg.sender.clone(),
-            Some(tx),
-        ));
+            tx,
+        );
 
         let room_id = room_id.to_string();
         let id = id.to_string();
