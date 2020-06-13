@@ -41,15 +41,6 @@ impl Backend {
         let tx = self.tx.clone();
 
         match cmd {
-            // Register module
-            Ok(BKCommand::Login(user, passwd, server, id_url)) => {
-                register::login(self, user, passwd, server, id_url)
-            }
-            Ok(BKCommand::Register(user, passwd, server, id_url)) => {
-                register::register(self, user, passwd, server, id_url)
-            }
-            Ok(BKCommand::Guest(server, id_url)) => register::guest(self, server, id_url),
-
             // Sync module
             Ok(BKCommand::Sync(server, access_token, uid, jtr, since, initial, number_tries)) => {
                 sync::sync(
