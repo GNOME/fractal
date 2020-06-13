@@ -82,82 +82,6 @@ impl AppOp {
         backend_loop(rx);
     }
 
-    #[allow(dead_code)]
-    // TODO
-    /*
-    pub fn register(&mut self) {
-        let user_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("register_username")
-            .expect("Can't find register_username in ui file.");
-        let pass_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("register_password")
-            .expect("Can't find register_password in ui file.");
-        let pass_conf: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("register_password_confirm")
-            .expect("Can't find register_password_confirm in ui file.");
-        let server_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("register_server")
-            .expect("Can't find register_server in ui file.");
-        let _idp_entry: gtk::Entry = self
-            .ui
-            .builder
-            .get_object("login_idp")
-            .expect("Can't find login_idp in ui file.");
-
-        let username = match user_entry.get_text() {
-            Some(s) => s.to_string(),
-            None => String::new(),
-        };
-        let password = match pass_entry.get_text() {
-            Some(s) => s.to_string(),
-            None => String::new(),
-        };
-        let passconf = match pass_conf.get_text() {
-            Some(s) => s.to_string(),
-            None => String::new(),
-        };
-
-        if password != passconf {
-            let msg = i18n("Passwords didn’t match, try again");
-            ErrorDialog::new(false, &msg);
-            return;
-        }
-
-        let server = match server_entry
-            .get_text()
-            .as_ref()
-            .map(Url::parse)
-            .unwrap_or(Ok(globals::DEFAULT_HOMESERVER))
-        {
-            Ok(u) => u,
-            Err(_) => {
-                let msg = i18n("Malformed server URL");
-                ErrorDialog::new(false, &msg);
-                return;
-            }
-        }
-        // FIXME: ask also for the identity server
-
-        //self.store_pass(username.clone(), password.clone(), server_url.clone())
-        //    .unwrap_or_else(|_| {
-        //        // TODO: show an error
-        //        error!("Can't store the password using libsecret");
-        //    });
-
-        self.backend
-            .send(BKCommand::Register(username, password, server, id_s))
-            .unwrap();
-    }
-    */
-
     pub fn connect(&mut self, username: String, password: String, server: Url, identity: Url) {
         self.store_pass(
             username.clone(),
@@ -170,9 +94,18 @@ impl AppOp {
             error!("Can't store the password using libsecret");
         });
 
-        self.backend
-            .send(BKCommand::Login(username, password, server, identity))
-            .unwrap();
+        let tx = self.backend.clone();
+        thread::spawn(
+            move || match register::login(username, password, server.clone()) {
+                Ok((uid, tk, dev)) => {
+                    APPOP!(bk_login, (uid, tk, dev, server, identity));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::LoginError(err)))
+                        .expect_log("Connection closed");
+                }
+            },
+        );
     }
 
     pub fn disconnect(&self) {

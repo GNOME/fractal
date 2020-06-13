@@ -1,4 +1,4 @@
-use ruma_identifiers::{EventId, RoomId, UserId};
+use ruma_identifiers::{DeviceId, EventId, RoomId, UserId};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -14,9 +14,6 @@ use url::Url;
 
 #[derive(Debug)]
 pub enum BKCommand {
-    Login(String, String, Url, Url),
-    Register(String, String, Url, Url),
-    Guest(Url, Url),
     Sync(
         Url,
         AccessToken,
@@ -34,7 +31,7 @@ pub enum BKCommand {
 #[derive(Debug)]
 pub enum BKResponse {
     ShutDown,
-    Token(UserId, AccessToken, Option<String>, Url, Url),
+    Token(UserId, AccessToken, Option<DeviceId>, Url, Url),
     Sync(Result<String, (Error, u64)>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
