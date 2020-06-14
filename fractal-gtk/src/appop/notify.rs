@@ -46,7 +46,13 @@ impl AppOp {
         let server_url = self.login_data.clone()?.server_url;
         let msg = self.get_message_by_id(room_id, id)?;
         let r = self.rooms.get(room_id)?;
-        let short_body = dirty_truncate(&msg.body, 80).to_string();
+        let short_body = match &msg.mtype[..] {
+            "m.audio" => i18n("An audio file has been added to the conversation."),
+            "m.image" => i18n("An image has been added to the conversation."),
+            "m.video" => i18n("A video has been added to the conversation."),
+            "m.file" => i18n("A file has been added to the conversation."),
+            _ => dirty_truncate(&msg.body, 80).to_string(),
+        };
 
         let title = if r.direct {
             i18n(" (direct message)")
