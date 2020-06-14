@@ -80,6 +80,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     let shortcuts = SimpleAction::new("shortcuts", None);
     let about = SimpleAction::new("about", None);
     let quit = SimpleAction::new("quit", None);
+    let main_menu = SimpleAction::new("main_menu", None);
 
     let open_room = SimpleAction::new("open-room", glib::VariantTy::new("s").ok());
     let back = SimpleAction::new("back", None);
@@ -121,6 +122,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.add_action(&room_settings);
     app.add_action(&media_viewer);
     app.add_action(&account);
+    app.add_action(&main_menu);
 
     app.add_action(&send_file);
     app.add_action(&send_message);
@@ -142,6 +144,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     });
 
     about.connect_activate(clone!(op => move |_, _| op.lock().unwrap().about_dialog() ));
+    main_menu.connect_activate(clone!(op => move |_, _| op.lock().unwrap().main_menu() ));
 
     settings.connect_activate(move |_, _| {
         info!("SETTINGS");
@@ -332,6 +335,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.set_accels_for_action("app.older-messages", &["Page_Up"]);
     app.set_accels_for_action("app.newer-messages", &["Page_Down"]);
     app.set_accels_for_action("app.back", &["Escape"]);
+    app.set_accels_for_action("app.main_menu", &["F10"]);
 
     // connect mouse back button to app.back action
     let app_weak = app.downgrade();

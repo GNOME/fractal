@@ -191,4 +191,14 @@ impl AppOp {
         self.cache_rooms();
         self.disconnect();
     }
+
+    pub fn main_menu(&self) {
+        let main_menu_button = self
+            .ui
+            .builder
+            .get_object::<gtk::MenuButton>("main_menu_button")
+            .expect("Couldn't find main_menu_button in ui file.");
+
+        main_menu_button.clicked();
+    }
 }
