@@ -431,6 +431,7 @@ impl MessageBox {
         file_name.set_use_markup(true);
         file_name.set_xalign(0.0);
         file_name.set_line_wrap(true);
+        file_name.set_line_wrap_mode(pango::WrapMode::WordChar);
         outer_box.pack_start(&file_name, false, false, 0);
         outer_box.pack_start(&bx, false, false, 0);
         outer_box.get_style_context().add_class("audio-box");
