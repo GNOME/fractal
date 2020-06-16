@@ -368,7 +368,7 @@ impl Data {
         match msg.mtype.as_ref() {
             "m.image" => {
                 let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
-                    .fit_to_width(true)
+                    .shrink_to_fit(true)
                     .center(true)
                     .build();
                 media_viewport.add(&image.widget);
@@ -724,7 +724,7 @@ impl MediaViewer {
             "m.image" => {
                 let image =
                     image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
-                        .fit_to_width(true)
+                        .shrink_to_fit(true)
                         .center(true)
                         .build();
 

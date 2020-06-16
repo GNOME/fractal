@@ -32,7 +32,7 @@ pub struct Image {
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
     pub zoom_level: Arc<Mutex<Option<f64>>>,
-    pub fit_to_width: bool,
+    pub shrink_to_fit: bool,
     pub thumb: bool,
     pub circle: bool,
     pub fixed_size: bool,
@@ -82,12 +82,17 @@ impl Image {
             backend: backend.clone(),
             fixed_size: false,
             centered: false,
-            fit_to_width: false,
+            shrink_to_fit: false,
         }
     }
 
-    pub fn fit_to_width(mut self, f: bool) -> Image {
-        self.fit_to_width = f;
+    /// When the image is drawn, shrink it (if necessary) to fit inside the
+    /// allocated space, both width and height. This is used in the Media
+    /// Viewer, for example, to make sure the image fits the screen.
+    /// Contrast with images in the message feed, which fit to the width but
+    /// expand vertically.
+    pub fn shrink_to_fit(mut self, f: bool) -> Image {
+        self.shrink_to_fit = f;
         self
     }
 
@@ -163,7 +168,7 @@ impl Image {
         let is_circle = self.circle.clone();
         let fixed_size = self.fixed_size;
         let centered = self.centered;
-        let fit_to_width = self.fit_to_width;
+        let shrink_to_fit = self.shrink_to_fit;
         da.connect_draw(move |da, g| {
             let widget_w = da.get_allocated_width();
             let widget_h = da.get_allocated_height();
@@ -172,15 +177,10 @@ impl Image {
             let height = widget_h as f64;
 
             let mut rw = widget_w;
-            if let Some(size) = max_size {
-                let w = size.0;
-                rw = i32::min(w, widget_w);
-            }
-
             let mut rh = widget_h;
             if let Some(size) = max_size {
-                let h = size.1;
-                rh = i32::min(h, widget_h);
+                rw = i32::min(size.0, widget_w);
+                rh = i32::min(size.1, widget_h);
             }
 
             let context = da.get_style_context();
@@ -191,24 +191,21 @@ impl Image {
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
-                let (mut pw, mut ph) = adjust_to(pb.get_width(), pb.get_height(), rw, rh);
+                let (mut pw, mut ph) = match shrink_to_fit {
+                    true => adjust_shrink_to_fit(pb.get_width(), pb.get_height(), rw, rh),
+                    false => adjust_to(pb.get_width(), pb.get_height(), rw, rh),
+                };
 
-                if let Ok(mut zoom_level_guard) = zoom_level.lock() {
-                    match zoom_level_guard.clone() {
-                        Some(zl) => {
-                            pw = (pb.get_width() as f64 * zl) as i32;
-                            ph = (pb.get_height() as f64 * zl) as i32;
-                        }
-                        None if fit_to_width => {
-                            *zoom_level_guard = Some(pw as f64 / pb.get_width() as f64);
-                        }
-                        _ => {}
+                if let Ok(zoom_level_guard) = zoom_level.lock() {
+                    if let Some(zl) = zoom_level_guard.clone() {
+                        pw = (pb.get_width() as f64 * zl) as i32;
+                        ph = (pb.get_height() as f64 * zl) as i32;
                     }
                 }
 
                 if fixed_size {
                     da.set_size_request(pw, ph);
-                } else {
+                } else if !shrink_to_fit {
                     da.set_size_request(1, ph);
                 }
 
@@ -403,4 +400,21 @@ fn adjust_to(w: i32, h: i32, maxw: i32, maxh: i32) -> (i32, i32) {
     }
 
     (pw, ph)
+}
+
+/// Adjust the `w` x `h` to fit in `maxw` x `maxh`, keeping the aspect ratio.
+/// Do not make `w` x `h` bigger, only smaller.
+fn adjust_shrink_to_fit(w: i32, h: i32, maxw: i32, maxh: i32) -> (i32, i32) {
+    let ratio = w as f64 / h as f64;
+    let t_ratio = maxw as f64 / maxh as f64;
+
+    let (nw, nh) = match t_ratio < ratio {
+        true => (maxw, (maxw as f64 * (1.0 / ratio)) as i32),
+        false => ((maxh as f64 * ratio) as i32, maxh),
+    };
+
+    match nw < w {
+        true => (nw, nh),
+        false => (w, h),
+    }
 }
