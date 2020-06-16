@@ -67,7 +67,7 @@ impl AppOp {
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
         let _ = self.backend.send(BKCommand::GetUserInfoAsync(
             server_url,
-            msg.sender.clone(),
+            msg.sender,
             Some(tx),
         ));
 

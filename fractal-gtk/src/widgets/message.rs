@@ -239,7 +239,7 @@ impl MessageBox {
             self.server_url.clone(),
             uid,
             self.username.clone(),
-            Some(data.clone()),
+            Some(data),
         );
 
         avatar
@@ -504,7 +504,7 @@ impl MessageBox {
 
         bx.pack_start(&overlay, true, true, 0);
         self.connect_media_viewer(msg);
-        self.video_player = Some(player.clone());
+        self.video_player = Some(player);
         bx
     }
 
@@ -696,7 +696,7 @@ fn highlight_username(
     let blue = fg.blue * 65535. + 0.5;
     let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-    let mut input = input.clone();
+    let mut input = input;
     let alias = &alias.to_lowercase();
     let mut removed_char = 0;
     while input.contains(alias) {

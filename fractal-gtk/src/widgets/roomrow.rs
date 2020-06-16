@@ -121,7 +121,7 @@ impl RoomRow {
     }
 
     pub fn set_avatar(&mut self, avatar: Option<String>) {
-        self.room.avatar = avatar.clone();
+        self.room.avatar = avatar;
 
         let name = self.room.name.clone().unwrap_or("...".to_string());
 

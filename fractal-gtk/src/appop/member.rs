@@ -42,7 +42,7 @@ impl AppOp {
             }
         }
 
-        self.recalculate_room_name(room_id.clone());
+        self.recalculate_room_name(room_id);
 
         /* FIXME: update the current room settings insteat of creating a new one */
         if self.room_settings.is_some() && self.state == AppState::RoomSettings {
@@ -72,7 +72,7 @@ impl AppOp {
                     uid: sender,
                 };
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
-                    r.members.insert(m.uid.clone(), m.clone());
+                    r.members.insert(m.uid.clone(), m);
                 }
             }
             // ignoring other memberships

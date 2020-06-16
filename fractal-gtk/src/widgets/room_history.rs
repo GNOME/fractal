@@ -282,7 +282,7 @@ impl RoomHistory {
         let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
-            server_url: op.login_data.clone()?.server_url.clone(),
+            server_url: op.login_data.clone()?.server_url,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
         };

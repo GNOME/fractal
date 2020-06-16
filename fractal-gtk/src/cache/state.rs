@@ -152,7 +152,7 @@ impl FCache {
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
         let cache = self.get_store();
-        let mut stored_room = room.clone();
+        let mut stored_room = room;
         // Don't store typing notifications
         stored_room.typing_users.clear();
         let approom = AppRoom {

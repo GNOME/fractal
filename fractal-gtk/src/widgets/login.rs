@@ -37,7 +37,7 @@ impl LoginWidget {
         let weak_err = widget.credentials_err_label.downgrade();
 
         // Grab the focus for each state
-        let weak_ser = weak_server.clone();
+        let weak_ser = weak_server;
         let weak_user = weak_username.clone();
         widget
             .container

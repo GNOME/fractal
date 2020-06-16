@@ -193,7 +193,7 @@ pub fn add_threepid(
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
             id_server: identity.try_into()?,
-            sid: sid.clone(),
+            sid: sid,
             client_secret,
         },
         bind: true,
@@ -289,7 +289,7 @@ pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, Error> {
 pub fn get_avatar_async(bk: &Backend, base: Url, member: Option<Member>, tx: Sender<String>) {
     if let Some(member) = member {
         let uid = member.uid.clone();
-        let avatar = member.avatar.clone().unwrap_or_default();
+        let avatar = member.avatar.unwrap_or_default();
 
         bk.thread_pool.run(move || {
             let fname = get_user_avatar_img(base, &uid, &avatar).unwrap_or_default();
@@ -334,7 +334,7 @@ pub fn get_user_info_async(
     tx: Option<Sender<(String, String)>>,
 ) {
     if let Some(info) = bk.user_info_cache.get(&uid).cloned() {
-        if let Some(tx) = tx.clone() {
+        if let Some(tx) = tx {
             thread::spawn(move || {
                 let i = info.lock().unwrap().clone();
                 tx.send(i).expect_log("Connection closed");

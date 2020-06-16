@@ -918,7 +918,7 @@ impl MediaViewer {
         previous_media_button.connect_clicked(move |_| {
             own_weak.upgrade().map(|own| {
                 if !own.borrow_mut().previous_media() {
-                    load_more_media(own.clone(), builder.clone(), backend.clone());
+                    load_more_media(own, builder.clone(), backend.clone());
                 }
             });
         });
@@ -1042,7 +1042,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
     let roomid = msg.room.clone();
-    let first_media_id = unwrap_or_unit_return!(msg.id.clone());
+    let first_media_id = unwrap_or_unit_return!(msg.id);
     let prev_batch = data.borrow().prev_batch.clone();
     let server_url = data.borrow().server_url.clone();
     let access_token = data.borrow().access_token.clone();
@@ -1094,7 +1094,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                 data.borrow_mut().media_list = new_media_list;
                 data.borrow_mut().prev_batch = Some(prev_batch);
                 if img_msgs_count == 0 {
-                    load_more_media(data.clone(), builder.clone(), backend.clone());
+                    load_more_media(data, builder.clone(), backend.clone());
                 } else {
                     data.borrow_mut().current_media_index += img_msgs_count;
                     data.borrow_mut().previous_media();

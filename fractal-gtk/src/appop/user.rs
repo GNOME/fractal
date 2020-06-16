@@ -97,7 +97,7 @@ impl AppOp {
                 self.backend.clone(),
                 login_data.server_url.clone(),
                 login_data.uid.clone(),
-                data.clone(),
+                data,
             );
 
             avatar.add(&w);
@@ -121,7 +121,7 @@ impl AppOp {
                     self.backend.clone(),
                     login_data.server_url.clone(),
                     login_data.uid.clone(),
-                    data.clone(),
+                    data,
                 );
 
                 eb.add(&w);

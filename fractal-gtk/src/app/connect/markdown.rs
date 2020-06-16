@@ -50,7 +50,6 @@ impl App {
             }
         }
 
-        let op = op.clone();
         markdown_switch
             .clone()
             .connect_property_active_notify(move |_| {

@@ -119,7 +119,7 @@ impl AppOp {
             button.set_sensitive(false);
         });
 
-        let value = entry.clone();
+        let value = entry;
         dialog.connect_response(move |w, r| {
             match gtk::ResponseType::from(r) {
                 gtk::ResponseType::Ok => {
@@ -564,7 +564,7 @@ impl AppOp {
             self.backend.clone(),
             login_data.server_url,
             login_data.uid,
-            data.clone(),
+            data,
         );
 
         /* FIXME: hack to make the avatar drawing area clickable*/

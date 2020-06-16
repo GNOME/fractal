@@ -312,7 +312,7 @@ pub fn load_pixbuf(
     fname: &str,
 ) {
     if is_gif(&fname) {
-        load_animation(pix.clone(), scaled.clone(), widget, &fname);
+        load_animation(pix, scaled, widget, &fname);
         return;
     }
 

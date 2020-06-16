@@ -56,7 +56,7 @@ impl<'a> MemberBox<'a> {
         };
         let data = avatar.circle(
             self.member.uid.to_string(),
-            Some(alias.clone()),
+            Some(alias),
             globals::USERLIST_ICON_SIZE,
             badge,
             None,

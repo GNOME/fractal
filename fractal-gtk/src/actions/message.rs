@@ -170,7 +170,7 @@ pub fn new(
                         let window = upgrade_weak!(parent_weak, Continue(true));
                         if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
-                            if let Err(_) = fs::copy(fname.clone(), path) {
+                            if let Err(_) = fs::copy(fname, path) {
                                 ErrorDialog::new(false, &i18n("Couldn’t save file"));
                             }
                         }
@@ -195,7 +195,7 @@ pub fn new(
                 Receiver<Result<String, Error>>,
             ) = channel();
 
-            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url.clone(), tx));
+            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url, tx));
 
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => Continue(true),
