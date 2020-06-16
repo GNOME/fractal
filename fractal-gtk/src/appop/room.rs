@@ -9,7 +9,6 @@ use std::fs::remove_file;
 use std::os::unix::fs;
 use std::thread;
 
-use gtk;
 use gtk::prelude::*;
 
 use crate::app::App;

@@ -1,4 +1,3 @@
-use gtk;
 use gtk::prelude::*;
 use libhandy::Column;
 use std::thread;

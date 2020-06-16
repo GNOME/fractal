@@ -11,7 +11,6 @@ use std::thread;
 use crate::i18n::ni18n_f;
 use fractal_api::url::Url;
 use gio::prelude::*;
-use gtk;
 use gtk::prelude::*;
 
 use crate::actions;

@@ -1,6 +1,5 @@
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
-use gdk;
 
 use fragile::Fragile;
 use std::cell::RefCell;
@@ -11,10 +10,8 @@ use crate::i18n::i18n;
 use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
 use gdk::*;
-use glib;
 use glib::signal;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
 

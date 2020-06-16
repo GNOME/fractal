@@ -5,7 +5,6 @@ use fractal_api::util::ResultExpectLog;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
 use log::error;

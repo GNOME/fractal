@@ -3,7 +3,6 @@ use gio::ApplicationExt;
 use gio::FileExt;
 use gio::Notification;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use log::info;
 use std::sync::mpsc::channel;

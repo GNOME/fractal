@@ -2,7 +2,6 @@ use fractal_api::backend::user;
 use fractal_api::clone;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
@@ -14,7 +13,6 @@ use crate::appop::AppOp;
 use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 use crate::App;
-use glib;
 
 use crate::types::Event;
 use crate::types::Member;

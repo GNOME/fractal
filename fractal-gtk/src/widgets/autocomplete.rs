@@ -5,9 +5,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use gdk;
-use glib;
-use gtk;
 use gtk::prelude::*;
 use gtk::TextTag;
 

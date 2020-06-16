@@ -1,13 +1,10 @@
 use fractal_api::url::Url;
 use gdk::prelude::GdkContextExt;
-use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
 use gio::prelude::FileExt;
-use glib;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use gtk::DrawingArea;
 use log::error;

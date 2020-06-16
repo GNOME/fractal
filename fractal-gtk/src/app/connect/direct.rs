@@ -1,9 +1,6 @@
 use fractal_api::clone;
-use gdk;
-use gtk;
 use gtk::prelude::*;
 
-use glib;
 use glib::source::Continue;
 use std::sync::{Arc, Mutex};
 

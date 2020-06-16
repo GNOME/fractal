@@ -26,7 +26,6 @@ use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 
 use super::global::{get_event_id, get_message_by_id, get_room_id};

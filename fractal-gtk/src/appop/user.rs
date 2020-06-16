@@ -1,4 +1,3 @@
-use gtk;
 use gtk::prelude::*;
 
 use fractal_api::backend::user;

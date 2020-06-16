@@ -2,12 +2,7 @@ use crate::i18n::i18n;
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 
-use gdk;
-use glib;
-use pango;
-
 use fractal_api::url::Url;
-use gtk;
 use gtk::prelude::*;
 use log::info;
 use std::collections::HashMap;

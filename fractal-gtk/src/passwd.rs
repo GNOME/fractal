@@ -3,7 +3,6 @@ use fractal_api::identifiers::{Error as IdError, UserId};
 use fractal_api::r0::AccessToken;
 use fractal_api::url::ParseError;
 use fractal_api::url::Url;
-use secret_service;
 
 #[derive(Debug)]
 pub enum Error {
@@ -61,8 +60,8 @@ mod ss_storage {
     use fractal_api::url::Url;
     use std::convert::TryFrom;
 
-    use super::secret_service::EncryptionType;
-    use super::secret_service::SecretService;
+    use secret_service::EncryptionType;
+    use secret_service::SecretService;
 
     use crate::globals;
 

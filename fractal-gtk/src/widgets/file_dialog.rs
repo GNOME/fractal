@@ -1,5 +1,4 @@
 use crate::i18n::i18n;
-use gtk;
 use gtk::prelude::*;
 use gtk::ResponseType;
 use std::path::PathBuf;

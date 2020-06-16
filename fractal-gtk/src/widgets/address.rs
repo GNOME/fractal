@@ -4,7 +4,6 @@ use fractal_api::r0::Medium;
 use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;
 use glib::signal;
-use gtk;
 use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};

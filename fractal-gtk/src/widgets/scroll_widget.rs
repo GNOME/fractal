@@ -5,10 +5,8 @@ use fractal_api::identifiers::RoomId;
 use gio::Action;
 use gio::ActionExt;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 
-use libhandy;
 use libhandy::ColumnExt;
 
 #[allow(dead_code)]

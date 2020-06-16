@@ -1,5 +1,4 @@
 use fractal_api::identifiers::RoomId;
-use gtk;
 use gtk::prelude::*;
 
 use crate::actions::AppState;

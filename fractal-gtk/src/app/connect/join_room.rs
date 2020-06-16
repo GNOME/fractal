@@ -1,8 +1,5 @@
 use fractal_api::clone;
-use gtk;
 use gtk::prelude::*;
-
-use glib;
 
 use crate::app::App;
 

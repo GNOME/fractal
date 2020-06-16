@@ -1,8 +1,4 @@
-use cairo;
-use gdk;
-use gtk;
 use gtk::prelude::*;
-use pango;
 
 use crate::types::Room;
 

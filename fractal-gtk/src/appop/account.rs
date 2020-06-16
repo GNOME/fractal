@@ -1,6 +1,5 @@
 use fractal_api::backend::user;
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 use log::info;
 use std::path::PathBuf;

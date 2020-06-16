@@ -3,7 +3,6 @@ use crate::i18n::{i18n, i18n_k};
 use fractal_api::backend::room;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 use std::thread;
 

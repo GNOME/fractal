@@ -1,6 +1,4 @@
-use gtk;
 use gtk::prelude::*;
-use pango;
 
 use crate::types::Member;
 

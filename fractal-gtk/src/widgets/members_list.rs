@@ -5,7 +5,6 @@ use std::collections::hash_map::HashMap;
 use std::rc::Rc;
 
 use glib::signal;
-use gtk;
 use gtk::prelude::*;
 
 use crate::i18n::i18n;

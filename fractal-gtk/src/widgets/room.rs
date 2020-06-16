@@ -1,8 +1,6 @@
 use crate::i18n::i18n;
 
-use gtk;
 use gtk::prelude::*;
-use pango;
 
 use crate::types::Room;
 

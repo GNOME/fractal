@@ -12,7 +12,6 @@ use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
-use glib;
 use gtk::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]

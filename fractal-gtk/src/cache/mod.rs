@@ -2,7 +2,6 @@ use fractal_api::backend::user;
 use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;
 use glib::source::Continue;
-use gtk;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
 use std::thread;

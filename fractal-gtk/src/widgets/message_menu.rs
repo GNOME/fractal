@@ -1,7 +1,5 @@
 use fractal_api::identifiers::EventId;
-use gdk;
 use gdk::prelude::*;
-use gtk;
 use gtk::prelude::*;
 
 use crate::uitypes::RowType;

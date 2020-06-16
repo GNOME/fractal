@@ -1,4 +1,3 @@
-use cairo;
 use failure::format_err;
 use failure::Error;
 use gdk::prelude::*;

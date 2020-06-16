@@ -29,8 +29,6 @@ use gio::ApplicationExt;
 #[cfg(debug_assertions)]
 use log::Level;
 
-use loggerv;
-
 fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     {

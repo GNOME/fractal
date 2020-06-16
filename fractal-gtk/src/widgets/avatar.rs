@@ -1,12 +1,9 @@
-use letter_avatar;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cairo;
 use fractal_api::util::cache_dir_path;
 use gdk::prelude::GdkContextExt;
 use gdk_pixbuf::Pixbuf;
-use gtk;
 use gtk::prelude::*;
 pub use gtk::DrawingArea;
 

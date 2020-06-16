@@ -6,7 +6,6 @@ use regex::Regex;
 
 use crate::actions::{activate_action, AppState};
 
-use glib;
 use std::sync::mpsc::Receiver;
 use std::thread;
 

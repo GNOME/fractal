@@ -7,7 +7,6 @@ use std::sync::mpsc::Sender;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::r0::AccessToken;
 
-use gtk;
 use gtk::prelude::*;
 
 use fractal_api::url::Url;

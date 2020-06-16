@@ -26,7 +26,6 @@ use glib::source;
 use glib::source::Continue;
 use glib::SignalHandlerId;
 use glib::Source;
-use gtk;
 use gtk::prelude::*;
 
 struct List {

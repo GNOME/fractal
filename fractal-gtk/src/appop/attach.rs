@@ -8,16 +8,12 @@ use std::sync::{Arc, Mutex};
 
 use failure::Error;
 
-use gdk;
-use glib;
-use gtk;
 use gtk::prelude::*;
 
 use crate::appop::AppOp;
 use crate::App;
 
 use crate::util::get_pixbuf_data;
-use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 
 impl AppOp {

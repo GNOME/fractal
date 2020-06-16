@@ -1,5 +1,4 @@
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use gtk::RevealerTransitionType;
 

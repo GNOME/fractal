@@ -1,4 +1,3 @@
-use glib;
 use ruma_identifiers::EventId;
 use std::io;
 use std::time::SystemTimeError;
