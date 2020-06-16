@@ -91,7 +91,7 @@ impl RoomSettings {
         // We can have rooms without name or topic but with members, the 1:1 rooms are this, so
         // we should show the loading if we've nothing, if there's something we need to show
         // the info
-        if self.room.avatar.is_none() && self.room.topic.is_none() && self.room.members.len() < 1 {
+        if self.room.avatar.is_none() && self.room.topic.is_none() && self.room.members.is_empty() {
             stack.set_visible_child_name("loading")
         } else {
             stack.set_visible_child_name("info")

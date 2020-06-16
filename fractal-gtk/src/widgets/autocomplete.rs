@@ -429,7 +429,7 @@ impl Autocomplete {
 
         let mut widget_list: HashMap<String, gtk::EventBox> = HashMap::new();
 
-        if list.len() > 0 {
+        if !list.is_empty() {
             for m in list.iter() {
                 let alias = &m
                     .alias

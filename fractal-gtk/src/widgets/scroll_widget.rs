@@ -279,7 +279,7 @@ impl ScrollWidget {
     }
 
     pub fn typing_notification(&self, typing_str: &str) {
-        if typing_str.len() == 0 {
+        if typing_str.is_empty() {
             self.widgets.typing_label.set_visible(false);
         } else {
             self.widgets.typing_label.set_visible(true);

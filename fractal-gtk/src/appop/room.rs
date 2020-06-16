@@ -207,7 +207,7 @@ impl AppOp {
                 .unwrap_or(room.default_power_level);
 
             // No room admin information, assuming normal
-            if user_power >= 0 || room.admins.len() == 0 {
+            if user_power >= 0 || room.admins.is_empty() {
                 msg_entry.set_editable(true);
                 msg_entry_stack.set_visible_child_name("Text Entry");
 
@@ -713,7 +713,7 @@ impl AppOp {
         let history = unwrap_or_unit_return!(self.history.as_mut());
 
         let typing_users = &active_room.typing_users;
-        if typing_users.len() == 0 {
+        if typing_users.is_empty() {
             history.typing_notification("");
         } else if typing_users.len() > 2 {
             history.typing_notification(&i18n("Several users are typing…"));
