@@ -1,9 +1,7 @@
 use crate::error::Error;
 use crate::globals;
 
-use gio;
 use gio::prelude::*;
-use reqwest;
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -119,5 +117,11 @@ impl Client {
             .timeout(Duration::from_secs(globals::TIMEOUT))
             .build()
             .expect("Couldn't create a http client")
+    }
+}
+
+impl Default for Client {
+    fn default() -> Self {
+        Client::new()
     }
 }

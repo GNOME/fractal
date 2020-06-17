@@ -38,3 +38,9 @@ impl<K: Clone + Eq + Hash, V: Clone> CacheMap<K, V> {
         self.map.insert(k, (now, v));
     }
 }
+
+impl<K: Clone + Eq + Hash, V: Clone> Default for CacheMap<K, V> {
+    fn default() -> Self {
+        CacheMap::new()
+    }
+}
