@@ -24,7 +24,6 @@ pub enum BKCommand {
         u64,
     ),
     ShutDown,
-    AttachFile(Url, AccessToken, Message),
     SendBKResponse(BKResponse),
 }
 
@@ -39,12 +38,10 @@ pub enum BKResponse {
     RoomMemberEvent(Event),
     RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
-    SentMsg(Result<(String, Option<EventId>), Error>),
     RemoveMessage(Result<(RoomId, EventId), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
     MediaUrl(Url),
-    AttachedFile(Result<Message, Error>),
     RoomNotifications(RoomId, i32, i32),
 
     //errors
@@ -84,6 +81,8 @@ pub enum BKResponse {
     NewRoomError(Error, RoomId),
     RoomDetailError(Error),
     RoomAvatarError(Error),
+    SentMsgError(Error),
+    AttachedFileError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
