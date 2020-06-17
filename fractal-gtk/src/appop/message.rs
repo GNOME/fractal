@@ -501,7 +501,7 @@ impl AppOp {
         let admin = room
             .admins
             .get(&login_data.uid)
-            .map(|n| *n)
+            .copied()
             .unwrap_or_default();
         let redactable = admin != 0 || login_data.uid.clone() == msg.sender;
 
@@ -555,7 +555,7 @@ fn get_image_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     // make thumbnail max 800x600
     let thumb = Pixbuf::new_from_file_at_scale(&file, 800, 600, true).ok()?;
     let mut rng = rand::thread_rng();
-    let x: u64 = rng.gen_range(1, 9223372036854775807);
+    let x: u64 = rng.gen_range(1, 9_223_372_036_854_775_807);
     let thumb_path = format!(
         "{}/fractal_{}.png",
         temp_dir().to_str().unwrap_or_default(),

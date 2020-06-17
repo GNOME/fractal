@@ -240,8 +240,7 @@ impl RoomSettings {
         members
             .iter()
             .map(|m| m.uid.clone())
-            .filter(|uid| *uid != self.uid)
-            .nth(0)
+            .find(|uid| *uid != self.uid)
     }
 
     pub fn room_settings_show_room_name(&self, text: Option<String>, edit: bool) -> Option<()> {

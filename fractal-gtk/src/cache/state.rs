@@ -122,8 +122,8 @@ impl FCache {
         let mut guard = self.cache.lock().unwrap();
         guard.take();
 
-        let fname =
-            cache_dir_path(None, "cache.mdl").or_else(|_| Err(err_msg("Can't remove cache file")))?;
+        let fname = cache_dir_path(None, "cache.mdl")
+            .or_else(|_| Err(err_msg("Can't remove cache file")))?;
         remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
     }
 

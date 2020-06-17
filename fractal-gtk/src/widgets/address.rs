@@ -143,7 +143,7 @@ impl<'a> Address<'a> {
                     /* FIXME: use better validation */
                     match medium {
                         AddressType::Email => {
-                            button.set_sensitive(text.contains("@") && text.contains("."));
+                            button.set_sensitive(text.contains('@') && text.contains('.'));
                         }
                         AddressType::Phone => {}
                     };

@@ -147,7 +147,7 @@ impl AppOp {
 
         if let Some(aroom) = self.active_room.clone() {
             if let Some(r) = self.rooms.get(&aroom) {
-                if let &Some(ref name) = &r.name {
+                if let Some(ref name) = r.name {
                     headerbar
                         .set_title(Some(i18n_k("Invite to {name}", &[("name", name)]).as_str()));
                 } else {
@@ -164,7 +164,7 @@ impl AppOp {
 
     pub fn invite(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if let &Some(ref r) = &self.active_room {
+        if let Some(ref r) = self.active_room {
             for user in &self.invite_list {
                 let server = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();

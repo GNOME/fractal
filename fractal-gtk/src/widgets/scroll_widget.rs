@@ -299,7 +299,7 @@ pub fn page_down(sw: gtk::ScrolledWindow) {
 }
 
 /* Functions to animate the scroll */
-fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
+fn scroll_down(view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
     let adj = view.get_vadjustment()?;
     if animate {
         let clock = view.get_frame_clock()?;

@@ -91,7 +91,7 @@ pub fn new(
         .downgrade();
     reply.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
-        let state = back_history.borrow().last().map(|state| state.clone());
+        let state = back_history.borrow().last().cloned();
         match state {
             Some(AppState::MediaViewer) => {
                 let window = upgrade_weak!(window_weak);
@@ -242,7 +242,7 @@ pub fn new(
         .downgrade();
     delete.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
-        let state = back_history.borrow().last().map(|state| state.clone());
+        let state = back_history.borrow().last().cloned();
         match state {
             Some(AppState::MediaViewer) => {
                 let window = upgrade_weak!(window_weak);

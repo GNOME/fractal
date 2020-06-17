@@ -27,9 +27,11 @@ impl App {
             search_bar.set_search_mode(btn.get_active());
         }));
 
-        search_bar.connect_property_search_mode_enabled_notify(clone!(search_btn => move |bar| {
-            search_btn.set_active(bar.get_search_mode());
-        }));
+        search_bar.connect_property_search_mode_enabled_notify(
+            clone!(search_btn => move |headerbar| {
+                search_btn.set_active(headerbar.get_search_mode());
+            }),
+        );
 
         search_entry.connect_search_changed(clone!(op => move |entry| {
             op.lock().unwrap().filter_rooms(

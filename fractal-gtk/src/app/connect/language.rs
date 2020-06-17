@@ -23,7 +23,7 @@ impl App {
                 if let Some(lang_code) = checker
                     .get_language()
                     .and_then(|lang| lang.get_code())
-                    .map(|lang_code| String::from(lang_code))
+                    .map(String::from)
                 {
                     /*If the checker is modified by fn set_language in fractal-gtk/src/appop/room.rs
                     due to the user switching rooms, the op mutex is locked already.

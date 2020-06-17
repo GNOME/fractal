@@ -580,8 +580,11 @@ impl MessageBox {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let username =
-            self.build_room_msg_username(msg.sender_name.clone().unwrap_or_else(|| msg.sender.to_string()));
+        let username = self.build_room_msg_username(
+            msg.sender_name
+                .clone()
+                .unwrap_or_else(|| msg.sender.to_string()),
+        );
         let date = self.build_room_msg_date(&msg.date);
 
         self.username_event_box.add(&username);
@@ -595,7 +598,10 @@ impl MessageBox {
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         /* Use MXID till we have a alias */
-        let sname = msg.sender_name.clone().unwrap_or_else(|| msg.sender.to_string());
+        let sname = msg
+            .sender_name
+            .clone()
+            .unwrap_or_else(|| msg.sender.to_string());
         let msg_label = gtk::Label::new(None);
         let body: &str = &msg.body;
         let markup = markup_text(body);
@@ -732,7 +738,7 @@ fn highlight_username(
             let end = pos.1 as usize;
             input.drain(0..end);
         }
-        removed_char = removed_char + pos.1 as u32;
+        removed_char += pos.1 as u32;
     }
 
     None
@@ -745,7 +751,7 @@ enum MsgPartType {
 }
 
 fn kind_of_line(line: &&str) -> MsgPartType {
-    if line.trim_start().starts_with(">") {
+    if line.trim_start().starts_with('>') {
         MsgPartType::Quote
     } else {
         MsgPartType::Normal

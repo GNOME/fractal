@@ -609,7 +609,7 @@ impl Data {
                 panic!("Data in the media viewer has to be of type image or video.");
             }
         };
-        let admin = self.admins.get(&self.uid).map(|n| *n).unwrap_or_default();
+        let admin = self.admins.get(&self.uid).copied().unwrap_or_default();
         let redactable = admin != 0 || self.uid == msg.sender;
         let event_id = msg.id.as_ref();
         let menu = MessageMenu::new(event_id, &mtype, &redactable, None, None);

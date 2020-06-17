@@ -412,7 +412,7 @@ impl AppOp {
                     for w in phone.get_children().iter() {
                         phone.remove(w);
                     }
-                    i = i + 1;
+                    i += 1;
                 }
             }
             child = grid.get_child_at(1, i);

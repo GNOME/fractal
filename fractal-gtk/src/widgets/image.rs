@@ -376,7 +376,7 @@ pub fn is_gif(fname: &str) -> bool {
         gio::NONE_CANCELLABLE,
     ) {
         match info.get_content_type() {
-            Some(mime) => mime.to_string() == "image/gif".to_string(),
+            Some(mime) => mime == "image/gif",
             _ => false,
         }
     } else {

@@ -262,7 +262,7 @@ impl Autocomplete {
                                 let first = p1.into_iter().collect::<String>();
                                 if own.borrow().popover_position.is_none() {
                                     if !is_tab {
-                                        if let Some(at_pos) = first.rfind("@") {
+                                        if let Some(at_pos) = first.rfind('@') {
                                             own.borrow_mut().popover_position = Some(at_pos as i32);
                                         }
                                     }
@@ -484,7 +484,7 @@ impl Autocomplete {
                     if let Some(last) = last {
                         info!("Matching string '{}'", last);
                         /*remove @ from string*/
-                        let w = if last.starts_with("@") {
+                        let w = if last.starts_with('@') {
                             last[1..].to_lowercase()
                         } else {
                             last.to_lowercase()
@@ -499,7 +499,7 @@ impl Autocomplete {
                                     let uid = m.uid.localpart().to_lowercase();
                                     if alias.starts_with(&w) || uid.starts_with(&w) {
                                         list.push(m.clone());
-                                        count = count + 1;
+                                        count += 1;
                                         /* Search only for 5 matching users */
                                         if count > 4 {
                                             break;

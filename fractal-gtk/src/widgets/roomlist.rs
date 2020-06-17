@@ -334,14 +334,13 @@ impl RoomListGroup {
             .lock()
             .unwrap()
             .iter()
-            .filter(|r| {
+            .find(|r| {
                 if unread_only {
                     r.room.notifications > 0
                 } else {
                     true
                 }
             })
-            .next()
             .map(|r| r.room.id.clone())
     }
 
@@ -408,7 +407,7 @@ impl RoomListGroup {
         for (i, r) in self.roomvec.lock().unwrap().iter().enumerate() {
             if let Some(row) = self.list.get_row_at_index(i as i32) {
                 match term {
-                    &Some(ref t) if !t.is_empty() => {
+                    Some(ref t) if !t.is_empty() => {
                         let rname = r.room.name.clone().unwrap_or_default().to_lowercase();
                         if rname.contains(&t.to_lowercase()) {
                             row.show();

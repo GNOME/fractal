@@ -211,9 +211,9 @@ impl AudioPlayerWidget {
         // When the widget is detached from it's parent which happens
         // when we drop the room widget, this callback runs freeing
         // the last refference we were holding.
-        let foo = RefCell::new(Some(w.clone()));
+        let widget = RefCell::new(Some(w.clone()));
         w.controls.container.connect_remove(move |_, _| {
-            foo.borrow_mut().take();
+            widget.borrow_mut().take();
         });
 
         w

@@ -49,15 +49,15 @@ impl AppOp {
             dialog.present();
 
             if let Some(hbar) = dialog.get_header_bar() {
-                let bar = hbar.downcast::<gtk::HeaderBar>().unwrap();
+                let headerbar = hbar.downcast::<gtk::HeaderBar>().unwrap();
                 let closebtn = gtk::Button::new_with_label(i18n("Cancel").as_str());
                 let okbtn = gtk::Button::new_with_label(i18n("Send").as_str());
                 okbtn.get_style_context().add_class("suggested-action");
 
-                bar.set_show_close_button(false);
-                bar.pack_start(&closebtn);
-                bar.pack_end(&okbtn);
-                bar.show_all();
+                headerbar.set_show_close_button(false);
+                headerbar.pack_start(&closebtn);
+                headerbar.pack_end(&okbtn);
+                headerbar.show_all();
 
                 closebtn.connect_clicked(clone!(dialog => move |_| {
                     dialog.destroy();
