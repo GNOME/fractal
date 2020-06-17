@@ -60,7 +60,7 @@ pub fn room_search(
                 .as_ref()
                 .map(Host::to_owned)
                 .map(Ok)
-                .unwrap_or(Host::parse(&hs))
+                .unwrap_or_else(|| Host::parse(&hs))
                 .map(Some)
         })
         .unwrap_or(Ok(None))?;

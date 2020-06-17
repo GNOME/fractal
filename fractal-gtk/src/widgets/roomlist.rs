@@ -468,7 +468,7 @@ macro_rules! run_in_group {
 impl RoomList {
     pub fn new(adj: Option<gtk::Adjustment>, url: Option<Url>) -> RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let baseu = url.unwrap_or(globals::DEFAULT_HOMESERVER.clone());
+        let baseu = url.unwrap_or_else(|| globals::DEFAULT_HOMESERVER.clone());
 
         let inv = RGroup::new(
             &baseu,

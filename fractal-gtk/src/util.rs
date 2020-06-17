@@ -41,7 +41,7 @@ macro_rules! glib_thread {
 
 pub fn get_pixbuf_data(pb: &Pixbuf) -> Result<Vec<u8>, Error> {
     let image = cairo::ImageSurface::create(cairo::Format::ARgb32, pb.get_width(), pb.get_height())
-        .or(Err(format_err!("Cairo Error")))?;
+        .or_else(|_| Err(format_err!("Cairo Error")))?;
 
     let g = cairo::Context::new(&image);
     g.set_source_pixbuf(pb, 0.0, 0.0);

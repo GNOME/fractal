@@ -24,7 +24,7 @@ pub struct RoomRow {
 impl RoomRow {
     pub fn new(room: Room) -> RoomRow {
         let widget = gtk::EventBox::new();
-        let name = room.name.clone().unwrap_or("...".to_string());
+        let name = room.name.clone().unwrap_or_else(|| "...".to_string());
 
         let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
         let direct =
@@ -119,7 +119,7 @@ impl RoomRow {
     pub fn set_avatar(&mut self, avatar: Option<String>) {
         self.room.avatar = avatar;
 
-        let name = self.room.name.clone().unwrap_or("...".to_string());
+        let name = self.room.name.clone().unwrap_or_else(|| "...".to_string());
 
         self.icon
             .circle(self.room.id.to_string(), Some(name), ICON_SIZE, None, None);
