@@ -11,17 +11,13 @@ use std::time::Duration;
 
 use crate::error::Error;
 use crate::globals;
-use std::thread;
 
 use crate::util::cache_dir_path;
 use crate::util::dw_media;
 use crate::util::get_prev_batch_from;
 use crate::util::ContentType;
-use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
-use crate::backend::types::BKResponse;
-use crate::backend::types::Backend;
 use crate::backend::types::RoomType;
 
 use crate::r0::config::get_global_account_data::request as get_global_account_data;
@@ -78,7 +74,6 @@ use crate::r0::typing::request as send_typing_notification;
 use crate::r0::typing::Body as TypingNotificationBody;
 use crate::r0::typing::Parameters as TypingNotificationParameters;
 use crate::r0::AccessToken;
-use crate::types::ExtraContent;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::{Room, RoomMembership, RoomTag};
@@ -386,73 +381,7 @@ pub fn set_room_avatar(
     Ok(())
 }
 
-pub fn attach_file(
-    bk: &Backend,
-    baseu: Url,
-    tk: AccessToken,
-    mut msg: Message,
-) -> Result<(), Error> {
-    let fname = msg.url.clone().unwrap_or_default();
-    let mut extra_content: Option<ExtraContent> = msg
-        .clone()
-        .extra_content
-        .and_then(|c| serde_json::from_value(c).ok());
-
-    let thumb = extra_content
-        .clone()
-        .and_then(|c| c.info.thumbnail_url)
-        .unwrap_or_default();
-
-    let tx = bk.tx.clone();
-
-    if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
-        tx.send(BKResponse::SentMsg(send_msg(baseu, tk, msg)))
-            .expect_log("Connection closed");
-
-        return Ok(());
-    }
-
-    thread::spawn(move || {
-        if !thumb.is_empty() {
-            match upload_file(baseu.clone(), tk.clone(), &thumb) {
-                Err(err) => {
-                    tx.send(BKResponse::AttachedFile(Err(err)))
-                        .expect_log("Connection closed");
-                }
-                Ok(response) => {
-                    let thumb_uri = response.content_uri.to_string();
-                    msg.thumb = Some(thumb_uri.clone());
-                    if let Some(ref mut xctx) = extra_content {
-                        xctx.info.thumbnail_url = Some(thumb_uri);
-                    }
-                    msg.extra_content = serde_json::to_value(&extra_content).ok();
-                }
-            }
-
-            if let Err(_e) = std::fs::remove_file(&thumb) {
-                error!("Can't remove thumbnail: {}", thumb);
-            }
-        }
-
-        let query = upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
-            msg.url = Some(response.content_uri.to_string());
-            thread::spawn(clone!(msg, tx => move || {
-                let query = send_msg(baseu, tk, msg);
-                tx.send(BKResponse::SentMsg(query))
-                    .expect_log("Connection closed");
-            }));
-
-            msg
-        });
-
-        tx.send(BKResponse::AttachedFile(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
-}
-
-fn upload_file(
+pub fn upload_file(
     base: Url,
     access_token: AccessToken,
     fname: &str,

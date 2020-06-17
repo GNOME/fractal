@@ -46,12 +46,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::RoomMessages(Ok(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
                 }
-                BKResponse::SentMsg(Ok((txid, evid))) => {
-                    APPOP!(msg_sent, (txid, evid));
-                    let initial = false;
-                    let number_tries = 0;
-                    APPOP!(sync, (initial, number_tries));
-                }
 
                 BKResponse::RemoveMessage(Ok((room, msg))) => {
                     APPOP!(remove_message, (room, msg));
@@ -72,9 +66,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 BKResponse::RoomMemberEvent(ev) => {
                     APPOP!(room_member_event, (ev));
-                }
-                BKResponse::AttachedFile(Ok(msg)) => {
-                    APPOP!(attached_file, (msg));
                 }
 
                 // errors
@@ -179,7 +170,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(logout);
                     APPOP!(set_state, (st));
                 }
-                BKResponse::AttachedFile(Err(err)) => {
+                BKResponse::AttachedFileError(err) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "attaching {}: retrying send",
@@ -187,16 +178,14 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(retry_send);
                 }
-                BKResponse::SentMsg(Err(err)) => match err {
-                    Error::SendMsgError(txid) => {
-                        error!("sending {}: retrying send", txid);
-                        APPOP!(retry_send);
-                    }
-                    _ => {
-                        let error = i18n("Error sending message");
-                        APPOP!(show_error, (error));
-                    }
-                },
+                BKResponse::SentMsgError(Error::SendMsgError(txid)) => {
+                    error!("sending {}: retrying send", txid);
+                    APPOP!(retry_send);
+                }
+                BKResponse::SentMsgError(_) => {
+                    let error = i18n("Error sending message");
+                    APPOP!(show_error, (error));
+                }
                 BKResponse::SentMsgRedactionError(_) => {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));

@@ -55,12 +55,6 @@ impl Backend {
                 )
             }
 
-            // Room module
-            Ok(BKCommand::AttachFile(server, access_token, msg)) => {
-                let r = room::attach_file(self, server, access_token, msg);
-                bkerror!(r, tx, BKResponse::AttachedFile);
-            }
-
             // Internal commands
             Ok(BKCommand::SendBKResponse(response)) => {
                 tx.send(response).expect_log("Connection closed");
