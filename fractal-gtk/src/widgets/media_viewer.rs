@@ -385,7 +385,7 @@ impl Data {
         self.set_nav_btn_visibility();
     }
 
-    fn create_video_widget(&self, url: &String) -> VideoWidget {
+    fn create_video_widget(&self, url: &str) -> VideoWidget {
         let with_controls = true;
         let player = VideoPlayerWidget::new(with_controls);
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);

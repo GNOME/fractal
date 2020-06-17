@@ -88,7 +88,7 @@ impl ContentType {
     }
 }
 
-pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<UserId, Vec<RoomId>> {
+pub fn parse_m_direct(events: &[JsonValue]) -> HashMap<UserId, Vec<RoomId>> {
     events
         .iter()
         .find(|x| x["type"] == "m.direct")

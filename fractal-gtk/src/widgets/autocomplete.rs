@@ -254,7 +254,7 @@ impl Autocomplete {
                                 }
 
                                 let (p1, _) = graphs.split_at(pos as usize);
-                                let first = p1.into_iter().collect::<String>();
+                                let first = p1.iter().collect::<String>();
                                 if own.borrow().popover_position.is_none() {
                                     if !is_tab {
                                         if let Some(at_pos) = first.rfind('@') {

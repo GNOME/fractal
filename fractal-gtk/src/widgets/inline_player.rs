@@ -56,7 +56,7 @@ pub trait PlayerExt {
     fn initialize_stream(
         player: &Rc<Self>,
         backend: &Sender<BKCommand>,
-        media_url: &String,
+        media_url: &str,
         server_url: &Url,
         bx: &gtk::Box,
         start_playing: bool,
@@ -482,7 +482,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         self.get_player().pause();
     }
 
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn stop(&self) {
         if let Some(controls) = self.get_controls() {
             controls.buttons.pause.hide();
@@ -497,7 +497,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
     fn initialize_stream(
         player: &Rc<Self>,
         backend: &Sender<BKCommand>,
-        media_url: &String,
+        media_url: &str,
         server_url: &Url,
         bx: &gtk::Box,
         start_playing: bool,
@@ -510,7 +510,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         backend
             .send(BKCommand::GetMediaAsync(
                 server_url.clone(),
-                media_url.clone(),
+                media_url.to_string(),
                 tx,
             ))
             .unwrap();
@@ -585,12 +585,12 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
 }
 
 impl<T: MediaPlayer + 'static> ControlsConnection for T {
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn init(s: &Rc<Self>) {
         Self::connect_control_buttons(s);
         Self::connect_gst_signals(s);
     }
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     /// Connect the `PlayerControls` buttons to the `PlayerEssentials` methods.
     fn connect_control_buttons(s: &Rc<Self>) {
         if s.get_controls().is_some() {
@@ -607,7 +607,7 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
             }));
         }
     }
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn connect_gst_signals(s: &Rc<Self>) {
         if s.get_controls().is_some() {
             // The followign callbacks require `Send` but are handled by the gtk main loop

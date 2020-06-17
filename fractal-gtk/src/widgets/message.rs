@@ -670,7 +670,7 @@ impl MessageBox {
 fn highlight_username(
     label: gtk::Label,
     attr: &pango::AttrList,
-    alias: &String,
+    alias: &str,
     input: String,
 ) -> Option<()> {
     fn contains((start, end): (i32, i32), item: i32) -> bool {

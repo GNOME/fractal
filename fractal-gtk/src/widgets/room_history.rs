@@ -658,9 +658,10 @@ fn create_row(
                 .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player."))
                 .connect_uri_loaded(move |player, _| {
                     if let Some(rows) = fragile_rows.get().upgrade() {
-                        if rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
+                        let is_player_widget = rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
                             &PlayerExt::get_player(&player_widget) == player
-                        }) {
+                        });
+                        if is_player_widget {
                             player.play();
                         }
                     }
