@@ -107,7 +107,7 @@ pub struct FCache {
 }
 
 impl FCache {
-    fn get_store<'a>(&'a self) -> MutexGuard<'a, Option<Cache>> {
+    fn get_store(&self) -> MutexGuard<Option<Cache>> {
         let mut guard = self.cache.lock().unwrap();
         if guard.is_none() {
             let db: String =

@@ -127,7 +127,7 @@ mod ss_storage {
 
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "uid")
+            .find(|x| x.0 == "uid")
             .ok_or(Error::SecretServiceError)?;
         let uid = UserId::try_from(attr.1.as_str())?;
 
@@ -185,12 +185,12 @@ mod ss_storage {
 
         let mut attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "username")
+            .find(|x| x.0 == "username")
             .ok_or(Error::SecretServiceError)?;
         let username = attr.1.clone();
         attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "server")
+            .find(|x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
         let server = Url::parse(&attr.1)?;
         let pwd = String::from_utf8(secret).unwrap();
@@ -230,16 +230,16 @@ mod ss_storage {
 
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "username")
+            .find(|x| x.0 == "username")
             .ok_or(Error::SecretServiceError)?;
         let username = attr.1.clone();
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "server")
+            .find(|x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
         let server = Url::parse(&attr.1)?;
 
-        let attr = attrs.iter().find(|&ref x| x.0 == "identity");
+        let attr = attrs.iter().find(|x| x.0 == "identity");
 
         /* Fallback to the vector identity server when there is none */
         let identity = match attr {
