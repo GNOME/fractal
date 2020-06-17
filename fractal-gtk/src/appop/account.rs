@@ -120,30 +120,27 @@ impl AppOp {
 
         let value = entry;
         dialog.connect_response(move |w, r| {
-            match r {
-                gtk::ResponseType::Ok => {
-                    if let Some(token) = value.get_text().map(|gstr| gstr.to_string()) {
-                        let server_url = login_data.server_url.clone();
-                        let secret = secret.clone();
-                        let sid = sid.clone();
-                        let tx = backend.clone();
-                        thread::spawn(move || {
-                            match user::submit_phone_token(server_url, secret, sid, token) {
-                                Ok((sid, secret)) => {
-                                    let secret = Some(secret);
-                                    APPOP!(valid_phone_token, (sid, secret));
-                                }
-                                Err(err) => {
-                                    tx.send(BKCommand::SendBKResponse(
-                                        BKResponse::SubmitPhoneTokenError(err),
-                                    ))
-                                    .expect_log("Connection closed");
-                                }
+            if let gtk::ResponseType::Ok = r {
+                if let Some(token) = value.get_text().map(|gstr| gstr.to_string()) {
+                    let server_url = login_data.server_url.clone();
+                    let secret = secret.clone();
+                    let sid = sid.clone();
+                    let tx = backend.clone();
+                    thread::spawn(move || {
+                        match user::submit_phone_token(server_url, secret, sid, token) {
+                            Ok((sid, secret)) => {
+                                let secret = Some(secret);
+                                APPOP!(valid_phone_token, (sid, secret));
                             }
-                        });
-                    }
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(
+                                    BKResponse::SubmitPhoneTokenError(err),
+                                ))
+                                .expect_log("Connection closed");
+                            }
+                        }
+                    });
                 }
-                _ => {}
             }
             w.destroy();
         });
@@ -172,33 +169,28 @@ impl AppOp {
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel);
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok);
         dialog.connect_response(move |w, r| {
-            match r {
-                gtk::ResponseType::Ok => {
-                    let login_data = login_data.clone();
-                    let secret = secret.clone();
-                    let sid = sid.clone();
-                    let tx = backend.clone();
-                    thread::spawn(move || {
-                        match user::add_threepid(
-                            login_data.server_url,
-                            login_data.access_token,
-                            login_data.identity_url,
-                            secret,
-                            sid,
-                        ) {
-                            Ok(_) => {
-                                APPOP!(added_three_pid);
-                            }
-                            Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
-                            }
+            if let gtk::ResponseType::Ok = r {
+                let login_data = login_data.clone();
+                let secret = secret.clone();
+                let sid = sid.clone();
+                let tx = backend.clone();
+                thread::spawn(move || {
+                    match user::add_threepid(
+                        login_data.server_url,
+                        login_data.access_token,
+                        login_data.identity_url,
+                        secret,
+                        sid,
+                    ) {
+                        Ok(_) => {
+                            APPOP!(added_three_pid);
                         }
-                    });
-                }
-                _ => {}
+                        Err(err) => {
+                            tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(err)))
+                                .expect_log("Connection closed");
+                        }
+                    }
+                });
             }
             w.destroy();
         });
@@ -817,31 +809,28 @@ impl AppOp {
         if let Some(password) = entry.get_text().map(|gstr| gstr.to_string()) {
             let backend = self.backend.clone();
             dialog.connect_response(move |w, r| {
-                match r {
-                    gtk::ResponseType::Ok => {
-                        let tx = backend.clone();
-                        let password = password.clone();
-                        let login_data = login_data.clone();
-                        thread::spawn(move || {
-                            match user::account_destruction(
-                                login_data.server_url.clone(),
-                                login_data.access_token.clone(),
-                                login_data.uid.localpart().into(),
-                                password,
-                            ) {
-                                Ok(_) => {
-                                    APPOP!(account_destruction_logoff);
-                                }
-                                Err(err) => {
-                                    tx.send(BKCommand::SendBKResponse(
-                                        BKResponse::AccountDestructionError(err),
-                                    ))
-                                    .expect_log("Connection closed");
-                                }
+                if let gtk::ResponseType::Ok = r {
+                    let tx = backend.clone();
+                    let password = password.clone();
+                    let login_data = login_data.clone();
+                    thread::spawn(move || {
+                        match user::account_destruction(
+                            login_data.server_url.clone(),
+                            login_data.access_token.clone(),
+                            login_data.uid.localpart().into(),
+                            password,
+                        ) {
+                            Ok(_) => {
+                                APPOP!(account_destruction_logoff);
                             }
-                        });
-                    }
-                    _ => {}
+                            Err(err) => {
+                                tx.send(BKCommand::SendBKResponse(
+                                    BKResponse::AccountDestructionError(err),
+                                ))
+                                .expect_log("Connection closed");
+                            }
+                        }
+                    });
                 }
                 w.destroy();
             });

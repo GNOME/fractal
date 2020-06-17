@@ -503,8 +503,7 @@ impl Data {
             clone!(control_revealer, source_id => move |_, k| {
             if let Some(player) = player_weak.upgrade() {
                 if player.get_video_widget().get_mapped() {
-                    match k.get_keyval() {
-                        gdk::enums::key::space => {
+                    if let gdk::enums::key::space = k.get_keyval() {
                             if player.is_playing() {
                                 control_revealer.set_reveal_child(true);
                             } else {
@@ -523,8 +522,6 @@ impl Data {
                                 *source_id.borrow_mut() = Some(new_sid);
                             }
                             VideoPlayerWidget::switch_play_pause_state(&player);
-                        }
-                        _ => {}
                     }
                 }
             }
@@ -544,8 +541,7 @@ impl Data {
                 let pw = player_weak.clone();
                 if let Some(player) = player_weak
                     .upgrade()
-                    { match e.get_event_type() {
-                        EventType::ButtonPress => {
+                    { if let EventType::ButtonPress = e.get_event_type() {
                             if click_timeout_id.borrow().is_some() {
                                 let id = click_timeout_id.borrow_mut().take().unwrap();
                                 glib::source::source_remove(id);
@@ -578,8 +574,6 @@ impl Data {
                                 );
                                 *click_timeout_id.borrow_mut() = Some(sid);
                             }
-                        }
-                        _ => {}
                     }}
                 Inhibit(false)
             }),
@@ -627,11 +621,8 @@ impl Drop for Data {
         if let Some(signal_handler_id) = self.double_click_handler_id.take() {
             self.main_window.disconnect(signal_handler_id);
         }
-        match &self.widget {
-            Widget::Video(widget) => {
-                widget.player.stop();
-            }
-            _ => {}
+        if let Widget::Video(widget) = &self.widget {
+            widget.player.stop();
         }
     }
 }
@@ -775,11 +766,8 @@ impl MediaViewer {
             .borrow()
             .main_window
             .connect_button_press_event(move |_, e| {
-                match e.get_event_type() {
-                    EventType::DoubleButtonPress => {
-                        full_screen_button.clicked();
-                    }
-                    _ => {}
+                if let EventType::DoubleButtonPress = e.get_event_type() {
+                    full_screen_button.clicked();
                 }
                 Inhibit(false)
             });
@@ -991,11 +979,8 @@ impl MediaViewer {
         let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
             if let Some(data) = data_weak.upgrade() {
-                match &data.borrow().widget {
-                    Widget::Video(widget) => {
-                        PlayerExt::get_player(&widget.player).stop();
-                    }
-                    _ => {}
+                if let Widget::Video(widget) = &data.borrow().widget {
+                    PlayerExt::get_player(&widget.player).stop();
                 }
             }
         });

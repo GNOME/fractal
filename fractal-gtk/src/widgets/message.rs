@@ -137,11 +137,8 @@ impl MessageBox {
             self.header = false;
             self.small_widget(&msg)
         };
-        match self.eventbox.get_child() {
-            Some(eb) => {
-                eb.destroy(); // clean the eventbox
-            }
-            _ => {}
+        if let Some(eb) = self.eventbox.get_child() {
+            eb.destroy(); // clean the eventbox
         }
         self.eventbox.add(&w);
         self.row.show_all();

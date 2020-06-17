@@ -92,17 +92,14 @@ pub fn new(
     reply.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
         let state = back_history.borrow().last().cloned();
-        match state {
-            Some(AppState::MediaViewer) => {
-                let window = upgrade_weak!(window_weak);
-                if let Some(action_group) = window.get_action_group("app") {
-                    action_group.activate_action("back", None);
-                } else {
-                    error!("The action group app is not attached to the main window.");
-                }
+        if let Some(AppState::MediaViewer) = state {
+            let window = upgrade_weak!(window_weak);
+            if let Some(action_group) = window.get_action_group("app") {
+                action_group.activate_action("back", None);
+            } else {
+                error!("The action group app is not attached to the main window.");
             }
-            _ => {}
-        };
+        }
         let msg_entry = upgrade_weak!(msg_entry);
         if let Some(buffer) = msg_entry.get_buffer() {
             let mut start = buffer.get_start_iter();
@@ -243,17 +240,14 @@ pub fn new(
     delete.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
         let state = back_history.borrow().last().cloned();
-        match state {
-            Some(AppState::MediaViewer) => {
-                let window = upgrade_weak!(window_weak);
-                if let Some(action_group) = window.get_action_group("app") {
-                    action_group.activate_action("back", None);
-                } else {
-                    error!("The action group app is not attached to the main window.");
-                }
+        if let Some(AppState::MediaViewer) = state {
+            let window = upgrade_weak!(window_weak);
+            if let Some(action_group) = window.get_action_group("app") {
+                action_group.activate_action("back", None);
+            } else {
+                error!("The action group app is not attached to the main window.");
             }
-            _ => {}
-        };
+        }
         if let Some(msg) = get_message(data) {
             let server = s.clone();
             let access_token = tk.clone();

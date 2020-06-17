@@ -449,14 +449,11 @@ impl RoomHistory {
                     let mut day_divider = None;
 
                     if let Some(first) = rows.borrow().list.back() {
-                        match first {
-                            Element::Message(ref message) => {
-                                if item.date.day() != message.date.day() {
-                                    prev_day_divider =
-                                        Some(Element::DayDivider(create_day_divider(message.date)));
-                                }
+                        if let Element::Message(ref message) = first {
+                            if item.date.day() != message.date.day() {
+                                prev_day_divider =
+                                    Some(Element::DayDivider(create_day_divider(message.date)));
                             }
-                            _ => (),
                         }
                     };
                     let has_header = {
@@ -654,11 +651,10 @@ fn create_row(
     let mut mb = widgets::MessageBox::new(backend, server_url);
     mb.create(&row, has_header && row.mtype != RowType::Emote, false);
 
-    match row.mtype {
-        RowType::Video => {
-            /* The followign callback requires `Send` but is handled by the gtk main loop */
-            let fragile_rows = Fragile::new(Rc::downgrade(rows));
-            PlayerExt::get_player(&mb.get_video_widget()
+    if let RowType::Video = row.mtype {
+        /* The followign callback requires `Send` but is handled by the gtk main loop */
+        let fragile_rows = Fragile::new(Rc::downgrade(rows));
+        PlayerExt::get_player(&mb.get_video_widget()
                 .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player."))
                 .connect_uri_loaded(move |player, _| {
                     if let Some(rows) = fragile_rows.get().upgrade() {
@@ -669,8 +665,6 @@ fn create_row(
                         }
                     }
                 });
-        }
-        _ => {}
     }
     mb
 }

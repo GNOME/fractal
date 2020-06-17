@@ -135,14 +135,11 @@ impl Autocomplete {
 
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |_, k| {
-            match k.get_keyval() {
-                gdk::enums::key::Escape => {
-                    if own.borrow().popover_position.is_some() {
-                        own.borrow_mut().autocomplete_enter();
-                        return Inhibit(true);
-                    }
+            if let gdk::enums::key::Escape = k.get_keyval() {
+                if own.borrow().popover_position.is_some() {
+                    own.borrow_mut().autocomplete_enter();
+                    return Inhibit(true);
                 }
-                _ => {}
             }
             Inhibit(false)
         });
