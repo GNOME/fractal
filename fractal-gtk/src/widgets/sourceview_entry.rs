@@ -32,7 +32,7 @@ impl Default for SVEntry {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         container.set_vexpand(false);
 
-        let size = gtk::IconSize::Button.into();
+        let size = gtk::IconSize::Button;
         let attach = gtk::Button::new();
         let attach_img = gtk::Image::new_from_icon_name(Some("mail-attachment-symbolic"), size);
         attach.set_image(Some(&attach_img));

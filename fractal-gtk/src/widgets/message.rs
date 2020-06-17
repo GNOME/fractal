@@ -403,10 +403,8 @@ impl MessageBox {
             start_playing,
         );
 
-        let download_btn = gtk::Button::new_from_icon_name(
-            Some("document-save-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let download_btn =
+            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -520,10 +518,8 @@ impl MessageBox {
 
         name_lbl.get_style_context().add_class("msg-highlighted");
 
-        let download_btn = gtk::Button::new_from_icon_name(
-            Some("document-save-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let download_btn =
+            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -536,10 +532,8 @@ impl MessageBox {
         download_btn.set_action_target_value(Some(&data));
         download_btn.set_action_name(Some("message.save_as"));
 
-        let open_btn = gtk::Button::new_from_icon_name(
-            Some("document-open-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let open_btn =
+            gtk::Button::new_from_icon_name(Some("document-open-symbolic"), gtk::IconSize::Button);
         open_btn.set_tooltip_text(Some(i18n("Open").as_str()));
 
         let data = glib::Variant::from(&evid);

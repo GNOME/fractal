@@ -418,7 +418,7 @@ impl Data {
 
         let mute_button = gtk::Button::new_from_icon_name(
             Some("audio-volume-high-symbolic"),
-            gtk::IconSize::Button.into(),
+            gtk::IconSize::Button,
         );
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let button = Fragile::new(mute_button.clone());
@@ -426,7 +426,7 @@ impl Data {
             gst_player::PlayerState::Playing if player.get_mute() => {
                 let image = gtk::Image::new_from_icon_name(
                     Some("audio-volume-muted-symbolic"),
-                    gtk::IconSize::Button.into(),
+                    gtk::IconSize::Button,
                 );
                 button.get().set_image(Some(&image));
             }

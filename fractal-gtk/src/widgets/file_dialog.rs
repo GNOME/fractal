@@ -18,7 +18,7 @@ pub fn save(parent: &gtk::Window, title: &str, filter: &[gtk::FileFilter]) -> Op
     file_chooser.set_current_folder(dirs::download_dir().unwrap_or_default());
     file_chooser.set_current_name(title);
     let response = file_chooser.run();
-    if ResponseType::from(response) == ResponseType::Accept {
+    if response == ResponseType::Accept {
         return file_chooser.get_filename();
     }
     None
@@ -38,7 +38,7 @@ pub fn open(parent: &gtk::Window, title: &str, filter: &[gtk::FileFilter]) -> Op
     }
 
     let response = file_chooser.run();
-    if gtk::ResponseType::from(response) == gtk::ResponseType::Accept {
+    if response == gtk::ResponseType::Accept {
         return file_chooser.get_filename();
     }
     None

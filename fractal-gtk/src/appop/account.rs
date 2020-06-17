@@ -98,8 +98,8 @@ impl AppOp {
             }
         }
         let backend = self.backend.clone();
-        dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
-        let button = dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
+        dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel);
+        let button = dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok);
         button.set_sensitive(false);
         let ok = button.clone();
         entry.connect_activate(move |_| {
@@ -120,7 +120,7 @@ impl AppOp {
 
         let value = entry;
         dialog.connect_response(move |w, r| {
-            match gtk::ResponseType::from(r) {
+            match r {
                 gtk::ResponseType::Ok => {
                     if let Some(token) = value.get_text().map(|gstr| gstr.to_string()) {
                         let server_url = login_data.server_url.clone();
@@ -169,10 +169,10 @@ impl AppOp {
             &msg,
         );
         let backend = self.backend.clone();
-        dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel.into());
-        dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok.into());
+        dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel);
+        dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok);
         dialog.connect_response(move |w, r| {
-            match gtk::ResponseType::from(r) {
+            match r {
                 gtk::ResponseType::Ok => {
                     let login_data = login_data.clone();
                     let secret = secret.clone();
@@ -236,7 +236,7 @@ impl AppOp {
             &msg,
         );
 
-        dialog.add_button(&i18n("OK"), gtk::ResponseType::Ok.into());
+        dialog.add_button(&i18n("OK"), gtk::ResponseType::Ok);
 
         dialog
     }
@@ -810,14 +810,14 @@ impl AppOp {
             &msg,
         );
 
-        dialog.add_button("Confirm", gtk::ResponseType::Ok.into());
-        dialog.add_button("Cancel", gtk::ResponseType::Cancel.into());
+        dialog.add_button("Confirm", gtk::ResponseType::Ok);
+        dialog.add_button("Cancel", gtk::ResponseType::Cancel);
 
         let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
         if let Some(password) = entry.get_text().map(|gstr| gstr.to_string()) {
             let backend = self.backend.clone();
             dialog.connect_response(move |w, r| {
-                match gtk::ResponseType::from(r) {
+                match r {
                     gtk::ResponseType::Ok => {
                         let tx = backend.clone();
                         let password = password.clone();

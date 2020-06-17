@@ -612,7 +612,7 @@ impl AppOp {
 
         let name = match n {
             0 => i18n("EMPTY ROOM"),
-            1 => String::from(m1),
+            1 => m1,
             2 => i18n_k("{m1} and {m2}", &[("m1", &m1), ("m2", &m2)]),
             _ => i18n_k("{m1} and Others", &[("m1", &m1)]),
         };

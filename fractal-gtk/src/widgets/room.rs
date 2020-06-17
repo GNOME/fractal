@@ -112,10 +112,8 @@ impl<'a> RoomBox<'a> {
             let membership_grid = gtk::Grid::new();
             membership_grid.set_column_spacing(6);
 
-            let members_icon = gtk::Image::new_from_icon_name(
-                Some("system-users-symbolic"),
-                gtk::IconSize::Menu.into(),
-            );
+            let members_icon =
+                gtk::Image::new_from_icon_name(Some("system-users-symbolic"), gtk::IconSize::Menu);
             members_icon.get_style_context().add_class("dim-label");
 
             let members_count = gtk::Label::new(Some(&format!("{}", room.n_members)[..]));

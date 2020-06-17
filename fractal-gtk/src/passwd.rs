@@ -196,7 +196,7 @@ mod ss_storage {
         let pwd = String::from_utf8(secret).unwrap();
 
         // removing old
-        for p in passwd {
+        if let Some(p) = passwd {
             p.delete()?;
         }
         /* Fallback to default identity server if there is none */
