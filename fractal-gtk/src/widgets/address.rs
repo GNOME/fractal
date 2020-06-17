@@ -41,9 +41,9 @@ impl<'a> Address<'a> {
         let entry = gtk::Entry::new();
         let button = gtk::Button::new();
         Address {
-            op: op,
-            entry: entry,
-            button: button,
+            op,
+            entry,
+            button,
             action: None,
             address: None,
             signal_id: None,

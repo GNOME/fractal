@@ -64,7 +64,7 @@ impl NewMessageDivider {
             });
         });
         NewMessageDivider {
-            revealer: revealer,
+            revealer,
             widget: row,
         }
     }

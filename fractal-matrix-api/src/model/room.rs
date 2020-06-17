@@ -204,8 +204,8 @@ impl Room {
                 let leave_id = UserId::try_from(last_event["sender"].as_str().unwrap_or_default())?;
                 if leave_id != user_id {
                     let kick_reason = &last_event["content"]["reason"];
-                    if let Some((kicker_alias, kicker_avatar)) =
-                        get_user_avatar(baseu.clone(), &leave_id).ok()
+                    if let Ok((kicker_alias, kicker_avatar)) =
+                        get_user_avatar(baseu.clone(), &leave_id)
                     {
                         let kicker = Member {
                             alias: Some(kicker_alias),

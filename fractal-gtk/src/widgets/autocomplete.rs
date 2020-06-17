@@ -35,14 +35,14 @@ impl Autocomplete {
     ) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
-            listbox: listbox,
-            popover: popover,
-            window: window,
+            listbox,
+            popover,
+            window,
             highlighted_entry: vec![],
             popover_position: None,
             popover_search: None,
             popover_closing: false,
-            op: op,
+            op,
         }
     }
 

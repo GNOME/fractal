@@ -25,7 +25,7 @@ pub struct RoomBox<'a> {
 
 impl<'a> RoomBox<'a> {
     pub fn new(room: &'a Room, op: &'a AppOp) -> RoomBox<'a> {
-        RoomBox { room: room, op: op }
+        RoomBox { room, op }
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {

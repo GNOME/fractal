@@ -129,9 +129,9 @@ impl AvatarExt for gtk::Overlay {
         let data = AvatarData {
             id,
             username: uname,
-            size: size,
+            size,
             cache: user_avatar,
-            fallback: fallback,
+            fallback,
             widget: da.clone(),
         };
         let avatar_cache: Rc<RefCell<AvatarData>> = Rc::new(RefCell::new(data));

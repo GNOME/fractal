@@ -536,8 +536,8 @@ fn create_ui_message(
         url: msg.url,
         formatted_body: msg.formatted_body,
         format: msg.format,
-        last_viewed: last_viewed,
-        highlights: highlights,
+        last_viewed,
+        highlights,
         redactable,
         widget: None,
     }

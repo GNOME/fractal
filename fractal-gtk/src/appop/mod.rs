@@ -103,7 +103,7 @@ impl AppOp {
             .expect("Couldn't find header_leaflet in ui file");
 
         AppOp {
-            ui: ui,
+            ui,
             backend: tx,
             active_room: None,
             rooms: HashMap::new(),
@@ -129,7 +129,7 @@ impl AppOp {
             search_type: SearchType::Invite,
 
             directory: vec![],
-            leaflet: leaflet,
+            leaflet,
         }
     }
 
