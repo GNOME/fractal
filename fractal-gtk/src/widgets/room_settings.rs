@@ -136,7 +136,7 @@ impl RoomSettings {
         name_entry.connect_property_text_notify(clone!(this => move |w| {
             let result = this.borrow().validate_room_name(
                 w.get_text()
-                    .map_or(None, |gstr| Some(gstr.to_string()))
+                    .map(|gstr| gstr.to_string())
             );
             button.set_visible(result.is_some());
         }));
@@ -145,7 +145,7 @@ impl RoomSettings {
         topic_entry.connect_property_text_notify(clone!(this => move |w| {
             let result = this.borrow().validate_room_topic(
                 w.get_text()
-                    .map_or(None, |gstr| Some(gstr.to_string()))
+                    .map(|gstr| gstr.to_string())
             );
             button.set_visible(result.is_some());
         }));

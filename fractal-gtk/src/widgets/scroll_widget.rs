@@ -128,12 +128,12 @@ impl ScrollWidget {
         let upper = widgets
             .view
             .get_vadjustment()
-            .and_then(|adj| Some(adj.get_upper()))
+            .map(|adj| adj.get_upper())
             .unwrap_or_default();
         let value = widgets
             .view
             .get_vadjustment()
-            .and_then(|adj| Some(adj.get_value()))
+            .map(|adj| adj.get_value())
             .unwrap_or_default();
 
         let mut scroll = ScrollWidget {

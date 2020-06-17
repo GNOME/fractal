@@ -67,8 +67,9 @@ pub fn get_markdown_schema() -> bool {
 }
 
 pub fn set_markdown_schema(md: bool) {
-    if let Some(_) =
-        SettingsSchemaSource::get_default().and_then(|s| s.lookup("org.gnome.Fractal", true))
+    if SettingsSchemaSource::get_default()
+        .and_then(|s| s.lookup("org.gnome.Fractal", true))
+        .is_some()
     {
         let settings: Settings = Settings::new("org.gnome.Fractal");
         if let Err(err) = settings.set_boolean("markdown-active", md) {

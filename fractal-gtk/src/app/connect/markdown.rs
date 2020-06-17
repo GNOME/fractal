@@ -29,8 +29,8 @@ impl App {
             .get_object("tutorial_text_box")
             .expect("Couldn't find tutorial_text_box in ui file.");
 
-        let md_lang = sourceview4::LanguageManager::get_default()
-            .map_or(None, |lm| lm.get_language("markdown"));
+        let md_lang =
+            sourceview4::LanguageManager::get_default().and_then(|lm| lm.get_language("markdown"));
 
         md_popover_btn.set_popover(Some(&popover));
 

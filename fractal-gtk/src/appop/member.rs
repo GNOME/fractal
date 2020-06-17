@@ -107,7 +107,7 @@ impl AppOp {
                         scroll,
                         buffer
                             .get_text(&start, &end, false)
-                            .map_or(None, |gstr| Some(gstr.to_string())),
+                            .map(|gstr| gstr.to_string()),
                     );
                 }
             }
@@ -138,7 +138,7 @@ impl AppOp {
                         scroll,
                         buffer
                             .get_text(&start, &end, false)
-                            .map_or(None, |gstr| Some(gstr.to_string())),
+                            .map(|gstr| gstr.to_string()),
                     );
                 }
             }

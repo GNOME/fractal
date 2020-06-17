@@ -93,7 +93,7 @@ impl SourceDialog {
         });
 
         let json_lang =
-            sourceview4::LanguageManager::get_default().map_or(None, |lm| lm.get_language("json"));
+            sourceview4::LanguageManager::get_default().and_then(|lm| lm.get_language("json"));
 
         self.widgets
             .source_buffer
@@ -103,7 +103,7 @@ impl SourceDialog {
             self.widgets.source_buffer.set_highlight_syntax(true);
 
             if let Some(scheme) = sourceview4::StyleSchemeManager::get_default()
-                .map_or(None, |scm| scm.get_scheme("kate"))
+                .and_then(|scm| scm.get_scheme("kate"))
             {
                 self.widgets.source_buffer.set_style_scheme(Some(&scheme));
             }

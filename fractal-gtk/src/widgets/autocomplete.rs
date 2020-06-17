@@ -223,7 +223,7 @@ impl Autocomplete {
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
                 let text = buffer.get_text(&start, &end, false)
-                    .map_or(None, |gstr| Some(gstr.to_string()));
+                    .map(|gstr| gstr.to_string());
 
                 /* when closing popover with tab */
                 {
