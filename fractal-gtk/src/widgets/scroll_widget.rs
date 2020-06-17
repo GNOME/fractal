@@ -312,7 +312,9 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
             let view = view.downcast_ref::<gtk::ScrolledWindow>().unwrap();
             if let Some(adj) = view.get_vadjustment() {
                 let end = adj.get_upper() - adj.get_page_size();
-                if now < end_time && (adj.get_value().round() - end.round()).abs() > std::f64::EPSILON {
+                if now < end_time
+                    && (adj.get_value().round() - end.round()).abs() > std::f64::EPSILON
+                {
                     let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
                     t = ease_out_cubic(t);
                     adj.set_value(start + t * (end - start));

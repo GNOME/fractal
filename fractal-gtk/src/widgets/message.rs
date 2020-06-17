@@ -493,7 +493,7 @@ impl MessageBox {
         overlay.add_overlay(&menu_button);
 
         let evid = msg.id.as_ref();
-        let redactable = msg.redactable.clone();
+        let redactable = msg.redactable;
         let menu = MessageMenu::new(evid, &RowType::Video, &redactable, None, None);
         menu_button.set_popover(Some(&menu.get_popover()));
 
@@ -617,8 +617,8 @@ impl MessageBox {
     }
 
     fn connect_right_click_menu(&self, msg: &Message, label: Option<&gtk::Label>) -> Option<()> {
-        let mtype = msg.mtype.clone();
-        let redactable = msg.redactable.clone();
+        let mtype = msg.mtype;
+        let redactable = msg.redactable;
         let eventbox_weak = self.eventbox.downgrade();
         let widget = if let Some(l) = label {
             l.upcast_ref::<gtk::Widget>()

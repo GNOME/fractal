@@ -131,7 +131,7 @@ impl Image {
     pub fn draw(&self) {
         let da = &self.widget;
 
-        match self.max_size.clone() {
+        match self.max_size {
             Some(size) => {
                 let w = size.0;
                 let h = size.1;
@@ -158,11 +158,11 @@ impl Image {
             }
         }
 
-        let max_size = self.max_size.clone();
+        let max_size = self.max_size;
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
         let zoom_level = self.zoom_level.clone();
-        let is_circle = self.circle.clone();
+        let is_circle = self.circle;
         let fixed_size = self.fixed_size;
         let centered = self.centered;
         let shrink_to_fit = self.shrink_to_fit;
