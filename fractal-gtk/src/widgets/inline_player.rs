@@ -692,20 +692,18 @@ fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video
                 bx.set_margin_top(0);
                 bx.set_margin_bottom(0);
             }
-        } else {
-            if video_width != 0 {
-                let adjusted_height = if parent_width < video_width {
-                    let box_width = bx.get_allocated_width();
-                    box_width * video_height / video_width
-                } else {
-                    video_height
-                };
-                let margin = (parent_height - adjusted_height) / 2;
-                bx.set_margin_top(margin);
-                bx.set_margin_bottom(margin);
-                bx.set_margin_start(0);
-                bx.set_margin_end(0);
-            }
+        } else if video_width != 0 {
+            let adjusted_height = if parent_width < video_width {
+                let box_width = bx.get_allocated_width();
+                box_width * video_height / video_width
+            } else {
+                video_height
+            };
+            let margin = (parent_height - adjusted_height) / 2;
+            bx.set_margin_top(margin);
+            bx.set_margin_bottom(margin);
+            bx.set_margin_start(0);
+            bx.set_margin_end(0);
         }
     }
 }

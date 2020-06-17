@@ -55,12 +55,10 @@ impl AppOp {
 
         let title = if r.direct {
             i18n(" (direct message)")
+        } else if let Some(name) = r.name.clone() {
+            format!(" ({})", name)
         } else {
-            if let Some(name) = r.name.clone() {
-                format!(" ({})", name)
-            } else {
-                String::new()
-            }
+            String::new()
         };
 
         let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
@@ -98,12 +96,10 @@ fn dirty_truncate(s: &str, num_chars: usize) -> &str {
 
     if l <= num_chars {
         s
+    } else if let Some((idx, _ch)) = s.char_indices().find(|(idx, _ch)| *idx >= num_chars) {
+        s.get(0..idx).unwrap()
     } else {
-        if let Some((idx, _ch)) = s.char_indices().find(|(idx, _ch)| *idx >= num_chars) {
-            s.get(0..idx).unwrap()
-        } else {
-            s
-        }
+        s
     }
 }
 

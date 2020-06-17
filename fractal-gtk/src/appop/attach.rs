@@ -20,12 +20,11 @@ impl AppOp {
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {
         let w = pixb.get_width();
         let h = pixb.get_height();
-        let scaled;
-        if w > 600 {
-            scaled = pixb.scale_simple(600, h * 600 / w, gdk_pixbuf::InterpType::Bilinear);
+        let scaled = if w > 600 {
+            pixb.scale_simple(600, h * 600 / w, gdk_pixbuf::InterpType::Bilinear)
         } else {
-            scaled = Some(pixb.clone());
-        }
+            Some(pixb.clone())
+        };
 
         if let Some(pb) = scaled {
             let window: gtk::ApplicationWindow = self

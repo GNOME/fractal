@@ -176,10 +176,8 @@ impl Autocomplete {
                             let ev: &gdk::Event = ev;
                             let _ = w.emit("button-press-event", &[ev]);
                         }
-                    } else {
-                        if ev.get_keyval() != gdk::enums::key::Tab {
-                            return glib::signal::Inhibit(false);
-                        }
+                    } else if ev.get_keyval() != gdk::enums::key::Tab {
+                        return glib::signal::Inhibit(false);
                     }
                 }
                 /* Arrow key */
@@ -263,14 +261,12 @@ impl Autocomplete {
                                             own.borrow_mut().popover_position = Some(at_pos as i32);
                                         }
                                     }
-                                    else {
-                                        if let Some(space_pos) = first.rfind(|c: char| c.is_whitespace()) {
+                                    else if let Some(space_pos) = first.rfind(|c: char| c.is_whitespace()) {
                                             own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
                                         }
                                         else {
                                             own.borrow_mut().popover_position = Some(0);
                                         }
-                                    }
                                 }
                             }
 
@@ -396,19 +392,15 @@ impl Autocomplete {
                         result = Some(row.get_children().first()?.clone());
                     }
                 };
-            } else {
-                if let Some(row) = self.listbox.get_children().last() {
-                    if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
-                        self.listbox.select_row(Some(&row));
-                        result = Some(row.get_children().first()?.clone());
-                    }
+            } else if let Some(row) = self.listbox.get_children().last() {
+                if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
+                    self.listbox.select_row(Some(&row));
+                    result = Some(row.get_children().first()?.clone());
                 }
             }
-        } else {
-            if let Some(row) = self.listbox.get_row_at_index(0) {
-                self.listbox.select_row(Some(&row));
-                result = Some(row.get_children().first()?.clone());
-            }
+        } else if let Some(row) = self.listbox.get_row_at_index(0) {
+            self.listbox.select_row(Some(&row));
+            result = Some(row.get_children().first()?.clone());
         }
         result
     }
