@@ -344,7 +344,9 @@ impl AppOp {
         let p = self.msg_queue.iter().position(|m| m.msg == msg);
         if let Some(i) = p {
             let w = self.msg_queue.remove(i);
-            w.widget.map(|w| w.destroy());
+            if let Some(w) = w.widget {
+                w.destroy()
+            }
         }
         self.add_tmp_room_message(msg);
     }

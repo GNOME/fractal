@@ -17,10 +17,7 @@ pub struct MemberBox<'a> {
 
 impl<'a> MemberBox<'a> {
     pub fn new(member: &'a Member, op: &'a AppOp) -> MemberBox<'a> {
-        MemberBox {
-            member,
-            op,
-        }
+        MemberBox { member, op }
     }
 
     pub fn widget(&self, show_uid: bool) -> gtk::EventBox {

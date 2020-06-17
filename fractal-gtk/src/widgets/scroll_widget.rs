@@ -92,13 +92,13 @@ impl Widgets {
         container.get_style_context().add_class("messages-box");
         container.add(&column);
 
-        view.get_vadjustment().map(|adj| {
-            view.get_child().map(|child| {
-                child.downcast_ref::<gtk::Container>().map(|container| {
+        if let Some(adj) = view.get_vadjustment() {
+            if let Some(child) = view.get_child() {
+                if let Some(container) = child.downcast_ref::<gtk::Container>() {
                     container.set_focus_vadjustment(&adj);
-                });
-            });
-        });
+                }
+            }
+        }
 
         /* add a load more Spinner */
         let spinner = gtk::Spinner::new();

@@ -45,15 +45,17 @@ impl AppOp {
             }
         }
 
-        self.ui
+        if let Some(btn) = self
+            .ui
             .builder
             .get_object::<gtk::Button>("direct_chat_button")
-            .map(|btn| btn.set_sensitive(true));
+        {
+            btn.set_sensitive(true)
+        }
 
-        self.ui
-            .builder
-            .get_object::<gtk::Button>("invite_button")
-            .map(|btn| btn.set_sensitive(true));
+        if let Some(btn) = self.ui.builder.get_object::<gtk::Button>("invite_button") {
+            btn.set_sensitive(true)
+        }
 
         if let Some(buffer) = invite_entry.get_buffer() {
             let mut start_word = buffer.get_iter_at_offset(buffer.get_property_cursor_position());
@@ -89,15 +91,17 @@ impl AppOp {
         }
 
         if self.invite_list.is_empty() {
-            self.ui
+            if let Some(btn) = self
+                .ui
                 .builder
                 .get_object::<gtk::Button>("direct_chat_button")
-                .map(|btn| btn.set_sensitive(false));
+            {
+                btn.set_sensitive(false)
+            }
 
-            self.ui
-                .builder
-                .get_object::<gtk::Button>("invite_button")
-                .map(|btn| btn.set_sensitive(false));
+            if let Some(btn) = self.ui.builder.get_object::<gtk::Button>("invite_button") {
+                btn.set_sensitive(false)
+            }
         }
 
         let dialogid = match self.search_type {

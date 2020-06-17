@@ -290,16 +290,16 @@ impl VideoPlayerWidget {
         /* The followign callbacks require `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&w));
         w.player.connect_state_changed(move |_, state| {
-            player_weak.get().upgrade().map(|player| {
+            if let Some(player) = player_weak.get().upgrade() {
                 *player.state.borrow_mut() = Some(state);
-            });
+            }
         });
         let dimensions_weak = Fragile::new(Rc::downgrade(&w.dimensions));
         w.player
             .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                dimensions_weak.get().upgrade().map(|dimensions| {
+                if let Some(dimensions) = dimensions_weak.get().upgrade() {
                     *dimensions.borrow_mut() = Some((video_width, video_height));
-                });
+                }
             });
 
         w
@@ -337,12 +337,12 @@ impl VideoPlayerWidget {
         player_widget.player.connect_video_dimensions_changed(
             move |_, video_width, video_height| {
                 if video_width != 0 {
-                    player_weak.get().upgrade().map(|player| {
+                    if let Some(player) = player_weak.get().upgrade() {
                         let widget = player.get_video_widget();
                         let allocated_width = widget.get_allocated_width();
                         let adjusted_height = allocated_width * video_height / video_width;
                         widget.set_size_request(-1, adjusted_height);
-                    });
+                    }
                 }
             },
         );
@@ -350,7 +350,7 @@ impl VideoPlayerWidget {
         player_widget
             .get_video_widget()
             .connect_size_allocate(move |_, allocation| {
-                player_weak.upgrade().map(|player| {
+                if let Some(player) = player_weak.upgrade() {
                     if let Some((video_width, video_height)) = *player.dimensions.borrow() {
                         if video_width != 0
                             && allocation.height * video_width != allocation.width * video_height
@@ -361,17 +361,17 @@ impl VideoPlayerWidget {
                                 .set_size_request(-1, adjusted_height);
                         }
                     }
-                });
+                }
             });
 
         /* Sometimes, set_size_request() doesn't get captured visually. The following timeout takes care of that. */
         let player_weak = Rc::downgrade(&player_widget);
         gtk::timeout_add_seconds(1, move || {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 let (_, height) = player.get_video_widget().get_size_request();
                 player.get_video_widget().set_size_request(-1, height - 1);
                 player.get_video_widget().set_size_request(-1, height);
-            });
+            }
             Continue(true)
         });
     }
@@ -393,26 +393,28 @@ impl VideoPlayerWidget {
             player
                 .player
                 .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                    bx_weak.get().upgrade().map(|bx| {
+                    if let Some(bx) = bx_weak.get().upgrade() {
                         adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
-                    });
+                    }
                 });
         let player_weak = Rc::downgrade(player);
-        let size_id =
-            bx.connect_size_allocate(move |bx, _| {
-                player_weak.upgrade().map(|player| {
+        let size_id = bx.connect_size_allocate(move |bx, _| {
+            if let Some(player) = player_weak.upgrade() {
                 if let Some((video_width, video_height)) = *player.dimensions.borrow() {
                     /* The timeout is necessary for the edge cases, i.e. when resizing to minimum width or height.
                     When approaching the minimum fast, the last connect_size_allocate signal gets emitted before
                     reaching the minimum size. So without timeout, the values used to adjust the the video size
                     are bigger than they should be. */
-                    gtk::timeout_add(50, clone!(bx, video_width, video_height => move || {
-                        adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
-                        Continue(false)
-                    }));
+                    gtk::timeout_add(
+                        50,
+                        clone!(bx, video_width, video_height => move || {
+                            adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
+                            Continue(false)
+                        }),
+                    );
                 }
-            });
-            });
+            }
+        });
         (dimension_id, size_id)
     }
 
@@ -596,12 +598,12 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
 
             // Connect the play button to the gst Player.
             s.get_controls().unwrap().buttons.play.connect_clicked(clone!(weak => move |_| {
-                weak.upgrade().map(|p| p.play());
+                if let Some(p) = weak.upgrade() { p.play() }
             }));
 
             // Connect the pause button to the gst Player.
             s.get_controls().unwrap().buttons.pause.connect_clicked(clone!(weak => move |_| {
-                weak.upgrade().map(|p| p.pause());
+                if let Some(p) = weak.upgrade() { p.pause() }
             }));
         }
     }
@@ -613,17 +615,17 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
 
             // Update the duration label and the slider
             s.get_player().connect_duration_changed(clone!(weak => move |_, clock| {
-                weak.get().upgrade().map(|p| p.get_controls().unwrap().timer.on_duration_changed(Duration(clock)));
+                if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_duration_changed(Duration(clock)) }
             }));
 
             // Update the position label and the slider
             s.get_player().connect_position_updated(clone!(weak => move |_, clock| {
-                weak.get().upgrade().map(|p| p.get_controls().unwrap().timer.on_position_updated(Position(clock)));
+                if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_position_updated(Position(clock)) }
             }));
 
             // Reset the slider to 0 and show a play button
             s.get_player().connect_end_of_stream(clone!(weak => move |_| {
-                weak.get().upgrade().map(|p| p.stop());
+                if let Some(p) = weak.get().upgrade() { p.stop() }
             }));
         }
     }

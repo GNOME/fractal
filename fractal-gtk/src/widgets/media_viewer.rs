@@ -434,9 +434,9 @@ impl Data {
         });
         let player_weak = Rc::downgrade(&player);
         mute_button.connect_clicked(move |button| {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 VideoPlayerWidget::switch_mute_state(&player, &button);
-            });
+            }
         });
         full_control_box.pack_start(&mute_button, false, false, 0);
 
@@ -461,7 +461,7 @@ impl Data {
         let player_weak = Rc::downgrade(&player);
         media_viewer_box.connect_motion_notify_event(
             clone!( control_revealer, source_id => move |_, _| {
-                player_weak.upgrade().map(|player| {
+                if let Some(player) = player_weak.upgrade() {
                 control_revealer.set_reveal_child(true);
                 if let Some(sid) = source_id.borrow_mut().take() {
                     glib::source::source_remove(sid);
@@ -477,7 +477,7 @@ impl Data {
                         }),
                     );
                     *source_id.borrow_mut() = Some(new_sid);
-                });
+                }
                 Inhibit(false)
             }),
         );
@@ -491,17 +491,17 @@ impl Data {
         let player_weak = Rc::downgrade(&player);
         bx.connect_state_flags_changed(move |_, flag| {
             let focussed = gtk::StateFlags::BACKDROP;
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 if !flag.contains(focussed) {
                     player.pause();
                 }
-            });
+            }
         });
 
         let player_weak = Rc::downgrade(&player);
         self.main_window.connect_key_press_event(
             clone!(control_revealer, source_id => move |_, k| {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 if player.get_video_widget().get_mapped() {
                     match k.get_keyval() {
                         gdk::enums::key::space => {
@@ -511,12 +511,12 @@ impl Data {
                                 let new_sid = gtk::timeout_add_seconds(
                                     1,
                                     clone!(source_id, control_revealer, player_weak => move || {
-                                        player_weak.upgrade().map(|player| {
+                                        if let Some(player) = player_weak.upgrade() {
                                             if player.is_playing() {
                                                 control_revealer.set_reveal_child(false);
                                             }
                                             *source_id.borrow_mut() = None;
-                                        });
+                                        }
                                         Continue(false)
                                     }),
                                 );
@@ -527,7 +527,7 @@ impl Data {
                         _ => {}
                     }
                 }
-            });
+            }
             Inhibit(false)
             }),
         );
@@ -542,9 +542,9 @@ impl Data {
                 let source_id = source_id.clone();
                 let revealer = control_revealer.clone();
                 let pw = player_weak.clone();
-                player_weak
+                if let Some(player) = player_weak
                     .upgrade()
-                    .map(|player| match e.get_event_type() {
+                    { match e.get_event_type() {
                         EventType::ButtonPress => {
                             if click_timeout_id.borrow().is_some() {
                                 let id = click_timeout_id.borrow_mut().take().unwrap();
@@ -559,12 +559,12 @@ impl Data {
                                             let new_sid = gtk::timeout_add_seconds(
                                                 1,
                                                 clone!(source_id, revealer, pw => move || {
-                                                    pw.upgrade().map(|player| {
+                                                    if let Some(player) = pw.upgrade() {
                                                         if player.is_playing() {
                                                             revealer.set_reveal_child(false);
                                                         }
                                                         *source_id.borrow_mut() = None;
-                                                    });
+                                                    }
                                                     Continue(false)
                                                 }),
                                             );
@@ -580,7 +580,7 @@ impl Data {
                             }
                         }
                         _ => {}
-                    });
+                    }}
                 Inhibit(false)
             }),
         );
@@ -752,7 +752,7 @@ impl MediaViewer {
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
         full_screen_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 let main_window = own.borrow().main_window.clone();
                 if let Some(win) = main_window.get_window() {
                     if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
@@ -761,7 +761,7 @@ impl MediaViewer {
                         own.borrow_mut().leave_full_screen()
                     }
                 }
-            });
+            }
         });
     }
 
@@ -913,11 +913,11 @@ impl MediaViewer {
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
         previous_media_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 if !own.borrow_mut().previous_media() {
                     load_more_media(own, builder.clone(), backend.clone());
                 }
-            });
+            }
         });
 
         let own_weak = Rc::downgrade(&self.data);
@@ -926,9 +926,9 @@ impl MediaViewer {
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
         next_media_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 own.borrow_mut().next_media();
-            });
+            }
         });
         let full_screen_button = self
             .builder
@@ -972,13 +972,13 @@ impl MediaViewer {
             .get_object::<gtk::Box>("media_viewer_box")
             .expect("Cant find media_viewer_box in ui file.");
         media_viewer_box.connect_unmap(move |_| {
-            data_weak.upgrade().map(|data| {
+            if let Some(data) = data_weak.upgrade() {
                 let id = data.borrow_mut().signal_id.take();
                 let main_window = &data.borrow().main_window;
                 if let Some(id) = id {
                     signal::signal_handler_disconnect(main_window, id);
                 }
-            });
+            }
         });
     }
 
@@ -990,12 +990,14 @@ impl MediaViewer {
             .expect("Cant find media_viewer_box in ui file.");
         let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
-            data_weak.upgrade().map(|data| match &data.borrow().widget {
-                Widget::Video(widget) => {
-                    PlayerExt::get_player(&widget.player).stop();
+            if let Some(data) = data_weak.upgrade() {
+                match &data.borrow().widget {
+                    Widget::Video(widget) => {
+                        PlayerExt::get_player(&widget.player).stop();
+                    }
+                    _ => {}
                 }
-                _ => {}
-            });
+            }
         });
     }
 
@@ -1064,22 +1066,22 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => Continue(true),
         Err(TryRecvError::Disconnected) => {
-            data_weak.clone().upgrade().map(|data| {
+            if let Some(data) = data_weak.clone().upgrade() {
                 data.borrow_mut().loading_error = true;
                 let err = i18n("Error while loading previous media");
                 ErrorDialog::new(false, &err);
-            });
+            }
 
             Continue(false)
         }
         Ok((msgs, prev_batch)) => {
             if msgs.is_empty() {
-                data_weak.clone().upgrade().map(|data| {
+                if let Some(data) = data_weak.clone().upgrade() {
                     data.borrow_mut().no_more_media = true;
-                });
+                }
                 return Continue(false);
             }
-            data_weak.upgrade().map(|data| {
+            if let Some(data) = data_weak.upgrade() {
                 let media_list = data.borrow().media_list.clone();
                 let img_msgs: Vec<Message> = msgs
                     .into_iter()
@@ -1097,7 +1099,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                     data.borrow_mut().previous_media();
                     data.borrow_mut().loading_more_media = loading_state(&ui, false);
                 }
-            });
+            }
 
             Continue(false)
         }

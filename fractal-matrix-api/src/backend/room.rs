@@ -331,7 +331,7 @@ pub fn join_room(bk: &Backend, base: Url, access_token: AccessToken, room_id: Ro
                 Ok(())
             });
 
-        if  query.is_ok() {
+        if query.is_ok() {
             data.lock().unwrap().join_to_room = Some(room_id);
         }
 

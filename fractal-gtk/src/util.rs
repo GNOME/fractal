@@ -67,14 +67,14 @@ pub fn get_markdown_schema() -> bool {
 }
 
 pub fn set_markdown_schema(md: bool) {
-    SettingsSchemaSource::get_default()
-        .and_then(|s| s.lookup("org.gnome.Fractal", true))
-        .map(|_| {
-            let settings: Settings = Settings::new("org.gnome.Fractal");
-            if let Err(err) = settings.set_boolean("markdown-active", md) {
-                error!("Can't save markdown active state: {:?}", err);
-            }
-        });
+    if let Some(_) =
+        SettingsSchemaSource::get_default().and_then(|s| s.lookup("org.gnome.Fractal", true))
+    {
+        let settings: Settings = Settings::new("org.gnome.Fractal");
+        if let Err(err) = settings.set_boolean("markdown-active", md) {
+            error!("Can't save markdown active state: {:?}", err);
+        }
+    }
 }
 
 /* Macro for upgrading a weak reference or returning the given value

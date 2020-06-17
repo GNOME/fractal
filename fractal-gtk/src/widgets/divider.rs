@@ -44,24 +44,24 @@ impl NewMessageDivider {
          * seconds delay */
         let revealer_weak = revealer.downgrade();
         row.connect_parent_set(move |_, _| {
-            revealer_weak.upgrade().map(|revealer| {
+            if let Some(revealer) = revealer_weak.upgrade() {
                 let revealer_weak = revealer.downgrade();
                 gtk::timeout_add(5000, move || {
                     /* when the user closes the room the divider gets destroyed and this timeout
                      * does nothing, but that's fine */
-                    revealer_weak.upgrade().map(|r| {
+                    if let Some(r) = revealer_weak.upgrade() {
                         r.set_reveal_child(false);
-                    });
+                    }
                     Continue(false)
                 });
-            });
+            }
         });
         let row_weak = row.downgrade();
         revealer.connect_property_child_revealed_notify(move |_| {
-            row_weak.upgrade().map(|r| {
+            if let Some(r) = row_weak.upgrade() {
                 r.destroy();
                 remove_divider();
-            });
+            }
         });
         NewMessageDivider {
             revealer,

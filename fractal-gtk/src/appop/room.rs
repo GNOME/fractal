@@ -138,11 +138,13 @@ impl AppOp {
                 .get_object("roomlist_scroll")
                 .expect("Couldn't find room_container in ui file.");
             let adj = scrolledwindow.get_vadjustment();
-            scrolledwindow.get_child().map(|child| {
-                child.downcast_ref::<gtk::Container>().map(|container| {
-                    adj.clone().map(|a| container.set_focus_vadjustment(&a));
-                });
-            });
+            if let Some(child) = scrolledwindow.get_child() {
+                if let Some(container) = child.downcast_ref::<gtk::Container>() {
+                    if let Some(a) = adj.clone() {
+                        container.set_focus_vadjustment(&a)
+                    }
+                }
+            }
 
             self.roomlist = widgets::RoomList::new(adj, Some(login_data.server_url.clone()));
             self.roomlist.add_rooms(roomlist);
@@ -523,10 +525,13 @@ impl AppOp {
             .builder
             .get_object::<libhandy::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
-        self.ui
+        if let Some(btn) = self
+            .ui
             .builder
             .get_object::<gtk::Button>("join_room_button")
-            .map(|btn| btn.set_sensitive(false));
+        {
+            btn.set_sensitive(false)
+        }
         dialog.present();
     }
 
