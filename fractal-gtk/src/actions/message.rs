@@ -169,7 +169,7 @@ pub fn new(
                         let window = upgrade_weak!(parent_weak, Continue(true));
                         if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
-                            if let Err(_) = fs::copy(fname, path) {
+                            if fs::copy(fname, path).is_err() {
                                 ErrorDialog::new(false, &i18n("Couldn’t save file"));
                             }
                         }

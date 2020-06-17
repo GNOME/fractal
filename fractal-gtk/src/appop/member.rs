@@ -160,7 +160,7 @@ impl AppOp {
         let uid_term = term.and_then(|t| UserId::try_from(t.as_str()).ok());
         // Adding a new user if the user
         if let Some(uid) = uid_term {
-            if let None = users.iter().find(|u| u.uid == uid) {
+            if users.iter().find(|u| u.uid == uid).is_none() {
                 let member = Member {
                     avatar: None,
                     alias: None,

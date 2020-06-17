@@ -36,7 +36,7 @@ impl AppOp {
         server_url: Url,
         identity_url: Url,
     ) {
-        if let Err(_) = self.store_token(uid.clone(), access_token.clone()) {
+        if  self.store_token(uid.clone(), access_token.clone()).is_err() {
             error!("Can't store the token using libsecret");
         }
 
@@ -62,7 +62,7 @@ impl AppOp {
 
     pub fn bk_logout(&mut self) {
         self.set_rooms(vec![], true);
-        if let Err(_) = cache::get().destroy() {
+        if  cache::get().destroy().is_err() {
             error!("Error removing cache file");
         }
 

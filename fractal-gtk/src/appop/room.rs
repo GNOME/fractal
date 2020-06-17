@@ -423,7 +423,7 @@ impl AppOp {
         let uid = login_data.uid;
         let device_id = self.device_id.clone().unwrap_or_default();
 
-        if let Err(_) = cache::store(&rooms, since, username, uid, device_id) {
+        if cache::store(&rooms, since, username, uid, device_id).is_err() {
             error!("Error caching rooms");
         };
     }
