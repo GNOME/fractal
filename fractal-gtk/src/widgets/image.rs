@@ -191,9 +191,10 @@ impl Image {
             }
 
             if let Some(ref pb) = *pix.lock().unwrap() {
-                let (mut pw, mut ph) = match shrink_to_fit {
-                    true => adjust_shrink_to_fit(pb.get_width(), pb.get_height(), rw, rh),
-                    false => adjust_to(pb.get_width(), pb.get_height(), rw, rh),
+                let (mut pw, mut ph) = if shrink_to_fit {
+                    adjust_shrink_to_fit(pb.get_width(), pb.get_height(), rw, rh)
+                } else {
+                    adjust_to(pb.get_width(), pb.get_height(), rw, rh)
                 };
 
                 if let Ok(zoom_level_guard) = zoom_level.lock() {
@@ -408,13 +409,15 @@ fn adjust_shrink_to_fit(w: i32, h: i32, maxw: i32, maxh: i32) -> (i32, i32) {
     let ratio = w as f64 / h as f64;
     let t_ratio = maxw as f64 / maxh as f64;
 
-    let (nw, nh) = match t_ratio < ratio {
-        true => (maxw, (maxw as f64 * (1.0 / ratio)) as i32),
-        false => ((maxh as f64 * ratio) as i32, maxh),
+    let (nw, nh) = if t_ratio < ratio {
+        (maxw, (maxw as f64 * (1.0 / ratio)) as i32)
+    } else {
+        ((maxh as f64 * ratio) as i32, maxh)
     };
 
-    match nw < w {
-        true => (nw, nh),
-        false => (w, h),
+    if nw < w {
+        (nw, nh)
+    } else {
+        (w, h)
     }
 }
