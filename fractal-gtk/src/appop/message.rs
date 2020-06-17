@@ -1,6 +1,10 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use fractal_api::backend::room;
+use fractal_api::clone;
 use fractal_api::identifiers::{EventId, RoomId};
+use fractal_api::r0::AccessToken;
+use fractal_api::types::ExtraContent;
+use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
@@ -14,6 +18,7 @@ use serde_json::Value as JsonValue;
 use std::env::temp_dir;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::mpsc::Sender;
 use std::thread;
 
 use crate::appop::room::Force;
@@ -214,18 +219,14 @@ impl AppOp {
         self.sending_message = true;
         if let Some(next) = self.msg_queue.last() {
             let msg = next.msg.clone();
+            let tx = self.backend.clone();
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" | "m.audio" | "m.video" => {
-                    self.backend
-                        .send(BKCommand::AttachFile(
-                            login_data.server_url,
-                            login_data.access_token,
-                            msg,
-                        ))
-                        .unwrap();
+                    thread::spawn(move || {
+                        attach_file(tx, login_data.server_url, login_data.access_token, msg)
+                    });
                 }
                 _ => {
-                    let tx = self.backend.clone();
                     thread::spawn(move || {
                         match room::send_msg(login_data.server_url, login_data.access_token, msg) {
                             Ok((txid, evid)) => {
@@ -235,7 +236,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(Err(err))))
+                                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsgError(err)))
                                     .expect_log("Connection closed");
                             }
                         }
@@ -639,4 +640,80 @@ fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     });
 
     Some(info)
+}
+
+fn attach_file(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, mut msg: Message) {
+    let fname = msg.url.clone().unwrap_or_default();
+    let mut extra_content: Option<ExtraContent> = msg
+        .clone()
+        .extra_content
+        .and_then(|c| serde_json::from_value(c).ok());
+
+    let thumb = extra_content
+        .clone()
+        .and_then(|c| c.info.thumbnail_url)
+        .unwrap_or_default();
+
+    if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
+        send_msg_and_manage(tx, baseu, tk, msg);
+
+        return;
+    }
+
+    if !thumb.is_empty() {
+        match room::upload_file(baseu.clone(), tk.clone(), &thumb) {
+            Ok(response) => {
+                let thumb_uri = response.content_uri.to_string();
+                msg.thumb = Some(thumb_uri.clone());
+                if let Some(ref mut xctx) = extra_content {
+                    xctx.info.thumbnail_url = Some(thumb_uri);
+                }
+                msg.extra_content = serde_json::to_value(&extra_content).ok();
+            }
+            Err(err) => {
+                tx.send(BKCommand::SendBKResponse(BKResponse::AttachedFileError(
+                    err,
+                )))
+                .expect_log("Connection closed");
+            }
+        }
+
+        if let Err(_e) = std::fs::remove_file(&thumb) {
+            error!("Can't remove thumbnail: {}", thumb);
+        }
+    }
+
+    let query = room::upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
+        msg.url = Some(response.content_uri.to_string());
+        thread::spawn(clone!(msg, tx => move || send_msg_and_manage(tx, baseu, tk, msg)));
+
+        msg
+    });
+
+    match query {
+        Ok(msg) => {
+            APPOP!(attached_file, (msg));
+        }
+        Err(err) => {
+            tx.send(BKCommand::SendBKResponse(BKResponse::AttachedFileError(
+                err,
+            )))
+            .expect_log("Connection closed");
+        }
+    };
+}
+
+fn send_msg_and_manage(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, msg: Message) {
+    match room::send_msg(baseu, tk, msg) {
+        Ok((txid, evid)) => {
+            APPOP!(msg_sent, (txid, evid));
+            let initial = false;
+            let number_tries = 0;
+            APPOP!(sync, (initial, number_tries));
+        }
+        Err(err) => {
+            tx.send(BKCommand::SendBKResponse(BKResponse::SentMsgError(err)))
+                .expect_log("Connection closed");
+        }
+    };
 }
