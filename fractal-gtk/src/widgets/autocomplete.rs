@@ -83,9 +83,9 @@ impl Autocomplete {
             .connect_button_press_event(move |_, _| {
                 if own.borrow().popover_position.is_some() {
                     own.borrow_mut().autocomplete_enter();
-                    return Inhibit(true);
+                    Inhibit(true)
                 } else {
-                    return Inhibit(false);
+                    Inhibit(false)
                 }
             });
 
@@ -212,7 +212,7 @@ impl Autocomplete {
                 }
                 _ => return glib::signal::Inhibit(false),
             }
-            return glib::signal::Inhibit(true);
+            glib::signal::Inhibit(true)
         });
 
         let own = this.clone();
@@ -413,7 +413,7 @@ impl Autocomplete {
                 result = Some(row.get_children().first()?.clone());
             }
         }
-        return result;
+        result
     }
 
     pub fn autocomplete_show_popover(
@@ -465,7 +465,7 @@ impl Autocomplete {
             self.autocomplete_enter();
         }
 
-        return widget_list;
+        widget_list
     }
 
     pub fn autocomplete(&self, text: Option<String>, pos: i32) -> Vec<Member> {
@@ -512,6 +512,6 @@ impl Autocomplete {
                 }
             }
         };
-        return list;
+        list
     }
 }

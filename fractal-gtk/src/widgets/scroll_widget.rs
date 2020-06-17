@@ -335,7 +335,7 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
  */
 fn ease_out_cubic(t: f64) -> f64 {
     let p = t - 1f64;
-    return p * p * p + 1f64;
+    p * p * p + 1f64
 }
 
 /* create load more spinner for the listbox */

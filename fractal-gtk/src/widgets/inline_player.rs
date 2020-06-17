@@ -322,11 +322,10 @@ impl VideoPlayerWidget {
 
     pub fn is_playing(&self) -> bool {
         if let Some(state) = *self.state.borrow() {
-            let is_playing = match state {
+            match state {
                 gst_player::PlayerState::Playing => true,
                 _ => false,
-            };
-            is_playing
+            }
         } else {
             false
         }

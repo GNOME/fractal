@@ -166,10 +166,10 @@ impl List {
         let middle_index = (range.0 + range.1) / 2;
         let element = &self.list[middle_index];
         let scrolled_window = self.view.get_scrolled_window();
-        let index = match get_rel_position(&scrolled_window, element) {
+        match get_rel_position(&scrolled_window, element) {
             RelativePosition::AboveSight => {
                 if range.0 == range.1 {
-                    return None;
+                    None
                 } else {
                     self.find_visible_index((range.0, middle_index))
                 }
@@ -177,13 +177,12 @@ impl List {
             RelativePosition::InSight => Some(middle_index),
             RelativePosition::BelowSight => {
                 if range.0 == range.1 {
-                    return None;
+                    None
                 } else {
                     self.find_visible_index((middle_index + 1, range.1))
                 }
             }
-        };
-        index
+        }
     }
 
     fn add_while_visible<'a, T>(&self, indices: &mut Vec<usize>, iterator: T)
@@ -498,7 +497,7 @@ impl RoomHistory {
                     source_id.borrow_mut().take();
                     return Continue(false);
                 }
-                return Continue(true);
+                Continue(true)
             }));
         }
         None
@@ -513,8 +512,7 @@ impl RoomHistory {
     /* This is a temporary function to make the listbox accessible from outside the history, it is
      * currently needed for temp messages (which should also be moved to the room history) */
     pub fn get_listbox(&self) -> gtk::ListBox {
-        let listbox = self.rows.borrow().listbox.clone();
-        listbox
+        self.rows.borrow().listbox.clone()
     }
 
     /* This adds new incomming messages at then end of the list */

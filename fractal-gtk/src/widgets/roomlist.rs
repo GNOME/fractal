@@ -486,16 +486,14 @@ impl RoomList {
             i18n("You don’t have any rooms yet").as_str(),
         );
 
-        let rl = RoomList {
+        RoomList {
             baseu,
             widget,
             adj,
             inv,
             fav,
             rooms,
-        };
-
-        rl
+        }
     }
 
     pub fn select(&self, room_id: &RoomId) {
