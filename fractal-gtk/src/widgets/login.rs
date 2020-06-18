@@ -37,12 +37,11 @@ impl LoginWidget {
         let weak_err = widget.credentials_err_label.downgrade();
 
         // Grab the focus for each state
-        let weak_ser = weak_server;
         let weak_user = weak_username.clone();
         widget
             .container
             .connect_property_visible_child_name_notify(move |container| {
-                let server = upgrade_weak!(weak_ser);
+                let server = upgrade_weak!(weak_server);
                 let username = upgrade_weak!(weak_user);
 
                 let state: LoginState = container

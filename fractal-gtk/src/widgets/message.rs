@@ -681,7 +681,7 @@ fn highlight_username(
         }
     }
 
-    let input = input.to_lowercase();
+    let mut input = input.to_lowercase();
     let bounds = label.get_selection_bounds();
     let context = label.get_style_context();
     let fg = context.lookup_color("theme_selected_bg_color")?;
@@ -690,7 +690,6 @@ fn highlight_username(
     let blue = fg.blue * 65535. + 0.5;
     let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-    let mut input = input;
     let alias = &alias.to_lowercase();
     let mut removed_char = 0;
     while input.contains(alias) {

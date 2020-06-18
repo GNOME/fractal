@@ -621,10 +621,9 @@ impl RoomList {
         let rw = self.rooms.get().widget.clone();
         let r = self.rooms.clone();
         let f = self.fav.clone();
-        let cb = acb;
         self.connect_drop(rw, move |roomid| {
             if let Some(room) = f.get().remove_room(roomid) {
-                cb(room.room.clone(), false);
+                acb(room.room.clone(), false);
                 r.get().add_room_up(room);
             }
         });
