@@ -40,6 +40,7 @@ pub struct MediaViewer {
     /* gtk widgets we need to have a reference to */
     pub builder: gtk::Builder,
     backend: Sender<BKCommand>,
+    swipe_gesture: Option<gtk::GestureSwipe>,
 }
 
 #[derive(Debug)]
@@ -226,11 +227,11 @@ impl Data {
         match self.widget {
             Widget::Video(ref mut widget) => {
                 widget.set_fullscreen_mode();
-                let media_viewport = self
+                let media_container = self
                     .builder
-                    .get_object::<gtk::Viewport>("media_viewport")
-                    .expect("Cant find media_viewport in ui file.");
-                media_viewport.show();
+                    .get_object::<gtk::EventBox>("media_container")
+                    .expect("Cant find media_container in ui file.");
+                media_container.show();
             }
             _ => {
                 self.redraw_media_in_viewport();
@@ -279,11 +280,11 @@ impl Data {
         match self.widget {
             Widget::Video(ref mut widget) => {
                 widget.set_window_mode();
-                let media_viewport = self
+                let media_container = self
                     .builder
-                    .get_object::<gtk::Viewport>("media_viewport")
-                    .expect("Cant find media_viewport in ui file.");
-                media_viewport.show_all();
+                    .get_object::<gtk::EventBox>("media_container")
+                    .expect("Cant find media_container in ui file.");
+                media_container.show_all();
                 if widget.player.is_playing() {
                     /* For some reason, if we don't replay the video, the play button,
                     which theoretically is hidden, appears next to the pause button. */
@@ -354,13 +355,13 @@ impl Data {
     }
 
     pub fn redraw_media_in_viewport(&mut self) {
-        let media_viewport = self
+        let media_container = self
             .builder
-            .get_object::<gtk::Viewport>("media_viewport")
-            .expect("Cant find media_viewport in ui file.");
+            .get_object::<gtk::EventBox>("media_container")
+            .expect("Cant find media_container in ui file.");
 
-        if let Some(child) = media_viewport.get_child() {
-            media_viewport.remove(&child);
+        if let Some(child) = media_container.get_child() {
+            media_container.remove(&child);
         }
 
         let msg = &self.media_list[self.current_media_index];
@@ -371,15 +372,15 @@ impl Data {
                     .shrink_to_fit(true)
                     .center(true)
                     .build();
-                media_viewport.add(&image.widget);
+                media_container.add(&image.widget);
                 image.widget.show();
                 self.widget = Widget::Image(image);
             }
             "m.video" => {
                 let widget = self.create_video_widget(&url);
-                media_viewport.add(&widget.outer_box);
+                media_container.add(&widget.outer_box);
                 self.widget = Widget::Video(widget);
-                media_viewport.show_all();
+                media_container.show_all();
             }
             _ => {}
         }
@@ -680,6 +681,7 @@ impl MediaViewer {
             ))),
             builder,
             backend,
+            swipe_gesture: None,
         }
     }
 
@@ -714,10 +716,10 @@ impl MediaViewer {
 
         set_header_title(&self.builder, &media_msg.body);
 
-        let media_viewport = self
+        let media_container = self
             .builder
-            .get_object::<gtk::Viewport>("media_viewport")
-            .expect("Cant find media_viewport in ui file.");
+            .get_object::<gtk::EventBox>("media_container")
+            .expect("Cant find media_container in ui file.");
 
         let url = media_msg.url.clone().unwrap_or_default();
         match media_msg.mtype.as_ref() {
@@ -728,15 +730,15 @@ impl MediaViewer {
                         .center(true)
                         .build();
 
-                media_viewport.add(&image.widget);
-                media_viewport.show_all();
+                media_container.add(&image.widget);
+                media_container.show_all();
 
                 self.data.borrow_mut().widget = Widget::Image(image);
             }
             "m.video" => {
                 let video_widget = self.data.borrow().create_video_widget(&url);
-                media_viewport.add(&video_widget.outer_box);
-                media_viewport.show_all();
+                media_container.add(&video_widget.outer_box);
+                media_container.show_all();
 
                 self.data.borrow_mut().widget = Widget::Video(video_widget);
             }
@@ -768,7 +770,7 @@ impl MediaViewer {
         });
     }
 
-    pub fn connect_media_viewer_box(&self) {
+    pub fn connect_media_viewer_box(&mut self) {
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
@@ -933,6 +935,23 @@ impl MediaViewer {
                 own.borrow_mut().next_media();
             });
         });
+
+        let media_container = self
+            .builder
+            .get_object::<gtk::EventBox>("media_container")
+            .expect("Can't find media_container in ui file.");
+        let swipe_gesture = gtk::GestureSwipe::new(&media_container);
+        let prev = previous_media_button.clone();
+        let next = next_media_button.clone();
+        swipe_gesture.connect_swipe(move |_gesture, x, _y| {
+            if x > 50.0 {
+                prev.clicked();
+            } else if x < -50.0 {
+                next.clicked();
+            }
+        });
+        self.swipe_gesture = Some(swipe_gesture);
+
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
