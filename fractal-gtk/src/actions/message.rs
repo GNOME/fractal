@@ -1,4 +1,4 @@
-use fractal_api::backend::room;
+use fractal_api::backend::{media, room, ThreadPool};
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
@@ -37,6 +37,7 @@ use crate::widgets::SourceDialog;
 
 /* This creates all actions the room history can perform */
 pub fn new(
+    thread_pool: ThreadPool,
     backend: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
@@ -145,15 +146,14 @@ pub fn new(
         }
     }));
 
-    let b = backend.clone();
     let parent_weak = parent.downgrade();
-    save_as.connect_activate(clone!(server_url => move |_, data| {
+    save_as.connect_activate(clone!(server_url, thread_pool => move |_, data| {
         if let Some(m) = get_message(data) {
             let name = m.body;
             let url = m.url.unwrap_or_default();
 
             let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
-            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url, tx));
+            media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
 
             let parent_weak = parent_weak.clone();
             gtk::timeout_add(
@@ -185,7 +185,6 @@ pub fn new(
         }
     }));
 
-    let b = backend.clone();
     copy_image.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
@@ -195,7 +194,7 @@ pub fn new(
                 Receiver<Result<String, Error>>,
             ) = channel();
 
-            let _ = b.send(BKCommand::GetMediaAsync(server_url.clone(), url.clone(), tx));
+            media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
 
             gtk::timeout_add(50, move || match rx.try_recv() {
                 Err(TryRecvError::Empty) => Continue(true),

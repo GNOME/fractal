@@ -26,7 +26,6 @@ pub enum AppState {
     AccountSettings,
     Directory,
 }
-
 impl<'a> From<&'a glib::Variant> for AppState {
     fn from(v: &glib::Variant) -> AppState {
         v.get::<String>().expect("Invalid back state type").into()

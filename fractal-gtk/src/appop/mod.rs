@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::r0::AccessToken;
@@ -10,6 +12,8 @@ use fractal_api::r0::AccessToken;
 use gtk;
 use gtk::prelude::*;
 
+use fractal_api::backend::ThreadPool;
+use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 
 use crate::backend;
@@ -49,6 +53,28 @@ mod user;
 use self::member::SearchType;
 use self::message::TmpMsg;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum RoomSearchPagination {
+    Initial,
+    Next(String),
+    NoMorePages,
+}
+
+impl From<RoomSearchPagination> for Option<String> {
+    fn from(rooms_pagination: RoomSearchPagination) -> Option<String> {
+        match rooms_pagination {
+            RoomSearchPagination::Next(rooms_since) => Some(rooms_since),
+            _ => None,
+        }
+    }
+}
+
+impl RoomSearchPagination {
+    pub fn has_more(&self) -> bool {
+        *self != RoomSearchPagination::Initial
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct LoginData {
     pub access_token: AccessToken,
@@ -71,6 +97,7 @@ pub struct AppOp {
     pub device_id: Option<String>,
 
     pub active_room: Option<RoomId>,
+    pub join_to_room: Option<RoomId>,
     pub rooms: RoomList,
     pub room_settings: Option<widgets::RoomSettings>,
     pub history: Option<widgets::RoomHistory>,
@@ -81,6 +108,7 @@ pub struct AppOp {
 
     pub media_viewer: Rc<RefCell<Option<widgets::MediaViewer>>>,
 
+    pub directory_pagination: RoomSearchPagination,
     pub state: AppState,
     pub since: Option<String>,
     pub room_back_history: Rc<RefCell<Vec<AppState>>>,
@@ -92,6 +120,9 @@ pub struct AppOp {
 
     pub directory: Vec<Room>,
     pub leaflet: libhandy::Leaflet,
+
+    pub thread_pool: ThreadPool,
+    pub user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
 }
 
 impl PasswordStorage for AppOp {}
@@ -107,6 +138,7 @@ impl AppOp {
             ui: ui,
             backend: tx,
             active_room: None,
+            join_to_room: None,
             rooms: HashMap::new(),
             room_settings: None,
             history: None,
@@ -118,6 +150,7 @@ impl AppOp {
             state: AppState::Login,
             room_back_history: Rc::new(RefCell::new(vec![])),
             roomlist: widgets::RoomList::new(None, None),
+            directory_pagination: RoomSearchPagination::Initial,
             unread_rooms: 0,
             since: None,
             unsent_messages: HashMap::new(),
@@ -131,6 +164,11 @@ impl AppOp {
 
             directory: vec![],
             leaflet: leaflet,
+
+            thread_pool: ThreadPool::new(20),
+            user_info_cache: Arc::new(Mutex::new(
+                CacheMap::new().timeout(Duration::from_secs(60 * 60)),
+            )),
         }
     }
 

@@ -2,6 +2,7 @@ use gtk;
 use gtk::prelude::*;
 use libhandy::LeafletExt;
 
+use super::RoomSearchPagination;
 use crate::actions::AppState;
 use crate::appop::AppOp;
 
@@ -78,7 +79,8 @@ impl AppOp {
         }
 
         if let AppState::Directory = self.state {
-            self.search_rooms(false);
+            self.directory_pagination = RoomSearchPagination::Initial;
+            self.search_rooms();
         }
     }
 

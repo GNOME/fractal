@@ -45,13 +45,14 @@ impl AppOp {
                 login_data.access_token,
                 login_data.uid,
             );
-            panel.display_media_viewer(msg);
-            let (body, header) = panel.create()?;
+            panel.display_media_viewer(self.thread_pool.clone(), msg);
+            let (body, header) = panel.create(self.thread_pool.clone())?;
             *self.media_viewer.borrow_mut() = Some(panel);
 
             if let Some(login_data) = self.login_data.clone() {
                 let back_history = self.room_back_history.clone();
                 let actions = actions::Message::new(
+                    self.thread_pool.clone(),
                     self.backend.clone(),
                     login_data.server_url,
                     login_data.access_token,

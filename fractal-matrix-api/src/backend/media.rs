@@ -1,4 +1,3 @@
-use crate::backend::types::Backend;
 use crate::error::Error;
 use crate::globals;
 use ruma_identifiers::{EventId, RoomId};
@@ -19,22 +18,34 @@ use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParam
 use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
 use crate::types::Message;
 
-pub fn get_thumb_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
-    bk.thread_pool.run(move || {
+use super::types::ThreadPool;
+
+pub fn get_thumb_async(
+    thread_pool: ThreadPool,
+    baseu: Url,
+    media: String,
+    tx: Sender<Result<String, Error>>,
+) {
+    thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::default_thumbnail(), None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
 
-pub fn get_media_async(bk: &Backend, baseu: Url, media: String, tx: Sender<Result<String, Error>>) {
-    bk.thread_pool.run(move || {
+pub fn get_media_async(
+    thread_pool: ThreadPool,
+    baseu: Url,
+    media: String,
+    tx: Sender<Result<String, Error>>,
+) {
+    thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::Download, None);
         tx.send(fname).expect_log("Connection closed");
     });
 }
 
 pub fn get_media_list_async(
-    bk: &Backend,
+    thread_pool: ThreadPool,
     baseu: Url,
     access_token: AccessToken,
     room_id: RoomId,
@@ -42,7 +53,7 @@ pub fn get_media_list_async(
     prev_batch: Option<String>,
     tx: Sender<(Vec<Message>, String)>,
 ) {
-    bk.thread_pool.run(move || {
+    thread_pool.run(move || {
         let media_list = prev_batch
             // FIXME: This should never be an empty token
             .or_else(|| get_prev_batch_from(baseu.clone(), access_token.clone(), &room_id, &first_media_id).ok())

@@ -2,6 +2,9 @@ use crate::i18n::i18n;
 use itertools::Itertools;
 
 use chrono::prelude::*;
+use fractal_api::backend::ThreadPool;
+use fractal_api::cache::CacheMap;
+use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
 use glib;
 use gtk;
@@ -10,6 +13,7 @@ use pango;
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 
 use crate::backend::BKCommand;
 
@@ -69,7 +73,14 @@ impl MessageBox {
     }
 
     /* create the message row with or without a header */
-    pub fn create(&mut self, msg: &Message, has_header: bool, is_temp: bool) {
+    pub fn create(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        msg: &Message,
+        has_header: bool,
+        is_temp: bool,
+    ) {
         self.set_msg_styles(msg, &self.row);
         self.row.set_selectable(false);
         let upload_attachment_msg = gtk::Box::new(gtk::Orientation::Horizontal, 10);
@@ -77,7 +88,7 @@ impl MessageBox {
             RowType::Emote => {
                 self.row.set_margin_top(12);
                 self.header = false;
-                self.small_widget(msg)
+                self.small_widget(thread_pool.clone(), msg)
             }
             RowType::Video if is_temp => {
                 upload_attachment_msg
@@ -101,11 +112,11 @@ impl MessageBox {
             _ if has_header => {
                 self.row.set_margin_top(12);
                 self.header = true;
-                self.widget(msg)
+                self.widget(thread_pool.clone(), user_info_cache, msg)
             }
             _ => {
                 self.header = false;
-                self.small_widget(msg)
+                self.small_widget(thread_pool, msg)
             }
         };
 
@@ -119,8 +130,13 @@ impl MessageBox {
         &self.row
     }
 
-    pub fn tmpwidget(mut self, msg: &Message) -> MessageBox {
-        self.create(msg, true, true);
+    pub fn tmpwidget(
+        mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        msg: &Message,
+    ) -> MessageBox {
+        self.create(thread_pool, user_info_cache, msg, true, true);
         {
             let w = self.get_listbox_row();
             w.get_style_context().add_class("msg-tmp");
@@ -128,17 +144,23 @@ impl MessageBox {
         self
     }
 
-    pub fn update_header(&mut self, msg: Message, has_header: bool) {
+    pub fn update_header(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        msg: Message,
+        has_header: bool,
+    ) {
         let w = if has_header && msg.mtype != RowType::Emote {
             self.row.set_margin_top(12);
             self.header = true;
-            self.widget(&msg)
+            self.widget(thread_pool.clone(), user_info_cache, &msg)
         } else {
             if let RowType::Emote = msg.mtype {
                 self.row.set_margin_top(12);
             }
             self.header = false;
-            self.small_widget(&msg)
+            self.small_widget(thread_pool, &msg)
         };
         match self.eventbox.get_child() {
             Some(eb) => {
@@ -150,15 +172,20 @@ impl MessageBox {
         self.row.show_all();
     }
 
-    fn widget(&mut self, msg: &Message) -> gtk::Box {
+    fn widget(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        msg: &Message,
+    ) -> gtk::Box {
         // msg
         // +--------+---------+
         // | avatar | content |
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-        let content = self.build_room_msg_content(msg, false);
+        let content = self.build_room_msg_content(thread_pool.clone(), msg, false);
         /* Todo: make build_room_msg_avatar() faster (currently ~1ms) */
-        let avatar = self.build_room_msg_avatar(msg);
+        let avatar = self.build_room_msg_avatar(thread_pool, user_info_cache, msg);
 
         msg_widget.pack_start(&avatar, false, false, 0);
         msg_widget.pack_start(&content, true, true, 0);
@@ -166,13 +193,13 @@ impl MessageBox {
         msg_widget
     }
 
-    fn small_widget(&mut self, msg: &Message) -> gtk::Box {
+    fn small_widget(&mut self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         // msg
         // +--------+---------+
         // |        | content |
         // +--------+---------+
         let msg_widget = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-        let content = self.build_room_msg_content(msg, true);
+        let content = self.build_room_msg_content(thread_pool, msg, true);
         content.set_margin_start(50);
 
         msg_widget.pack_start(&content, true, true, 0);
@@ -180,7 +207,12 @@ impl MessageBox {
         msg_widget
     }
 
-    fn build_room_msg_content(&mut self, msg: &Message, small: bool) -> gtk::Box {
+    fn build_room_msg_content(
+        &mut self,
+        thread_pool: ThreadPool,
+        msg: &Message,
+        small: bool,
+    ) -> gtk::Box {
         // content
         // +------+
         // | info |
@@ -197,11 +229,11 @@ impl MessageBox {
         }
 
         let body = match msg.mtype {
-            RowType::Sticker => self.build_room_msg_sticker(msg),
-            RowType::Image => self.build_room_msg_image(msg),
+            RowType::Sticker => self.build_room_msg_sticker(thread_pool.clone(), msg),
+            RowType::Image => self.build_room_msg_image(thread_pool.clone(), msg),
             RowType::Emote => self.build_room_msg_emote(msg),
-            RowType::Audio => self.build_room_audio_player(msg),
-            RowType::Video => self.build_room_video_player(msg),
+            RowType::Audio => self.build_room_audio_player(thread_pool.clone(), msg),
+            RowType::Video => self.build_room_video_player(thread_pool, msg),
             RowType::File => self.build_room_msg_file(msg),
             _ => self.build_room_msg_body(msg),
         };
@@ -211,7 +243,12 @@ impl MessageBox {
         content
     }
 
-    fn build_room_msg_avatar(&self, msg: &Message) -> widgets::Avatar {
+    fn build_room_msg_avatar(
+        &self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        msg: &Message,
+    ) -> widgets::Avatar {
         let uid = msg.sender.clone();
         let alias = msg.sender_name.clone();
         let avatar = widgets::Avatar::avatar_new(Some(globals::MSG_ICON_SIZE));
@@ -230,7 +267,8 @@ impl MessageBox {
         }
 
         download_to_cache(
-            self.backend.clone(),
+            thread_pool,
+            user_info_cache,
             self.server_url.clone(),
             uid.clone(),
             data.clone(),
@@ -356,7 +394,7 @@ impl MessageBox {
         msg_part
     }
 
-    fn build_room_msg_image(&mut self, msg: &Message) -> gtk::Box {
+    fn build_room_msg_image(&mut self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let img_path = match msg.thumb {
@@ -366,7 +404,7 @@ impl MessageBox {
         };
         let image = widgets::image::Image::new(&self.backend, self.server_url.clone(), &img_path)
             .size(Some(globals::MAX_IMAGE_SIZE))
-            .build();
+            .build(thread_pool);
 
         image.widget.get_style_context().add_class("image-widget");
 
@@ -378,13 +416,13 @@ impl MessageBox {
         bx
     }
 
-    fn build_room_msg_sticker(&self, msg: &Message) -> gtk::Box {
+    fn build_room_msg_sticker(&self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let backend = self.backend.clone();
         if let Some(url) = msg.url.as_ref() {
             let image = widgets::image::Image::new(&backend, self.server_url.clone(), url)
                 .size(Some(globals::MAX_STICKER_SIZE))
-                .build();
+                .build(thread_pool);
             image.widget.set_tooltip_text(Some(&msg.body[..]));
 
             bx.add(&image.widget);
@@ -393,15 +431,15 @@ impl MessageBox {
         bx
     }
 
-    fn build_room_audio_player(&self, msg: &Message) -> gtk::Box {
+    fn build_room_audio_player(&self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         let player = AudioPlayerWidget::new();
         let start_playing = false;
         PlayerExt::initialize_stream(
             &player,
-            &self.backend,
             &msg.url.clone().unwrap_or_default(),
             &self.server_url,
+            thread_pool,
             &bx,
             start_playing,
         );
@@ -438,16 +476,16 @@ impl MessageBox {
         outer_box
     }
 
-    fn build_room_video_player(&mut self, msg: &Message) -> gtk::Box {
+    fn build_room_video_player(&mut self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         let with_controls = false;
         let player = VideoPlayerWidget::new(with_controls);
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 6);
         let start_playing = false;
         PlayerExt::initialize_stream(
             &player,
-            &self.backend,
             &msg.url.clone().unwrap_or_default(),
             &self.server_url,
+            thread_pool,
             &bx,
             start_playing,
         );

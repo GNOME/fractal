@@ -1,5 +1,4 @@
 use ruma_identifiers::{EventId, RoomId, UserId};
-use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -8,11 +7,9 @@ use crate::error::Error;
 
 use crate::r0::AccessToken;
 use crate::types::Event;
-use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
 
-use crate::cache::CacheMap;
 use url::Url;
 
 #[derive(Debug)]
@@ -20,26 +17,17 @@ pub enum BKCommand {
     Login(String, String, Url, Url),
     Register(String, String, Url, Url),
     Guest(Url, Url),
-    Sync(Url, AccessToken, UserId, Option<String>, bool, u64),
-    GetThumbAsync(Url, String, Sender<Result<String, Error>>),
-    GetMediaAsync(Url, String, Sender<Result<String, Error>>),
-    GetMediaListAsync(
+    Sync(
         Url,
         AccessToken,
-        RoomId,
-        EventId,
+        UserId,
+        Option<RoomId>,
         Option<String>,
-        Sender<(Vec<Message>, String)>,
+        bool,
+        u64,
     ),
-    GetAvatarAsync(Url, Option<Member>, Sender<String>),
-    GetUserInfoAsync(Url, UserId, Option<Sender<(String, String)>>),
-    SetRoom(Url, AccessToken, RoomId),
     ShutDown,
-    DirectorySearch(Url, AccessToken, String, String, String, bool),
-    JoinRoom(Url, AccessToken, RoomId),
     AttachFile(Url, AccessToken, Message),
-    DirectChat(Url, AccessToken, UserId, Member, RoomId),
-    AcceptInv(Url, AccessToken, RoomId),
     SendBKResponse(BKResponse),
 }
 
@@ -50,21 +38,16 @@ pub enum BKResponse {
     Sync(Result<String, (Error, u64)>),
     Rooms(Result<(Vec<Room>, Option<Room>), Error>),
     UpdateRooms(Result<Vec<Room>, Error>),
-    RoomDetail(Result<(RoomId, String, String), Error>),
-    RoomAvatar(Result<(RoomId, Option<Url>), Error>),
     NewRoomAvatar(RoomId),
     RoomMemberEvent(Event),
     RoomMessages(Result<Vec<Message>, Error>),
     RoomMessagesInit(Vec<Message>),
     SentMsg(Result<(String, Option<EventId>), Error>),
-    DirectorySearch(Result<Vec<Room>, Error>),
-    JoinRoom(Result<(), Error>),
     RemoveMessage(Result<(RoomId, EventId), Error>),
     RoomName(RoomId, String),
     RoomTopic(RoomId, String),
     MediaUrl(Url),
     AttachedFile(Result<Message, Error>),
-    NewRoom(Result<Room, Error>, RoomId),
     RoomNotifications(RoomId, i32, i32),
 
     //errors
@@ -99,6 +82,11 @@ pub enum BKResponse {
     RoomMessagesToError(Error),
     MediaError(Error),
     SentMsgRedactionError(Error),
+    JoinRoomError(Error),
+    DirectorySearchError(Error),
+    NewRoomError(Error, RoomId),
+    RoomDetailError(Error),
+    RoomAvatarError(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -107,6 +95,7 @@ pub enum RoomType {
     Private,
 }
 
+#[derive(Clone, Debug)]
 pub struct ThreadPool {
     thread_count: Arc<(Mutex<u8>, Condvar)>,
     limit: u8,
@@ -149,17 +138,6 @@ impl ThreadPool {
     }
 }
 
-pub struct BackendData {
-    pub rooms_since: String,
-    pub join_to_room: Option<RoomId>,
-    pub m_direct: HashMap<UserId, Vec<RoomId>>,
-}
-
 pub struct Backend {
     pub tx: Sender<BKResponse>,
-    pub data: Arc<Mutex<BackendData>>,
-
-    // user info cache, uid -> (name, avatar)
-    pub user_info_cache: CacheMap<UserId, Arc<Mutex<(String, String)>>>,
-    pub thread_pool: ThreadPool,
 }

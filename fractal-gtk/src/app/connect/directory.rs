@@ -7,6 +7,7 @@ use gtk::prelude::*;
 use libhandy::{Column, ColumnExt};
 
 use crate::app::App;
+use crate::appop::RoomSearchPagination;
 
 impl App {
     pub fn connect_directory(&self) {
@@ -118,7 +119,9 @@ impl App {
 
         op = self.op.clone();
         q.connect_activate(move |_| {
-            op.lock().unwrap().search_rooms(false);
+            let mut op = op.lock().unwrap();
+            op.directory_pagination = RoomSearchPagination::Initial;
+            op.search_rooms();
         });
 
         default_matrix_server_radio.connect_toggled(clone!(directory_choice_label, default_matrix_server_radio, protocol_combo, other_homeserver_url_entry => move |_| {

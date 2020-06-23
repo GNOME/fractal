@@ -1,22 +1,23 @@
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-#[derive(Clone)]
-pub struct CacheMap<K: Clone, V: Clone> {
+// user info cache, uid -> (name, avatar)
+#[derive(Clone, Debug)]
+pub struct CacheMap<K: Clone + Eq + Hash, V: Clone> {
     map: HashMap<K, (Instant, V)>,
-    timeout: u64,
+    timeout: Duration,
 }
 
 impl<K: Clone + Eq + Hash, V: Clone> CacheMap<K, V> {
     pub fn new() -> Self {
         CacheMap {
             map: HashMap::new(),
-            timeout: 10,
+            timeout: Duration::from_secs(10),
         }
     }
 
-    pub fn timeout(mut self, timeout: u64) -> Self {
+    pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }
@@ -24,7 +25,7 @@ impl<K: Clone + Eq + Hash, V: Clone> CacheMap<K, V> {
     pub fn get(&self, k: &K) -> Option<&V> {
         match self.map.get(k) {
             Some(t) => {
-                if t.0.elapsed().as_secs() >= self.timeout {
+                if t.0.elapsed() >= self.timeout {
                     return None;
                 }
                 Some(&t.1)

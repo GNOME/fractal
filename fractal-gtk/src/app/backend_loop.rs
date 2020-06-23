@@ -32,6 +32,8 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let clear_room_list = true;
                     APPOP!(set_rooms, (rooms, clear_room_list));
                     // Open the newly joined room
+                    let jtr = default.as_ref().map(|r| r.id.clone());
+                    APPOP!(set_join_to_room, (jtr));
                     if let Some(room) = default {
                         let room_id = room.id;
                         APPOP!(set_active_room_by_id, (room_id));
@@ -40,13 +42,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 BKResponse::UpdateRooms(Ok(rooms)) => {
                     let clear_room_list = false;
                     APPOP!(set_rooms, (rooms, clear_room_list));
-                }
-                BKResponse::RoomDetail(Ok((room, key, value))) => {
-                    let v = Some(value);
-                    APPOP!(set_room_detail, (room, key, v));
-                }
-                BKResponse::RoomAvatar(Ok((room, avatar))) => {
-                    APPOP!(set_room_avatar, (room, avatar));
                 }
                 BKResponse::RoomMessages(Ok(msgs)) => {
                     APPOP!(show_room_messages, (msgs));
@@ -57,13 +52,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let number_tries = 0;
                     APPOP!(sync, (initial, number_tries));
                 }
-                BKResponse::DirectorySearch(Ok(rooms)) => {
-                    APPOP!(append_directory_rooms, (rooms));
-                }
 
-                BKResponse::JoinRoom(Ok(_)) => {
-                    APPOP!(reload_rooms);
-                }
                 BKResponse::RemoveMessage(Ok((room, msg))) => {
                     APPOP!(remove_message, (room, msg));
                 }
@@ -86,10 +75,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                 }
                 BKResponse::AttachedFile(Ok(msg)) => {
                     APPOP!(attached_file, (msg));
-                }
-                BKResponse::NewRoom(Ok(r), internal_id) => {
-                    let id = Some(internal_id);
-                    APPOP!(new_room, (r, id));
                 }
 
                 // errors
@@ -155,7 +140,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     );
                     APPOP!(show_error_dialog_in_settings, (error));
                 }
-                BKResponse::NewRoom(Err(err), internal_id) => {
+                BKResponse::NewRoomError(err, internal_id) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "{}",
@@ -168,7 +153,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(show_error, (error));
                     APPOP!(set_state, (state));
                 }
-                BKResponse::JoinRoom(Err(err)) => {
+                BKResponse::JoinRoomError(err) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "{}",
@@ -216,7 +201,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     let error = i18n("Error deleting message");
                     APPOP!(show_error, (error));
                 }
-                BKResponse::DirectoryProtocolsError(_) | BKResponse::DirectorySearch(Err(_)) => {
+                BKResponse::DirectoryProtocolsError(_) | BKResponse::DirectorySearchError(_) => {
                     let error = i18n("Error searching for rooms");
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));

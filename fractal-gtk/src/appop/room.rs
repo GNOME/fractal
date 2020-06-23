@@ -16,8 +16,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::backend;
-use crate::backend::BKCommand;
-use crate::backend::BKResponse;
+use crate::backend::{BKCommand, BKResponse};
 use fractal_api::util::cache_dir_path;
 
 use crate::actions;
@@ -107,7 +106,7 @@ impl AppOp {
                             APPOP!(set_room_avatar, (room, avatar));
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
                                 .expect_log("Connection closed");
                         }
                     },
@@ -180,6 +179,10 @@ impl AppOp {
         self.set_state(AppState::NoRoom);
     }
 
+    pub fn set_join_to_room(&mut self, jtr: Option<RoomId>) {
+        self.join_to_room = jtr;
+    }
+
     pub fn set_active_room_by_id(&mut self, id: RoomId) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(room) = self.rooms.get(&id) {
@@ -247,13 +250,38 @@ impl AppOp {
         self.roomlist.select(&active_room);
 
         // getting room details
-        self.backend
-            .send(BKCommand::SetRoom(
-                login_data.server_url.clone(),
-                login_data.access_token.clone(),
-                active_room.clone(),
-            ))
-            .unwrap();
+        let server_url = login_data.server_url.clone();
+        let access_token = login_data.access_token.clone();
+        let a_room = active_room.clone();
+        let tx = self.backend.clone();
+        thread::spawn(
+            move || match room::get_room_avatar(server_url, access_token, a_room) {
+                Ok((room, avatar)) => {
+                    APPOP!(set_room_avatar, (room, avatar));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                        .expect_log("Connection closed");
+                }
+            },
+        );
+
+        let server_url = login_data.server_url.clone();
+        let access_token = login_data.access_token.clone();
+        let a_room = active_room.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            match room::get_room_detail(server_url, access_token, a_room, "m.room.topic".into()) {
+                Ok((room, key, value)) => {
+                    let v = Some(value);
+                    APPOP!(set_room_detail, (room, key, v));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomDetailError(err)))
+                        .expect_log("Connection closed");
+                }
+            }
+        });
 
         /* create the intitial list of messages to fill the new room history */
         let mut messages = vec![];
@@ -282,6 +310,7 @@ impl AppOp {
 
         let back_history = self.room_back_history.clone();
         let actions = actions::Message::new(
+            self.thread_pool.clone(),
             self.backend.clone(),
             login_data.server_url,
             login_data.access_token,
@@ -290,7 +319,11 @@ impl AppOp {
         );
         let history = widgets::RoomHistory::new(actions, active_room.clone(), self);
         self.history = if let Some(mut history) = history {
-            history.create(messages);
+            history.create(
+                self.thread_pool.clone(),
+                self.user_info_cache.clone(),
+                messages,
+            );
             Some(history)
         } else {
             None
@@ -396,9 +429,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoom(
-                        Err(err),
-                        int_id,
+                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoomError(
+                        err, int_id,
                     )))
                     .expect_log("Connection closed");
                 }
@@ -541,24 +573,24 @@ impl AppOp {
             .get_text()
             .map_or(String::new(), |gstr| gstr.to_string());
 
-        match RoomId::try_from(name.trim()) {
-            Ok(room_id) => {
-                self.backend
-                    .send(BKCommand::JoinRoom(
-                        login_data.server_url,
-                        login_data.access_token,
-                        room_id,
-                    ))
-                    .unwrap();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            match RoomId::try_from(name.trim())
+                .map_err(Into::into)
+                .and_then(|room_id| {
+                    room::join_room(login_data.server_url, login_data.access_token, room_id)
+                }) {
+                Ok(jtr) => {
+                    let jtr = Some(jtr);
+                    APPOP!(set_join_to_room, (jtr));
+                    APPOP!(reload_rooms);
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                        .expect_log("Connection closed");
+                }
             }
-            Err(err) => {
-                self.backend
-                    .send(BKCommand::SendBKResponse(BKResponse::JoinRoom(Err(
-                        err.into()
-                    ))))
-                    .unwrap();
-            }
-        }
+        });
     }
 
     pub fn new_room(&mut self, r: Room, internal_id: Option<RoomId>) {
@@ -700,7 +732,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatar(Err(err))))
+                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
                         .expect_log("Connection closed");
                 }
             }

@@ -20,12 +20,11 @@ use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
 use crate::util::matrix_response;
-use crate::util::parse_m_direct;
 use crate::util::ResultExpectLog;
 
 use log::error;
 use reqwest::blocking::Client;
-use ruma_identifiers::UserId;
+use ruma_identifiers::{RoomId, UserId};
 use serde_json::value::from_value;
 use std::{
     convert::{TryFrom, TryInto},
@@ -39,12 +38,12 @@ pub fn sync(
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
+    join_to_room: Option<RoomId>,
     since: Option<String>,
     initial: bool,
     number_tries: u64,
 ) {
     let tx = bk.tx.clone();
-    let data = bk.data.clone();
 
     let (timeout, filter) = if !initial {
         (time::Duration::from_secs(30), Default::default())
@@ -245,18 +244,13 @@ pub fn sync(
                             }
                         });
                 } else {
-                    data.lock().unwrap().m_direct = parse_m_direct(&response.account_data.events);
-
-                    let rooms_def =
-                        Room::from_sync_response(&response, user_id, base)
-                            .map(|rooms| {
-                                let def =
-                                    data.lock().unwrap().join_to_room.as_ref().and_then(|jtr| {
-                                        rooms.iter().find(|x| x.id == *jtr).cloned()
-                                    });
-                                (rooms, def)
-                            })
-                            .map_err(Into::into);
+                    let rooms_def = Room::from_sync_response(&response, user_id, base)
+                        .map(|rooms| {
+                            let def = join_to_room
+                                .and_then(|jtr| rooms.iter().find(|x| x.id == jtr).cloned());
+                            (rooms, def)
+                        })
+                        .map_err(Into::into);
                     tx.send(BKResponse::Rooms(rooms_def))
                         .expect_log("Connection closed");
                 }

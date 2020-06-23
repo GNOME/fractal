@@ -2,15 +2,11 @@ use url::{Host, Url};
 
 use crate::globals;
 
-use crate::backend::types::BKResponse;
-use crate::backend::types::Backend;
 use crate::error::Error;
-use std::thread;
 
 use crate::util::cache_dir_path;
 use crate::util::dw_media;
 use crate::util::ContentType;
-use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
 use crate::r0::directory::post_public_rooms::request as post_public_rooms;
@@ -39,18 +35,17 @@ pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolIns
 }
 
 pub fn room_search(
-    bk: &Backend,
     base: Url,
     access_token: AccessToken,
-    homeserver: Option<String>, // TODO: Use HostAndPort?
-    generic_search_term: Option<String>,
-    third_party: Option<String>,
-    more: bool,
-) -> Result<(), Error> {
-    let tx = bk.tx.clone();
-    let data = bk.data.clone();
+    homeserver: String, // TODO: Option<Use HostAndPort>?
+    generic_search_term: String,
+    third_party: String,
+    rooms_since: Option<String>,
+) -> Result<(Vec<Room>, Option<String>), Error> {
+    let homeserver = Some(homeserver).filter(|hs| !hs.is_empty());
+    let generic_search_term = Some(generic_search_term).filter(|q| !q.is_empty());
+    let third_party = Some(third_party).filter(|tp| !tp.is_empty());
 
-    // TODO: use transpose() when it is stabilized
     let server = homeserver
         .map(|hs| {
             Url::parse(&hs)
@@ -65,12 +60,6 @@ pub fn room_search(
         })
         .unwrap_or(Ok(None))?;
 
-    let since = if more {
-        Some(data.lock().unwrap().rooms_since.clone())
-    } else {
-        None
-    };
-
     let params = PublicRoomsParameters {
         access_token,
         server,
@@ -81,47 +70,28 @@ pub fn room_search(
         filter: Some(PublicRoomsFilter {
             generic_search_term,
         }),
-        since,
+        since: rooms_since,
         third_party_networks: third_party
             .map(ThirdPartyNetworks::Only)
             .unwrap_or_default(),
     };
 
-    thread::spawn(move || {
-        let query = post_public_rooms(base.clone(), &params, &body)
-            .map_err(Into::into)
-            .and_then(|request| {
-                HTTP_CLIENT
-                    .get_client()?
-                    .execute(request)?
-                    .json::<PublicRoomsResponse>()
-                    .map_err(Into::into)
-            })
-            .map(|response| {
-                data.lock().unwrap().rooms_since = response.next_batch.unwrap_or_default();
+    let request = post_public_rooms(base.clone(), &params, &body)?;
+    let response: PublicRoomsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
-                response
-                    .chunk
-                    .into_iter()
-                    .map(Into::into)
-                    .inspect(|r: &Room| {
-                        if let Some(avatar) = r.avatar.clone() {
-                            if let Ok(dest) = cache_dir_path(None, &r.id.to_string()) {
-                                let _ = dw_media(
-                                    base.clone(),
-                                    &avatar,
-                                    ContentType::Download,
-                                    Some(dest),
-                                );
-                            }
-                        }
-                    })
-                    .collect()
-            });
+    let since = response.next_batch;
+    let rooms = response
+        .chunk
+        .into_iter()
+        .map(Into::into)
+        .inspect(|r: &Room| {
+            if let Some(avatar) = r.avatar.clone() {
+                if let Ok(dest) = cache_dir_path(None, &r.id.to_string()) {
+                    let _ = dw_media(base.clone(), &avatar, ContentType::Download, Some(dest));
+                }
+            }
+        })
+        .collect();
 
-        tx.send(BKResponse::DirectorySearch(query))
-            .expect_log("Connection closed");
-    });
-
-    Ok(())
+    Ok((rooms, since))
 }

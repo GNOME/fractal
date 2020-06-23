@@ -12,6 +12,7 @@ use crate::appop::AppOp;
 use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 
+use super::RoomSearchPagination;
 use crate::types::Room;
 use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 
@@ -47,7 +48,7 @@ impl AppOp {
         }
     }
 
-    pub fn search_rooms(&mut self, more: bool) {
+    pub fn search_rooms(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let other_protocol_radio = self
             .ui
@@ -107,7 +108,7 @@ impl AppOp {
             String::new()
         };
 
-        if !more {
+        if !self.directory_pagination.has_more() {
             let directory = self
                 .ui
                 .builder
@@ -134,23 +135,48 @@ impl AppOp {
             q.set_sensitive(false);
         }
 
-        self.backend
-            .send(BKCommand::DirectorySearch(
+        let search_term = q.get_text().unwrap().to_string();
+        if let RoomSearchPagination::NoMorePages = self.directory_pagination {
+            // there are no more rooms. We don't need to request for more
+            return;
+        }
+
+        let rooms_since = self.directory_pagination.clone().into();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            let query = directory::room_search(
                 login_data.server_url,
                 login_data.access_token,
                 homeserver,
-                q.get_text().unwrap().to_string(),
+                search_term,
                 protocol,
-                more,
-            ))
-            .unwrap();
+                rooms_since,
+            );
+
+            match query {
+                Ok((rooms, rooms_since)) => {
+                    APPOP!(append_directory_rooms, (rooms, rooms_since));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::DirectorySearchError(
+                        err,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
+        });
     }
 
+    #[inline]
     pub fn load_more_rooms(&mut self) {
-        self.search_rooms(true);
+        self.search_rooms();
     }
 
-    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>) {
+    pub fn append_directory_rooms(&mut self, rooms: Vec<Room>, rooms_since: Option<String>) {
+        self.directory_pagination = rooms_since
+            .map(RoomSearchPagination::Next)
+            .unwrap_or(RoomSearchPagination::NoMorePages);
+
         let directory = self
             .ui
             .builder

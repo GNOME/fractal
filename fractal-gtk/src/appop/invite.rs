@@ -7,6 +7,7 @@ use gtk;
 use gtk::prelude::*;
 use std::thread;
 
+use crate::app::App;
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
 
@@ -225,16 +226,23 @@ impl AppOp {
     pub fn accept_inv(&mut self, accept: bool) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(rid) = self.invitation_roomid.take() {
+            let room_id = rid.clone();
             if accept {
-                self.backend
-                    .send(BKCommand::AcceptInv(
-                        login_data.server_url,
-                        login_data.access_token,
-                        rid.clone(),
-                    ))
-                    .unwrap();
+                let tx = self.backend.clone();
+                thread::spawn(move || {
+                    match room::join_room(login_data.server_url, login_data.access_token, room_id) {
+                        Ok(jtr) => {
+                            let jtr = Some(jtr);
+                            APPOP!(set_join_to_room, (jtr));
+                            APPOP!(reload_rooms);
+                        }
+                        Err(err) => {
+                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                                .expect_log("Connection closed");
+                        }
+                    }
+                });
             } else {
-                let room_id = rid.clone();
                 let tx = self.backend.clone();
                 thread::spawn(move || {
                     let query =

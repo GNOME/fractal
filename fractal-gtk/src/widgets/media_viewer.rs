@@ -1,3 +1,5 @@
+use fractal_api::backend::media;
+use fractal_api::backend::ThreadPool;
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
 use gdk;
@@ -186,7 +188,7 @@ impl Data {
         }
     }
 
-    pub fn enter_full_screen(&mut self) {
+    pub fn enter_full_screen(&mut self, thread_pool: ThreadPool) {
         self.main_window.fullscreen();
         self.is_fullscreen = true;
 
@@ -233,12 +235,12 @@ impl Data {
                 media_viewport.show();
             }
             _ => {
-                self.redraw_media_in_viewport();
+                self.redraw_media_in_viewport(thread_pool);
             }
         }
     }
 
-    pub fn leave_full_screen(&mut self) {
+    pub fn leave_full_screen(&mut self, thread_pool: ThreadPool) {
         self.main_window.unfullscreen();
         self.is_fullscreen = false;
 
@@ -292,7 +294,7 @@ impl Data {
                 }
             }
             _ => {
-                self.redraw_media_in_viewport();
+                self.redraw_media_in_viewport(thread_pool);
             }
         }
     }
@@ -321,7 +323,7 @@ impl Data {
         }
     }
 
-    pub fn previous_media(&mut self) -> bool {
+    pub fn previous_media(&mut self, thread_pool: ThreadPool) -> bool {
         if self.no_more_media {
             return true;
         }
@@ -335,12 +337,12 @@ impl Data {
                 set_header_title(&self.builder, name);
             }
 
-            self.redraw_media_in_viewport();
+            self.redraw_media_in_viewport(thread_pool);
             return true;
         }
     }
 
-    pub fn next_media(&mut self) {
+    pub fn next_media(&mut self, thread_pool: ThreadPool) {
         if self.current_media_index >= self.media_list.len() - 1 {
             return;
         }
@@ -350,10 +352,10 @@ impl Data {
             set_header_title(&self.builder, name);
         }
 
-        self.redraw_media_in_viewport();
+        self.redraw_media_in_viewport(thread_pool);
     }
 
-    pub fn redraw_media_in_viewport(&mut self) {
+    pub fn redraw_media_in_viewport(&mut self, thread_pool: ThreadPool) {
         let media_viewport = self
             .builder
             .get_object::<gtk::Viewport>("media_viewport")
@@ -370,13 +372,13 @@ impl Data {
                 let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
                     .shrink_to_fit(true)
                     .center(true)
-                    .build();
+                    .build(thread_pool);
                 media_viewport.add(&image.widget);
                 image.widget.show();
                 self.widget = Widget::Image(image);
             }
             "m.video" => {
-                let widget = self.create_video_widget(&url);
+                let widget = self.create_video_widget(thread_pool, &url);
                 media_viewport.add(&widget.outer_box);
                 self.widget = Widget::Video(widget);
                 media_viewport.show_all();
@@ -388,16 +390,16 @@ impl Data {
         self.set_nav_btn_visibility();
     }
 
-    fn create_video_widget(&self, url: &String) -> VideoWidget {
+    fn create_video_widget(&self, thread_pool: ThreadPool, url: &String) -> VideoWidget {
         let with_controls = true;
         let player = VideoPlayerWidget::new(with_controls);
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let start_playing = true;
         PlayerExt::initialize_stream(
             &player,
-            &self.backend,
             url,
             &self.server_url.clone(),
+            thread_pool,
             &bx,
             start_playing,
         );
@@ -683,7 +685,7 @@ impl MediaViewer {
         }
     }
 
-    pub fn create(&mut self) -> Option<(gtk::Box, gtk::Box)> {
+    pub fn create(&mut self, thread_pool: ThreadPool) -> Option<(gtk::Box, gtk::Box)> {
         let body = self
             .builder
             .get_object::<gtk::Box>("media_viewer_box")
@@ -692,14 +694,14 @@ impl MediaViewer {
             .builder
             .get_object::<gtk::Box>("media_viewer_headerbar_box")
             .expect("Can't find media_viewer_headerbar in ui file.");
-        self.connect_media_viewer_headerbar();
-        self.connect_media_viewer_box();
+        self.connect_media_viewer_headerbar(thread_pool.clone());
+        self.connect_media_viewer_box(thread_pool);
         self.connect_stop_video_when_leaving();
 
         Some((body, header))
     }
 
-    pub fn display_media_viewer(&mut self, media_msg: Message) {
+    pub fn display_media_viewer(&mut self, thread_pool: ThreadPool, media_msg: Message) {
         let previous_media_revealer = self
             .builder
             .get_object::<gtk::Revealer>("previous_media_revealer")
@@ -726,7 +728,7 @@ impl MediaViewer {
                     image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
                         .shrink_to_fit(true)
                         .center(true)
-                        .build();
+                        .build(thread_pool.clone());
 
                 media_viewport.add(&image.widget);
                 media_viewport.show_all();
@@ -734,7 +736,7 @@ impl MediaViewer {
                 self.data.borrow_mut().widget = Widget::Image(image);
             }
             "m.video" => {
-                let video_widget = self.data.borrow().create_video_widget(&url);
+                let video_widget = self.data.borrow().create_video_widget(thread_pool, &url);
                 media_viewport.add(&video_widget.outer_box);
                 media_viewport.show_all();
 
@@ -748,7 +750,7 @@ impl MediaViewer {
     }
 
     /* connect media viewer headerbar */
-    pub fn connect_media_viewer_headerbar(&self) {
+    pub fn connect_media_viewer_headerbar(&self, thread_pool: ThreadPool) {
         let own_weak = Rc::downgrade(&self.data);
         let full_screen_button = self
             .builder
@@ -759,16 +761,16 @@ impl MediaViewer {
                 let main_window = own.borrow().main_window.clone();
                 if let Some(win) = main_window.get_window() {
                     if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
-                        own.borrow_mut().enter_full_screen();
+                        own.borrow_mut().enter_full_screen(thread_pool.clone());
                     } else {
-                        own.borrow_mut().leave_full_screen()
+                        own.borrow_mut().leave_full_screen(thread_pool.clone())
                     }
                 }
             });
         });
     }
 
-    pub fn connect_media_viewer_box(&self) {
+    pub fn connect_media_viewer_box(&self, thread_pool: ThreadPool) {
         let full_screen_button = self
             .builder
             .get_object::<gtk::Button>("full_screen_button")
@@ -915,10 +917,16 @@ impl MediaViewer {
             .builder
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
+        let t_pool = thread_pool.clone();
         previous_media_button.connect_clicked(move |_| {
             own_weak.upgrade().map(|own| {
-                if !own.borrow_mut().previous_media() {
-                    load_more_media(own.clone(), builder.clone(), backend.clone());
+                if !own.borrow_mut().previous_media(t_pool.clone()) {
+                    load_more_media(
+                        t_pool.clone(),
+                        own.clone(),
+                        builder.clone(),
+                        backend.clone(),
+                    );
                 }
             });
         });
@@ -930,7 +938,7 @@ impl MediaViewer {
             .expect("Cant find next_media_button in ui file.");
         next_media_button.connect_clicked(move |_| {
             own_weak.upgrade().map(|own| {
-                own.borrow_mut().next_media();
+                own.borrow_mut().next_media(thread_pool.clone());
             });
         });
         let full_screen_button = self
@@ -1037,7 +1045,12 @@ fn loading_state(ui: &gtk::Builder, val: bool) -> bool {
     val
 }
 
-fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Sender<BKCommand>) {
+fn load_more_media(
+    thread_pool: ThreadPool,
+    data: Rc<RefCell<Data>>,
+    builder: gtk::Builder,
+    backend: Sender<BKCommand>,
+) {
     data.borrow_mut().loading_more_media = loading_state(&builder, true);
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
@@ -1051,16 +1064,15 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
         Sender<(Vec<Message>, String)>,
         Receiver<(Vec<Message>, String)>,
     ) = channel();
-    backend
-        .send(BKCommand::GetMediaListAsync(
-            server_url,
-            access_token,
-            roomid,
-            first_media_id,
-            prev_batch,
-            tx,
-        ))
-        .unwrap();
+    media::get_media_list_async(
+        thread_pool.clone(),
+        server_url,
+        access_token,
+        roomid,
+        first_media_id,
+        prev_batch,
+        tx,
+    );
 
     let ui = builder.clone();
     let data_weak = Rc::downgrade(&data);
@@ -1082,6 +1094,7 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                 });
                 return Continue(false);
             }
+            let thread_pool = thread_pool.clone();
             data_weak.upgrade().map(|data| {
                 let media_list = data.borrow().media_list.clone();
                 let img_msgs: Vec<Message> = msgs
@@ -1094,10 +1107,15 @@ fn load_more_media(data: Rc<RefCell<Data>>, builder: gtk::Builder, backend: Send
                 data.borrow_mut().media_list = new_media_list;
                 data.borrow_mut().prev_batch = Some(prev_batch);
                 if img_msgs_count == 0 {
-                    load_more_media(data.clone(), builder.clone(), backend.clone());
+                    load_more_media(
+                        thread_pool.clone(),
+                        data.clone(),
+                        builder.clone(),
+                        backend.clone(),
+                    );
                 } else {
                     data.borrow_mut().current_media_index += img_msgs_count;
-                    data.borrow_mut().previous_media();
+                    data.borrow_mut().previous_media(thread_pool);
                     data.borrow_mut().loading_more_media = loading_state(&ui, false);
                 }
             });

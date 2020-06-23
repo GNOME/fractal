@@ -1,12 +1,16 @@
+use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
+use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
+use std::thread;
 
 use crate::actions::AppState;
+use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::SearchType;
 
-use crate::backend::BKCommand;
+use crate::backend::{BKCommand, BKResponse};
 use crate::types::{Room, RoomMembership, RoomTag};
 
 impl AppOp {
@@ -20,15 +24,30 @@ impl AppOp {
 
         let internal_id = RoomId::new(&login_data.server_url.to_string())
             .expect("The server domain should have been validated");
-        self.backend
-            .send(BKCommand::DirectChat(
+
+        let int_id = internal_id.clone();
+        let member = user.0.clone();
+        let tx = self.backend.clone();
+        thread::spawn(move || {
+            match room::direct_chat(
                 login_data.server_url,
                 login_data.access_token,
                 login_data.uid,
-                user.0.clone(),
-                internal_id.clone(),
-            ))
-            .unwrap();
+                member,
+            ) {
+                Ok(r) => {
+                    let id = Some(int_id);
+                    APPOP!(new_room, (r, id));
+                }
+                Err(err) => {
+                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoomError(
+                        err, int_id,
+                    )))
+                    .expect_log("Connection closed");
+                }
+            }
+        });
+
         self.close_direct_chat_dialog();
 
         let fakeroom = Room {

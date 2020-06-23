@@ -61,10 +61,14 @@ impl<'a> MemberBox<'a> {
             badge,
             None,
         );
-        let backend = self.op.backend.clone();
-        let member_id = self.member.uid.clone();
         if let Some(login_data) = self.op.login_data.clone() {
-            download_to_cache(backend, login_data.server_url, member_id, data);
+            download_to_cache(
+                self.op.thread_pool.clone(),
+                self.op.user_info_cache.clone(),
+                login_data.server_url,
+                self.member.uid.clone(),
+                data,
+            );
         };
 
         avatar.set_margin_start(3);
@@ -101,10 +105,14 @@ impl<'a> MemberBox<'a> {
             None,
             None,
         );
-        let backend = self.op.backend.clone();
-        let member_id = self.member.uid.clone();
         if let Some(login_data) = self.op.login_data.clone() {
-            download_to_cache(backend, login_data.server_url, member_id, data);
+            download_to_cache(
+                self.op.thread_pool.clone(),
+                self.op.user_info_cache.clone(),
+                login_data.server_url,
+                self.member.uid.clone(),
+                data,
+            );
         };
 
         avatar.set_margin_start(3);
