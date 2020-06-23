@@ -1,7 +1,6 @@
 use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 use std::thread;
 
@@ -73,10 +72,13 @@ impl AppOp {
             .get_object::<gtk::Widget>("direct_chat_search_scroll")
             .expect("Can't find direct_chat_search_scroll in ui file.");
         self.search_type = SearchType::DirectChat;
-        self.ui
+        if let Some(btn) = self
+            .ui
             .builder
             .get_object::<gtk::Button>("direct_chat_button")
-            .map(|btn| btn.set_sensitive(false));
+        {
+            btn.set_sensitive(false)
+        }
         dialog.present();
         scroll.hide();
     }

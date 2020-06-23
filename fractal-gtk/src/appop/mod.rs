@@ -9,7 +9,6 @@ use std::time::Duration;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::r0::AccessToken;
 
-use gtk;
 use gtk::prelude::*;
 
 use fractal_api::backend::ThreadPool;
@@ -135,7 +134,7 @@ impl AppOp {
             .expect("Couldn't find header_leaflet in ui file");
 
         AppOp {
-            ui: ui,
+            ui,
             backend: tx,
             active_room: None,
             join_to_room: None,
@@ -163,7 +162,7 @@ impl AppOp {
             search_type: SearchType::Invite,
 
             directory: vec![],
-            leaflet: leaflet,
+            leaflet,
 
             thread_pool: ThreadPool::new(20),
             user_info_cache: Arc::new(Mutex::new(

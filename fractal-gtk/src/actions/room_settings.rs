@@ -6,8 +6,6 @@ use fractal_api::util::ResultExpectLog;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
-use glib;
-use gtk;
 use std::convert::TryFrom;
 use std::sync::mpsc::Sender;
 use std::thread;

@@ -1,6 +1,4 @@
-use gtk;
 use gtk::prelude::*;
-use pango;
 
 use crate::types::Member;
 
@@ -19,10 +17,7 @@ pub struct MemberBox<'a> {
 
 impl<'a> MemberBox<'a> {
     pub fn new(member: &'a Member, op: &'a AppOp) -> MemberBox<'a> {
-        MemberBox {
-            member: member,
-            op: op,
-        }
+        MemberBox { member, op }
     }
 
     pub fn widget(&self, show_uid: bool) -> gtk::EventBox {
@@ -56,7 +51,7 @@ impl<'a> MemberBox<'a> {
         };
         let data = avatar.circle(
             self.member.uid.to_string(),
-            Some(alias.clone()),
+            Some(alias),
             globals::USERLIST_ICON_SIZE,
             badge,
             None,

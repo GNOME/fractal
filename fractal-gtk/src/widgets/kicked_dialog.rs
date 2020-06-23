@@ -1,5 +1,4 @@
 use crate::i18n::i18n_f;
-use gtk;
 use gtk::prelude::*;
 
 struct Widgets {

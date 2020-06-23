@@ -5,10 +5,8 @@ use fractal_api::identifiers::RoomId;
 use gio::Action;
 use gio::ActionExt;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 
-use libhandy;
 use libhandy::ColumnExt;
 
 #[allow(dead_code)]
@@ -94,13 +92,13 @@ impl Widgets {
         container.get_style_context().add_class("messages-box");
         container.add(&column);
 
-        view.get_vadjustment().map(|adj| {
-            view.get_child().map(|child| {
-                child.downcast_ref::<gtk::Container>().map(|container| {
+        if let Some(adj) = view.get_vadjustment() {
+            if let Some(child) = view.get_child() {
+                if let Some(container) = child.downcast_ref::<gtk::Container>() {
                     container.set_focus_vadjustment(&adj);
-                });
-            });
-        });
+                }
+            }
+        }
 
         /* add a load more Spinner */
         let spinner = gtk::Spinner::new();
@@ -130,12 +128,12 @@ impl ScrollWidget {
         let upper = widgets
             .view
             .get_vadjustment()
-            .and_then(|adj| Some(adj.get_upper()))
+            .map(|adj| adj.get_upper())
             .unwrap_or_default();
         let value = widgets
             .view
             .get_vadjustment()
-            .and_then(|adj| Some(adj.get_value()))
+            .map(|adj| adj.get_value())
             .unwrap_or_default();
 
         let mut scroll = ScrollWidget {
@@ -195,7 +193,7 @@ impl ScrollWidget {
                 let r = revealer.upgrade()?;
 
                 let bottom = adj.get_upper() - adj.get_page_size();
-                if adj.get_value() == bottom {
+                if (adj.get_value() - bottom).abs() < std::f64::EPSILON {
                     r.set_reveal_child(false);
                     autoscroll.set(true);
                 } else {
@@ -279,7 +277,7 @@ impl ScrollWidget {
     }
 
     pub fn typing_notification(&self, typing_str: &str) {
-        if typing_str.len() == 0 {
+        if typing_str.is_empty() {
             self.widgets.typing_label.set_visible(false);
         } else {
             self.widgets.typing_label.set_visible(true);
@@ -301,7 +299,7 @@ pub fn page_down(sw: gtk::ScrolledWindow) {
 }
 
 /* Functions to animate the scroll */
-fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
+fn scroll_down(view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
     let adj = view.get_vadjustment()?;
     if animate {
         let clock = view.get_frame_clock()?;
@@ -314,7 +312,9 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
             let view = view.downcast_ref::<gtk::ScrolledWindow>().unwrap();
             if let Some(adj) = view.get_vadjustment() {
                 let end = adj.get_upper() - adj.get_page_size();
-                if now < end_time && adj.get_value().round() != end.round() {
+                if now < end_time
+                    && (adj.get_value().round() - end.round()).abs() > std::f64::EPSILON
+                {
                     let mut t = (now - start_time) as f64 / (end_time - start_time) as f64;
                     t = ease_out_cubic(t);
                     adj.set_value(start + t * (end - start));
@@ -337,7 +337,7 @@ fn scroll_down(ref view: &gtk::ScrolledWindow, animate: bool) -> Option<()> {
  */
 fn ease_out_cubic(t: f64) -> f64 {
     let p = t - 1f64;
-    return p * p * p + 1f64;
+    p * p * p + 1f64
 }
 
 /* create load more spinner for the listbox */

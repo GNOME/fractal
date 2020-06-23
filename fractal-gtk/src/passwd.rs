@@ -3,7 +3,6 @@ use fractal_api::identifiers::{Error as IdError, UserId};
 use fractal_api::r0::AccessToken;
 use fractal_api::url::ParseError;
 use fractal_api::url::Url;
-use secret_service;
 
 #[derive(Debug)]
 pub enum Error {
@@ -61,8 +60,8 @@ mod ss_storage {
     use fractal_api::url::Url;
     use std::convert::TryFrom;
 
-    use super::secret_service::EncryptionType;
-    use super::secret_service::SecretService;
+    use secret_service::EncryptionType;
+    use secret_service::SecretService;
 
     use crate::globals;
 
@@ -128,7 +127,7 @@ mod ss_storage {
 
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "uid")
+            .find(|x| x.0 == "uid")
             .ok_or(Error::SecretServiceError)?;
         let uid = UserId::try_from(attr.1.as_str())?;
 
@@ -186,18 +185,18 @@ mod ss_storage {
 
         let mut attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "username")
+            .find(|x| x.0 == "username")
             .ok_or(Error::SecretServiceError)?;
         let username = attr.1.clone();
         attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "server")
+            .find(|x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
         let server = Url::parse(&attr.1)?;
         let pwd = String::from_utf8(secret).unwrap();
 
         // removing old
-        for p in passwd {
+        if let Some(p) = passwd {
             p.delete()?;
         }
         /* Fallback to default identity server if there is none */
@@ -231,16 +230,16 @@ mod ss_storage {
 
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "username")
+            .find(|x| x.0 == "username")
             .ok_or(Error::SecretServiceError)?;
         let username = attr.1.clone();
         let attr = attrs
             .iter()
-            .find(|&ref x| x.0 == "server")
+            .find(|x| x.0 == "server")
             .ok_or(Error::SecretServiceError)?;
         let server = Url::parse(&attr.1)?;
 
-        let attr = attrs.iter().find(|&ref x| x.0 == "identity");
+        let attr = attrs.iter().find(|x| x.0 == "identity");
 
         /* Fallback to the vector identity server when there is none */
         let identity = match attr {

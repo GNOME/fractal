@@ -1,12 +1,9 @@
-use letter_avatar;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cairo;
 use fractal_api::util::cache_dir_path;
 use gdk::prelude::GdkContextExt;
 use gdk_pixbuf::Pixbuf;
-use gtk;
 use gtk::prelude::*;
 pub use gtk::DrawingArea;
 
@@ -132,9 +129,9 @@ impl AvatarExt for gtk::Overlay {
         let data = AvatarData {
             id,
             username: uname,
-            size: size,
+            size,
             cache: user_avatar,
-            fallback: fallback,
+            fallback,
             widget: da.clone(),
         };
         let avatar_cache: Rc<RefCell<AvatarData>> = Rc::new(RefCell::new(data));
@@ -194,7 +191,7 @@ impl AvatarExt for gtk::Overlay {
 }
 
 fn load_pixbuf(path: &str, size: i32) -> Option<Pixbuf> {
-    if let Some(pixbuf) = Pixbuf::new_from_file(&path).ok() {
+    if let Ok(pixbuf) = Pixbuf::new_from_file(&path) {
         // FIXME: We end up loading the file twice but we need to load the file first to find out its dimensions to be
         // able to decide wether to scale by width or height and gdk doesn't provide simple API to scale a loaded
         // pixbuf while preserving aspect ratio.

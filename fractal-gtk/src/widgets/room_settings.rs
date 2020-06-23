@@ -11,7 +11,6 @@ use std::thread;
 use crate::i18n::ni18n_f;
 use fractal_api::url::Url;
 use gio::prelude::*;
-use gtk;
 use gtk::prelude::*;
 
 use crate::actions;
@@ -91,7 +90,7 @@ impl RoomSettings {
         // We can have rooms without name or topic but with members, the 1:1 rooms are this, so
         // we should show the loading if we've nothing, if there's something we need to show
         // the info
-        if self.room.avatar.is_none() && self.room.topic.is_none() && self.room.members.len() < 1 {
+        if self.room.avatar.is_none() && self.room.topic.is_none() && self.room.members.is_empty() {
             stack.set_visible_child_name("loading")
         } else {
             stack.set_visible_child_name("info")
@@ -137,7 +136,7 @@ impl RoomSettings {
         name_entry.connect_property_text_notify(clone!(this => move |w| {
             let result = this.borrow().validate_room_name(
                 w.get_text()
-                    .map_or(None, |gstr| Some(gstr.to_string()))
+                    .map(|gstr| gstr.to_string())
             );
             button.set_visible(result.is_some());
         }));
@@ -146,7 +145,7 @@ impl RoomSettings {
         topic_entry.connect_property_text_notify(clone!(this => move |w| {
             let result = this.borrow().validate_room_topic(
                 w.get_text()
-                    .map_or(None, |gstr| Some(gstr.to_string()))
+                    .map(|gstr| gstr.to_string())
             );
             button.set_visible(result.is_some());
         }));
@@ -241,8 +240,7 @@ impl RoomSettings {
         members
             .iter()
             .map(|m| m.uid.clone())
-            .filter(|uid| *uid != self.uid)
-            .nth(0)
+            .find(|uid| *uid != self.uid)
     }
 
     pub fn room_settings_show_room_name(&self, text: Option<String>, edit: bool) -> Option<()> {
@@ -680,7 +678,7 @@ impl RoomSettings {
             )
             .as_str(),
         );
-        let list = widgets::MembersList::new(members.clone(), self.room.admins.clone(), entry);
+        let list = widgets::MembersList::new(members, self.room.admins.clone(), entry);
         let w = list.create()?;
         b.add(&w);
         self.members_list = Some(list);

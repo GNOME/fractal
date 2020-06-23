@@ -29,7 +29,6 @@ use glib::source;
 use glib::source::Continue;
 use glib::SignalHandlerId;
 use glib::Source;
-use gtk;
 use gtk::prelude::*;
 
 struct List {
@@ -82,14 +81,14 @@ impl List {
     fn create_new_message_divider(rows: Rc<RefCell<Self>>) -> widgets::NewMessageDivider {
         let rows_weak = Rc::downgrade(&rows);
         let remove_divider = move || {
-            rows_weak.upgrade().map(|rows| {
+            if let Some(rows) = rows_weak.upgrade() {
                 let new_divider_index = rows
                     .borrow_mut()
                     .new_divider_index
                     .take()
                     .expect("The new divider index must exist, since there is a new divider");
                 rows.borrow_mut().list.remove(new_divider_index);
-            });
+            }
         };
         widgets::NewMessageDivider::new(i18n("New Messages").as_str(), remove_divider)
     }
@@ -170,10 +169,10 @@ impl List {
         let middle_index = (range.0 + range.1) / 2;
         let element = &self.list[middle_index];
         let scrolled_window = self.view.get_scrolled_window();
-        let index = match get_rel_position(&scrolled_window, element) {
+        match get_rel_position(&scrolled_window, element) {
             RelativePosition::AboveSight => {
                 if range.0 == range.1 {
-                    return None;
+                    None
                 } else {
                     self.find_visible_index((range.0, middle_index))
                 }
@@ -181,13 +180,12 @@ impl List {
             RelativePosition::InSight => Some(middle_index),
             RelativePosition::BelowSight => {
                 if range.0 == range.1 {
-                    return None;
+                    None
                 } else {
                     self.find_visible_index((middle_index + 1, range.1))
                 }
             }
-        };
-        index
+        }
     }
 
     fn add_while_visible<'a, T>(&self, indices: &mut Vec<usize>, iterator: T)
@@ -285,7 +283,7 @@ impl RoomHistory {
         let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
             backend: op.backend.clone(),
-            server_url: op.login_data.clone()?.server_url.clone(),
+            server_url: op.login_data.clone()?.server_url,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
         };
@@ -317,9 +315,9 @@ impl RoomHistory {
 
         let weak_rows = Rc::downgrade(&self.rows);
         let id = timeout_add(250, move || {
-            weak_rows.upgrade().map(|rows| {
+            if let Some(rows) = weak_rows.upgrade() {
                 rows.borrow_mut().update_videos();
-            });
+            }
             Continue(false)
         });
         self.rows.borrow_mut().video_scroll_debounce = Some(id);
@@ -341,19 +339,19 @@ impl RoomHistory {
         scrollbar.connect_value_changed(move |sb| {
             if !sb.get_state_flags().contains(gtk::StateFlags::BACKDROP) {
                 /* Fractal is focused */
-                weak_rows.upgrade().map(|rows| {
+                if let Some(rows) = weak_rows.upgrade() {
                     let weak_rows_inner = weak_rows.clone();
                     let new_id = timeout_add(250, move || {
-                        weak_rows_inner.upgrade().map(|rows| {
+                        if let Some(rows) = weak_rows_inner.upgrade() {
                             rows.borrow_mut().update_videos();
                             rows.borrow_mut().video_scroll_debounce = None;
-                        });
+                        }
                         Continue(false)
                     });
                     if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
                         let _ = Source::remove(old_id);
                     }
-                });
+                }
             }
         });
     }
@@ -363,7 +361,7 @@ impl RoomHistory {
         let weak_rows = Rc::downgrade(&self.rows);
         scrolled_window.connect_map(move |_| {
             /* The user has navigated back into the room history */
-            weak_rows.upgrade().map(|rows| {
+            if let Some(rows) = weak_rows.upgrade() {
                 let len = rows.borrow().playing_videos.len();
                 if len != 0 {
                     warn!(
@@ -381,27 +379,27 @@ impl RoomHistory {
                     videos.push((player, handler_id));
                 }
                 rows.borrow_mut().playing_videos = videos;
-            });
+            }
         });
 
         let weak_rows = Rc::downgrade(&self.rows);
         scrolled_window.connect_unmap(move |_| {
             /* The user has navigated out of the room history */
-            weak_rows.upgrade().map(|rows| {
+            if let Some(rows) = weak_rows.upgrade() {
                 if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
                     let _ = Source::remove(id);
                 }
                 for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
                     player.stop_loop(handler_id);
                 }
-            });
+            }
         });
 
         let weak_rows = Rc::downgrade(&self.rows);
         scrolled_window.connect_state_flags_changed(move |window, flag| {
             if window.get_mapped() {
                 /* The room history is being displayed */
-                weak_rows.upgrade().map(|rows| {
+                if let Some(rows) = weak_rows.upgrade() {
                     let focused = gtk::StateFlags::BACKDROP;
                     if flag.contains(focused) {
                         /* Fractal has been focused */
@@ -431,7 +429,7 @@ impl RoomHistory {
                             player.stop_loop(handler_id);
                         }
                     }
-                });
+                }
             }
         });
     }
@@ -463,14 +461,11 @@ impl RoomHistory {
                     let mut day_divider = None;
 
                     if let Some(first) = rows.borrow().list.back() {
-                        match first {
-                            Element::Message(ref message) => {
-                                if item.date.day() != message.date.day() {
-                                    prev_day_divider =
-                                        Some(Element::DayDivider(create_day_divider(message.date)));
-                                }
+                        if let Element::Message(ref message) = first {
+                            if item.date.day() != message.date.day() {
+                                prev_day_divider =
+                                    Some(Element::DayDivider(create_day_divider(message.date)));
                             }
-                            _ => (),
                         }
                     };
                     let has_header = {
@@ -513,7 +508,7 @@ impl RoomHistory {
                     source_id.borrow_mut().take();
                     return Continue(false);
                 }
-                return Continue(true);
+                Continue(true)
             }));
         }
         None
@@ -528,8 +523,7 @@ impl RoomHistory {
     /* This is a temporary function to make the listbox accessible from outside the history, it is
      * currently needed for temp messages (which should also be moved to the room history) */
     pub fn get_listbox(&self) -> gtk::ListBox {
-        let listbox = self.rows.borrow().listbox.clone();
-        listbox
+        self.rows.borrow().listbox.clone()
     }
 
     /* This adds new incomming messages at then end of the list */
@@ -701,23 +695,21 @@ fn create_row(
         false,
     );
 
-    match row.mtype {
-        RowType::Video => {
-            /* The followign callback requires `Send` but is handled by the gtk main loop */
-            let fragile_rows = Fragile::new(Rc::downgrade(rows));
-            PlayerExt::get_player(&mb.get_video_widget()
+    if let RowType::Video = row.mtype {
+        /* The followign callback requires `Send` but is handled by the gtk main loop */
+        let fragile_rows = Fragile::new(Rc::downgrade(rows));
+        PlayerExt::get_player(&mb.get_video_widget()
                 .expect("The widget of every MessageContent, whose mtype is RowType::Video, must have a video_player."))
                 .connect_uri_loaded(move |player, _| {
-                    fragile_rows.get().upgrade().map(|rows| {
-                        if rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
+                    if let Some(rows) = fragile_rows.get().upgrade() {
+                        let is_player_widget = rows.borrow().playing_videos.iter().any(|(player_widget, _)| {
                             &PlayerExt::get_player(&player_widget) == player
-                        }) {
+                        });
+                        if is_player_widget {
                             player.play();
                         }
-                    });
+                    }
                 });
-        }
-        _ => {}
     }
     mb
 }

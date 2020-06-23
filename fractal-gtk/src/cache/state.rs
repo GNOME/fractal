@@ -107,7 +107,7 @@ pub struct FCache {
 }
 
 impl FCache {
-    fn get_store<'a>(&'a self) -> MutexGuard<'a, Option<Cache>> {
+    fn get_store(&self) -> MutexGuard<Option<Cache>> {
         let mut guard = self.cache.lock().unwrap();
         if guard.is_none() {
             let db: String =
@@ -122,8 +122,8 @@ impl FCache {
         let mut guard = self.cache.lock().unwrap();
         guard.take();
 
-        let fname =
-            cache_dir_path(None, "cache.mdl").or(Err(err_msg("Can't remove cache file")))?;
+        let fname = cache_dir_path(None, "cache.mdl")
+            .or_else(|_| Err(err_msg("Can't remove cache file")))?;
         remove_dir_all(fname).or_else(|_| Err(err_msg("Can't remove cache file")))
     }
 
@@ -152,7 +152,7 @@ impl FCache {
 
     pub fn save_room(&self, room: Room) -> Result<(), Error> {
         let cache = self.get_store();
-        let mut stored_room = room.clone();
+        let mut stored_room = room;
         // Don't store typing notifications
         stored_room.typing_users.clear();
         let approom = AppRoom {

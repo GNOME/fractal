@@ -2,14 +2,11 @@ use fractal_api::backend::media;
 use fractal_api::backend::ThreadPool;
 use fractal_api::url::Url;
 use gdk::prelude::GdkContextExt;
-use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 use gdk_pixbuf::PixbufAnimation;
 use gdk_pixbuf::PixbufAnimationExt;
 use gio::prelude::FileExt;
-use glib;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use gtk::DrawingArea;
 use log::error;
@@ -136,7 +133,7 @@ impl Image {
     pub fn draw(&self) {
         let da = &self.widget;
 
-        match self.max_size.clone() {
+        match self.max_size {
             Some(size) => {
                 let w = size.0;
                 let h = size.1;
@@ -163,11 +160,11 @@ impl Image {
             }
         }
 
-        let max_size = self.max_size.clone();
+        let max_size = self.max_size;
         let pix = self.pixbuf.clone();
         let scaled = self.scaled.clone();
         let zoom_level = self.zoom_level.clone();
-        let is_circle = self.circle.clone();
+        let is_circle = self.circle;
         let fixed_size = self.fixed_size;
         let centered = self.centered;
         let shrink_to_fit = self.shrink_to_fit;
@@ -200,7 +197,7 @@ impl Image {
                 };
 
                 if let Ok(zoom_level_guard) = zoom_level.lock() {
-                    if let Some(zl) = zoom_level_guard.clone() {
+                    if let Some(zl) = *zoom_level_guard {
                         pw = (pb.get_width() as f64 * zl) as i32;
                         ph = (pb.get_height() as f64 * zl) as i32;
                     }
@@ -220,7 +217,7 @@ impl Image {
                     }
                 }
 
-                if let None = scaled_pix {
+                if scaled_pix.is_none() {
                     scaled_pix = pb.scale_simple(pw, ph, gdk_pixbuf::InterpType::Bilinear);
                 }
 
@@ -319,7 +316,7 @@ pub fn load_pixbuf(
     fname: &str,
 ) {
     if is_gif(&fname) {
-        load_animation(pix.clone(), scaled.clone(), widget, &fname);
+        load_animation(pix, scaled, widget, &fname);
         return;
     }
 
@@ -386,7 +383,7 @@ pub fn is_gif(fname: &str) -> bool {
         gio::NONE_CANCELLABLE,
     ) {
         match info.get_content_type() {
-            Some(mime) => mime.to_string() == "image/gif".to_string(),
+            Some(mime) => mime == "image/gif",
             _ => false,
         }
     } else {

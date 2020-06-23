@@ -1,6 +1,5 @@
 use crate::i18n::i18n;
 
-use gtk;
 use gtk::prelude::*;
 
 use crate::appop::AppOp;

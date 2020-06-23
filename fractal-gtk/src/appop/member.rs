@@ -2,7 +2,6 @@ use fractal_api::backend::user;
 use fractal_api::clone;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
@@ -14,7 +13,6 @@ use crate::appop::AppOp;
 use crate::backend::{BKCommand, BKResponse};
 use crate::widgets;
 use crate::App;
-use glib;
 
 use crate::types::Event;
 use crate::types::Member;
@@ -42,7 +40,7 @@ impl AppOp {
             }
         }
 
-        self.recalculate_room_name(room_id.clone());
+        self.recalculate_room_name(room_id);
 
         /* FIXME: update the current room settings insteat of creating a new one */
         if self.room_settings.is_some() && self.state == AppState::RoomSettings {
@@ -72,7 +70,7 @@ impl AppOp {
                     uid: sender,
                 };
                 if let Some(r) = self.rooms.get_mut(&ev.room.clone()) {
-                    r.members.insert(m.uid.clone(), m.clone());
+                    r.members.insert(m.uid.clone(), m);
                 }
             }
             // ignoring other memberships
@@ -109,7 +107,7 @@ impl AppOp {
                         scroll,
                         buffer
                             .get_text(&start, &end, false)
-                            .map_or(None, |gstr| Some(gstr.to_string())),
+                            .map(|gstr| gstr.to_string()),
                     );
                 }
             }
@@ -140,7 +138,7 @@ impl AppOp {
                         scroll,
                         buffer
                             .get_text(&start, &end, false)
-                            .map_or(None, |gstr| Some(gstr.to_string())),
+                            .map(|gstr| gstr.to_string()),
                     );
                 }
             }
@@ -162,7 +160,7 @@ impl AppOp {
         let uid_term = term.and_then(|t| UserId::try_from(t.as_str()).ok());
         // Adding a new user if the user
         if let Some(uid) = uid_term {
-            if let None = users.iter().find(|u| u.uid == uid) {
+            if users.iter().find(|u| u.uid == uid).is_none() {
                 let member = Member {
                     avatar: None,
                     alias: None,

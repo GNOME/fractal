@@ -6,10 +6,7 @@ use fractal_api::backend::ThreadPool;
 use fractal_api::cache::CacheMap;
 use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
-use glib;
-use gtk;
 use gtk::{prelude::*, ButtonExt, ContainerExt, LabelExt, Overlay, WidgetExt};
-use pango;
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -88,7 +85,7 @@ impl MessageBox {
             RowType::Emote => {
                 self.row.set_margin_top(12);
                 self.header = false;
-                self.small_widget(thread_pool.clone(), msg)
+                self.small_widget(thread_pool, msg)
             }
             RowType::Video if is_temp => {
                 upload_attachment_msg
@@ -112,7 +109,7 @@ impl MessageBox {
             _ if has_header => {
                 self.row.set_margin_top(12);
                 self.header = true;
-                self.widget(thread_pool.clone(), user_info_cache, msg)
+                self.widget(thread_pool, user_info_cache, msg)
             }
             _ => {
                 self.header = false;
@@ -154,7 +151,7 @@ impl MessageBox {
         let w = if has_header && msg.mtype != RowType::Emote {
             self.row.set_margin_top(12);
             self.header = true;
-            self.widget(thread_pool.clone(), user_info_cache, &msg)
+            self.widget(thread_pool, user_info_cache, &msg)
         } else {
             if let RowType::Emote = msg.mtype {
                 self.row.set_margin_top(12);
@@ -162,11 +159,8 @@ impl MessageBox {
             self.header = false;
             self.small_widget(thread_pool, &msg)
         };
-        match self.eventbox.get_child() {
-            Some(eb) => {
-                eb.destroy(); // clean the eventbox
-            }
-            _ => {}
+        if let Some(eb) = self.eventbox.get_child() {
+            eb.destroy(); // clean the eventbox
         }
         self.eventbox.add(&w);
         self.row.show_all();
@@ -229,10 +223,10 @@ impl MessageBox {
         }
 
         let body = match msg.mtype {
-            RowType::Sticker => self.build_room_msg_sticker(thread_pool.clone(), msg),
-            RowType::Image => self.build_room_msg_image(thread_pool.clone(), msg),
+            RowType::Sticker => self.build_room_msg_sticker(thread_pool, msg),
+            RowType::Image => self.build_room_msg_image(thread_pool, msg),
             RowType::Emote => self.build_room_msg_emote(msg),
-            RowType::Audio => self.build_room_audio_player(thread_pool.clone(), msg),
+            RowType::Audio => self.build_room_audio_player(thread_pool, msg),
             RowType::Video => self.build_room_video_player(thread_pool, msg),
             RowType::File => self.build_room_msg_file(msg),
             _ => self.build_room_msg_body(msg),
@@ -277,7 +271,7 @@ impl MessageBox {
             self.server_url.clone(),
             uid,
             self.username.clone(),
-            Some(data.clone()),
+            Some(data),
         );
 
         avatar
@@ -444,10 +438,8 @@ impl MessageBox {
             start_playing,
         );
 
-        let download_btn = gtk::Button::new_from_icon_name(
-            Some("document-save-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let download_btn =
+            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -536,13 +528,13 @@ impl MessageBox {
         overlay.add_overlay(&menu_button);
 
         let evid = msg.id.as_ref();
-        let redactable = msg.redactable.clone();
+        let redactable = msg.redactable;
         let menu = MessageMenu::new(evid, &RowType::Video, &redactable, None, None);
         menu_button.set_popover(Some(&menu.get_popover()));
 
         bx.pack_start(&overlay, true, true, 0);
         self.connect_media_viewer(msg);
-        self.video_player = Some(player.clone());
+        self.video_player = Some(player);
         bx
     }
 
@@ -561,10 +553,8 @@ impl MessageBox {
 
         name_lbl.get_style_context().add_class("msg-highlighted");
 
-        let download_btn = gtk::Button::new_from_icon_name(
-            Some("document-save-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let download_btn =
+            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -577,10 +567,8 @@ impl MessageBox {
         download_btn.set_action_target_value(Some(&data));
         download_btn.set_action_name(Some("message.save_as"));
 
-        let open_btn = gtk::Button::new_from_icon_name(
-            Some("document-open-symbolic"),
-            gtk::IconSize::Button.into(),
-        );
+        let open_btn =
+            gtk::Button::new_from_icon_name(Some("document-open-symbolic"), gtk::IconSize::Button);
         open_btn.set_tooltip_text(Some(i18n("Open").as_str()));
 
         let data = glib::Variant::from(&evid);
@@ -627,8 +615,11 @@ impl MessageBox {
         // +----------+------+
         let info = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        let username =
-            self.build_room_msg_username(msg.sender_name.clone().unwrap_or(msg.sender.to_string()));
+        let username = self.build_room_msg_username(
+            msg.sender_name
+                .clone()
+                .unwrap_or_else(|| msg.sender.to_string()),
+        );
         let date = self.build_room_msg_date(&msg.date);
 
         self.username_event_box.add(&username);
@@ -642,7 +633,10 @@ impl MessageBox {
     fn build_room_msg_emote(&self, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         /* Use MXID till we have a alias */
-        let sname = msg.sender_name.clone().unwrap_or(msg.sender.to_string());
+        let sname = msg
+            .sender_name
+            .clone()
+            .unwrap_or_else(|| msg.sender.to_string());
         let msg_label = gtk::Label::new(None);
         let body: &str = &msg.body;
         let markup = markup_text(body);
@@ -664,8 +658,8 @@ impl MessageBox {
     }
 
     fn connect_right_click_menu(&self, msg: &Message, label: Option<&gtk::Label>) -> Option<()> {
-        let mtype = msg.mtype.clone();
-        let redactable = msg.redactable.clone();
+        let mtype = msg.mtype;
+        let redactable = msg.redactable;
         let eventbox_weak = self.eventbox.downgrade();
         let widget = if let Some(l) = label {
             l.upcast_ref::<gtk::Widget>()
@@ -714,7 +708,7 @@ impl MessageBox {
 fn highlight_username(
     label: gtk::Label,
     attr: &pango::AttrList,
-    alias: &String,
+    alias: &str,
     input: String,
 ) -> Option<()> {
     fn contains((start, end): (i32, i32), item: i32) -> bool {
@@ -725,7 +719,7 @@ fn highlight_username(
         }
     }
 
-    let input = input.to_lowercase();
+    let mut input = input.to_lowercase();
     let bounds = label.get_selection_bounds();
     let context = label.get_style_context();
     let fg = context.lookup_color("theme_selected_bg_color")?;
@@ -734,7 +728,6 @@ fn highlight_username(
     let blue = fg.blue * 65535. + 0.5;
     let color = pango::Attribute::new_foreground(red as u16, green as u16, blue as u16)?;
 
-    let mut input = input.clone();
     let alias = &alias.to_lowercase();
     let mut removed_char = 0;
     while input.contains(alias) {
@@ -779,7 +772,7 @@ fn highlight_username(
             let end = pos.1 as usize;
             input.drain(0..end);
         }
-        removed_char = removed_char + pos.1 as u32;
+        removed_char += pos.1 as u32;
     }
 
     None
@@ -792,7 +785,7 @@ enum MsgPartType {
 }
 
 fn kind_of_line(line: &&str) -> MsgPartType {
-    if line.trim_start().starts_with(">") {
+    if line.trim_start().starts_with('>') {
         MsgPartType::Quote
     } else {
         MsgPartType::Normal

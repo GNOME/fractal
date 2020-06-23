@@ -98,7 +98,7 @@ pub fn new(
         let server_entry = upgrade_weak!(server_weak);
         let err_label = upgrade_weak!(err_weak);
 
-        server_entry.get_text().map(|txt| {
+        if let Some(txt) = server_entry.get_text() {
             if txt.is_empty() {
                 err_label.show();
             } else {
@@ -107,7 +107,7 @@ pub fn new(
                 stack.set_visible_child_name(&state.to_string());
                 back.borrow_mut().push(state);
             }
-        });
+        }
     });
 
     let stack_weak = stack.downgrade();

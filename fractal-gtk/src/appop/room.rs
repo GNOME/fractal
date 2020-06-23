@@ -9,7 +9,6 @@ use std::fs::remove_file;
 use std::os::unix::fs;
 use std::thread;
 
-use gtk;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -138,11 +137,13 @@ impl AppOp {
                 .get_object("roomlist_scroll")
                 .expect("Couldn't find room_container in ui file.");
             let adj = scrolledwindow.get_vadjustment();
-            scrolledwindow.get_child().map(|child| {
-                child.downcast_ref::<gtk::Container>().map(|container| {
-                    adj.clone().map(|a| container.set_focus_vadjustment(&a));
-                });
-            });
+            if let Some(child) = scrolledwindow.get_child() {
+                if let Some(container) = child.downcast_ref::<gtk::Container>() {
+                    if let Some(a) = adj.clone() {
+                        container.set_focus_vadjustment(&a)
+                    }
+                }
+            }
 
             self.roomlist = widgets::RoomList::new(adj, Some(login_data.server_url.clone()));
             self.roomlist.add_rooms(roomlist);
@@ -210,7 +211,7 @@ impl AppOp {
                 .unwrap_or(room.default_power_level);
 
             // No room admin information, assuming normal
-            if user_power >= 0 || room.admins.len() == 0 {
+            if user_power >= 0 || room.admins.is_empty() {
                 msg_entry.set_editable(true);
                 msg_entry_stack.set_visible_child_name("Text Entry");
 
@@ -456,7 +457,7 @@ impl AppOp {
         let uid = login_data.uid;
         let device_id = self.device_id.clone().unwrap_or_default();
 
-        if let Err(_) = cache::store(&rooms, since, username, uid, device_id) {
+        if cache::store(&rooms, since, username, uid, device_id).is_err() {
             error!("Error caching rooms");
         };
     }
@@ -525,7 +526,7 @@ impl AppOp {
                 name_label.set_text(&value);
             }
             "m.room.topic" => {
-                self.set_room_topic_label(Some(value.clone()));
+                self.set_room_topic_label(Some(value));
             }
             _ => warn!("no key {}", key),
         };
@@ -556,10 +557,13 @@ impl AppOp {
             .builder
             .get_object::<libhandy::Dialog>("join_room_dialog")
             .expect("Can't find join_room_dialog in ui file.");
-        self.ui
+        if let Some(btn) = self
+            .ui
             .builder
             .get_object::<gtk::Button>("join_room_button")
-            .map(|btn| btn.set_sensitive(false));
+        {
+            btn.set_sensitive(false)
+        }
         dialog.present();
     }
 
@@ -645,7 +649,7 @@ impl AppOp {
 
         let name = match n {
             0 => i18n("EMPTY ROOM"),
-            1 => String::from(m1),
+            1 => m1,
             2 => i18n_k("{m1} and {m2}", &[("m1", &m1), ("m2", &m2)]),
             _ => i18n_k("{m1} and Others", &[("m1", &m1)]),
         };
@@ -745,7 +749,7 @@ impl AppOp {
         let history = unwrap_or_unit_return!(self.history.as_mut());
 
         let typing_users = &active_room.typing_users;
-        if typing_users.len() == 0 {
+        if typing_users.is_empty() {
             history.typing_notification("");
         } else if typing_users.len() > 2 {
             history.typing_notification(&i18n("Several users are typing…"));

@@ -12,7 +12,6 @@ use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
-use glib;
 use gtk::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -268,7 +267,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         }
 
         // Remove the current state from the store
-        back_weak.upgrade().map(|back| {
+        if let Some(back) = back_weak.upgrade() {
             back.borrow_mut().pop();
             if let Some(state) = back.borrow().last() {
                 debug!("Go back to state {:?}", state);
@@ -286,7 +285,7 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
                     }
                 }
             }
-        });
+        }
     });
 
     let app_weak = app.downgrade();

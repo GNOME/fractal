@@ -39,7 +39,7 @@ lazy_static! {
         .as_ref()
         .map(ProjectDirs::cache_dir)
         .map(Into::into)
-        .unwrap_or(std::env::temp_dir().join("fractal"));
+        .unwrap_or_else(|| std::env::temp_dir().join("fractal"));
 }
 
 // from https://stackoverflow.com/a/43992218/1592377
@@ -88,7 +88,7 @@ impl ContentType {
     }
 }
 
-pub fn parse_m_direct(events: &Vec<JsonValue>) -> HashMap<UserId, Vec<RoomId>> {
+pub fn parse_m_direct(events: &[JsonValue]) -> HashMap<UserId, Vec<RoomId>> {
     events
         .iter()
         .find(|x| x["type"] == "m.direct")
@@ -215,7 +215,7 @@ pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), 
     let name = response
         .displayname
         .filter(|n| !n.is_empty())
-        .unwrap_or(user_id.to_string());
+        .unwrap_or_else(|| user_id.to_string());
 
     let img = response
         .avatar_url
@@ -228,7 +228,7 @@ pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), 
                 Some(dest),
             )
         })
-        .unwrap_or(Ok(Default::default()))?;
+        .unwrap_or_else(|| Ok(Default::default()))?;
 
     Ok((name, img))
 }

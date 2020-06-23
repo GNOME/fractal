@@ -3,7 +3,6 @@ use crate::i18n::{i18n, i18n_k};
 use fractal_api::backend::room;
 use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
 use std::thread;
 
@@ -47,15 +46,17 @@ impl AppOp {
             }
         }
 
-        self.ui
+        if let Some(btn) = self
+            .ui
             .builder
             .get_object::<gtk::Button>("direct_chat_button")
-            .map(|btn| btn.set_sensitive(true));
+        {
+            btn.set_sensitive(true)
+        }
 
-        self.ui
-            .builder
-            .get_object::<gtk::Button>("invite_button")
-            .map(|btn| btn.set_sensitive(true));
+        if let Some(btn) = self.ui.builder.get_object::<gtk::Button>("invite_button") {
+            btn.set_sensitive(true)
+        }
 
         if let Some(buffer) = invite_entry.get_buffer() {
             let mut start_word = buffer.get_iter_at_offset(buffer.get_property_cursor_position());
@@ -79,7 +80,7 @@ impl AppOp {
 
                 invite_entry.add_child_at_anchor(&w, &anchor);
 
-                self.invite_list.push((u.clone(), anchor));
+                self.invite_list.push((u, anchor));
             }
         }
     }
@@ -91,15 +92,17 @@ impl AppOp {
         }
 
         if self.invite_list.is_empty() {
-            self.ui
+            if let Some(btn) = self
+                .ui
                 .builder
                 .get_object::<gtk::Button>("direct_chat_button")
-                .map(|btn| btn.set_sensitive(false));
+            {
+                btn.set_sensitive(false)
+            }
 
-            self.ui
-                .builder
-                .get_object::<gtk::Button>("invite_button")
-                .map(|btn| btn.set_sensitive(false));
+            if let Some(btn) = self.ui.builder.get_object::<gtk::Button>("invite_button") {
+                btn.set_sensitive(false)
+            }
         }
 
         let dialogid = match self.search_type {
@@ -145,7 +148,7 @@ impl AppOp {
 
         if let Some(aroom) = self.active_room.clone() {
             if let Some(r) = self.rooms.get(&aroom) {
-                if let &Some(ref name) = &r.name {
+                if let Some(ref name) = r.name {
                     headerbar
                         .set_title(Some(i18n_k("Invite to {name}", &[("name", name)]).as_str()));
                 } else {
@@ -162,7 +165,7 @@ impl AppOp {
 
     pub fn invite(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        if let &Some(ref r) = &self.active_room {
+        if let Some(ref r) = self.active_room {
             for user in &self.invite_list {
                 let server = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();

@@ -2,12 +2,7 @@ use crate::i18n::i18n;
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 
-use gdk;
-use glib;
-use pango;
-
 use fractal_api::url::Url;
-use gtk;
 use gtk::prelude::*;
 use log::info;
 use std::collections::HashMap;
@@ -339,14 +334,13 @@ impl RoomListGroup {
             .lock()
             .unwrap()
             .iter()
-            .filter(|r| {
+            .find(|r| {
                 if unread_only {
                     r.room.notifications > 0
                 } else {
                     true
                 }
             })
-            .next()
             .map(|r| r.room.id.clone())
     }
 
@@ -413,7 +407,7 @@ impl RoomListGroup {
         for (i, r) in self.roomvec.lock().unwrap().iter().enumerate() {
             if let Some(row) = self.list.get_row_at_index(i as i32) {
                 match term {
-                    &Some(ref t) if !t.is_empty() => {
+                    Some(ref t) if !t.is_empty() => {
                         let rname = r.room.name.clone().unwrap_or_default().to_lowercase();
                         if rname.contains(&t.to_lowercase()) {
                             row.show();
@@ -473,7 +467,7 @@ macro_rules! run_in_group {
 impl RoomList {
     pub fn new(adj: Option<gtk::Adjustment>, url: Option<Url>) -> RoomList {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let baseu = url.unwrap_or(globals::DEFAULT_HOMESERVER.clone());
+        let baseu = url.unwrap_or_else(|| globals::DEFAULT_HOMESERVER.clone());
 
         let inv = RGroup::new(
             &baseu,
@@ -491,16 +485,14 @@ impl RoomList {
             i18n("You don’t have any rooms yet").as_str(),
         );
 
-        let rl = RoomList {
+        RoomList {
             baseu,
             widget,
             adj,
             inv,
             fav,
             rooms,
-        };
-
-        rl
+        }
     }
 
     pub fn select(&self, room_id: &RoomId) {
@@ -629,10 +621,9 @@ impl RoomList {
         let rw = self.rooms.get().widget.clone();
         let r = self.rooms.clone();
         let f = self.fav.clone();
-        let cb = acb.clone();
         self.connect_drop(rw, move |roomid| {
             if let Some(room) = f.get().remove_room(roomid) {
-                cb(room.room.clone(), false);
+                acb(room.room.clone(), false);
                 r.get().add_room_up(room);
             }
         });

@@ -1,4 +1,3 @@
-use gtk;
 use gtk::prelude::*;
 use libhandy::Column;
 use std::thread;
@@ -196,7 +195,7 @@ impl AppOp {
             .expect("Can't find directory_column in ui file.");
         directory_stack.set_visible_child(&directory_column);
 
-        let mut sorted_rooms = rooms.clone();
+        let mut sorted_rooms = rooms;
         sorted_rooms.sort_by_key(|a| -a.n_members);
 
         for r in sorted_rooms.iter() {

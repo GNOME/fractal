@@ -1,4 +1,3 @@
-use gtk;
 use gtk::prelude::*;
 
 use log::error;
@@ -38,7 +37,7 @@ impl AppOp {
             let room = self.rooms.get(room_id)?;
             let mut panel = widgets::MediaViewer::new(
                 self.backend.clone(),
-                main_window.clone(),
+                main_window,
                 room,
                 &msg,
                 login_data.server_url,

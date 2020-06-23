@@ -2,9 +2,7 @@ use crate::i18n::i18n;
 
 use fractal_api::backend::room;
 use fractal_api::util::ResultExpectLog;
-use gtk;
 use gtk::prelude::*;
-use pango;
 use std::thread;
 
 use crate::types::Room;
@@ -31,7 +29,7 @@ pub struct RoomBox<'a> {
 
 impl<'a> RoomBox<'a> {
     pub fn new(room: &'a Room, op: &'a AppOp) -> RoomBox<'a> {
-        RoomBox { room: room, op: op }
+        RoomBox { room, op }
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {
@@ -118,10 +116,8 @@ impl<'a> RoomBox<'a> {
             let membership_grid = gtk::Grid::new();
             membership_grid.set_column_spacing(6);
 
-            let members_icon = gtk::Image::new_from_icon_name(
-                Some("system-users-symbolic"),
-                gtk::IconSize::Menu.into(),
-            );
+            let members_icon =
+                gtk::Image::new_from_icon_name(Some("system-users-symbolic"), gtk::IconSize::Menu);
             members_icon.get_style_context().add_class("dim-label");
 
             let members_count = gtk::Label::new(Some(&format!("{}", room.n_members)[..]));
@@ -143,10 +139,8 @@ impl<'a> RoomBox<'a> {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(
-                                err.into(),
-                            )))
-                            .expect_log("Connection closed");
+                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                                .expect_log("Connection closed");
                         }
                     }
                 });

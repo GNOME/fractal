@@ -2,7 +2,6 @@ use fractal_api::backend::media;
 use fractal_api::backend::ThreadPool;
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
-use gdk;
 
 use fragile::Fragile;
 use std::cell::RefCell;
@@ -13,10 +12,8 @@ use crate::i18n::i18n;
 use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
 use gdk::*;
-use glib;
 use glib::signal;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 use gtk::Overlay;
 
@@ -316,7 +313,7 @@ impl Data {
             previous_media_button.set_visible(true);
         }
 
-        if self.media_list.len() > 0 && self.current_media_index >= self.media_list.len() - 1 {
+        if !self.media_list.is_empty() && self.current_media_index >= self.media_list.len() - 1 {
             next_media_button.set_visible(false);
         } else {
             next_media_button.set_visible(true);
@@ -329,7 +326,7 @@ impl Data {
         }
 
         if self.current_media_index == 0 {
-            return false;
+            false
         } else {
             {
                 self.current_media_index -= 1;
@@ -338,7 +335,7 @@ impl Data {
             }
 
             self.redraw_media_in_viewport(thread_pool);
-            return true;
+            true
         }
     }
 
@@ -390,7 +387,7 @@ impl Data {
         self.set_nav_btn_visibility();
     }
 
-    fn create_video_widget(&self, thread_pool: ThreadPool, url: &String) -> VideoWidget {
+    fn create_video_widget(&self, thread_pool: ThreadPool, url: &str) -> VideoWidget {
         let with_controls = true;
         let player = VideoPlayerWidget::new(with_controls);
         let bx = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -423,7 +420,7 @@ impl Data {
 
         let mute_button = gtk::Button::new_from_icon_name(
             Some("audio-volume-high-symbolic"),
-            gtk::IconSize::Button.into(),
+            gtk::IconSize::Button,
         );
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let button = Fragile::new(mute_button.clone());
@@ -431,7 +428,7 @@ impl Data {
             gst_player::PlayerState::Playing if player.get_mute() => {
                 let image = gtk::Image::new_from_icon_name(
                     Some("audio-volume-muted-symbolic"),
-                    gtk::IconSize::Button.into(),
+                    gtk::IconSize::Button,
                 );
                 button.get().set_image(Some(&image));
             }
@@ -439,9 +436,9 @@ impl Data {
         });
         let player_weak = Rc::downgrade(&player);
         mute_button.connect_clicked(move |button| {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 VideoPlayerWidget::switch_mute_state(&player, &button);
-            });
+            }
         });
         full_control_box.pack_start(&mute_button, false, false, 0);
 
@@ -466,7 +463,7 @@ impl Data {
         let player_weak = Rc::downgrade(&player);
         media_viewer_box.connect_motion_notify_event(
             clone!( control_revealer, source_id => move |_, _| {
-                player_weak.upgrade().map(|player| {
+                if let Some(player) = player_weak.upgrade() {
                 control_revealer.set_reveal_child(true);
                 if let Some(sid) = source_id.borrow_mut().take() {
                     glib::source::source_remove(sid);
@@ -482,7 +479,7 @@ impl Data {
                         }),
                     );
                     *source_id.borrow_mut() = Some(new_sid);
-                });
+                }
                 Inhibit(false)
             }),
         );
@@ -496,43 +493,40 @@ impl Data {
         let player_weak = Rc::downgrade(&player);
         bx.connect_state_flags_changed(move |_, flag| {
             let focussed = gtk::StateFlags::BACKDROP;
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 if !flag.contains(focussed) {
                     player.pause();
                 }
-            });
+            }
         });
 
         let player_weak = Rc::downgrade(&player);
         self.main_window.connect_key_press_event(
             clone!(control_revealer, source_id => move |_, k| {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 if player.get_video_widget().get_mapped() {
-                    match k.get_keyval() {
-                        gdk::enums::key::space => {
+                    if let gdk::enums::key::space = k.get_keyval() {
                             if player.is_playing() {
                                 control_revealer.set_reveal_child(true);
                             } else {
                                 let new_sid = gtk::timeout_add_seconds(
                                     1,
                                     clone!(source_id, control_revealer, player_weak => move || {
-                                        player_weak.upgrade().map(|player| {
+                                        if let Some(player) = player_weak.upgrade() {
                                             if player.is_playing() {
                                                 control_revealer.set_reveal_child(false);
                                             }
                                             *source_id.borrow_mut() = None;
-                                        });
+                                        }
                                         Continue(false)
                                     }),
                                 );
                                 *source_id.borrow_mut() = Some(new_sid);
                             }
                             VideoPlayerWidget::switch_play_pause_state(&player);
-                        }
-                        _ => {}
                     }
                 }
-            });
+            }
             Inhibit(false)
             }),
         );
@@ -547,10 +541,9 @@ impl Data {
                 let source_id = source_id.clone();
                 let revealer = control_revealer.clone();
                 let pw = player_weak.clone();
-                player_weak
+                if let Some(player) = player_weak
                     .upgrade()
-                    .map(|player| match e.get_event_type() {
-                        EventType::ButtonPress => {
+                    { if let EventType::ButtonPress = e.get_event_type() {
                             if click_timeout_id.borrow().is_some() {
                                 let id = click_timeout_id.borrow_mut().take().unwrap();
                                 glib::source::source_remove(id);
@@ -564,12 +557,12 @@ impl Data {
                                             let new_sid = gtk::timeout_add_seconds(
                                                 1,
                                                 clone!(source_id, revealer, pw => move || {
-                                                    pw.upgrade().map(|player| {
+                                                    if let Some(player) = pw.upgrade() {
                                                         if player.is_playing() {
                                                             revealer.set_reveal_child(false);
                                                         }
                                                         *source_id.borrow_mut() = None;
-                                                    });
+                                                    }
                                                     Continue(false)
                                                 }),
                                             );
@@ -583,9 +576,7 @@ impl Data {
                                 );
                                 *click_timeout_id.borrow_mut() = Some(sid);
                             }
-                        }
-                        _ => {}
-                    });
+                    }}
                 Inhibit(false)
             }),
         );
@@ -614,7 +605,7 @@ impl Data {
                 panic!("Data in the media viewer has to be of type image or video.");
             }
         };
-        let admin = self.admins.get(&self.uid).map(|n| *n).unwrap_or_default();
+        let admin = self.admins.get(&self.uid).copied().unwrap_or_default();
         let redactable = admin != 0 || self.uid == msg.sender;
         let event_id = msg.id.as_ref();
         let menu = MessageMenu::new(event_id, &mtype, &redactable, None, None);
@@ -632,11 +623,8 @@ impl Drop for Data {
         if let Some(signal_handler_id) = self.double_click_handler_id.take() {
             self.main_window.disconnect(signal_handler_id);
         }
-        match &self.widget {
-            Widget::Video(widget) => {
-                widget.player.stop();
-            }
-            _ => {}
+        if let Widget::Video(widget) = &self.widget {
+            widget.player.stop();
         }
     }
 }
@@ -728,7 +716,7 @@ impl MediaViewer {
                     image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
                         .shrink_to_fit(true)
                         .center(true)
-                        .build(thread_pool.clone());
+                        .build(thread_pool);
 
                 media_viewport.add(&image.widget);
                 media_viewport.show_all();
@@ -757,7 +745,7 @@ impl MediaViewer {
             .get_object::<gtk::Button>("full_screen_button")
             .expect("Cant find full_screen_button in ui file.");
         full_screen_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 let main_window = own.borrow().main_window.clone();
                 if let Some(win) = main_window.get_window() {
                     if !win.get_state().contains(gdk::WindowState::FULLSCREEN) {
@@ -766,7 +754,7 @@ impl MediaViewer {
                         own.borrow_mut().leave_full_screen(thread_pool.clone())
                     }
                 }
-            });
+            }
         });
     }
 
@@ -780,11 +768,8 @@ impl MediaViewer {
             .borrow()
             .main_window
             .connect_button_press_event(move |_, e| {
-                match e.get_event_type() {
-                    EventType::DoubleButtonPress => {
-                        full_screen_button.clicked();
-                    }
-                    _ => {}
+                if let EventType::DoubleButtonPress = e.get_event_type() {
+                    full_screen_button.clicked();
                 }
                 Inhibit(false)
             });
@@ -919,16 +904,11 @@ impl MediaViewer {
             .expect("Cant find previous_media_button in ui file.");
         let t_pool = thread_pool.clone();
         previous_media_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 if !own.borrow_mut().previous_media(t_pool.clone()) {
-                    load_more_media(
-                        t_pool.clone(),
-                        own.clone(),
-                        builder.clone(),
-                        backend.clone(),
-                    );
+                    load_more_media(t_pool.clone(), own, builder.clone(), backend.clone());
                 }
-            });
+            }
         });
 
         let own_weak = Rc::downgrade(&self.data);
@@ -937,9 +917,9 @@ impl MediaViewer {
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
         next_media_button.connect_clicked(move |_| {
-            own_weak.upgrade().map(|own| {
+            if let Some(own) = own_weak.upgrade() {
                 own.borrow_mut().next_media(thread_pool.clone());
-            });
+            }
         });
         let full_screen_button = self
             .builder
@@ -983,13 +963,13 @@ impl MediaViewer {
             .get_object::<gtk::Box>("media_viewer_box")
             .expect("Cant find media_viewer_box in ui file.");
         media_viewer_box.connect_unmap(move |_| {
-            data_weak.upgrade().map(|data| {
+            if let Some(data) = data_weak.upgrade() {
                 let id = data.borrow_mut().signal_id.take();
                 let main_window = &data.borrow().main_window;
                 if let Some(id) = id {
                     signal::signal_handler_disconnect(main_window, id);
                 }
-            });
+            }
         });
     }
 
@@ -1001,12 +981,11 @@ impl MediaViewer {
             .expect("Cant find media_viewer_box in ui file.");
         let data_weak = Rc::downgrade(&self.data);
         media_viewer_box.connect_unmap(move |_| {
-            data_weak.upgrade().map(|data| match &data.borrow().widget {
-                Widget::Video(widget) => {
+            if let Some(data) = data_weak.upgrade() {
+                if let Widget::Video(widget) = &data.borrow().widget {
                     PlayerExt::get_player(&widget.player).stop();
                 }
-                _ => {}
-            });
+            }
         });
     }
 
@@ -1055,7 +1034,7 @@ fn load_more_media(
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
     let roomid = msg.room.clone();
-    let first_media_id = unwrap_or_unit_return!(msg.id.clone());
+    let first_media_id = unwrap_or_unit_return!(msg.id);
     let prev_batch = data.borrow().prev_batch.clone();
     let server_url = data.borrow().server_url.clone();
     let access_token = data.borrow().access_token.clone();
@@ -1079,23 +1058,23 @@ fn load_more_media(
     gtk::timeout_add(50, move || match rx.try_recv() {
         Err(TryRecvError::Empty) => Continue(true),
         Err(TryRecvError::Disconnected) => {
-            data_weak.clone().upgrade().map(|data| {
+            if let Some(data) = data_weak.clone().upgrade() {
                 data.borrow_mut().loading_error = true;
                 let err = i18n("Error while loading previous media");
                 ErrorDialog::new(false, &err);
-            });
+            }
 
             Continue(false)
         }
         Ok((msgs, prev_batch)) => {
-            if msgs.len() == 0 {
-                data_weak.clone().upgrade().map(|data| {
+            if msgs.is_empty() {
+                if let Some(data) = data_weak.clone().upgrade() {
                     data.borrow_mut().no_more_media = true;
-                });
+                }
                 return Continue(false);
             }
             let thread_pool = thread_pool.clone();
-            data_weak.upgrade().map(|data| {
+            if let Some(data) = data_weak.upgrade() {
                 let media_list = data.borrow().media_list.clone();
                 let img_msgs: Vec<Message> = msgs
                     .into_iter()
@@ -1107,18 +1086,13 @@ fn load_more_media(
                 data.borrow_mut().media_list = new_media_list;
                 data.borrow_mut().prev_batch = Some(prev_batch);
                 if img_msgs_count == 0 {
-                    load_more_media(
-                        thread_pool.clone(),
-                        data.clone(),
-                        builder.clone(),
-                        backend.clone(),
-                    );
+                    load_more_media(thread_pool, data, builder.clone(), backend.clone());
                 } else {
                     data.borrow_mut().current_media_index += img_msgs_count;
                     data.borrow_mut().previous_media(thread_pool);
                     data.borrow_mut().loading_more_media = loading_state(&ui, false);
                 }
-            });
+            }
 
             Continue(false)
         }

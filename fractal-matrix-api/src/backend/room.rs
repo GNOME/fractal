@@ -536,9 +536,7 @@ fn update_direct_chats(
         directs.insert(user.uid, vec![room_id]);
     }
 
-    let params = SetGlobalAccountDataParameters {
-        access_token: access_token.clone(),
-    };
+    let params = SetGlobalAccountDataParameters { access_token };
 
     let request = set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")?;
     HTTP_CLIENT.get_client()?.execute(request)?;
@@ -587,7 +585,7 @@ pub fn direct_chat(
     }
 
     Ok(Room {
-        name: user.alias.clone(),
+        name: user.alias,
         direct: true,
         ..Room::new(response.room_id, RoomMembership::Joined(RoomTag::None))
     })

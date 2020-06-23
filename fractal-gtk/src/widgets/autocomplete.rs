@@ -5,9 +5,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use gdk;
-use glib;
-use gtk;
 use gtk::prelude::*;
 use gtk::TextTag;
 
@@ -38,14 +35,14 @@ impl Autocomplete {
     ) -> Autocomplete {
         Autocomplete {
             entry: msg_entry,
-            listbox: listbox,
-            popover: popover,
-            window: window,
+            listbox,
+            popover,
+            window,
             highlighted_entry: vec![],
             popover_position: None,
             popover_search: None,
             popover_closing: false,
-            op: op,
+            op,
         }
     }
 
@@ -86,9 +83,9 @@ impl Autocomplete {
             .connect_button_press_event(move |_, _| {
                 if own.borrow().popover_position.is_some() {
                     own.borrow_mut().autocomplete_enter();
-                    return Inhibit(true);
+                    Inhibit(true)
                 } else {
-                    return Inhibit(false);
+                    Inhibit(false)
                 }
             });
 
@@ -138,14 +135,11 @@ impl Autocomplete {
 
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |_, k| {
-            match k.get_keyval() {
-                gdk::enums::key::Escape => {
-                    if own.borrow().popover_position.is_some() {
-                        own.borrow_mut().autocomplete_enter();
-                        return Inhibit(true);
-                    }
+            if let gdk::enums::key::Escape = k.get_keyval() {
+                if own.borrow().popover_position.is_some() {
+                    own.borrow_mut().autocomplete_enter();
+                    return Inhibit(true);
                 }
-                _ => {}
             }
             Inhibit(false)
         });
@@ -182,10 +176,8 @@ impl Autocomplete {
                             let ev: &gdk::Event = ev;
                             let _ = w.emit("button-press-event", &[ev]);
                         }
-                    } else {
-                        if ev.get_keyval() != gdk::enums::key::Tab {
-                            return glib::signal::Inhibit(false);
-                        }
+                    } else if ev.get_keyval() != gdk::enums::key::Tab {
+                        return glib::signal::Inhibit(false);
                     }
                 }
                 /* Arrow key */
@@ -215,7 +207,7 @@ impl Autocomplete {
                 }
                 _ => return glib::signal::Inhibit(false),
             }
-            return glib::signal::Inhibit(true);
+            glib::signal::Inhibit(true)
         });
 
         let own = this.clone();
@@ -226,7 +218,7 @@ impl Autocomplete {
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
                 let text = buffer.get_text(&start, &end, false)
-                    .map_or(None, |gstr| Some(gstr.to_string()));
+                    .map(|gstr| gstr.to_string());
 
                 /* when closing popover with tab */
                 {
@@ -262,21 +254,19 @@ impl Autocomplete {
                                 }
 
                                 let (p1, _) = graphs.split_at(pos as usize);
-                                let first = p1.into_iter().collect::<String>();
+                                let first = p1.iter().collect::<String>();
                                 if own.borrow().popover_position.is_none() {
                                     if !is_tab {
-                                        if let Some(at_pos) = first.rfind("@") {
+                                        if let Some(at_pos) = first.rfind('@') {
                                             own.borrow_mut().popover_position = Some(at_pos as i32);
                                         }
                                     }
-                                    else {
-                                        if let Some(space_pos) = first.rfind(|c: char| c.is_whitespace()) {
+                                    else if let Some(space_pos) = first.rfind(|c: char| c.is_whitespace()) {
                                             own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
                                         }
                                         else {
                                             own.borrow_mut().popover_position = Some(0);
                                         }
-                                    }
                                 }
                             }
 
@@ -402,21 +392,17 @@ impl Autocomplete {
                         result = Some(row.get_children().first()?.clone());
                     }
                 };
-            } else {
-                if let Some(row) = self.listbox.get_children().last() {
-                    if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
-                        self.listbox.select_row(Some(&row));
-                        result = Some(row.get_children().first()?.clone());
-                    }
+            } else if let Some(row) = self.listbox.get_children().last() {
+                if let Ok(row) = row.clone().downcast::<gtk::ListBoxRow>() {
+                    self.listbox.select_row(Some(&row));
+                    result = Some(row.get_children().first()?.clone());
                 }
             }
-        } else {
-            if let Some(row) = self.listbox.get_row_at_index(0) {
-                self.listbox.select_row(Some(&row));
-                result = Some(row.get_children().first()?.clone());
-            }
+        } else if let Some(row) = self.listbox.get_row_at_index(0) {
+            self.listbox.select_row(Some(&row));
+            result = Some(row.get_children().first()?.clone());
         }
-        return result;
+        result
     }
 
     pub fn autocomplete_show_popover(
@@ -429,7 +415,7 @@ impl Autocomplete {
 
         let mut widget_list: HashMap<String, gtk::EventBox> = HashMap::new();
 
-        if list.len() > 0 {
+        if !list.is_empty() {
             for m in list.iter() {
                 let alias = &m
                     .alias
@@ -468,7 +454,7 @@ impl Autocomplete {
             self.autocomplete_enter();
         }
 
-        return widget_list;
+        widget_list
     }
 
     pub fn autocomplete(&self, text: Option<String>, pos: i32) -> Vec<Member> {
@@ -487,7 +473,7 @@ impl Autocomplete {
                     if let Some(last) = last {
                         info!("Matching string '{}'", last);
                         /*remove @ from string*/
-                        let w = if last.starts_with("@") {
+                        let w = if last.starts_with('@') {
                             last[1..].to_lowercase()
                         } else {
                             last.to_lowercase()
@@ -502,7 +488,7 @@ impl Autocomplete {
                                     let uid = m.uid.localpart().to_lowercase();
                                     if alias.starts_with(&w) || uid.starts_with(&w) {
                                         list.push(m.clone());
-                                        count = count + 1;
+                                        count += 1;
                                         /* Search only for 5 matching users */
                                         if count > 4 {
                                             break;
@@ -515,6 +501,6 @@ impl Autocomplete {
                 }
             }
         };
-        return list;
+        list
     }
 }

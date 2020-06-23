@@ -4,7 +4,6 @@ use fractal_api::r0::Medium;
 use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;
 use glib::signal;
-use gtk;
 use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -42,9 +41,9 @@ impl<'a> Address<'a> {
         let entry = gtk::Entry::new();
         let button = gtk::Button::new();
         Address {
-            op: op,
-            entry: entry,
-            button: button,
+            op,
+            entry,
+            button,
             action: None,
             address: None,
             signal_id: None,
@@ -144,7 +143,7 @@ impl<'a> Address<'a> {
                     /* FIXME: use better validation */
                     match medium {
                         AddressType::Email => {
-                            button.set_sensitive(text.contains("@") && text.contains("."));
+                            button.set_sensitive(text.contains('@') && text.contains('.'));
                         }
                         AddressType::Phone => {}
                     };

@@ -85,7 +85,7 @@ pub fn get_username_async(base: Url, uid: UserId) -> String {
         })
         .ok()
         .and_then(|response| response.displayname)
-        .unwrap_or(uid.to_string())
+        .unwrap_or_else(|| uid.to_string())
 }
 
 pub fn set_username(
@@ -191,7 +191,7 @@ pub fn add_threepid(
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
             id_server: identity.try_into()?,
-            sid: sid.clone(),
+            sid,
             client_secret,
         },
         bind: true,

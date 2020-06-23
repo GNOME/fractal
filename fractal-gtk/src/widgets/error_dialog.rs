@@ -1,5 +1,4 @@
 use gio::ApplicationExt;
-use gtk;
 use gtk::prelude::*;
 
 // Shows an error dialog, and if it's fatal it will quit the application once

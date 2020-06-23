@@ -1,7 +1,5 @@
 use fractal_api::clone;
 use gio::ActionMapExt;
-use glib;
-use gtk;
 use gtk::prelude::*;
 
 use crate::app::App;

@@ -1,6 +1,5 @@
 use gettextrs::{bindtextdomain, setlocale, textdomain, LocaleCategory};
 use gio::prelude::*;
-use gtk;
 use gtk::prelude::*;
 use libhandy::prelude::*;
 use std::cell::RefCell;

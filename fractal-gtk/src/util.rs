@@ -1,4 +1,3 @@
-use cairo;
 use failure::format_err;
 use failure::Error;
 use gdk::prelude::*;
@@ -42,7 +41,7 @@ macro_rules! glib_thread {
 
 pub fn get_pixbuf_data(pb: &Pixbuf) -> Result<Vec<u8>, Error> {
     let image = cairo::ImageSurface::create(cairo::Format::ARgb32, pb.get_width(), pb.get_height())
-        .or(Err(format_err!("Cairo Error")))?;
+        .or_else(|_| Err(format_err!("Cairo Error")))?;
 
     let g = cairo::Context::new(&image);
     g.set_source_pixbuf(pb, 0.0, 0.0);
@@ -68,14 +67,15 @@ pub fn get_markdown_schema() -> bool {
 }
 
 pub fn set_markdown_schema(md: bool) {
-    SettingsSchemaSource::get_default()
+    if SettingsSchemaSource::get_default()
         .and_then(|s| s.lookup("org.gnome.Fractal", true))
-        .map(|_| {
-            let settings: Settings = Settings::new("org.gnome.Fractal");
-            if let Err(err) = settings.set_boolean("markdown-active", md) {
-                error!("Can't save markdown active state: {:?}", err);
-            }
-        });
+        .is_some()
+    {
+        let settings: Settings = Settings::new("org.gnome.Fractal");
+        if let Err(err) = settings.set_boolean("markdown-active", md) {
+            error!("Can't save markdown active state: {:?}", err);
+        }
+    }
 }
 
 /* Macro for upgrading a weak reference or returning the given value

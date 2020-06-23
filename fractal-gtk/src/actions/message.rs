@@ -26,7 +26,6 @@ use gio::ActionMapExt;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use glib::source::Continue;
-use gtk;
 use gtk::prelude::*;
 
 use super::global::{get_event_id, get_message_by_id, get_room_id};
@@ -93,18 +92,15 @@ pub fn new(
         .downgrade();
     reply.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
-        let state = back_history.borrow().last().map(|state| state.clone());
-        match state {
-            Some(AppState::MediaViewer) => {
-                let window = upgrade_weak!(window_weak);
-                if let Some(action_group) = window.get_action_group("app") {
-                    action_group.activate_action("back", None);
-                } else {
-                    error!("The action group app is not attached to the main window.");
-                }
+        let state = back_history.borrow().last().cloned();
+        if let Some(AppState::MediaViewer) = state {
+            let window = upgrade_weak!(window_weak);
+            if let Some(action_group) = window.get_action_group("app") {
+                action_group.activate_action("back", None);
+            } else {
+                error!("The action group app is not attached to the main window.");
             }
-            _ => {}
-        };
+        }
         let msg_entry = upgrade_weak!(msg_entry);
         if let Some(buffer) = msg_entry.get_buffer() {
             let mut start = buffer.get_start_iter();
@@ -170,7 +166,7 @@ pub fn new(
                         let window = upgrade_weak!(parent_weak, Continue(true));
                         if let Some(path) = save(&window, &name, &[]) {
                             // TODO use glib to copy file
-                            if let Err(_) = fs::copy(fname.clone(), path) {
+                            if fs::copy(fname, path).is_err() {
                                 ErrorDialog::new(false, &i18n("Couldn’t save file"));
                             }
                         }
@@ -242,18 +238,15 @@ pub fn new(
         .downgrade();
     delete.connect_activate(move |_, data| {
         let back_history = upgrade_weak!(back_weak);
-        let state = back_history.borrow().last().map(|state| state.clone());
-        match state {
-            Some(AppState::MediaViewer) => {
-                let window = upgrade_weak!(window_weak);
-                if let Some(action_group) = window.get_action_group("app") {
-                    action_group.activate_action("back", None);
-                } else {
-                    error!("The action group app is not attached to the main window.");
-                }
+        let state = back_history.borrow().last().cloned();
+        if let Some(AppState::MediaViewer) = state {
+            let window = upgrade_weak!(window_weak);
+            if let Some(action_group) = window.get_action_group("app") {
+                action_group.activate_action("back", None);
+            } else {
+                error!("The action group app is not attached to the main window.");
             }
-            _ => {}
-        };
+        }
         if let Some(msg) = get_message(data) {
             let server = s.clone();
             let access_token = tk.clone();

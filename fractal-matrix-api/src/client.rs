@@ -1,9 +1,7 @@
 use crate::error::Error;
 use crate::globals;
 
-use gio;
 use gio::prelude::*;
-use reqwest;
 
 use std::sync::Mutex;
 use std::time::Duration;

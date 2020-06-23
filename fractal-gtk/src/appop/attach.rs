@@ -8,28 +8,23 @@ use std::sync::{Arc, Mutex};
 
 use failure::Error;
 
-use gdk;
-use glib;
-use gtk;
 use gtk::prelude::*;
 
 use crate::appop::AppOp;
 use crate::App;
 
 use crate::util::get_pixbuf_data;
-use gdk_pixbuf;
 use gdk_pixbuf::Pixbuf;
 
 impl AppOp {
     fn draw_image_paste_dialog(&self, pixb: &Pixbuf) {
         let w = pixb.get_width();
         let h = pixb.get_height();
-        let scaled;
-        if w > 600 {
-            scaled = pixb.scale_simple(600, h * 600 / w, gdk_pixbuf::InterpType::Bilinear);
+        let scaled = if w > 600 {
+            pixb.scale_simple(600, h * 600 / w, gdk_pixbuf::InterpType::Bilinear)
         } else {
-            scaled = Some(pixb.clone());
-        }
+            Some(pixb.clone())
+        };
 
         if let Some(pb) = scaled {
             let window: gtk::ApplicationWindow = self
@@ -53,15 +48,15 @@ impl AppOp {
             dialog.present();
 
             if let Some(hbar) = dialog.get_header_bar() {
-                let bar = hbar.downcast::<gtk::HeaderBar>().unwrap();
+                let headerbar = hbar.downcast::<gtk::HeaderBar>().unwrap();
                 let closebtn = gtk::Button::new_with_label(i18n("Cancel").as_str());
                 let okbtn = gtk::Button::new_with_label(i18n("Send").as_str());
                 okbtn.get_style_context().add_class("suggested-action");
 
-                bar.set_show_close_button(false);
-                bar.pack_start(&closebtn);
-                bar.pack_end(&okbtn);
-                bar.show_all();
+                headerbar.set_show_close_button(false);
+                headerbar.pack_start(&closebtn);
+                headerbar.pack_end(&okbtn);
+                headerbar.show_all();
 
                 closebtn.connect_clicked(clone!(dialog => move |_| {
                     dialog.destroy();
@@ -82,7 +77,7 @@ impl AppOp {
 
 fn store_pixbuf(pixb: &Pixbuf) -> Result<PathBuf, Error> {
     let data = get_pixbuf_data(pixb)?;
-    let mut path = glib::get_tmp_dir().unwrap_or(PathBuf::from("/tmp"));
+    let mut path = glib::get_tmp_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
     /* Filename for the attached image */
     path.push(format!("{}.png", i18n("image")));
     let mut f = File::create(&path)?;

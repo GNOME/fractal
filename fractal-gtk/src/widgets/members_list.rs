@@ -5,7 +5,6 @@ use std::collections::hash_map::HashMap;
 use std::rc::Rc;
 
 use glib::signal;
-use gtk;
 use gtk::prelude::*;
 
 use crate::i18n::i18n;
@@ -85,7 +84,7 @@ impl MembersList {
                 container.clone(),
                 members.clone(),
                 error.clone(),
-                w.get_text().map_or(None, |gstr| Some(gstr.to_string())),
+                w.get_text().map(|gstr| gstr.to_string()),
             );
         });
         /* we need to remove the handler when the member list is destroyed */

@@ -1,5 +1,4 @@
 use fractal_api::clone;
-use gtk;
 
 use crate::i18n::i18n;
 

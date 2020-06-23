@@ -189,7 +189,7 @@ impl Room {
             );
             // Adding fully read to the receipts events
             if let Some(ev) = dataevs
-                .into_iter()
+                .iter()
                 .find(|x| x["type"] == "m.fully_read")
                 .and_then(|fread| fread["content"]["event_id"].as_str()?.try_into().ok())
             {
@@ -204,8 +204,8 @@ impl Room {
                 let leave_id = UserId::try_from(last_event["sender"].as_str().unwrap_or_default())?;
                 if leave_id != user_id {
                     let kick_reason = &last_event["content"]["reason"];
-                    if let Some((kicker_alias, kicker_avatar)) =
-                        get_user_avatar(baseu.clone(), &leave_id).ok()
+                    if let Ok((kicker_alias, kicker_avatar)) =
+                        get_user_avatar(baseu.clone(), &leave_id)
                     {
                         let kicker = Member {
                             alias: Some(kicker_alias),
@@ -343,7 +343,7 @@ impl PartialEq for Room {
 
 pub type RoomList = HashMap<RoomId, Room>;
 
-fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
+fn evc(events: &[JsonValue], t: &str, field: &str) -> Option<String> {
     events
         .iter()
         .find(|x| x["type"] == t)
@@ -351,7 +351,7 @@ fn evc(events: &Vec<JsonValue>, t: &str, field: &str) -> Option<String> {
         .map(Into::into)
 }
 
-fn get_admins(stevents: &Vec<JsonValue>) -> Result<HashMap<UserId, i32>, IdError> {
+fn get_admins(stevents: &[JsonValue]) -> Result<HashMap<UserId, i32>, IdError> {
     stevents
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
@@ -366,7 +366,7 @@ fn get_admins(stevents: &Vec<JsonValue>) -> Result<HashMap<UserId, i32>, IdError
         .collect()
 }
 
-fn get_default_power_level(stevents: &Vec<JsonValue>) -> i32 {
+fn get_default_power_level(stevents: &[JsonValue]) -> i32 {
     stevents
         .iter()
         .filter(|x| x["type"] == "m.room.power_levels")
@@ -375,7 +375,7 @@ fn get_default_power_level(stevents: &Vec<JsonValue>) -> i32 {
         .unwrap_or(-1) as i32
 }
 
-fn calculate_room_name(events: &Vec<JsonValue>, user_id: &UserId) -> Option<String> {
+fn calculate_room_name(events: &[JsonValue], user_id: &UserId) -> Option<String> {
     let userid = user_id.to_string();
     // looking for "m.room.name" event
     if let Some(name) = events

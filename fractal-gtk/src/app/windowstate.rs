@@ -1,5 +1,4 @@
 use gio::SettingsExt;
-use gtk;
 use gtk::prelude::*;
 
 pub struct WindowState {

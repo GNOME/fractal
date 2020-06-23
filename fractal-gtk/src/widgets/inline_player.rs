@@ -25,7 +25,6 @@ use gst::ClockTime;
 use gstreamer_pbutils::Discoverer;
 use log::{error, info, warn};
 
-use gtk;
 use gtk::prelude::*;
 use gtk::ButtonExt;
 
@@ -56,7 +55,7 @@ pub trait PlayerExt {
     fn stop(&self);
     fn initialize_stream(
         player: &Rc<Self>,
-        media_url: &String,
+        media_url: &str,
         server_url: &Url,
         thread_pool: ThreadPool,
         bx: &gtk::Box,
@@ -212,9 +211,9 @@ impl AudioPlayerWidget {
         // When the widget is detached from it's parent which happens
         // when we drop the room widget, this callback runs freeing
         // the last refference we were holding.
-        let foo = RefCell::new(Some(w.clone()));
+        let widget = RefCell::new(Some(w.clone()));
         w.controls.container.connect_remove(move |_, _| {
-            foo.borrow_mut().take();
+            widget.borrow_mut().take();
         });
 
         w
@@ -291,16 +290,16 @@ impl VideoPlayerWidget {
         /* The followign callbacks require `Send` but is handled by the gtk main loop */
         let player_weak = Fragile::new(Rc::downgrade(&w));
         w.player.connect_state_changed(move |_, state| {
-            player_weak.get().upgrade().map(|player| {
+            if let Some(player) = player_weak.get().upgrade() {
                 *player.state.borrow_mut() = Some(state);
-            });
+            }
         });
         let dimensions_weak = Fragile::new(Rc::downgrade(&w.dimensions));
         w.player
             .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                dimensions_weak.get().upgrade().map(|dimensions| {
+                if let Some(dimensions) = dimensions_weak.get().upgrade() {
                     *dimensions.borrow_mut() = Some((video_width, video_height));
-                });
+                }
             });
 
         w
@@ -323,11 +322,10 @@ impl VideoPlayerWidget {
 
     pub fn is_playing(&self) -> bool {
         if let Some(state) = *self.state.borrow() {
-            let is_playing = match state {
+            match state {
                 gst_player::PlayerState::Playing => true,
                 _ => false,
-            };
-            is_playing
+            }
         } else {
             false
         }
@@ -339,12 +337,12 @@ impl VideoPlayerWidget {
         player_widget.player.connect_video_dimensions_changed(
             move |_, video_width, video_height| {
                 if video_width != 0 {
-                    player_weak.get().upgrade().map(|player| {
+                    if let Some(player) = player_weak.get().upgrade() {
                         let widget = player.get_video_widget();
                         let allocated_width = widget.get_allocated_width();
                         let adjusted_height = allocated_width * video_height / video_width;
                         widget.set_size_request(-1, adjusted_height);
-                    });
+                    }
                 }
             },
         );
@@ -352,7 +350,7 @@ impl VideoPlayerWidget {
         player_widget
             .get_video_widget()
             .connect_size_allocate(move |_, allocation| {
-                player_weak.upgrade().map(|player| {
+                if let Some(player) = player_weak.upgrade() {
                     if let Some((video_width, video_height)) = *player.dimensions.borrow() {
                         if video_width != 0
                             && allocation.height * video_width != allocation.width * video_height
@@ -363,17 +361,17 @@ impl VideoPlayerWidget {
                                 .set_size_request(-1, adjusted_height);
                         }
                     }
-                });
+                }
             });
 
         /* Sometimes, set_size_request() doesn't get captured visually. The following timeout takes care of that. */
         let player_weak = Rc::downgrade(&player_widget);
         gtk::timeout_add_seconds(1, move || {
-            player_weak.upgrade().map(|player| {
+            if let Some(player) = player_weak.upgrade() {
                 let (_, height) = player.get_video_widget().get_size_request();
                 player.get_video_widget().set_size_request(-1, height - 1);
                 player.get_video_widget().set_size_request(-1, height);
-            });
+            }
             Continue(true)
         });
     }
@@ -395,26 +393,28 @@ impl VideoPlayerWidget {
             player
                 .player
                 .connect_video_dimensions_changed(move |_, video_width, video_height| {
-                    bx_weak.get().upgrade().map(|bx| {
+                    if let Some(bx) = bx_weak.get().upgrade() {
                         adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
-                    });
+                    }
                 });
         let player_weak = Rc::downgrade(player);
-        let size_id =
-            bx.connect_size_allocate(move |bx, _| {
-                player_weak.upgrade().map(|player| {
+        let size_id = bx.connect_size_allocate(move |bx, _| {
+            if let Some(player) = player_weak.upgrade() {
                 if let Some((video_width, video_height)) = *player.dimensions.borrow() {
                     /* The timeout is necessary for the edge cases, i.e. when resizing to minimum width or height.
                     When approaching the minimum fast, the last connect_size_allocate signal gets emitted before
                     reaching the minimum size. So without timeout, the values used to adjust the the video size
                     are bigger than they should be. */
-                    gtk::timeout_add(50, clone!(bx, video_width, video_height => move || {
-                        adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
-                        Continue(false)
-                    }));
+                    gtk::timeout_add(
+                        50,
+                        clone!(bx, video_width, video_height => move || {
+                            adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
+                            Continue(false)
+                        }),
+                    );
                 }
-            });
-            });
+            }
+        });
         (dimension_id, size_id)
     }
 
@@ -482,7 +482,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         self.get_player().pause();
     }
 
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn stop(&self) {
         if let Some(controls) = self.get_controls() {
             controls.buttons.pause.hide();
@@ -496,7 +496,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
 
     fn initialize_stream(
         player: &Rc<Self>,
-        media_url: &String,
+        media_url: &str,
         server_url: &Url,
         thread_pool: ThreadPool,
         bx: &gtk::Box,
@@ -507,7 +507,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
             Sender<Result<String, Error>>,
             Receiver<Result<String, Error>>,
         ) = channel();
-        media::get_media_async(thread_pool, server_url.clone(), media_url.clone(), tx);
+        media::get_media_async(thread_pool, server_url.clone(), media_url.to_string(), tx);
         let local_path = player.get_local_path_access();
         gtk::timeout_add(
             50,
@@ -579,12 +579,12 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
 }
 
 impl<T: MediaPlayer + 'static> ControlsConnection for T {
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn init(s: &Rc<Self>) {
         Self::connect_control_buttons(s);
         Self::connect_gst_signals(s);
     }
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     /// Connect the `PlayerControls` buttons to the `PlayerEssentials` methods.
     fn connect_control_buttons(s: &Rc<Self>) {
         if s.get_controls().is_some() {
@@ -592,16 +592,16 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
 
             // Connect the play button to the gst Player.
             s.get_controls().unwrap().buttons.play.connect_clicked(clone!(weak => move |_| {
-                weak.upgrade().map(|p| p.play());
+                if let Some(p) = weak.upgrade() { p.play() }
             }));
 
             // Connect the pause button to the gst Player.
             s.get_controls().unwrap().buttons.pause.connect_clicked(clone!(weak => move |_| {
-                weak.upgrade().map(|p| p.pause());
+                if let Some(p) = weak.upgrade() { p.pause() }
             }));
         }
     }
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn connect_gst_signals(s: &Rc<Self>) {
         if s.get_controls().is_some() {
             // The followign callbacks require `Send` but are handled by the gtk main loop
@@ -609,17 +609,17 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
 
             // Update the duration label and the slider
             s.get_player().connect_duration_changed(clone!(weak => move |_, clock| {
-                weak.get().upgrade().map(|p| p.get_controls().unwrap().timer.on_duration_changed(Duration(clock)));
+                if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_duration_changed(Duration(clock)) }
             }));
 
             // Update the position label and the slider
             s.get_player().connect_position_updated(clone!(weak => move |_, clock| {
-                weak.get().upgrade().map(|p| p.get_controls().unwrap().timer.on_position_updated(Position(clock)));
+                if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_position_updated(Position(clock)) }
             }));
 
             // Reset the slider to 0 and show a play button
             s.get_player().connect_end_of_stream(clone!(weak => move |_| {
-                weak.get().upgrade().map(|p| p.stop());
+                if let Some(p) = weak.get().upgrade() { p.stop() }
             }));
         }
     }
@@ -686,20 +686,18 @@ fn adjust_box_margins_to_video_dimensions(bx: &gtk::Box, video_width: i32, video
                 bx.set_margin_top(0);
                 bx.set_margin_bottom(0);
             }
-        } else {
-            if video_width != 0 {
-                let adjusted_height = if parent_width < video_width {
-                    let box_width = bx.get_allocated_width();
-                    box_width * video_height / video_width
-                } else {
-                    video_height
-                };
-                let margin = (parent_height - adjusted_height) / 2;
-                bx.set_margin_top(margin);
-                bx.set_margin_bottom(margin);
-                bx.set_margin_start(0);
-                bx.set_margin_end(0);
-            }
+        } else if video_width != 0 {
+            let adjusted_height = if parent_width < video_width {
+                let box_width = bx.get_allocated_width();
+                box_width * video_height / video_width
+            } else {
+                video_height
+            };
+            let margin = (parent_height - adjusted_height) / 2;
+            bx.set_margin_top(margin);
+            bx.set_margin_bottom(margin);
+            bx.set_margin_start(0);
+            bx.set_margin_end(0);
         }
     }
 }
