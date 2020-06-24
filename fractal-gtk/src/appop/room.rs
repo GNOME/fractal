@@ -14,7 +14,6 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend;
 use crate::backend::BKResponse;
 use fractal_api::util::cache_dir_path;
 
@@ -394,9 +393,9 @@ impl AppOp {
             .map_or(String::new(), |gstr| gstr.to_string());
         // Since the switcher
         let privacy = if private.get_active() {
-            backend::RoomType::Private
+            room::RoomType::Private
         } else {
-            backend::RoomType::Public
+            room::RoomType::Public
         };
 
         let internal_id = RoomId::new(&login_data.server_url.to_string())

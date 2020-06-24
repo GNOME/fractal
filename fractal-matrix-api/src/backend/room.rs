@@ -18,8 +18,6 @@ use crate::util::get_prev_batch_from;
 use crate::util::ContentType;
 use crate::util::HTTP_CLIENT;
 
-use crate::backend::types::RoomType;
-
 use crate::r0::config::get_global_account_data::request as get_global_account_data;
 use crate::r0::config::get_global_account_data::Parameters as GetGlobalAccountDataParameters;
 use crate::r0::config::set_global_account_data::request as set_global_account_data;
@@ -399,6 +397,12 @@ pub fn upload_file(
         .execute(request)?
         .json()
         .map_err(Into::into)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum RoomType {
+    Public,
+    Private,
 }
 
 pub fn new_room(
