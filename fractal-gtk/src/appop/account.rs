@@ -9,7 +9,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::AppState;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::i18n::i18n;
 use crate::widgets;
 use crate::widgets::AvatarExt;
@@ -35,7 +35,7 @@ impl AppOp {
                     APPOP!(set_three_pid, (l));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::GetThreePIDError(err)))
+                    tx.send(BKResponse::GetThreePIDError(err))
                         .expect_log("Connection closed");
                 }
             }
@@ -63,7 +63,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(err)))
+                            tx.send(BKResponse::AddThreePIDError(err))
                                 .expect_log("Connection closed");
                         }
                     }
@@ -133,10 +133,8 @@ impl AppOp {
                                 APPOP!(valid_phone_token, (sid, secret));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(
-                                    BKResponse::SubmitPhoneTokenError(err),
-                                ))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::SubmitPhoneTokenError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
                     });
@@ -186,7 +184,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::AddThreePIDError(err)))
+                            tx.send(BKResponse::AddThreePIDError(err))
                                 .expect_log("Connection closed");
                         }
                     }
@@ -631,7 +629,7 @@ impl AppOp {
                         APPOP!(show_new_username, (u));
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::SetUserNameError(err)))
+                        tx.send(BKResponse::SetUserNameError(err))
                             .expect_log("Connection closed");
                     }
                 }
@@ -704,10 +702,8 @@ impl AppOp {
                                 APPOP!(password_changed);
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(
-                                    BKResponse::ChangePasswordError(err),
-                                ))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::ChangePasswordError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
                     });
@@ -825,10 +821,8 @@ impl AppOp {
                                 APPOP!(account_destruction_logoff);
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(
-                                    BKResponse::AccountDestructionError(err),
-                                ))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::AccountDestructionError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
                     });

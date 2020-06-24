@@ -12,8 +12,7 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::BKCommand;
-
+use crate::backend::BKResponse;
 use crate::util::markup_text;
 
 use crate::cache::download_to_cache;
@@ -31,7 +30,7 @@ use crate::widgets::{AudioPlayerWidget, PlayerExt, VideoPlayerWidget};
 /* A message row in the room history */
 #[derive(Clone, Debug)]
 pub struct MessageBox {
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
@@ -44,7 +43,7 @@ pub struct MessageBox {
 }
 
 impl MessageBox {
-    pub fn new(backend: Sender<BKCommand>, server_url: Url) -> MessageBox {
+    pub fn new(backend: Sender<BKResponse>, server_url: Url) -> MessageBox {
         let username = gtk::Label::new(None);
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();

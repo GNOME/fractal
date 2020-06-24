@@ -20,7 +20,7 @@ use gtk::Overlay;
 use crate::types::Message;
 use crate::types::Room;
 
-use crate::backend::BKCommand;
+use crate::backend::BKResponse;
 use crate::uitypes::RowType;
 use crate::widgets::image;
 use crate::widgets::message_menu::MessageMenu;
@@ -38,7 +38,7 @@ pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
     /* gtk widgets we need to have a reference to */
     pub builder: gtk::Builder,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
 }
 
 #[derive(Debug)]
@@ -127,7 +127,7 @@ enum Widget {
 struct Data {
     builder: gtk::Builder,
     main_window: gtk::Window,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
     uid: UserId,
@@ -148,7 +148,7 @@ struct Data {
 
 impl Data {
     pub fn new(
-        backend: Sender<BKCommand>,
+        backend: Sender<BKResponse>,
         server_url: Url,
         access_token: AccessToken,
         media_list: Vec<Message>,
@@ -631,7 +631,7 @@ impl Drop for Data {
 
 impl MediaViewer {
     pub fn new(
-        backend: Sender<BKCommand>,
+        backend: Sender<BKResponse>,
         main_window: gtk::Window,
         room: &Room,
         current_media_msg: &Message,
@@ -1028,7 +1028,7 @@ fn load_more_media(
     thread_pool: ThreadPool,
     data: Rc<RefCell<Data>>,
     builder: gtk::Builder,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
 ) {
     data.borrow_mut().loading_more_media = loading_state(&builder, true);
 

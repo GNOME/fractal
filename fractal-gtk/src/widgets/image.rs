@@ -15,7 +15,7 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::BKCommand;
+use crate::backend::BKResponse;
 use crate::error::Error;
 use std::sync::mpsc::TryRecvError;
 
@@ -26,7 +26,7 @@ pub struct Image {
     pub server_url: Url,
     pub max_size: Option<(i32, i32)>,
     pub widget: DrawingArea,
-    pub backend: Sender<BKCommand>,
+    pub backend: Sender<BKResponse>,
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
@@ -51,7 +51,7 @@ impl Image {
     ///           .size(Some((50, 50)))
     ///           .build();
     /// ```
-    pub fn new(backend: &Sender<BKCommand>, server_url: Url, path: &str) -> Image {
+    pub fn new(backend: &Sender<BKResponse>, server_url: Url, path: &str) -> Image {
         let da = DrawingArea::new();
         da.add_events(gdk::EventMask::ENTER_NOTIFY_MASK);
         da.add_events(gdk::EventMask::LEAVE_NOTIFY_MASK);

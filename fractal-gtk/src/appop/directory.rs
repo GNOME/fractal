@@ -8,7 +8,7 @@ use fractal_api::util::ResultExpectLog;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::widgets;
 
 use super::RoomSearchPagination;
@@ -25,10 +25,8 @@ impl AppOp {
                     APPOP!(set_protocols, (protocols));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(
-                        BKResponse::DirectoryProtocolsError(err),
-                    ))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::DirectoryProtocolsError(err))
+                        .expect_log("Connection closed");
                 }
             }
         });
@@ -157,10 +155,8 @@ impl AppOp {
                     APPOP!(append_directory_rooms, (rooms, rooms_since));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::DirectorySearchError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::DirectorySearchError(err))
+                        .expect_log("Connection closed");
                 }
             }
         });
