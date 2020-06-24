@@ -19,7 +19,6 @@ mod widgets;
 
 mod appop;
 
-use std::env::args;
 use std::error::Error;
 
 use crate::app::App;
@@ -30,25 +29,26 @@ use gio::ApplicationExt;
 use log::Level;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    #[cfg(not(debug_assertions))]
-    {
-        let clap_args = clap::App::new("fractal")
-            .version(env!("CARGO_PKG_VERSION"))
-            .about("Matrix group messaging app")
-            .arg(
-                clap::Arg::with_name("v")
-                    .short("v")
-                    .multiple(true)
-                    .help("Sets the level of verbosity"),
-            )
-            .get_matches();
+    let clap_app = clap::App::new("fractal")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Matrix group messaging app")
+        .arg(
+            clap::Arg::with_name("v")
+                .short("v")
+                .multiple(true)
+                .help("Sets the level of verbosity"),
+        );
 
-        loggerv::init_with_verbosity(clap_args.occurrences_of("v"))
-            .expect("Failed to initialize logger");
-    }
+    let clap_args = clap_app.get_matches();
+    loggerv::init_with_verbosity(clap_args.occurrences_of("v"))
+        .expect("Failed to initialize logger");
 
     #[cfg(debug_assertions)]
-    loggerv::init_with_level(Level::Info).expect("Failed to initialize logger");
+    {
+        if clap_args.occurrences_of("v") == 0 {
+            loggerv::init_with_level(Level::Info).expect("Failed to initialize logger");
+        }
+    }
 
     static_resources::init().expect("GResource initialization failed.");
 
@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         App::on_startup(application);
     });
 
-    application.run(&args().collect::<Vec<_>>());
+    application.run(&[]);
 
     Ok(())
 }
