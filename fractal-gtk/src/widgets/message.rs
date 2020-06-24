@@ -12,10 +12,8 @@ use gtk::{prelude::*, ButtonExt, ContainerExt, LabelExt, Overlay, WidgetExt};
 use pango;
 use std::cmp::max;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::BKResponse;
 use crate::util::markup_text;
 
 use crate::cache::download_to_cache;
@@ -33,7 +31,6 @@ use crate::widgets::{AudioPlayerWidget, PlayerExt, VideoPlayerWidget};
 /* A message row in the room history */
 #[derive(Clone, Debug)]
 pub struct MessageBox {
-    backend: Sender<BKResponse>,
     server_url: Url,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
@@ -46,7 +43,7 @@ pub struct MessageBox {
 }
 
 impl MessageBox {
-    pub fn new(backend: Sender<BKResponse>, server_url: Url) -> MessageBox {
+    pub fn new(server_url: Url) -> MessageBox {
         let username = gtk::Label::new(None);
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
@@ -58,7 +55,6 @@ impl MessageBox {
         gesture.set_touch_only(true);
 
         MessageBox {
-            backend,
             server_url,
             username,
             username_event_box: eb,
@@ -401,7 +397,7 @@ impl MessageBox {
             Some(ref m) if m.starts_with("mxc:") || m.starts_with("http") => m.clone(),
             _ => msg.url.clone().unwrap_or_default(),
         };
-        let image = widgets::image::Image::new(&self.backend, self.server_url.clone(), &img_path)
+        let image = widgets::image::Image::new(self.server_url.clone(), &img_path)
             .size(Some(globals::MAX_IMAGE_SIZE))
             .build(thread_pool);
 
@@ -417,9 +413,8 @@ impl MessageBox {
 
     fn build_room_msg_sticker(&self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
         let bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        let backend = self.backend.clone();
         if let Some(url) = msg.url.as_ref() {
-            let image = widgets::image::Image::new(&backend, self.server_url.clone(), url)
+            let image = widgets::image::Image::new(self.server_url.clone(), url)
                 .size(Some(globals::MAX_STICKER_SIZE))
                 .build(thread_pool);
             image.widget.set_tooltip_text(Some(&msg.body[..]));

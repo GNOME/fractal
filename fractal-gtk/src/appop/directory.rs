@@ -4,8 +4,8 @@ use libhandy::Column;
 use std::thread;
 
 use fractal_api::backend::directory;
-use fractal_api::util::ResultExpectLog;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
@@ -19,15 +19,13 @@ use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 impl AppOp {
     pub fn init_protocols(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match directory::protocols(login_data.server_url, login_data.access_token) {
                 Ok(protocols) => {
                     APPOP!(set_protocols, (protocols));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::DirectoryProtocolsError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::DirectoryProtocolsError(err));
                 }
             }
         });
@@ -140,7 +138,6 @@ impl AppOp {
         }
 
         let rooms_since = self.directory_pagination.clone().into();
-        let tx = self.backend.clone();
         thread::spawn(move || {
             let query = directory::room_search(
                 login_data.server_url,
@@ -156,8 +153,7 @@ impl AppOp {
                     APPOP!(append_directory_rooms, (rooms, rooms_since));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::DirectorySearchError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::DirectorySearchError(err));
                 }
             }
         });

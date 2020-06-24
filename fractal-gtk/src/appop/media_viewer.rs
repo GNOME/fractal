@@ -37,7 +37,6 @@ impl AppOp {
             let room_id = self.active_room.as_ref()?;
             let room = self.rooms.get(room_id)?;
             let mut panel = widgets::MediaViewer::new(
-                self.backend.clone(),
                 main_window.clone(),
                 room,
                 &msg,
@@ -53,7 +52,6 @@ impl AppOp {
                 let back_history = self.room_back_history.clone();
                 let actions = actions::Message::new(
                     self.thread_pool.clone(),
-                    self.backend.clone(),
                     login_data.server_url,
                     login_data.access_token,
                     self.ui.clone(),

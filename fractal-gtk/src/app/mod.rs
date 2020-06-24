@@ -5,14 +5,11 @@ use gtk::prelude::*;
 use libhandy::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, Weak};
 
 use log::error;
 
 use crate::appop::AppOp;
-use crate::backend::BKResponse;
 
 use crate::actions;
 use crate::config;
@@ -43,7 +40,7 @@ macro_rules! APPOP {
 
 mod backend_loop;
 
-pub use self::backend_loop::backend_loop;
+pub use backend_loop::dispatch_error;
 
 // Our application struct for containing all the state we have to carry around.
 // TODO: subclass gtk::Application once possible
@@ -60,8 +57,6 @@ pub type AppRef = Rc<App>;
 
 impl App {
     pub fn new(gtk_app: &gtk::Application) -> AppRef {
-        let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-
         // Set up the textdomain for gettext
         setlocale(LocaleCategory::LcAll, "");
         bindtextdomain("fractal", config::LOCALEDIR);
@@ -161,7 +156,7 @@ impl App {
         stack.add_named(&child, "account-settings");
         stack_header.add_named(&child_header, "account-settings");
 
-        let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), tx)));
+        let op = Arc::new(Mutex::new(AppOp::new(ui.clone())));
 
         // Add login view to the main stack
         let login = widgets::LoginWidget::new(&op);
@@ -173,8 +168,6 @@ impl App {
         unsafe {
             OP = Some(Arc::downgrade(&op));
         }
-
-        backend_loop(rx);
 
         actions::Global::new(gtk_app, &op);
 

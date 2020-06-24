@@ -2,11 +2,11 @@ use crate::i18n::{i18n, i18n_k};
 
 use fractal_api::backend::room;
 use fractal_api::identifiers::{RoomId, UserId};
-use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
@@ -168,12 +168,10 @@ impl AppOp {
                 let access_token = login_data.access_token.clone();
                 let room_id = r.clone();
                 let user_id = user.0.uid.clone();
-                let tx = self.backend.clone();
                 thread::spawn(move || {
                     let query = room::invite(server, access_token, room_id, user_id);
                     if let Err(err) = query {
-                        tx.send(BKResponse::InviteError(err))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::InviteError(err));
                     }
                 });
             }
@@ -228,7 +226,6 @@ impl AppOp {
         if let Some(rid) = self.invitation_roomid.take() {
             let room_id = rid.clone();
             if accept {
-                let tx = self.backend.clone();
                 thread::spawn(move || {
                     match room::join_room(login_data.server_url, login_data.access_token, room_id) {
                         Ok(jtr) => {
@@ -237,19 +234,16 @@ impl AppOp {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            tx.send(BKResponse::JoinRoomError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::JoinRoomError(err));
                         }
                     }
                 });
             } else {
-                let tx = self.backend.clone();
                 thread::spawn(move || {
                     let query =
                         room::leave_room(login_data.server_url, login_data.access_token, room_id);
                     if let Err(err) = query {
-                        tx.send(BKResponse::LeaveRoomError(err))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::LeaveRoomError(err));
                     }
                 });
             }

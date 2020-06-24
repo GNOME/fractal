@@ -6,8 +6,6 @@ use crate::error::Error;
 
 #[derive(Debug)]
 pub enum BKResponse {
-    ShutDown,
-
     //errors
     LoginError(Error),
     GuestLoginError(Error),

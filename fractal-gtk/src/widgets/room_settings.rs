@@ -2,10 +2,8 @@ use fractal_api::backend::room;
 use fractal_api::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
-use fractal_api::util::ResultExpectLog;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::thread;
 
 use crate::i18n::ni18n_f;
@@ -16,6 +14,7 @@ use gtk::prelude::*;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::backend::BKResponse;
 use crate::types::Member;
@@ -32,7 +31,6 @@ pub struct RoomSettings {
     uid: UserId,
     builder: gtk::Builder,
     members_list: Option<MembersList>,
-    backend: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
 }
@@ -40,7 +38,6 @@ pub struct RoomSettings {
 impl RoomSettings {
     pub fn new(
         window: &gtk::Window,
-        backend: Sender<BKResponse>,
         uid: UserId,
         room: Room,
         server_url: Url,
@@ -56,8 +53,7 @@ impl RoomSettings {
             .get_object::<gtk::Stack>("room_settings_stack")
             .expect("Can't find room_settings_stack in ui file.");
 
-        let actions =
-            actions::RoomSettings::new(&window, &backend, server_url.clone(), access_token.clone());
+        let actions = actions::RoomSettings::new(&window, server_url.clone(), access_token.clone());
         stack.insert_action_group("room-settings", Some(&actions));
 
         RoomSettings {
@@ -66,7 +62,6 @@ impl RoomSettings {
             uid,
             builder,
             members_list: None,
-            backend,
             server_url,
             access_token,
         }
@@ -435,15 +430,13 @@ impl RoomSettings {
         let server = self.server_url.clone();
         let access_token = self.access_token.clone();
         let room_id = self.room.id.clone();
-        let tx = self.backend.clone();
         thread::spawn(
             move || match room::get_room_avatar(server, access_token, room_id) {
                 Ok((room, avatar)) => {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::RoomAvatarError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomAvatarError(err));
                 }
             },
         );
@@ -508,15 +501,13 @@ impl RoomSettings {
         let server = self.server_url.clone();
         let access_token = self.access_token.clone();
         let room_id = room.id.clone();
-        let tx = self.backend.clone();
         thread::spawn(
             move || match room::set_room_name(server, access_token, room_id, new_name) {
                 Ok(_) => {
                     APPOP!(show_new_room_name);
                 }
                 Err(err) => {
-                    tx.send(BKResponse::SetRoomNameError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::SetRoomNameError(err));
                 }
             },
         );
@@ -568,15 +559,13 @@ impl RoomSettings {
         let server = self.server_url.clone();
         let access_token = self.access_token.clone();
         let room_id = room.id.clone();
-        let tx = self.backend.clone();
         thread::spawn(
             move || match room::set_room_topic(server, access_token, room_id, topic) {
                 Ok(_) => {
                     APPOP!(show_new_room_topic);
                 }
                 Err(err) => {
-                    tx.send(BKResponse::SetRoomTopicError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::SetRoomTopicError(err));
                 }
             },
         );

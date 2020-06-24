@@ -7,22 +7,9 @@ use regex::Regex;
 use crate::actions::{activate_action, AppState};
 
 use glib;
-use std::sync::mpsc::Receiver;
-use std::thread;
 
 use crate::backend::BKResponse;
 use fractal_api::error::Error;
-
-pub fn backend_loop(rx: Receiver<BKResponse>) {
-    thread::spawn(move || {
-        while let Ok(recv) = rx.recv() {
-            match recv {
-                BKResponse::ShutDown => break,
-                err => dispatch_error(err),
-            };
-        }
-    });
-}
 
 pub fn dispatch_error(error: BKResponse) {
     match error {

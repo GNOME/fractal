@@ -2,15 +2,14 @@ use fractal_api::backend::user;
 use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use fractal_api::url::Url;
-use fractal_api::util::ResultExpectLog;
 use glib::signal;
 use gtk;
 use gtk::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
@@ -169,7 +168,6 @@ impl<'a> Address<'a> {
         let access_token = login_data.access_token;
         let server_url = login_data.server_url;
         let id_server = login_data.identity_url;
-        let backend = self.op.backend.clone();
         self.signal_id = Some(self.button.clone().connect_clicked(move |w| {
             if !w.get_sensitive() || !w.is_visible() {
                 return;
@@ -189,19 +187,12 @@ impl<'a> Address<'a> {
             match action {
                 Some(AddressAction::Delete) => {
                     if let Some(address) = address.clone() {
-                        delete_address(
-                            backend.clone(),
-                            medium,
-                            address,
-                            server_url.clone(),
-                            access_token.clone(),
-                        );
+                        delete_address(medium, address, server_url.clone(), access_token.clone());
                     }
                 }
                 Some(AddressAction::Add) => {
                     if let Some(address) = entry.get_text().map(|gstr| gstr.to_string()) {
                         add_address(
-                            backend.clone(),
                             medium,
                             id_server.clone(),
                             address,
@@ -216,28 +207,20 @@ impl<'a> Address<'a> {
     }
 }
 
-fn delete_address(
-    tx: Sender<BKResponse>,
-    medium: Medium,
-    address: String,
-    server_url: Url,
-    access_token: AccessToken,
-) {
+fn delete_address(medium: Medium, address: String, server_url: Url, access_token: AccessToken) {
     thread::spawn(move || {
         match user::delete_three_pid(server_url, access_token, medium, address) {
             Ok(_) => {
                 APPOP!(get_three_pid);
             }
             Err(err) => {
-                tx.send(BKResponse::DeleteThreePIDError(err))
-                    .expect_log("Connection closed");
+                dispatch_error(BKResponse::DeleteThreePIDError(err));
             }
         }
     });
 }
 
 fn add_address(
-    tx: Sender<BKResponse>,
     medium: Medium,
     id_server: Url,
     address: String,
@@ -254,8 +237,7 @@ fn add_address(
                     APPOP!(get_token_phone, (sid, secret))
                 }
                 Err(err) => {
-                    tx.send(BKResponse::GetTokenPhoneError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::GetTokenPhoneError(err));
                 }
             }
         }
@@ -267,8 +249,7 @@ fn add_address(
                     APPOP!(get_token_email, (sid, secret));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::GetTokenEmailError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::GetTokenEmailError(err));
                 }
             }
         }

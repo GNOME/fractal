@@ -2,7 +2,6 @@ use crate::i18n::{i18n, i18n_k, ni18n_f};
 use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
-use fractal_api::util::ResultExpectLog;
 use log::{error, warn};
 use std::convert::TryFrom;
 use std::fs::remove_file;
@@ -12,6 +11,7 @@ use std::thread;
 use gtk;
 use gtk::prelude::*;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
@@ -82,15 +82,13 @@ impl AppOp {
                 let server = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();
                 let room_id = room.id.clone();
-                let tx = self.backend.clone();
                 thread::spawn(move || {
                     match room::get_room_members(server, access_token, room_id) {
                         Ok((room, members)) => {
                             APPOP!(set_room_members, (room, members));
                         }
                         Err(err) => {
-                            tx.send(BKResponse::RoomMembersError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::RoomMembersError(err));
                         }
                     }
                 });
@@ -99,15 +97,13 @@ impl AppOp {
                 let server = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();
                 let room_id = room.id.clone();
-                let tx = self.backend.clone();
                 thread::spawn(
                     move || match room::get_room_avatar(server, access_token, room_id) {
                         Ok((room, avatar)) => {
                             APPOP!(set_room_avatar, (room, avatar));
                         }
                         Err(err) => {
-                            tx.send(BKResponse::RoomAvatarError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::RoomAvatarError(err));
                         }
                     },
                 );
@@ -148,9 +144,7 @@ impl AppOp {
             self.roomlist.add_rooms(roomlist);
             container.add(self.roomlist.widget());
 
-            let bk = self.backend.clone();
             self.roomlist.connect_fav(move |room, tofav| {
-                let tx = bk.clone();
                 let server = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();
                 let uid = login_data.uid.clone();
@@ -160,8 +154,7 @@ impl AppOp {
                             APPOP!(added_to_fav, (r, tofav));
                         }
                         Err(err) => {
-                            tx.send(BKResponse::AddedToFavError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::AddedToFavError(err));
                         }
                     }
                 });
@@ -253,15 +246,13 @@ impl AppOp {
         let server_url = login_data.server_url.clone();
         let access_token = login_data.access_token.clone();
         let a_room = active_room.clone();
-        let tx = self.backend.clone();
         thread::spawn(
             move || match room::get_room_avatar(server_url, access_token, a_room) {
                 Ok((room, avatar)) => {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::RoomAvatarError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomAvatarError(err));
                 }
             },
         );
@@ -269,7 +260,6 @@ impl AppOp {
         let server_url = login_data.server_url.clone();
         let access_token = login_data.access_token.clone();
         let a_room = active_room.clone();
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match room::get_room_detail(server_url, access_token, a_room, "m.room.topic".into()) {
                 Ok((room, key, value)) => {
@@ -277,8 +267,7 @@ impl AppOp {
                     APPOP!(set_room_detail, (room, key, v));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::RoomDetailError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomDetailError(err));
                 }
             }
         });
@@ -311,7 +300,6 @@ impl AppOp {
         let back_history = self.room_back_history.clone();
         let actions = actions::Message::new(
             self.thread_pool.clone(),
-            self.backend.clone(),
             login_data.server_url,
             login_data.access_token,
             self.ui.clone(),
@@ -342,12 +330,10 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         let r = unwrap_or_unit_return!(self.active_room.clone());
         let room_id = r.clone();
-        let tx = self.backend.clone();
         thread::spawn(move || {
             let query = room::leave_room(login_data.server_url, login_data.access_token, room_id);
             if let Err(err) = query {
-                tx.send(BKResponse::LeaveRoomError(err))
-                    .expect_log("Connection closed");
+                dispatch_error(BKResponse::LeaveRoomError(err));
             }
         });
         self.rooms.remove(&r);
@@ -416,7 +402,6 @@ impl AppOp {
             .expect("The server domain should have been validated");
         let int_id = internal_id.clone();
         let name = n.clone();
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match room::new_room(
                 login_data.server_url,
@@ -429,8 +414,7 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::NewRoomError(err, int_id))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::NewRoomError(err, int_id));
                 }
             }
         });
@@ -571,7 +555,6 @@ impl AppOp {
             .get_text()
             .map_or(String::new(), |gstr| gstr.to_string());
 
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match RoomId::try_from(name.trim())
                 .map_err(Into::into)
@@ -584,8 +567,7 @@ impl AppOp {
                     APPOP!(reload_rooms);
                 }
                 Err(err) => {
-                    tx.send(BKResponse::JoinRoomError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::JoinRoomError(err));
                 }
             }
         });
@@ -723,15 +705,13 @@ impl AppOp {
             return;
         }
 
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match room::get_room_avatar(login_data.server_url, login_data.access_token, room_id) {
                 Ok((room, avatar)) => {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::RoomAvatarError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomAvatarError(err));
                 }
             }
         });
@@ -777,7 +757,6 @@ impl AppOp {
             }
         }
         self.typing.insert(active_room.clone(), now);
-        let tx = self.backend.clone();
         thread::spawn(move || {
             let query = room::send_typing(
                 login_data.server_url,
@@ -786,8 +765,7 @@ impl AppOp {
                 active_room,
             );
             if let Err(err) = query {
-                tx.send(BKResponse::SendTypingError(err))
-                    .expect_log("Connection closed");
+                dispatch_error(BKResponse::SendTypingError(err));
             }
         });
     }

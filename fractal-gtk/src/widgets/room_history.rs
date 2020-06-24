@@ -7,11 +7,9 @@ use log::warn;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
 use crate::appop::AppOp;
-use crate::backend::BKResponse;
 use crate::i18n::i18n;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
@@ -257,7 +255,6 @@ impl Element {
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
-    backend: Sender<BKResponse>,
     server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
@@ -284,7 +281,6 @@ impl RoomHistory {
         listbox.insert_action_group("message", Some(&actions));
         let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
-            backend: op.backend.clone(),
             server_url: op.login_data.clone()?.server_url.clone(),
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
@@ -441,7 +437,6 @@ impl RoomHistory {
         thread_pool: ThreadPool,
         user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     ) -> Option<()> {
-        let backend = self.backend.clone();
         let queue = self.queue.clone();
         let rows = self.rows.clone();
 
@@ -500,7 +495,6 @@ impl RoomHistory {
                         user_info_cache.clone(),
                         item.clone(),
                         has_header,
-                        backend.clone(),
                         server_url.clone(),
                         &rows,
                     ));
@@ -573,7 +567,6 @@ impl RoomHistory {
             user_info_cache,
             item.clone(),
             has_header,
-            self.backend.clone(),
             self.server_url.clone(),
             &self.rows,
         );
@@ -686,13 +679,12 @@ fn create_row(
     user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     row: MessageContent,
     has_header: bool,
-    backend: Sender<BKResponse>,
     server_url: Url,
     rows: &Rc<RefCell<List>>,
 ) -> widgets::MessageBox {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
-    let mut mb = widgets::MessageBox::new(backend, server_url);
+    let mut mb = widgets::MessageBox::new(server_url);
     mb.create(
         thread_pool,
         user_info_cache,

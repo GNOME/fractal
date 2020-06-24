@@ -1,11 +1,11 @@
 use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
-use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
 use std::thread;
 
 use crate::actions::AppState;
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::SearchType;
@@ -27,7 +27,6 @@ impl AppOp {
 
         let int_id = internal_id.clone();
         let member = user.0.clone();
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match room::direct_chat(
                 login_data.server_url,
@@ -40,8 +39,7 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::NewRoomError(err, int_id))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::NewRoomError(err, int_id));
                 }
             }
         });

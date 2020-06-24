@@ -1,7 +1,6 @@
 use fractal_api::backend::user;
 use fractal_api::clone;
 use fractal_api::identifiers::{RoomId, UserId};
-use fractal_api::util::ResultExpectLog;
 use gtk;
 use gtk::prelude::*;
 
@@ -10,6 +9,7 @@ use std::convert::TryFrom;
 use std::thread;
 
 use crate::actions::AppState;
+use crate::app::dispatch_error;
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
 use crate::widgets;
@@ -193,15 +193,13 @@ impl AppOp {
 
     pub fn search_invite_user(&self, term: String) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match user::search(login_data.server_url, login_data.access_token, term) {
                 Ok(users) => {
                     APPOP!(user_search_finished, (users));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::UserSearchError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::UserSearchError(err));
                 }
             }
         });
