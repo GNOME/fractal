@@ -3,13 +3,12 @@ use fractal_api::backend::user;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
-use fractal_api::util::ResultExpectLog;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
-use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::backend::BKResponse;
 
@@ -20,7 +19,6 @@ use crate::actions::ButtonState;
 // This creates all actions a user can perform in the account settings
 pub fn new(
     window: &gtk::Window,
-    tx: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
     uid: UserId,
@@ -40,7 +38,6 @@ pub fn new(
         filter.set_name(Some(i18n("Images").as_str()));
         if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
             a.change_state(&ButtonState::Insensitive.into());
-            let tx = tx.clone();
             let server_url = server_url.clone();
             let access_token = access_token.clone();
             let uid = uid.clone();
@@ -50,8 +47,7 @@ pub fn new(
                         APPOP!(show_new_avatar, (path));
                     }
                     Err(err) => {
-                        tx.send(BKResponse::SetUserAvatarError(err))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::SetUserAvatarError(err));
                     }
                 }
             });

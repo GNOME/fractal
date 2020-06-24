@@ -1,10 +1,10 @@
 use fractal_api::backend::user;
-use fractal_api::util::ResultExpectLog;
 use gtk::prelude::*;
 use log::info;
 use std::path::PathBuf;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::AppState;
@@ -27,7 +27,6 @@ impl AppOp {
 
     pub fn get_three_pid(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let tx = self.backend.clone();
         thread::spawn(move || {
             match user::get_threepid(login_data.server_url, login_data.access_token) {
                 Ok(list) => {
@@ -35,8 +34,7 @@ impl AppOp {
                     APPOP!(set_three_pid, (l));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::GetThreePIDError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::GetThreePIDError(err));
                 }
             }
         });
@@ -50,7 +48,6 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
         if let Some(sid) = sid {
             if let Some(secret) = secret {
-                let tx = self.backend.clone();
                 thread::spawn(move || {
                     match user::add_threepid(
                         login_data.server_url,
@@ -63,8 +60,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            tx.send(BKResponse::AddThreePIDError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::AddThreePIDError(err));
                         }
                     }
                 });
@@ -97,7 +93,6 @@ impl AppOp {
                 area.add(&entry);
             }
         }
-        let backend = self.backend.clone();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel);
         let button = dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok);
         button.set_sensitive(false);
@@ -125,7 +120,6 @@ impl AppOp {
                     let server_url = login_data.server_url.clone();
                     let secret = secret.clone();
                     let sid = sid.clone();
-                    let tx = backend.clone();
                     thread::spawn(move || {
                         match user::submit_phone_token(server_url, secret, sid, token) {
                             Ok((sid, secret)) => {
@@ -133,8 +127,7 @@ impl AppOp {
                                 APPOP!(valid_phone_token, (sid, secret));
                             }
                             Err(err) => {
-                                tx.send(BKResponse::SubmitPhoneTokenError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::SubmitPhoneTokenError(err));
                             }
                         }
                     });
@@ -163,7 +156,6 @@ impl AppOp {
             gtk::ButtonsType::None,
             &msg,
         );
-        let backend = self.backend.clone();
         dialog.add_button(&i18n("Cancel"), gtk::ResponseType::Cancel);
         dialog.add_button(&i18n("Continue"), gtk::ResponseType::Ok);
         dialog.connect_response(move |w, r| {
@@ -171,7 +163,6 @@ impl AppOp {
                 let login_data = login_data.clone();
                 let secret = secret.clone();
                 let sid = sid.clone();
-                let tx = backend.clone();
                 thread::spawn(move || {
                     match user::add_threepid(
                         login_data.server_url,
@@ -184,8 +175,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            tx.send(BKResponse::AddThreePIDError(err))
-                                .expect_log("Connection closed");
+                            dispatch_error(BKResponse::AddThreePIDError(err));
                         }
                     }
                 });
@@ -594,7 +584,6 @@ impl AppOp {
 
     pub fn update_username_account_settings(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let tx = self.backend.clone();
         let name = self
             .ui
             .builder
@@ -629,8 +618,7 @@ impl AppOp {
                         APPOP!(show_new_username, (u));
                     }
                     Err(err) => {
-                        tx.send(BKResponse::SetUserNameError(err))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::SetUserNameError(err));
                     }
                 }
             });
@@ -689,7 +677,6 @@ impl AppOp {
                 if old != "" && new != "" {
                     password_btn.set_sensitive(false);
                     password_btn_stack.set_visible_child_name("spinner");
-                    let tx = self.backend.clone();
                     thread::spawn(move || {
                         match user::change_password(
                             login_data.server_url,
@@ -702,8 +689,7 @@ impl AppOp {
                                 APPOP!(password_changed);
                             }
                             Err(err) => {
-                                tx.send(BKResponse::ChangePasswordError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::ChangePasswordError(err));
                             }
                         }
                     });
@@ -804,10 +790,8 @@ impl AppOp {
 
         let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
         if let Some(password) = entry.get_text().map(|gstr| gstr.to_string()) {
-            let backend = self.backend.clone();
             dialog.connect_response(move |w, r| {
                 if let gtk::ResponseType::Ok = r {
-                    let tx = backend.clone();
                     let password = password.clone();
                     let login_data = login_data.clone();
                     thread::spawn(move || {
@@ -821,8 +805,7 @@ impl AppOp {
                                 APPOP!(account_destruction_logoff);
                             }
                             Err(err) => {
-                                tx.send(BKResponse::AccountDestructionError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::AccountDestructionError(err));
                             }
                         }
                     });

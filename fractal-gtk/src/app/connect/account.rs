@@ -72,12 +72,9 @@ impl App {
             .get_object::<gtk::Button>("account_settings_delete_btn")
             .expect("Can't find account_settings_delete_btn in ui file.");
 
-        // FIXME: don't clone the backend
-        let backend = self.op.lock().unwrap().backend.clone();
         let window = self.main_window.upcast_ref::<gtk::Window>();
         let actions = AccountSettings::new(
             &window,
-            backend,
             login_data.server_url,
             login_data.access_token,
             login_data.uid,

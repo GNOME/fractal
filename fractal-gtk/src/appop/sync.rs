@@ -1,9 +1,9 @@
-use fractal_api::util::ResultExpectLog;
 use log::info;
 use std::thread;
 
 use crate::i18n::i18n;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
@@ -30,7 +30,6 @@ impl AppOp {
             // https://matrix.org/docs/spec/client_server/latest.html#syncing
             let join_to_room = self.join_to_room.clone();
             let since = self.since.clone().filter(|_| !initial);
-            let tx = self.backend.clone();
             thread::spawn(move || {
                 match sync::sync(
                     login_data.server_url,
@@ -55,8 +54,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                tx.send(BKResponse::RoomsError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::RoomsError(err));
                             }
                         };
 
@@ -78,8 +76,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                tx.send(BKResponse::UpdateRoomsError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::UpdateRoomsError(err));
                             }
                         }
 
@@ -88,8 +85,7 @@ impl AppOp {
                                 APPOP!(show_room_messages, (msgs));
                             }
                             Err(err) => {
-                                tx.send(BKResponse::RoomMessagesError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::RoomMessagesError(err));
                             }
                         }
 
@@ -99,8 +95,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                tx.send(BKResponse::UpdateRoomsError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::UpdateRoomsError(err));
                             }
                         }
 
@@ -136,8 +131,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                tx.send(BKResponse::RoomElementError(err))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::RoomElementError(err));
                             }
                         }
 
@@ -146,8 +140,7 @@ impl AppOp {
                         APPOP!(synced, (s));
                     }
                     Err((err, n_tries)) => {
-                        tx.send(BKResponse::SyncError(err, n_tries))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::SyncError(err, n_tries));
                     }
                 }
             });

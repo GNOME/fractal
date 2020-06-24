@@ -1,8 +1,8 @@
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::backend::BKResponse;
 
 use fractal_api::backend::room;
-use fractal_api::util::ResultExpectLog;
 use glib::object::Cast;
 use gtk::prelude::*;
 use std::thread;
@@ -34,12 +34,10 @@ impl App {
                             let access_token = login_data.access_token.clone();
                             let uid = login_data.uid.clone();
                             let room_id = active_room.clone();
-                            let tx = op.backend.clone();
                             thread::spawn(move || {
                                 let query = room::set_language(access_token, server, uid, room_id, lang_code);
                                 if let Err(err) = query {
-                                    tx.send(BKResponse::ChangeLanguageError(err))
-                                        .expect_log("Connection closed");
+                                    dispatch_error(BKResponse::ChangeLanguageError(err));
                                 }
                             });
                         }
