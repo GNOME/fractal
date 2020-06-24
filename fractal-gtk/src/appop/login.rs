@@ -10,9 +10,7 @@ use fractal_api::url::Url;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend::BKCommand;
 use crate::backend::BKResponse;
-use crate::backend::Backend;
 use crate::cache;
 
 use std::sync::mpsc::channel;
@@ -74,11 +72,10 @@ impl AppOp {
 
         // stoping the backend and starting again, we don't want to receive more messages from
         // backend
-        self.backend.send(BKCommand::ShutDown).unwrap();
+        self.backend.send(BKResponse::ShutDown).unwrap();
 
         let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-        let bk = Backend::new(tx);
-        self.backend = bk.run();
+        self.backend = tx;
         backend_loop(rx);
     }
 
@@ -101,7 +98,7 @@ impl AppOp {
                     APPOP!(bk_login, (uid, tk, dev, server, identity));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::LoginError(err)))
+                    tx.send(BKResponse::LoginError(err))
                         .expect_log("Connection closed");
                 }
             },
@@ -109,7 +106,7 @@ impl AppOp {
     }
 
     pub fn disconnect(&self) {
-        self.backend.send(BKCommand::ShutDown).unwrap();
+        self.backend.send(BKResponse::ShutDown).unwrap();
     }
 
     pub fn logout(&mut self) {
@@ -122,7 +119,7 @@ impl AppOp {
                     APPOP!(bk_logout);
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::LogoutError(err)))
+                    tx.send(BKResponse::LogoutError(err))
                         .expect_log("Connection closed");
                 }
             }

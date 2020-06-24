@@ -1,15 +1,8 @@
 use ruma_identifiers::RoomId;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 use crate::error::Error;
-
-#[derive(Debug)]
-pub enum BKCommand {
-    ShutDown,
-    SendBKResponse(BKResponse),
-}
 
 #[derive(Debug)]
 pub enum BKResponse {
@@ -108,8 +101,4 @@ impl ThreadPool {
             cvar.notify_one();
         });
     }
-}
-
-pub struct Backend {
-    pub tx: Sender<BKResponse>,
 }

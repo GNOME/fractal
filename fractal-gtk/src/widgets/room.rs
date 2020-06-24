@@ -7,7 +7,7 @@ use std::thread;
 
 use crate::types::Room;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 
 use crate::util::markup_text;
 
@@ -139,7 +139,7 @@ impl<'a> RoomBox<'a> {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                            tx.send(BKResponse::JoinRoomError(err))
                                 .expect_log("Connection closed");
                         }
                     }

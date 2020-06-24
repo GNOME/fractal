@@ -12,7 +12,7 @@ use std::thread;
 
 use crate::app::App;
 use crate::appop::AppOp;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 
 #[derive(Debug, Clone)]
 pub enum AddressType {
@@ -216,7 +216,7 @@ impl<'a> Address<'a> {
 }
 
 fn delete_address(
-    tx: Sender<BKCommand>,
+    tx: Sender<BKResponse>,
     medium: Medium,
     address: String,
     server_url: Url,
@@ -228,17 +228,15 @@ fn delete_address(
                 APPOP!(get_three_pid);
             }
             Err(err) => {
-                tx.send(BKCommand::SendBKResponse(BKResponse::DeleteThreePIDError(
-                    err,
-                )))
-                .expect_log("Connection closed");
+                tx.send(BKResponse::DeleteThreePIDError(err))
+                    .expect_log("Connection closed");
             }
         }
     });
 }
 
 fn add_address(
-    tx: Sender<BKCommand>,
+    tx: Sender<BKResponse>,
     medium: Medium,
     id_server: Url,
     address: String,
@@ -255,10 +253,8 @@ fn add_address(
                     APPOP!(get_token_phone, (sid, secret))
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenPhoneError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::GetTokenPhoneError(err))
+                        .expect_log("Connection closed");
                 }
             }
         }
@@ -270,10 +266,8 @@ fn add_address(
                     APPOP!(get_token_email, (sid, secret));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::GetTokenEmailError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::GetTokenEmailError(err))
+                        .expect_log("Connection closed");
                 }
             }
         }
