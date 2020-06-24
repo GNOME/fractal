@@ -9,7 +9,7 @@ pub mod directory;
 pub mod media;
 pub mod register;
 pub mod room;
-mod sync;
+pub mod sync;
 mod types;
 pub mod user;
 
@@ -41,25 +41,9 @@ impl Backend {
         let tx = self.tx.clone();
 
         match cmd {
-            // Sync module
-            Ok(BKCommand::Sync(server, access_token, uid, jtr, since, initial, number_tries)) => {
-                sync::sync(
-                    self,
-                    server,
-                    access_token,
-                    uid,
-                    jtr,
-                    since,
-                    initial,
-                    number_tries,
-                )
-            }
-
-            // Internal commands
             Ok(BKCommand::SendBKResponse(response)) => {
                 tx.send(response).expect_log("Connection closed");
             }
-
             Ok(BKCommand::ShutDown) => {
                 tx.send(BKResponse::ShutDown)
                     .expect_log("Connection closed");

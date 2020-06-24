@@ -1,28 +1,12 @@
-use ruma_identifiers::{DeviceId, EventId, RoomId, UserId};
+use ruma_identifiers::RoomId;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 use crate::error::Error;
 
-use crate::r0::AccessToken;
-use crate::types::Event;
-use crate::types::Message;
-use crate::types::Room;
-
-use url::Url;
-
 #[derive(Debug)]
 pub enum BKCommand {
-    Sync(
-        Url,
-        AccessToken,
-        UserId,
-        Option<RoomId>,
-        Option<String>,
-        bool,
-        u64,
-    ),
     ShutDown,
     SendBKResponse(BKResponse),
 }
@@ -30,19 +14,6 @@ pub enum BKCommand {
 #[derive(Debug)]
 pub enum BKResponse {
     ShutDown,
-    Token(UserId, AccessToken, Option<DeviceId>, Url, Url),
-    Sync(Result<String, (Error, u64)>),
-    Rooms(Result<(Vec<Room>, Option<Room>), Error>),
-    UpdateRooms(Result<Vec<Room>, Error>),
-    NewRoomAvatar(RoomId),
-    RoomMemberEvent(Event),
-    RoomMessages(Result<Vec<Message>, Error>),
-    RoomMessagesInit(Vec<Message>),
-    RemoveMessage(Result<(RoomId, EventId), Error>),
-    RoomName(RoomId, String),
-    RoomTopic(RoomId, String),
-    MediaUrl(Url),
-    RoomNotifications(RoomId, i32, i32),
 
     //errors
     LoginError(Error),
@@ -83,6 +54,11 @@ pub enum BKResponse {
     RoomAvatarError(Error),
     SentMsgError(Error),
     AttachedFileError(Error),
+    RoomsError(Error),
+    UpdateRoomsError(Error),
+    RoomMessagesError(Error),
+    RoomElementError(Error),
+    SyncError(Error, u64),
 }
 
 #[derive(Debug, Clone, Copy)]
