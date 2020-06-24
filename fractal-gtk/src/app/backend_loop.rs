@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::i18n::i18n;
 use lazy_static::lazy_static;
-use log::{error, info};
+use log::error;
 use regex::Regex;
 
 use crate::actions::{activate_action, AppState};
@@ -19,53 +19,6 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
             match recv {
                 BKResponse::ShutDown => {
                     break;
-                }
-                BKResponse::Token(uid, tk, dev, server_url, id_url) => {
-                    APPOP!(bk_login, (uid, tk, dev, server_url, id_url));
-                }
-                BKResponse::Sync(Ok(since)) => {
-                    info!("SYNC");
-                    let s = Some(since);
-                    APPOP!(synced, (s));
-                }
-                BKResponse::Rooms(Ok((rooms, default))) => {
-                    let clear_room_list = true;
-                    APPOP!(set_rooms, (rooms, clear_room_list));
-                    // Open the newly joined room
-                    let jtr = default.as_ref().map(|r| r.id.clone());
-                    APPOP!(set_join_to_room, (jtr));
-                    if let Some(room) = default {
-                        let room_id = room.id;
-                        APPOP!(set_active_room_by_id, (room_id));
-                    }
-                }
-                BKResponse::UpdateRooms(Ok(rooms)) => {
-                    let clear_room_list = false;
-                    APPOP!(set_rooms, (rooms, clear_room_list));
-                }
-                BKResponse::RoomMessages(Ok(msgs)) => {
-                    APPOP!(show_room_messages, (msgs));
-                }
-
-                BKResponse::RemoveMessage(Ok((room, msg))) => {
-                    APPOP!(remove_message, (room, msg));
-                }
-                BKResponse::RoomNotifications(r, n, h) => {
-                    APPOP!(set_room_notifications, (r, n, h));
-                }
-                BKResponse::RoomName(roomid, name) => {
-                    let n = Some(name);
-                    APPOP!(room_name_change, (roomid, n));
-                }
-                BKResponse::RoomTopic(roomid, topic) => {
-                    let t = Some(topic);
-                    APPOP!(room_topic_change, (roomid, t));
-                }
-                BKResponse::NewRoomAvatar(roomid) => {
-                    APPOP!(new_room_avatar, (roomid));
-                }
-                BKResponse::RoomMemberEvent(ev) => {
-                    APPOP!(room_member_event, (ev));
                 }
 
                 // errors
@@ -195,7 +148,7 @@ pub fn backend_loop(rx: Receiver<BKResponse>) {
                     APPOP!(reset_directory_state);
                     APPOP!(show_error, (error));
                 }
-                BKResponse::Sync(Err((err, number_tries))) => {
+                BKResponse::SyncError(err, number_tries) => {
                     let err_str = format!("{:?}", err);
                     error!(
                         "SYNC Error: {}",
