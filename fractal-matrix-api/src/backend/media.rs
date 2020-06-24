@@ -18,7 +18,7 @@ use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParam
 use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
 use crate::types::Message;
 
-use super::types::ThreadPool;
+use super::ThreadPool;
 
 pub fn get_thumb_async(
     thread_pool: ThreadPool,
