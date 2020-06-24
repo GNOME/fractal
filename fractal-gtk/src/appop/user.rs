@@ -2,11 +2,11 @@ use gtk::prelude::*;
 
 use fractal_api::backend::user;
 use fractal_api::clone;
-use fractal_api::util::ResultExpectLog;
 
 use std::path::PathBuf;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
@@ -21,28 +21,25 @@ use super::LoginData;
 impl AppOp {
     pub fn get_username(&self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let tx = self.backend.clone();
 
-        thread::spawn(clone!(login_data, tx => move || {
+        thread::spawn(clone!(login_data => move || {
             match user::get_username(login_data.server_url, login_data.uid) {
                 Ok(username) => {
                     APPOP!(set_username, (username));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::NameError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::NameError(err));
                 }
             }
         }));
 
-        thread::spawn(clone!(login_data, tx => move || {
+        thread::spawn(clone!(login_data => move || {
             match user::get_avatar(login_data.server_url, login_data.uid) {
                 Ok(path) => {
                     APPOP!(set_avatar, (path));
                 }
                 Err(err) => {
-                    tx.send(BKResponse::AvatarError(err))
-                        .expect_log("Connection closed");
+                    dispatch_error(BKResponse::AvatarError(err));
                 }
             }
         }));

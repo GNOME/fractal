@@ -28,7 +28,6 @@ impl AppOp {
             let room = self.rooms.get(&self.active_room.clone()?)?;
             let mut panel = widgets::RoomSettings::new(
                 &window,
-                self.backend.clone(),
                 login_data.uid,
                 room.clone(),
                 login_data.server_url,

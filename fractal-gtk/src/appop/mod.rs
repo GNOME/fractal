@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -14,8 +13,6 @@ use gtk::prelude::*;
 use fractal_api::backend::ThreadPool;
 use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
-
-use crate::backend::{self, BKResponse};
 
 use crate::i18n;
 
@@ -85,7 +82,6 @@ pub struct LoginData {
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
-    pub backend: Sender<backend::BKResponse>,
 
     pub syncing: bool, // TODO: Replace with a Mutex
     pub msg_queue: Vec<TmpMsg>,
@@ -126,7 +122,7 @@ pub struct AppOp {
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
-    pub fn new(ui: uibuilder::UI, tx: Sender<BKResponse>) -> AppOp {
+    pub fn new(ui: uibuilder::UI) -> AppOp {
         let leaflet = ui
             .builder
             .get_object::<libhandy::Leaflet>("header_leaflet")
@@ -134,7 +130,6 @@ impl AppOp {
 
         AppOp {
             ui,
-            backend: tx,
             active_room: None,
             join_to_room: None,
             rooms: HashMap::new(),
