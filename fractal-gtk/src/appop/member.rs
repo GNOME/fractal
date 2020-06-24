@@ -11,7 +11,7 @@ use std::thread;
 
 use crate::actions::AppState;
 use crate::appop::AppOp;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::widgets;
 use crate::App;
 use glib;
@@ -200,7 +200,7 @@ impl AppOp {
                     APPOP!(user_search_finished, (users));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::UserSearchError(err)))
+                    tx.send(BKResponse::UserSearchError(err))
                         .expect_log("Connection closed");
                 }
             }

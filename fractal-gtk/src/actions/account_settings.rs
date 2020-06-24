@@ -12,7 +12,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 
 use crate::app::App;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 
 use crate::widgets::FileDialog::open;
 
@@ -21,7 +21,7 @@ use crate::actions::ButtonState;
 // This creates all actions a user can perform in the account settings
 pub fn new(
     window: &gtk::Window,
-    tx: Sender<BKCommand>,
+    tx: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
     uid: UserId,
@@ -51,10 +51,8 @@ pub fn new(
                         APPOP!(show_new_avatar, (path));
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::SetUserAvatarError(
-                            err,
-                        )))
-                        .expect_log("Connection closed");
+                        tx.send(BKResponse::SetUserAvatarError(err))
+                            .expect_log("Connection closed");
                     }
                 }
             });

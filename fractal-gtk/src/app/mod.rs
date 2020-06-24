@@ -13,7 +13,6 @@ use log::error;
 
 use crate::appop::AppOp;
 use crate::backend::BKResponse;
-use crate::backend::Backend;
 
 use crate::actions;
 use crate::config;
@@ -62,9 +61,6 @@ pub type AppRef = Rc<App>;
 impl App {
     pub fn new(gtk_app: &gtk::Application) -> AppRef {
         let (tx, rx): (Sender<BKResponse>, Receiver<BKResponse>) = channel();
-
-        let bk = Backend::new(tx);
-        let apptx = bk.run();
 
         // Set up the textdomain for gettext
         setlocale(LocaleCategory::LcAll, "");
@@ -165,7 +161,7 @@ impl App {
         stack.add_named(&child, "account-settings");
         stack_header.add_named(&child_header, "account-settings");
 
-        let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), apptx)));
+        let op = Arc::new(Mutex::new(AppOp::new(ui.clone(), tx)));
 
         // Add login view to the main stack
         let login = widgets::LoginWidget::new(&op);

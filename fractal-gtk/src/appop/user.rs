@@ -13,7 +13,7 @@ use crate::appop::AppOp;
 
 use crate::cache::download_to_cache;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::widgets;
 use crate::widgets::AvatarExt;
 
@@ -30,7 +30,7 @@ impl AppOp {
                     APPOP!(set_username, (username));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::NameError(err)))
+                    tx.send(BKResponse::NameError(err))
                         .expect_log("Connection closed");
                 }
             }
@@ -42,7 +42,7 @@ impl AppOp {
                     APPOP!(set_avatar, (path));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::AvatarError(err)))
+                    tx.send(BKResponse::AvatarError(err))
                         .expect_log("Connection closed");
                 }
             }

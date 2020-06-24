@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
 use crate::appop::AppOp;
-use crate::backend::BKCommand;
+use crate::backend::BKResponse;
 use crate::i18n::i18n;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
@@ -257,7 +257,7 @@ impl Element {
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
@@ -686,7 +686,7 @@ fn create_row(
     user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     row: MessageContent,
     has_header: bool,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     rows: &Rc<RefCell<List>>,
 ) -> widgets::MessageBox {

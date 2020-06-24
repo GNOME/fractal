@@ -14,7 +14,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use crate::actions::AppState;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
@@ -38,7 +38,7 @@ use crate::widgets::SourceDialog;
 /* This creates all actions the room history can perform */
 pub fn new(
     thread_pool: ThreadPool,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
     ui: UI,
@@ -138,7 +138,7 @@ pub fn new(
                             .expect("failed to execute process");
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::MediaError(err)))
+                        tx.send(BKResponse::MediaError(err))
                             .expect_log("Connection closed");
                     }
                 }
@@ -261,10 +261,8 @@ pub fn new(
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    tx.send(BKCommand::SendBKResponse(
-                        BKResponse::SentMsgRedactionError(err),
-                    ))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::SentMsgRedactionError(err))
+                        .expect_log("Connection closed");
                 }
             });
         }
@@ -283,7 +281,7 @@ fn get_message(id: Option<&glib::Variant>) -> Option<Message> {
 }
 
 fn request_more_messages(
-    tx: Sender<BKCommand>,
+    tx: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
     id: Option<RoomId>,
@@ -299,10 +297,8 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::RoomMessagesToError(err))
+                        .expect_log("Connection closed");
                 }
             }
         });
@@ -314,10 +310,8 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::RoomMessagesToError(err))
+                        .expect_log("Connection closed");
                 }
             }
         });
@@ -329,10 +323,8 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::RoomMessagesToError(err))
+                        .expect_log("Connection closed");
                 }
             },
         );

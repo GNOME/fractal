@@ -13,7 +13,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 
 use crate::app::App;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::i18n::i18n;
 
 use crate::widgets::ErrorDialog;
@@ -24,7 +24,7 @@ use crate::actions::ButtonState;
 // This creates all actions a user can perform in the room settings
 pub fn new(
     window: &gtk::Window,
-    backend: &Sender<BKCommand>,
+    backend: &Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
 ) -> gio::SimpleActionGroup {
@@ -61,10 +61,8 @@ pub fn new(
                                 APPOP!(show_new_room_avatar);
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomAvatarError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::SetRoomAvatarError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
                     });

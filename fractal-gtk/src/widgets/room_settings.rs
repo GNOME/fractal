@@ -17,7 +17,7 @@ use gtk::prelude::*;
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
 use crate::app::App;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::types::Member;
 use crate::util::markup_text;
 use crate::widgets;
@@ -32,7 +32,7 @@ pub struct RoomSettings {
     uid: UserId,
     builder: gtk::Builder,
     members_list: Option<MembersList>,
-    backend: Sender<BKCommand>,
+    backend: Sender<BKResponse>,
     server_url: Url,
     access_token: AccessToken,
 }
@@ -40,7 +40,7 @@ pub struct RoomSettings {
 impl RoomSettings {
     pub fn new(
         window: &gtk::Window,
-        backend: Sender<BKCommand>,
+        backend: Sender<BKResponse>,
         uid: UserId,
         room: Room,
         server_url: Url,
@@ -442,7 +442,7 @@ impl RoomSettings {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                    tx.send(BKResponse::RoomAvatarError(err))
                         .expect_log("Connection closed");
                 }
             },
@@ -515,7 +515,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_name);
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomNameError(err)))
+                    tx.send(BKResponse::SetRoomNameError(err))
                         .expect_log("Connection closed");
                 }
             },
@@ -575,10 +575,8 @@ impl RoomSettings {
                     APPOP!(show_new_room_topic);
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomTopicError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::SetRoomTopicError(err))
+                        .expect_log("Connection closed");
                 }
             },
         );

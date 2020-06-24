@@ -11,7 +11,7 @@ use crate::app::App;
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 
 use crate::globals;
 
@@ -172,7 +172,7 @@ impl AppOp {
                 thread::spawn(move || {
                     let query = room::invite(server, access_token, room_id, user_id);
                     if let Err(err) = query {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::InviteError(err)))
+                        tx.send(BKResponse::InviteError(err))
                             .expect_log("Connection closed");
                     }
                 });
@@ -237,7 +237,7 @@ impl AppOp {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                            tx.send(BKResponse::JoinRoomError(err))
                                 .expect_log("Connection closed");
                         }
                     }
@@ -248,7 +248,7 @@ impl AppOp {
                     let query =
                         room::leave_room(login_data.server_url, login_data.access_token, room_id);
                     if let Err(err) = query {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::LeaveRoomError(err)))
+                        tx.send(BKResponse::LeaveRoomError(err))
                             .expect_log("Connection closed");
                     }
                 });

@@ -26,7 +26,7 @@ use crate::appop::room::Force;
 use crate::appop::AppOp;
 use crate::App;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -175,10 +175,8 @@ impl AppOp {
                         APPOP!(clear_room_notifications, (r));
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::MarkedAsReadError(
-                            err,
-                        )))
-                        .expect_log("Connection closed");
+                        tx.send(BKResponse::MarkedAsReadError(err))
+                            .expect_log("Connection closed");
                     }
                 }
             });
@@ -237,7 +235,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsgError(err)))
+                                tx.send(BKResponse::SentMsgError(err))
                                     .expect_log("Connection closed");
                             }
                         }
@@ -641,7 +639,7 @@ fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     Some(info)
 }
 
-fn attach_file(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, mut msg: Message) {
+fn attach_file(tx: Sender<BKResponse>, baseu: Url, tk: AccessToken, mut msg: Message) {
     let fname = msg.url.clone().unwrap_or_default();
     let mut extra_content: Option<ExtraContent> = msg
         .clone()
@@ -670,10 +668,8 @@ fn attach_file(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, mut msg: Mess
                 msg.extra_content = serde_json::to_value(&extra_content).ok();
             }
             Err(err) => {
-                tx.send(BKCommand::SendBKResponse(BKResponse::AttachedFileError(
-                    err,
-                )))
-                .expect_log("Connection closed");
+                tx.send(BKResponse::AttachedFileError(err))
+                    .expect_log("Connection closed");
             }
         }
 
@@ -694,15 +690,13 @@ fn attach_file(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, mut msg: Mess
             APPOP!(attached_file, (msg));
         }
         Err(err) => {
-            tx.send(BKCommand::SendBKResponse(BKResponse::AttachedFileError(
-                err,
-            )))
-            .expect_log("Connection closed");
+            tx.send(BKResponse::AttachedFileError(err))
+                .expect_log("Connection closed");
         }
     };
 }
 
-fn send_msg_and_manage(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, msg: Message) {
+fn send_msg_and_manage(tx: Sender<BKResponse>, baseu: Url, tk: AccessToken, msg: Message) {
     match room::send_msg(baseu, tk, msg) {
         Ok((txid, evid)) => {
             APPOP!(msg_sent, (txid, evid));
@@ -711,7 +705,7 @@ fn send_msg_and_manage(tx: Sender<BKCommand>, baseu: Url, tk: AccessToken, msg: 
             APPOP!(sync, (initial, number_tries));
         }
         Err(err) => {
-            tx.send(BKCommand::SendBKResponse(BKResponse::SentMsgError(err)))
+            tx.send(BKResponse::SentMsgError(err))
                 .expect_log("Connection closed");
         }
     };

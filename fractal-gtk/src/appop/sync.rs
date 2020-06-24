@@ -9,7 +9,7 @@ use crate::appop::AppOp;
 
 use crate::backend::{
     sync::{self, RoomElement, SyncRet},
-    BKCommand, BKResponse,
+    BKResponse,
 };
 
 impl AppOp {
@@ -55,7 +55,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::RoomsError(err)))
+                                tx.send(BKResponse::RoomsError(err))
                                     .expect_log("Connection closed");
                             }
                         };
@@ -78,10 +78,8 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::UpdateRoomsError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::UpdateRoomsError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
 
@@ -90,10 +88,8 @@ impl AppOp {
                                 APPOP!(show_room_messages, (msgs));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::RoomMessagesError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
 
@@ -103,10 +99,8 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::UpdateRoomsError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::UpdateRoomsError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
 
@@ -142,10 +136,8 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::RoomElementError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                tx.send(BKResponse::RoomElementError(err))
+                                    .expect_log("Connection closed");
                             }
                         }
 
@@ -154,10 +146,8 @@ impl AppOp {
                         APPOP!(synced, (s));
                     }
                     Err((err, n_tries)) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::SyncError(
-                            err, n_tries,
-                        )))
-                        .expect_log("Connection closed");
+                        tx.send(BKResponse::SyncError(err, n_tries))
+                            .expect_log("Connection closed");
                     }
                 }
             });

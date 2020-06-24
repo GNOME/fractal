@@ -16,7 +16,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::backend;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use fractal_api::util::cache_dir_path;
 
 use crate::actions;
@@ -89,7 +89,7 @@ impl AppOp {
                             APPOP!(set_room_members, (room, members));
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomMembersError(err)))
+                            tx.send(BKResponse::RoomMembersError(err))
                                 .expect_log("Connection closed");
                         }
                     }
@@ -106,7 +106,7 @@ impl AppOp {
                             APPOP!(set_room_avatar, (room, avatar));
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                            tx.send(BKResponse::RoomAvatarError(err))
                                 .expect_log("Connection closed");
                         }
                     },
@@ -160,7 +160,7 @@ impl AppOp {
                             APPOP!(added_to_fav, (r, tofav));
                         }
                         Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::AddedToFavError(err)))
+                            tx.send(BKResponse::AddedToFavError(err))
                                 .expect_log("Connection closed");
                         }
                     }
@@ -260,7 +260,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                    tx.send(BKResponse::RoomAvatarError(err))
                         .expect_log("Connection closed");
                 }
             },
@@ -277,7 +277,7 @@ impl AppOp {
                     APPOP!(set_room_detail, (room, key, v));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomDetailError(err)))
+                    tx.send(BKResponse::RoomDetailError(err))
                         .expect_log("Connection closed");
                 }
             }
@@ -346,7 +346,7 @@ impl AppOp {
         thread::spawn(move || {
             let query = room::leave_room(login_data.server_url, login_data.access_token, room_id);
             if let Err(err) = query {
-                tx.send(BKCommand::SendBKResponse(BKResponse::LeaveRoomError(err)))
+                tx.send(BKResponse::LeaveRoomError(err))
                     .expect_log("Connection closed");
             }
         });
@@ -429,10 +429,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoomError(
-                        err, int_id,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::NewRoomError(err, int_id))
+                        .expect_log("Connection closed");
                 }
             }
         });
@@ -586,7 +584,7 @@ impl AppOp {
                     APPOP!(reload_rooms);
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
+                    tx.send(BKResponse::JoinRoomError(err))
                         .expect_log("Connection closed");
                 }
             }
@@ -732,7 +730,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomAvatarError(err)))
+                    tx.send(BKResponse::RoomAvatarError(err))
                         .expect_log("Connection closed");
                 }
             }
@@ -788,7 +786,7 @@ impl AppOp {
                 active_room,
             );
             if let Err(err) = query {
-                tx.send(BKCommand::SendBKResponse(BKResponse::SendTypingError(err)))
+                tx.send(BKResponse::SendTypingError(err))
                     .expect_log("Connection closed");
             }
         });

@@ -16,8 +16,7 @@ use fractal_api::backend::ThreadPool;
 use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 
-use crate::backend;
-use crate::backend::BKCommand;
+use crate::backend::{self, BKResponse};
 
 use crate::i18n;
 
@@ -87,7 +86,7 @@ pub struct LoginData {
 
 pub struct AppOp {
     pub ui: uibuilder::UI,
-    pub backend: Sender<backend::BKCommand>,
+    pub backend: Sender<backend::BKResponse>,
 
     pub syncing: bool, // TODO: Replace with a Mutex
     pub msg_queue: Vec<TmpMsg>,
@@ -128,7 +127,7 @@ pub struct AppOp {
 impl PasswordStorage for AppOp {}
 
 impl AppOp {
-    pub fn new(ui: uibuilder::UI, tx: Sender<BKCommand>) -> AppOp {
+    pub fn new(ui: uibuilder::UI, tx: Sender<BKResponse>) -> AppOp {
         let leaflet = ui
             .builder
             .get_object::<libhandy::Leaflet>("header_leaflet")

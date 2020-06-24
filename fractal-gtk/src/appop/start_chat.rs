@@ -10,7 +10,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::SearchType;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 impl AppOp {
@@ -40,10 +40,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::NewRoomError(
-                        err, int_id,
-                    )))
-                    .expect_log("Connection closed");
+                    tx.send(BKResponse::NewRoomError(err, int_id))
+                        .expect_log("Connection closed");
                 }
             }
         });
