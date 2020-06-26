@@ -5,7 +5,7 @@ use url::Url;
 use crate::backend::ThreadPool;
 use crate::cache::CacheMap;
 use crate::error::Error;
-use crate::util::get_user_avatar;
+use crate::util::cache_dir_path;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 use std::convert::TryInto;
@@ -49,6 +49,8 @@ use crate::r0::media::create_content::Parameters as CreateContentParameters;
 use crate::r0::media::create_content::Response as CreateContentResponse;
 use crate::r0::profile::get_display_name::request as get_display_name;
 use crate::r0::profile::get_display_name::Response as GetDisplayNameResponse;
+use crate::r0::profile::get_profile::request as get_profile;
+use crate::r0::profile::get_profile::Response as GetProfileResponse;
 use crate::r0::profile::set_avatar_url::request as set_avatar_url;
 use crate::r0::profile::set_avatar_url::Body as SetAvatarUrlBody;
 use crate::r0::profile::set_avatar_url::Parameters as SetAvatarUrlParameters;
@@ -63,6 +65,8 @@ use crate::r0::AccessToken;
 use crate::r0::Medium;
 use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
+
+use super::{dw_media, ContentType};
 
 pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
     let request = get_display_name(base, &uid)?;
@@ -352,4 +356,36 @@ pub fn search(
     let response: UserDirectoryResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
     Ok(response.results.into_iter().map(Into::into).collect())
+}
+
+pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
+    let response = get_profile(base.clone(), user_id)
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<GetProfileResponse>()
+                .map_err(Into::into)
+        })?;
+
+    let name = response
+        .displayname
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| user_id.to_string());
+
+    let img = response
+        .avatar_url
+        .map(|url| {
+            let dest = cache_dir_path(None, &user_id.to_string())?;
+            dw_media(
+                base,
+                url.as_str(),
+                ContentType::default_thumbnail(),
+                Some(dest),
+            )
+        })
+        .unwrap_or_else(|| Ok(Default::default()))?;
+
+    Ok((name, img))
 }

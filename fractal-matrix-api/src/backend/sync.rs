@@ -1,5 +1,5 @@
 use crate::client::ProxySettings;
-use crate::error::Error;
+use crate::error::{Error, StandardErrorResponse};
 use crate::globals;
 use crate::r0::filter::EventFilter;
 use crate::r0::filter::Filter;
@@ -17,11 +17,11 @@ use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
-use crate::util::matrix_response;
 
 use log::error;
-use reqwest::blocking::Client;
+use reqwest::blocking::{Client, Response};
 use ruma_identifiers::{EventId, RoomId, UserId};
+use serde::de::DeserializeOwned;
 use serde_json::value::from_value;
 use std::{
     collections::HashMap,
@@ -297,4 +297,17 @@ pub fn sync(
             Err((err, number_tries))
         }
     }
+}
+
+/// Returns the deserialized response to the given request. Handles Matrix errors.
+fn matrix_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
+    if !response.status().is_success() {
+        let status = response.status();
+        return match response.json::<StandardErrorResponse>() {
+            Ok(error_response) => Err(Error::from(error_response)),
+            Err(_) => Err(Error::NetworkError(status)),
+        };
+    }
+
+    response.json::<T>().map_err(Into::into)
 }

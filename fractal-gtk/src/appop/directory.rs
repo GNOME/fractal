@@ -8,7 +8,7 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::widgets;
 
 use super::RoomSearchPagination;
@@ -24,7 +24,7 @@ impl AppOp {
                     APPOP!(set_protocols, (protocols));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::DirectoryProtocolsError(err));
+                    dispatch_error(BKError::DirectoryProtocolsError(err));
                 }
             }
         });
@@ -152,7 +152,7 @@ impl AppOp {
                     APPOP!(append_directory_rooms, (rooms, rooms_since));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::DirectorySearchError(err));
+                    dispatch_error(BKError::DirectorySearchError(err));
                 }
             }
         });

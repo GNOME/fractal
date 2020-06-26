@@ -10,8 +10,8 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend::BKResponse;
 use crate::cache;
+use crate::error::BKError;
 
 use std::thread;
 
@@ -85,7 +85,7 @@ impl AppOp {
                     APPOP!(bk_login, (uid, tk, dev, server, identity));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::LoginError(err));
+                    dispatch_error(BKError::LoginError(err));
                 }
             },
         );
@@ -103,7 +103,7 @@ impl AppOp {
                     APPOP!(bk_logout);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::LogoutError(err));
+                    dispatch_error(BKError::LogoutError(err));
                 }
             }
         });

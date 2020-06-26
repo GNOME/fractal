@@ -1,4 +1,4 @@
-use ruma_identifiers::EventId;
+use ruma_identifiers::{EventId, RoomId};
 use std::io;
 use std::time::SystemTimeError;
 
@@ -57,3 +57,50 @@ derror!(ruma_identifiers::Error, Error::BackendError);
 derror!(SystemTimeError, Error::BackendError);
 
 derror!(serde_json::Error, Error::CacheError);
+
+#[derive(Debug)]
+pub enum BKError {
+    LoginError(Error),
+    GuestLoginError(Error),
+    SendTypingError(Error),
+    SetRoomError(Error),
+    InviteError(Error),
+    ChangeLanguageError(Error),
+    NameError(Error),
+    AvatarError(Error),
+    MarkedAsReadError(Error),
+    UserSearchError(Error),
+    LogoutError(Error),
+    LeaveRoomError(Error),
+    DirectoryProtocolsError(Error),
+    RoomMembersError(Error),
+    AddedToFavError(Error),
+    GetThreePIDError(Error),
+    AddThreePIDError(Error),
+    SubmitPhoneTokenError(Error),
+    SetUserNameError(Error),
+    ChangePasswordError(Error),
+    AccountDestructionError(Error),
+    DeleteThreePIDError(Error),
+    GetTokenPhoneError(Error),
+    GetTokenEmailError(Error),
+    SetRoomNameError(Error),
+    SetRoomTopicError(Error),
+    SetUserAvatarError(Error),
+    SetRoomAvatarError(Error),
+    RoomMessagesToError(Error),
+    MediaError(Error),
+    SentMsgRedactionError(Error),
+    JoinRoomError(Error),
+    DirectorySearchError(Error),
+    NewRoomError(Error, RoomId),
+    RoomDetailError(Error),
+    RoomAvatarError(Error),
+    SentMsgError(Error),
+    AttachedFileError(Error),
+    RoomsError(Error),
+    UpdateRoomsError(Error),
+    RoomMessagesError(Error),
+    RoomElementError(Error),
+    SyncError(Error, u64),
+}

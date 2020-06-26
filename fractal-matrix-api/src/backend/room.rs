@@ -13,9 +13,6 @@ use crate::error::Error;
 use crate::globals;
 
 use crate::util::cache_dir_path;
-use crate::util::dw_media;
-use crate::util::get_prev_batch_from;
-use crate::util::ContentType;
 use crate::util::HTTP_CLIENT;
 
 use crate::r0::config::get_global_account_data::request as get_global_account_data;
@@ -77,6 +74,8 @@ use crate::types::Message;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 use serde_json::Value as JsonValue;
+
+use super::{dw_media, get_prev_batch_from, ContentType};
 
 pub fn get_room_detail(
     base: Url,

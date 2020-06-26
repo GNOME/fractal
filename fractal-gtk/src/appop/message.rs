@@ -24,7 +24,7 @@ use crate::appop::room::Force;
 use crate::appop::AppOp;
 use crate::App;
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -169,7 +169,7 @@ impl AppOp {
                         APPOP!(clear_room_notifications, (r));
                     }
                     Err(err) => {
-                        dispatch_error(BKResponse::MarkedAsReadError(err));
+                        dispatch_error(BKError::MarkedAsReadError(err));
                     }
                 }
             });
@@ -227,7 +227,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::SentMsgError(err));
+                                dispatch_error(BKError::SentMsgError(err));
                             }
                         }
                     });
@@ -661,7 +661,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
                 msg.extra_content = serde_json::to_value(&extra_content).ok();
             }
             Err(err) => {
-                dispatch_error(BKResponse::AttachedFileError(err));
+                dispatch_error(BKError::AttachedFileError(err));
             }
         }
 
@@ -682,7 +682,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
             APPOP!(attached_file, (msg));
         }
         Err(err) => {
-            dispatch_error(BKResponse::AttachedFileError(err));
+            dispatch_error(BKError::AttachedFileError(err));
         }
     };
 }
@@ -696,7 +696,7 @@ fn send_msg_and_manage(baseu: Url, tk: AccessToken, msg: Message) {
             APPOP!(sync, (initial, number_tries));
         }
         Err(err) => {
-            dispatch_error(BKResponse::SentMsgError(err));
+            dispatch_error(BKError::SentMsgError(err));
         }
     };
 }

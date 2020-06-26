@@ -5,8 +5,6 @@ use crate::globals;
 use crate::error::Error;
 
 use crate::util::cache_dir_path;
-use crate::util::dw_media;
-use crate::util::ContentType;
 use crate::util::HTTP_CLIENT;
 
 use crate::r0::directory::post_public_rooms::request as post_public_rooms;
@@ -21,6 +19,8 @@ use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use crate::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
 use crate::r0::AccessToken;
 use crate::types::Room;
+
+use super::{dw_media, ContentType};
 
 pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolInstance>, Error> {
     let params = SupportedProtocolsParameters { access_token };

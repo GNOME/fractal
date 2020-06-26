@@ -5,9 +5,6 @@ use std::sync::mpsc::Sender;
 use url::Url;
 
 use crate::r0::AccessToken;
-use crate::util::dw_media;
-use crate::util::get_prev_batch_from;
-use crate::util::ContentType;
 use crate::util::ResultExpectLog;
 use crate::util::HTTP_CLIENT;
 
@@ -18,7 +15,7 @@ use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParam
 use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
 use crate::types::Message;
 
-use super::ThreadPool;
+use super::{dw_media, get_prev_batch_from, ContentType, ThreadPool};
 
 pub fn get_thumb_async(
     thread_pool: ThreadPool,

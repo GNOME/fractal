@@ -1,12 +1,11 @@
 use serde_json::Value as JsonValue;
 
+use crate::backend::user::get_user_avatar;
 use crate::model::member::Member;
 use crate::model::member::MemberList;
 use crate::model::message::Message;
 use crate::r0::directory::post_public_rooms::Chunk as PublicRoomsChunk;
 use crate::r0::sync::sync_events::Response as SyncResponse;
-use crate::util::get_user_avatar;
-use crate::util::parse_m_direct;
 use log::{debug, info};
 use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use serde::{Deserialize, Serialize};
@@ -432,4 +431,28 @@ fn parse_room_member(msg: &JsonValue) -> Option<Member> {
         alias: c["displayname"].as_str().map(Into::into),
         avatar: c["avatar_url"].as_str().map(Into::into),
     })
+}
+
+fn parse_m_direct(events: &[JsonValue]) -> HashMap<UserId, Vec<RoomId>> {
+    events
+        .iter()
+        .find(|x| x["type"] == "m.direct")
+        .and_then(|js| js["content"].as_object())
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        // Synapse sometimes sends an object with the key "[object Object]"
+        // instead of a user ID, so we have to skip those invalid objects
+        // in the array in order to avoid discarding everything
+        .filter_map(|(uid, rid)| {
+            let value = rid
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .map(|rid| RoomId::try_from(rid.as_str().unwrap_or_default()))
+                .collect::<Result<Vec<RoomId>, IdError>>()
+                .ok()?;
+            Some((UserId::try_from(uid.as_str()).ok()?, value))
+        })
+        .collect()
 }

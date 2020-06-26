@@ -1,6 +1,6 @@
 use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 
 use crate::backend::room;
 use glib::object::Cast;
@@ -37,7 +37,7 @@ impl App {
                             thread::spawn(move || {
                                 let query = room::set_language(access_token, server, uid, room_id, lang_code);
                                 if let Err(err) = query {
-                                    dispatch_error(BKResponse::ChangeLanguageError(err));
+                                    dispatch_error(BKError::ChangeLanguageError(err));
                                 }
                             });
                         }

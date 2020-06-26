@@ -6,12 +6,12 @@ use regex::Regex;
 
 use crate::actions::{activate_action, AppState};
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::error::Error;
 
-pub fn dispatch_error(error: BKResponse) {
+pub fn dispatch_error(error: BKError) {
     match error {
-        BKResponse::AccountDestructionError(err) => {
+        BKError::AccountDestructionError(err) => {
             let error = i18n("Couldn’t delete the account");
             let err_str = format!("{:?}", err);
             error!(
@@ -20,7 +20,7 @@ pub fn dispatch_error(error: BKResponse) {
             );
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::ChangePasswordError(err) => {
+        BKError::ChangePasswordError(err) => {
             let error = i18n("Couldn’t change the password");
             let err_str = format!("{:?}", err);
             error!(
@@ -29,7 +29,7 @@ pub fn dispatch_error(error: BKResponse) {
             );
             APPOP!(show_password_error_dialog, (error));
         }
-        BKResponse::GetThreePIDError(_) => {
+        BKError::GetThreePIDError(_) => {
             let error = i18n("Sorry, account settings can’t be loaded.");
             APPOP!(show_load_settings_error_dialog, (error));
             let ctx = glib::MainContext::default();
@@ -37,15 +37,15 @@ pub fn dispatch_error(error: BKResponse) {
                 activate_action("app", "back");
             })
         }
-        BKResponse::GetTokenEmailError(Error::TokenUsed) => {
+        BKError::GetTokenEmailError(Error::TokenUsed) => {
             let error = i18n("Email is already in use");
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::GetTokenEmailError(Error::Denied) => {
+        BKError::GetTokenEmailError(Error::Denied) => {
             let error = i18n("Please enter a valid email address.");
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::GetTokenEmailError(err) => {
+        BKError::GetTokenEmailError(err) => {
             let error = i18n("Couldn’t add the email address.");
             let err_str = format!("{:?}", err);
             error!(
@@ -54,17 +54,17 @@ pub fn dispatch_error(error: BKResponse) {
             );
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::GetTokenPhoneError(Error::TokenUsed) => {
+        BKError::GetTokenPhoneError(Error::TokenUsed) => {
             let error = i18n("Phone number is already in use");
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::GetTokenPhoneError(Error::Denied) => {
+        BKError::GetTokenPhoneError(Error::Denied) => {
             let error = i18n(
                 "Please enter your phone number in the format: \n + your country code and your phone number.",
             );
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::GetTokenPhoneError(err) => {
+        BKError::GetTokenPhoneError(err) => {
             let error = i18n("Couldn’t add the phone number.");
             let err_str = format!("{:?}", err);
             error!(
@@ -73,7 +73,7 @@ pub fn dispatch_error(error: BKResponse) {
             );
             APPOP!(show_error_dialog_in_settings, (error));
         }
-        BKResponse::NewRoomError(err, internal_id) => {
+        BKError::NewRoomError(err, internal_id) => {
             let err_str = format!("{:?}", err);
             error!(
                 "{}",
@@ -86,7 +86,7 @@ pub fn dispatch_error(error: BKResponse) {
             APPOP!(show_error, (error));
             APPOP!(set_state, (state));
         }
-        BKResponse::JoinRoomError(err) => {
+        BKError::JoinRoomError(err) => {
             let err_str = format!("{:?}", err);
             error!(
                 "{}",
@@ -97,21 +97,21 @@ pub fn dispatch_error(error: BKResponse) {
             APPOP!(show_error, (error));
             APPOP!(set_state, (state));
         }
-        BKResponse::ChangeLanguageError(err) => {
+        BKError::ChangeLanguageError(err) => {
             let err_str = format!("{:?}", err);
             error!(
                 "Error forming url to set room language: {}",
                 remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
             );
         }
-        BKResponse::LoginError(_) => {
+        BKError::LoginError(_) => {
             let error = i18n("Can’t login, try again");
             let st = AppState::Login;
             APPOP!(show_error, (error));
             APPOP!(logout);
             APPOP!(set_state, (st));
         }
-        BKResponse::AttachedFileError(err) => {
+        BKError::AttachedFileError(err) => {
             let err_str = format!("{:?}", err);
             error!(
                 "attaching {}: retrying send",
@@ -119,24 +119,24 @@ pub fn dispatch_error(error: BKResponse) {
             );
             APPOP!(retry_send);
         }
-        BKResponse::SentMsgError(Error::SendMsgError(txid)) => {
+        BKError::SentMsgError(Error::SendMsgError(txid)) => {
             error!("sending {}: retrying send", txid);
             APPOP!(retry_send);
         }
-        BKResponse::SentMsgError(_) => {
+        BKError::SentMsgError(_) => {
             let error = i18n("Error sending message");
             APPOP!(show_error, (error));
         }
-        BKResponse::SentMsgRedactionError(_) => {
+        BKError::SentMsgRedactionError(_) => {
             let error = i18n("Error deleting message");
             APPOP!(show_error, (error));
         }
-        BKResponse::DirectoryProtocolsError(_) | BKResponse::DirectorySearchError(_) => {
+        BKError::DirectoryProtocolsError(_) | BKError::DirectorySearchError(_) => {
             let error = i18n("Error searching for rooms");
             APPOP!(reset_directory_state);
             APPOP!(show_error, (error));
         }
-        BKResponse::SyncError(err, number_tries) => {
+        BKError::SyncError(err, number_tries) => {
             let err_str = format!("{:?}", err);
             error!(
                 "SYNC Error: {}",

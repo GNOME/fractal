@@ -15,7 +15,7 @@ use crate::actions;
 use crate::actions::{ButtonState, StateExt};
 use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::types::Member;
 use crate::types::Room;
 use crate::util::markup_text;
@@ -434,7 +434,7 @@ impl RoomSettings {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomAvatarError(err));
+                    dispatch_error(BKError::RoomAvatarError(err));
                 }
             },
         );
@@ -505,7 +505,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_name);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::SetRoomNameError(err));
+                    dispatch_error(BKError::SetRoomNameError(err));
                 }
             },
         );
@@ -563,7 +563,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_topic);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::SetRoomTopicError(err));
+                    dispatch_error(BKError::SetRoomTopicError(err));
                 }
             },
         );

@@ -1,8 +1,24 @@
-use ruma_identifiers::RoomId;
+use lazy_static::lazy_static;
+use ruma_identifiers::{EventId, RoomId};
+use std::fs::write;
+use std::io::Read;
+use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use url::Url;
 
+use crate::client::Client;
 use crate::error::Error;
+use crate::r0::context::get_context::request as get_context;
+use crate::r0::context::get_context::Parameters as GetContextParameters;
+use crate::r0::context::get_context::Response as GetContextResponse;
+use crate::r0::media::get_content::request as get_content;
+use crate::r0::media::get_content::Parameters as GetContentParameters;
+use crate::r0::media::get_content_thumbnail::request as get_content_thumbnail;
+use crate::r0::media::get_content_thumbnail::Method;
+use crate::r0::media::get_content_thumbnail::Parameters as GetContentThumbnailParameters;
+use crate::r0::AccessToken;
+use crate::util::{cache_dir_path, HTTP_CLIENT};
 
 pub mod directory;
 pub mod media;
@@ -11,52 +27,8 @@ pub mod room;
 pub mod sync;
 pub mod user;
 
-#[derive(Debug)]
-pub enum BKResponse {
-    //errors
-    LoginError(Error),
-    GuestLoginError(Error),
-    SendTypingError(Error),
-    SetRoomError(Error),
-    InviteError(Error),
-    ChangeLanguageError(Error),
-    NameError(Error),
-    AvatarError(Error),
-    MarkedAsReadError(Error),
-    UserSearchError(Error),
-    LogoutError(Error),
-    LeaveRoomError(Error),
-    DirectoryProtocolsError(Error),
-    RoomMembersError(Error),
-    AddedToFavError(Error),
-    GetThreePIDError(Error),
-    AddThreePIDError(Error),
-    SubmitPhoneTokenError(Error),
-    SetUserNameError(Error),
-    ChangePasswordError(Error),
-    AccountDestructionError(Error),
-    DeleteThreePIDError(Error),
-    GetTokenPhoneError(Error),
-    GetTokenEmailError(Error),
-    SetRoomNameError(Error),
-    SetRoomTopicError(Error),
-    SetUserAvatarError(Error),
-    SetRoomAvatarError(Error),
-    RoomMessagesToError(Error),
-    MediaError(Error),
-    SentMsgRedactionError(Error),
-    JoinRoomError(Error),
-    DirectorySearchError(Error),
-    NewRoomError(Error, RoomId),
-    RoomDetailError(Error),
-    RoomAvatarError(Error),
-    SentMsgError(Error),
-    AttachedFileError(Error),
-    RoomsError(Error),
-    UpdateRoomsError(Error),
-    RoomMessagesError(Error),
-    RoomElementError(Error),
-    SyncError(Error, u64),
+lazy_static! {
+    pub static ref HTTP_CLIENT: Client = Client::new();
 }
 
 #[derive(Clone, Debug)]
@@ -99,5 +71,99 @@ impl ThreadPool {
             }
             cvar.notify_one();
         });
+    }
+}
+
+pub enum ContentType {
+    Download,
+    Thumbnail(u64, u64),
+}
+
+impl ContentType {
+    pub fn default_thumbnail() -> Self {
+        ContentType::Thumbnail(128, 128)
+    }
+
+    pub fn is_thumbnail(&self) -> bool {
+        match self {
+            ContentType::Download => false,
+            ContentType::Thumbnail(_, _) => true,
+        }
+    }
+}
+
+pub fn get_prev_batch_from(
+    base: Url,
+    access_token: AccessToken,
+    room_id: &RoomId,
+    event_id: &EventId,
+) -> Result<String, Error> {
+    let params = GetContextParameters {
+        access_token,
+        limit: 0,
+        filter: Default::default(),
+    };
+
+    let request = get_context(base, &params, room_id, event_id)?;
+    let response: GetContextResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let prev_batch = response.start.unwrap_or_default();
+
+    Ok(prev_batch)
+}
+
+pub fn dw_media(
+    base: Url,
+    mxc: &str,
+    media_type: ContentType,
+    dest: Option<String>,
+) -> Result<String, Error> {
+    let mxc_url = Url::parse(mxc)?;
+
+    if mxc_url.scheme() != "mxc" {
+        return Err(Error::BackendError);
+    }
+
+    let server = mxc_url.host().ok_or(Error::BackendError)?.to_owned();
+    let media_id = mxc_url
+        .path_segments()
+        .and_then(|mut ps| ps.next())
+        .filter(|s| !s.is_empty())
+        .ok_or(Error::BackendError)?;
+
+    let request = if let ContentType::Thumbnail(width, height) = media_type {
+        let params = GetContentThumbnailParameters {
+            width,
+            height,
+            method: Some(Method::Crop),
+            allow_remote: true,
+        };
+        get_content_thumbnail(base, &params, &server, &media_id)
+    } else {
+        let params = GetContentParameters::default();
+        get_content(base, &params, &server, &media_id)
+    }?;
+
+    let fname = match dest {
+        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media_id)?,
+        None => cache_dir_path(Some("medias"), &media_id)?,
+        Some(ref d) => d.clone(),
+    };
+
+    let fpath = Path::new(&fname);
+
+    // If the file is already cached and recent enough, don't download it
+    if fpath.is_file()
+        && (dest.is_none() || fpath.metadata()?.modified()?.elapsed()?.as_secs() < 60)
+    {
+        Ok(fname)
+    } else {
+        HTTP_CLIENT
+            .get_client()?
+            .execute(request)?
+            .bytes()
+            .collect::<Result<Vec<u8>, std::io::Error>>()
+            .and_then(|media| write(&fname, media))
+            .and(Ok(fname))
+            .map_err(Into::into)
     }
 }
