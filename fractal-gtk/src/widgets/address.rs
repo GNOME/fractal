@@ -1,4 +1,4 @@
-use fractal_api::backend::user;
+use crate::backend::user;
 use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use fractal_api::url::Url;

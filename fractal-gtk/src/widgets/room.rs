@@ -1,6 +1,6 @@
 use crate::i18n::i18n;
 
-use fractal_api::backend::room;
+use crate::backend::room;
 use gtk::prelude::*;
 use std::thread;
 

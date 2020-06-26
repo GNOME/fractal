@@ -1,4 +1,4 @@
-use fractal_api::backend::user;
+use crate::backend::user;
 use fractal_api::identifiers::{EventId, RoomId};
 use gio::ApplicationExt;
 use gio::FileExt;

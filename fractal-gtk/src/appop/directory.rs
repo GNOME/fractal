@@ -2,7 +2,7 @@ use gtk::prelude::*;
 use libhandy::Column;
 use std::thread;
 
-use fractal_api::backend::directory;
+use crate::backend::directory;
 
 use crate::app::dispatch_error;
 use crate::app::App;

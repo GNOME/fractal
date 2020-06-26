@@ -2,7 +2,7 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::backend::BKResponse;
 
-use fractal_api::backend::room;
+use crate::backend::room;
 use glib::object::Cast;
 use gtk::prelude::*;
 use std::thread;

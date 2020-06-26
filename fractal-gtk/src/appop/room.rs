@@ -1,5 +1,5 @@
+use crate::backend::room;
 use crate::i18n::{i18n, i18n_k, ni18n_f};
-use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
 use log::{error, warn};

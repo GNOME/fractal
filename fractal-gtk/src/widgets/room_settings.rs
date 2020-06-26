@@ -1,4 +1,4 @@
-use fractal_api::backend::room;
+use crate::backend::room;
 use fractal_api::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
@@ -17,11 +17,11 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::backend::BKResponse;
 use crate::types::Member;
+use crate::types::Room;
 use crate::util::markup_text;
 use crate::widgets;
 use crate::widgets::avatar::AvatarExt;
 use crate::widgets::members_list::MembersList;
-use fractal_api::types::Room;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {

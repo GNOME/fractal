@@ -1,5 +1,5 @@
-use fractal_api::backend::user;
-use fractal_api::backend::ThreadPool;
+use crate::backend::user;
+use crate::backend::ThreadPool;
 use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 use fractal_api::util::ResultExpectLog;

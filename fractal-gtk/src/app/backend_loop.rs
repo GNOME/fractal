@@ -7,7 +7,7 @@ use regex::Regex;
 use crate::actions::{activate_action, AppState};
 
 use crate::backend::BKResponse;
-use fractal_api::error::Error;
+use crate::error::Error;
 
 pub fn dispatch_error(error: BKResponse) {
     match error {

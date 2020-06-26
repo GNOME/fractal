@@ -1,6 +1,6 @@
 use log::error;
 
-use fractal_api::backend::register;
+use crate::backend::register;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 

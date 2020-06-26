@@ -1,4 +1,4 @@
-use fractal_api::backend::user;
+use crate::backend::user;
 use gtk::prelude::*;
 use log::info;
 use std::path::PathBuf;

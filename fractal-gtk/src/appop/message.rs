@@ -1,9 +1,9 @@
+use crate::backend::room;
+use crate::types::ExtraContent;
 use comrak::{markdown_to_html, ComrakOptions};
-use fractal_api::backend::room;
 use fractal_api::clone;
 use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::r0::AccessToken;
-use fractal_api::types::ExtraContent;
 use fractal_api::url::Url;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;

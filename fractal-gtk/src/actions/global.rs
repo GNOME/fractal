@@ -6,10 +6,10 @@ use std::sync::{Arc, Mutex};
 
 use crate::appop::AppOp;
 use crate::i18n::i18n;
+use crate::types::Message;
 use crate::widgets::FileDialog::open;
 use crate::App;
 use fractal_api::identifiers::{EventId, RoomId};
-use fractal_api::types::Message;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gtk::prelude::*;

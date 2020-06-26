@@ -1,4 +1,4 @@
-use fractal_api::backend::room;
+use crate::backend::room;
 use fractal_api::identifiers::RoomId;
 use gtk::prelude::*;
 use std::thread;

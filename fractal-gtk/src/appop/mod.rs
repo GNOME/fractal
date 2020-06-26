@@ -10,7 +10,7 @@ use fractal_api::r0::AccessToken;
 
 use gtk::prelude::*;
 
-use fractal_api::backend::ThreadPool;
+use crate::backend::ThreadPool;
 use fractal_api::cache::CacheMap;
 use fractal_api::url::Url;
 

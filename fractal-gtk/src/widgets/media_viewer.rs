@@ -1,5 +1,5 @@
-use fractal_api::backend::media;
-use fractal_api::backend::ThreadPool;
+use crate::backend::media;
+use crate::backend::ThreadPool;
 use fractal_api::clone;
 use fractal_api::r0::AccessToken;
 

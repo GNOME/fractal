@@ -1,4 +1,4 @@
-use fractal_api::backend::{media, room, ThreadPool};
+use crate::backend::{media, room, ThreadPool};
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
