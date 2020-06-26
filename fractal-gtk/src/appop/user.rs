@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
 use crate::backend::user;
-use fractal_api::clone;
+use crate::clone;
 
 use std::path::PathBuf;
 use std::thread;

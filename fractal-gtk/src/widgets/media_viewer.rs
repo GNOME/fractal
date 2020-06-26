@@ -1,6 +1,6 @@
 use crate::backend::media;
 use crate::backend::ThreadPool;
-use fractal_api::clone;
+use crate::clone;
 use fractal_api::r0::AccessToken;
 
 use fragile::Fragile;

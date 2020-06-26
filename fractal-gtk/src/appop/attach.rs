@@ -1,5 +1,5 @@
+use crate::clone;
 use crate::i18n::i18n;
-use fractal_api::clone;
 
 use std::fs::File;
 use std::io::prelude::*;

@@ -1,3 +1,4 @@
+use fractal_api::url::Url;
 use lazy_static::lazy_static;
 use ruma_identifiers::{EventId, RoomId};
 use std::fs::write;
@@ -5,20 +6,19 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
-use url::Url;
 
 use crate::client::Client;
 use crate::error::Error;
-use crate::r0::context::get_context::request as get_context;
-use crate::r0::context::get_context::Parameters as GetContextParameters;
-use crate::r0::context::get_context::Response as GetContextResponse;
-use crate::r0::media::get_content::request as get_content;
-use crate::r0::media::get_content::Parameters as GetContentParameters;
-use crate::r0::media::get_content_thumbnail::request as get_content_thumbnail;
-use crate::r0::media::get_content_thumbnail::Method;
-use crate::r0::media::get_content_thumbnail::Parameters as GetContentThumbnailParameters;
-use crate::r0::AccessToken;
-use crate::util::{cache_dir_path, HTTP_CLIENT};
+use crate::util::cache_dir_path;
+use fractal_api::r0::context::get_context::request as get_context;
+use fractal_api::r0::context::get_context::Parameters as GetContextParameters;
+use fractal_api::r0::context::get_context::Response as GetContextResponse;
+use fractal_api::r0::media::get_content::request as get_content;
+use fractal_api::r0::media::get_content::Parameters as GetContentParameters;
+use fractal_api::r0::media::get_content_thumbnail::request as get_content_thumbnail;
+use fractal_api::r0::media::get_content_thumbnail::Method;
+use fractal_api::r0::media::get_content_thumbnail::Parameters as GetContentThumbnailParameters;
+use fractal_api::r0::AccessToken;
 
 pub mod directory;
 pub mod media;

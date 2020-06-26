@@ -4,14 +4,14 @@ use crate::backend::user::get_user_avatar;
 use crate::model::member::Member;
 use crate::model::member::MemberList;
 use crate::model::message::Message;
-use crate::r0::directory::post_public_rooms::Chunk as PublicRoomsChunk;
-use crate::r0::sync::sync_events::Response as SyncResponse;
+use fractal_api::r0::directory::post_public_rooms::Chunk as PublicRoomsChunk;
+use fractal_api::r0::sync::sync_events::Response as SyncResponse;
+use fractal_api::url::Url;
 use log::{debug, info};
 use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::convert::{TryFrom, TryInto};
-use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum RoomMembership {
@@ -23,6 +23,7 @@ pub enum RoomMembership {
     Left(Reason),
 }
 
+#[allow(dead_code)]
 impl RoomMembership {
     pub fn is_joined(&self) -> bool {
         if let RoomMembership::Joined(_) = self {

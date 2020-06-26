@@ -1,4 +1,4 @@
-use fractal_api::clone;
+use crate::clone;
 use log::{debug, info};
 use std::convert::TryInto;
 use std::rc::Rc;

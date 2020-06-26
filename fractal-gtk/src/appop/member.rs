@@ -1,5 +1,5 @@
 use crate::backend::user;
-use fractal_api::clone;
+use crate::clone;
 use fractal_api::identifiers::{RoomId, UserId};
 use gtk::prelude::*;
 

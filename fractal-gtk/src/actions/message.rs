@@ -1,5 +1,5 @@
 use crate::backend::{dw_media, media, room, ContentType, ThreadPool};
-use fractal_api::clone;
+use crate::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use log::error;

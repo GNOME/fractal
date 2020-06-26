@@ -1,5 +1,5 @@
+use crate::clone;
 use crate::i18n::i18n;
-use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 
 use fractal_api::url::Url;

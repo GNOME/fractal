@@ -1,7 +1,7 @@
 use crate::backend::room;
+use crate::clone;
 use crate::types::ExtraContent;
 use comrak::{markdown_to_html, ComrakOptions};
-use fractal_api::clone;
 use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;

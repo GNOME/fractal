@@ -1,4 +1,4 @@
-use fractal_api::clone;
+use crate::clone;
 use gio::ActionMapExt;
 use gtk::prelude::*;
 

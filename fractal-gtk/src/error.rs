@@ -27,18 +27,17 @@ macro_rules! derror {
 pub enum Error {
     BackendError,
     CacheError,
-    ReqwestError(reqwest::Error),
-    NetworkError(reqwest::StatusCode),
+    ReqwestError(fractal_api::reqwest::Error),
+    NetworkError(fractal_api::reqwest::StatusCode),
     MatrixError(MatrixErrorCode, String),
     SendMsgError(String),
     SendMsgRedactionError(EventId),
     TokenUsed,
     Denied,
-    NotLoggedIn,
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(err: reqwest::Error) -> Error {
+impl From<fractal_api::reqwest::Error> for Error {
+    fn from(err: fractal_api::reqwest::Error) -> Error {
         Error::ReqwestError(err)
     }
 }
@@ -49,7 +48,7 @@ impl From<StandardErrorResponse> for Error {
     }
 }
 
-derror!(url::ParseError, Error::BackendError);
+derror!(fractal_api::url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(glib::error::Error, Error::BackendError);
 derror!(regex::Error, Error::BackendError);
@@ -61,9 +60,7 @@ derror!(serde_json::Error, Error::CacheError);
 #[derive(Debug)]
 pub enum BKError {
     LoginError(Error),
-    GuestLoginError(Error),
     SendTypingError(Error),
-    SetRoomError(Error),
     InviteError(Error),
     ChangeLanguageError(Error),
     NameError(Error),

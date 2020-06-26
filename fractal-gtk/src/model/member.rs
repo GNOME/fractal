@@ -1,9 +1,9 @@
-use crate::r0::search::user::User;
-use crate::r0::sync::get_joined_members::RoomMember;
+use fractal_api::r0::search::user::User;
+use fractal_api::r0::sync::get_joined_members::RoomMember;
+use fractal_api::url::Url;
 use ruma_identifiers::UserId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use url::Url;
 
 // TODO: Make this non-(de)serializable
 #[derive(Debug, Clone, Serialize, Deserialize)]
