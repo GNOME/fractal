@@ -33,8 +33,8 @@ use gtk::prelude::*;
 
 struct List {
     /* With the exception of temporary widgets, only modify the fields list and listbox
-    through the methods add_top(), add_bottom(), and remove_item() to maintain the
-    1-1 correspondence between them. */
+    through the methods add_top(), add_bottom(), remove_item() and replace_item() to
+    maintain the 1-1 correspondence between them. */
     list: VecDeque<Element>,
     new_divider_index: Option<usize>,
     playing_videos: Vec<(Rc<VideoPlayerWidget>, SignalHandlerId)>,
@@ -76,6 +76,14 @@ impl List {
     fn remove_item(&mut self, index: usize, row: &gtk::ListBoxRow) {
         self.list.remove(index);
         self.listbox.remove(row);
+    }
+
+    fn replace_item(&mut self, index: usize, row: &gtk::ListBoxRow, element: Element) {
+        /* Spinner is at position 0, so increment index by 1 */
+        self.listbox
+            .insert(element.get_listbox_row(), (self.list.len() - index) as i32);
+        self.listbox.remove(row);
+        self.list[index] = element;
     }
 
     fn create_new_message_divider(rows: Rc<RefCell<Self>>) -> widgets::NewMessageDivider {
@@ -573,6 +581,42 @@ impl RoomHistory {
         );
         item.widget = Some(b);
         rows.add_bottom(Element::Message(item));
+        None
+    }
+
+    pub fn replace_message(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        mut item: MessageContent,
+    ) -> Option<()> {
+        let mut rows = self.rows.borrow_mut();
+
+        let (i, ref mut msg) = rows
+            .list
+            .iter_mut()
+            .enumerate()
+            .find_map(|(i, e)| match e {
+                Element::Message(ref mut itermessage)
+                    if itermessage.id == item.msg.replace
+                        || itermessage.msg.replace == item.msg.replace =>
+                {
+                    Some((i, itermessage))
+                }
+                _ => None,
+            })?;
+        let msg_widget = msg.widget.clone()?;
+
+        item.widget = Some(create_row(
+            thread_pool,
+            user_info_cache,
+            item.clone(),
+            msg_widget.header,
+            self.backend.clone(),
+            self.server_url.clone(),
+            &self.rows,
+        ));
+        rows.replace_item(i, msg_widget.get_listbox_row(), Element::Message(item));
         None
     }
 
