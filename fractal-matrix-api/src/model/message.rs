@@ -31,6 +31,8 @@ pub struct Message {
     pub redacted: bool,
     // The event ID of the message this is in reply to.
     pub in_reply_to: Option<EventId>,
+    // The event ID of the message this replaces.
+    pub replace: Option<EventId>,
     // This can be used for the client to add more values to the message on sending
     // for example for images attachment the "info" field can be attached as
     // Some(json!({"info": {"h": 296, "w": 296, "mimetype": "image/png", "orientation": 0, "size": 8796}});
@@ -77,6 +79,7 @@ impl Message {
             receipt: HashMap::new(),
             redacted: false,
             in_reply_to: None,
+            replace: None,
             extra_content: None,
         }
     }
@@ -147,6 +150,7 @@ impl Message {
             receipt: HashMap::new(),
             redacted,
             in_reply_to: None,
+            replace: None,
             extra_content: None,
         };
 
@@ -160,7 +164,19 @@ impl Message {
         Ok(message)
     }
 
-    fn parse_m_room_message(&mut self, c: &JsonValue) {
+    fn parse_m_room_message(&mut self, mut c: &JsonValue) {
+        let rel_type = c["m.relates_to"]["rel_type"]
+            .as_str()
+            .map(String::from)
+            .unwrap_or_default();
+
+        if rel_type == "m.replace" {
+            self.replace = c["m.relates_to"]["event_id"]
+                .as_str()
+                .and_then(|evid| evid.try_into().ok());
+            c = &c["m.new_content"];
+        }
+
         let mtype = c["msgtype"].as_str().map(String::from).unwrap_or_default();
         let body = c["body"].as_str().map(String::from).unwrap_or_default();
         let formatted_body = c["formatted_body"].as_str().map(String::from);
