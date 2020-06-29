@@ -70,6 +70,18 @@ impl AppOp {
         }
     }
 
+    pub fn replace_room_message(&mut self, msg: &Message) {
+        if let Some(ui_msg) = self.create_new_room_message(msg) {
+            if let Some(ref mut history) = self.history {
+                history.replace_message(
+                    self.thread_pool.clone(),
+                    self.user_info_cache.clone(),
+                    ui_msg,
+                );
+            }
+        }
+    }
+
     pub fn add_tmp_room_message(&mut self, msg: Message) -> Option<()> {
         let login_data = self.login_data.clone()?;
         let messages = self.history.as_ref()?.get_listbox();
@@ -384,6 +396,11 @@ impl AppOp {
         let login_data = self.login_data.clone()?;
         let uid = login_data.uid;
         for msg in msgs.iter() {
+            if msg.replace != None {
+                self.replace_message(&msg);
+                continue;
+            }
+
             let should_notify = msg.sender != uid
                 && (msg.body.contains(&login_data.username.clone()?)
                     || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
@@ -459,6 +476,20 @@ impl AppOp {
                 if let Some(ref mut message) = room.messages.iter_mut().find(|e| e.id == msg.id) {
                     message.redacted = true;
                 }
+            }
+        }
+        None
+    }
+
+    pub fn replace_message(&mut self, new_msg: &Message) -> Option<()> {
+        self.replace_room_message(&new_msg);
+        if let Some(ref mut room) = self.rooms.get_mut(&new_msg.room) {
+            if let Some(ref mut message) = room
+                .messages
+                .iter_mut()
+                .find(|e| e.id == new_msg.replace || e.replace == new_msg.replace)
+            {
+                std::mem::replace(*message, new_msg.clone());
             }
         }
         None
