@@ -2,7 +2,7 @@ use ruma_identifiers::UserId;
 use std::fs;
 use url::Url;
 
-use crate::backend::types::ThreadPool;
+use crate::backend::ThreadPool;
 use crate::cache::CacheMap;
 use crate::error::Error;
 use crate::util::get_user_avatar;

@@ -5,7 +5,6 @@ api_sources = files(
   'backend/register.rs',
   'backend/room.rs',
   'backend/sync.rs',
-  'backend/types.rs',
   'backend/user.rs',
   'identity/r0/association/msisdn/submit_token.rs',
   'identity/r0/association/msisdn.rs',

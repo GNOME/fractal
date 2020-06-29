@@ -1,16 +1,16 @@
 use crate::i18n::i18n;
 
 use fractal_api::backend::room;
-use fractal_api::util::ResultExpectLog;
 use gtk::prelude::*;
 use std::thread;
 
 use crate::types::Room;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 
 use crate::util::markup_text;
 
+use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
@@ -125,12 +125,10 @@ impl<'a> RoomBox<'a> {
 
             let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
             let room_id = room.id.clone();
-            let tx = self.op.backend.clone();
             join_button.connect_clicked(move |_| {
                 let server_url = login_data.server_url.clone();
                 let access_token = login_data.access_token.clone();
                 let room_id = room_id.clone();
-                let tx = tx.clone();
                 thread::spawn(move || {
                     match room::join_room(server_url, access_token, room_id.clone()) {
                         Ok(jtr) => {
@@ -138,10 +136,7 @@ impl<'a> RoomBox<'a> {
                             APPOP!(set_join_to_room, (jtr));
                             APPOP!(reload_rooms);
                         }
-                        Err(err) => {
-                            tx.send(BKCommand::SendBKResponse(BKResponse::JoinRoomError(err)))
-                                .expect_log("Connection closed");
-                        }
+                        Err(err) => dispatch_error(BKResponse::JoinRoomError(err)),
                     }
                 });
             });

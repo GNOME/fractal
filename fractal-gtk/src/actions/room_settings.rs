@@ -2,16 +2,15 @@ use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
-use fractal_api::util::ResultExpectLog;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use std::convert::TryFrom;
-use std::sync::mpsc::Sender;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::i18n::i18n;
 
 use crate::widgets::ErrorDialog;
@@ -22,7 +21,6 @@ use crate::actions::ButtonState;
 // This creates all actions a user can perform in the room settings
 pub fn new(
     window: &gtk::Window,
-    backend: &Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
 ) -> gio::SimpleActionGroup {
@@ -37,7 +35,6 @@ pub fn new(
     actions.add_action(&change_avatar);
 
     let window_weak = window.downgrade();
-    let backend = backend.clone();
     change_avatar.connect_activate(move |a, data| {
         if let Some(room_id) = data
             .and_then(|x| x.get_str())
@@ -50,7 +47,6 @@ pub fn new(
             if let Some(path) = open(&window, i18n("Select a new avatar").as_str(), &[filter]) {
                 if let Some(file) = path.to_str().map(Into::into) {
                     a.change_state(&ButtonState::Insensitive.into());
-                    let tx = backend.clone();
                     let server = server_url.clone();
                     let access_token = access_token.clone();
                     thread::spawn(move || {
@@ -59,10 +55,7 @@ pub fn new(
                                 APPOP!(show_new_room_avatar);
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::SetRoomAvatarError(
-                                    err,
-                                )))
-                                .expect_log("Connection closed");
+                                dispatch_error(BKResponse::SetRoomAvatarError(err));
                             }
                         }
                     });

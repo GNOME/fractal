@@ -15,7 +15,6 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::BKCommand;
 use crate::error::Error;
 use std::sync::mpsc::TryRecvError;
 
@@ -26,7 +25,6 @@ pub struct Image {
     pub server_url: Url,
     pub max_size: Option<(i32, i32)>,
     pub widget: DrawingArea,
-    pub backend: Sender<BKCommand>,
     pub pixbuf: Arc<Mutex<Option<Pixbuf>>>,
     /// useful to avoid the scale_simple call on every draw
     pub scaled: Arc<Mutex<Option<Pixbuf>>>,
@@ -45,13 +43,13 @@ impl Image {
     /// # Examples
     ///
     /// ```
-    /// let img = Image::new(backend, "mxc://matrix.org/HASDH")
+    /// let img = Image::new("mxc://matrix.org/HASDH")
     ///           .circle(true)
     ///           .fixed(true)
     ///           .size(Some((50, 50)))
     ///           .build();
     /// ```
-    pub fn new(backend: &Sender<BKCommand>, server_url: Url, path: &str) -> Image {
+    pub fn new(server_url: Url, path: &str) -> Image {
         let da = DrawingArea::new();
         da.add_events(gdk::EventMask::ENTER_NOTIFY_MASK);
         da.add_events(gdk::EventMask::LEAVE_NOTIFY_MASK);
@@ -78,7 +76,6 @@ impl Image {
             zoom_level: Arc::new(Mutex::new(None)),
             thumb: false,
             circle: false,
-            backend: backend.clone(),
             fixed_size: false,
             centered: false,
             shrink_to_fit: false,

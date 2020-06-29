@@ -2,7 +2,7 @@ use fractal_api::backend::{media, room, ThreadPool};
 use fractal_api::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
-use fractal_api::util::{dw_media, ContentType, ResultExpectLog};
+use fractal_api::util::{dw_media, ContentType};
 use log::error;
 use std::cell::RefCell;
 use std::fs;
@@ -14,7 +14,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use crate::actions::AppState;
-use crate::backend::{BKCommand, BKResponse};
+use crate::app::dispatch_error;
+use crate::backend::BKResponse;
 use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
@@ -37,7 +38,6 @@ use crate::widgets::SourceDialog;
 /* This creates all actions the room history can perform */
 pub fn new(
     thread_pool: ThreadPool,
-    backend: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
     ui: UI,
@@ -119,12 +119,10 @@ pub fn new(
         }
     });
 
-    let b = backend.clone();
     open_with.connect_activate(clone!(server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
             let server_url = server_url.clone();
-            let tx = b.clone();
             thread::spawn(move || {
                 match dw_media(server_url, &url, ContentType::Download, None) {
                     Ok(fname) => {
@@ -134,8 +132,7 @@ pub fn new(
                             .expect("failed to execute process");
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::MediaError(err)))
-                            .expect_log("Connection closed");
+                        dispatch_error(BKResponse::MediaError(err));
                     }
                 }
             });
@@ -227,7 +224,6 @@ pub fn new(
         }
     });
 
-    let b = backend.clone();
     let s = server_url.clone();
     let tk = access_token.clone();
     let back_weak = Rc::downgrade(&back_history);
@@ -250,14 +246,10 @@ pub fn new(
         if let Some(msg) = get_message(data) {
             let server = s.clone();
             let access_token = tk.clone();
-            let tx = b.clone();
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    tx.send(BKCommand::SendBKResponse(
-                        BKResponse::SentMsgRedactionError(err),
-                    ))
-                    .expect_log("Connection closed");
+                    dispatch_error(BKResponse::SentMsgRedactionError(err));
                 }
             });
         }
@@ -265,7 +257,7 @@ pub fn new(
 
     load_more_messages.connect_activate(clone!(server_url, access_token => move |_, data| {
         let id = get_room_id(data);
-        request_more_messages(backend.clone(), server_url.clone(), access_token.clone(), id);
+        request_more_messages(server_url.clone(), access_token.clone(), id);
     }));
 
     actions
@@ -276,7 +268,6 @@ fn get_message(id: Option<&glib::Variant>) -> Option<Message> {
 }
 
 fn request_more_messages(
-    tx: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
     id: Option<RoomId>,
@@ -292,10 +283,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomMessagesToError(err));
                 }
             }
         });
@@ -307,10 +295,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomMessagesToError(err));
                 }
             }
         });
@@ -322,10 +307,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    tx.send(BKCommand::SendBKResponse(BKResponse::RoomMessagesToError(
-                        err,
-                    )))
-                    .expect_log("Connection closed");
+                    dispatch_error(BKResponse::RoomMessagesToError(err));
                 }
             },
         );

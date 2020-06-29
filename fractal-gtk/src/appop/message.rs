@@ -1,7 +1,10 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use fractal_api::backend::room;
+use fractal_api::clone;
 use fractal_api::identifiers::{EventId, RoomId};
-use fractal_api::util::ResultExpectLog;
+use fractal_api::r0::AccessToken;
+use fractal_api::types::ExtraContent;
+use fractal_api::url::Url;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
 use glib::source::Continue;
@@ -16,11 +19,12 @@ use std::fs;
 use std::path::PathBuf;
 use std::thread;
 
+use crate::app::dispatch_error;
 use crate::appop::room::Force;
 use crate::appop::AppOp;
 use crate::App;
 
-use crate::backend::{BKCommand, BKResponse};
+use crate::backend::BKResponse;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -74,8 +78,7 @@ impl AppOp {
         let login_data = self.login_data.clone()?;
         let messages = self.history.as_ref()?.get_listbox();
         if let Some(ui_msg) = self.create_new_room_message(&msg) {
-            let backend = self.backend.clone();
-            let mb = widgets::MessageBox::new(backend, login_data.server_url).tmpwidget(
+            let mb = widgets::MessageBox::new(login_data.server_url).tmpwidget(
                 self.thread_pool.clone(),
                 self.user_info_cache.clone(),
                 &ui_msg,
@@ -113,13 +116,11 @@ impl AppOp {
         let mut widgets = vec![];
         for t in self.msg_queue.iter().rev().filter(|m| m.msg.room == r.id) {
             if let Some(ui_msg) = self.create_new_room_message(&t.msg) {
-                let backend = self.backend.clone();
-                let mb = widgets::MessageBox::new(backend, login_data.server_url.clone())
-                    .tmpwidget(
-                        self.thread_pool.clone(),
-                        self.user_info_cache.clone(),
-                        &ui_msg,
-                    );
+                let mb = widgets::MessageBox::new(login_data.server_url.clone()).tmpwidget(
+                    self.thread_pool.clone(),
+                    self.user_info_cache.clone(),
+                    &ui_msg,
+                );
                 let m = mb.get_listbox_row();
                 messages.add(m);
 
@@ -157,7 +158,6 @@ impl AppOp {
 
             let room_id = last_message.room.clone();
             let event_id = last_message.id.clone()?;
-            let tx = self.backend.clone();
             thread::spawn(move || {
                 match room::mark_as_read(
                     login_data.server_url,
@@ -169,10 +169,7 @@ impl AppOp {
                         APPOP!(clear_room_notifications, (r));
                     }
                     Err(err) => {
-                        tx.send(BKCommand::SendBKResponse(BKResponse::MarkedAsReadError(
-                            err,
-                        )))
-                        .expect_log("Connection closed");
+                        dispatch_error(BKResponse::MarkedAsReadError(err));
                     }
                 }
             });
@@ -216,16 +213,11 @@ impl AppOp {
             let msg = next.msg.clone();
             match &next.msg.mtype[..] {
                 "m.image" | "m.file" | "m.audio" | "m.video" => {
-                    self.backend
-                        .send(BKCommand::AttachFile(
-                            login_data.server_url,
-                            login_data.access_token,
-                            msg,
-                        ))
-                        .unwrap();
+                    thread::spawn(move || {
+                        attach_file(login_data.server_url, login_data.access_token, msg)
+                    });
                 }
                 _ => {
-                    let tx = self.backend.clone();
                     thread::spawn(move || {
                         match room::send_msg(login_data.server_url, login_data.access_token, msg) {
                             Ok((txid, evid)) => {
@@ -235,8 +227,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                tx.send(BKCommand::SendBKResponse(BKResponse::SentMsg(Err(err))))
-                                    .expect_log("Connection closed");
+                                dispatch_error(BKResponse::SentMsgError(err));
                             }
                         }
                     });
@@ -639,4 +630,73 @@ fn get_file_media_info(file: &str, mimetype: &str) -> Option<JsonValue> {
     });
 
     Some(info)
+}
+
+fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
+    let fname = msg.url.clone().unwrap_or_default();
+    let mut extra_content: Option<ExtraContent> = msg
+        .clone()
+        .extra_content
+        .and_then(|c| serde_json::from_value(c).ok());
+
+    let thumb = extra_content
+        .clone()
+        .and_then(|c| c.info.thumbnail_url)
+        .unwrap_or_default();
+
+    if fname.starts_with("mxc://") && thumb.starts_with("mxc://") {
+        send_msg_and_manage(baseu, tk, msg);
+
+        return;
+    }
+
+    if !thumb.is_empty() {
+        match room::upload_file(baseu.clone(), tk.clone(), &thumb) {
+            Ok(response) => {
+                let thumb_uri = response.content_uri.to_string();
+                msg.thumb = Some(thumb_uri.clone());
+                if let Some(ref mut xctx) = extra_content {
+                    xctx.info.thumbnail_url = Some(thumb_uri);
+                }
+                msg.extra_content = serde_json::to_value(&extra_content).ok();
+            }
+            Err(err) => {
+                dispatch_error(BKResponse::AttachedFileError(err));
+            }
+        }
+
+        if let Err(_e) = std::fs::remove_file(&thumb) {
+            error!("Can't remove thumbnail: {}", thumb);
+        }
+    }
+
+    let query = room::upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
+        msg.url = Some(response.content_uri.to_string());
+        thread::spawn(clone!(msg => move || send_msg_and_manage(baseu, tk, msg)));
+
+        msg
+    });
+
+    match query {
+        Ok(msg) => {
+            APPOP!(attached_file, (msg));
+        }
+        Err(err) => {
+            dispatch_error(BKResponse::AttachedFileError(err));
+        }
+    };
+}
+
+fn send_msg_and_manage(baseu: Url, tk: AccessToken, msg: Message) {
+    match room::send_msg(baseu, tk, msg) {
+        Ok((txid, evid)) => {
+            APPOP!(msg_sent, (txid, evid));
+            let initial = false;
+            let number_tries = 0;
+            APPOP!(sync, (initial, number_tries));
+        }
+        Err(err) => {
+            dispatch_error(BKResponse::SentMsgError(err));
+        }
+    };
 }

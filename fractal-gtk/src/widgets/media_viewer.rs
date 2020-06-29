@@ -20,7 +20,6 @@ use gtk::Overlay;
 use crate::types::Message;
 use crate::types::Room;
 
-use crate::backend::BKCommand;
 use crate::uitypes::RowType;
 use crate::widgets::image;
 use crate::widgets::message_menu::MessageMenu;
@@ -38,7 +37,6 @@ pub struct MediaViewer {
     data: Rc<RefCell<Data>>,
     /* gtk widgets we need to have a reference to */
     pub builder: gtk::Builder,
-    backend: Sender<BKCommand>,
 }
 
 #[derive(Debug)]
@@ -127,7 +125,6 @@ enum Widget {
 struct Data {
     builder: gtk::Builder,
     main_window: gtk::Window,
-    backend: Sender<BKCommand>,
     server_url: Url,
     access_token: AccessToken,
     uid: UserId,
@@ -148,7 +145,6 @@ struct Data {
 
 impl Data {
     pub fn new(
-        backend: Sender<BKCommand>,
         server_url: Url,
         access_token: AccessToken,
         media_list: Vec<Message>,
@@ -173,7 +169,6 @@ impl Data {
             no_more_media: false,
             widget: Widget::None,
             builder,
-            backend,
             server_url,
             access_token,
             uid,
@@ -366,7 +361,7 @@ impl Data {
         let url = msg.url.clone().unwrap_or_default();
         match msg.mtype.as_ref() {
             "m.image" => {
-                let image = image::Image::new(&self.backend, self.server_url.clone(), &url)
+                let image = image::Image::new(self.server_url.clone(), &url)
                     .shrink_to_fit(true)
                     .center(true)
                     .build(thread_pool);
@@ -631,7 +626,6 @@ impl Drop for Data {
 
 impl MediaViewer {
     pub fn new(
-        backend: Sender<BKCommand>,
         main_window: gtk::Window,
         room: &Room,
         current_media_msg: &Message,
@@ -658,7 +652,6 @@ impl MediaViewer {
 
         MediaViewer {
             data: Rc::new(RefCell::new(Data::new(
-                backend.clone(),
                 server_url,
                 access_token,
                 media_list,
@@ -669,7 +662,6 @@ impl MediaViewer {
                 room.admins.clone(),
             ))),
             builder,
-            backend,
         }
     }
 
@@ -712,11 +704,10 @@ impl MediaViewer {
         let url = media_msg.url.clone().unwrap_or_default();
         match media_msg.mtype.as_ref() {
             "m.image" => {
-                let image =
-                    image::Image::new(&self.backend, self.data.borrow().server_url.clone(), &url)
-                        .shrink_to_fit(true)
-                        .center(true)
-                        .build(thread_pool);
+                let image = image::Image::new(self.data.borrow().server_url.clone(), &url)
+                    .shrink_to_fit(true)
+                    .center(true)
+                    .build(thread_pool);
 
                 media_viewport.add(&image.widget);
                 media_viewport.show_all();
@@ -897,7 +888,6 @@ impl MediaViewer {
 
         let own_weak = Rc::downgrade(&self.data);
         let builder = self.builder.clone();
-        let backend = self.backend.clone();
         let previous_media_button = self
             .builder
             .get_object::<gtk::Button>("previous_media_button")
@@ -906,7 +896,7 @@ impl MediaViewer {
         previous_media_button.connect_clicked(move |_| {
             if let Some(own) = own_weak.upgrade() {
                 if !own.borrow_mut().previous_media(t_pool.clone()) {
-                    load_more_media(t_pool.clone(), own, builder.clone(), backend.clone());
+                    load_more_media(t_pool.clone(), own, builder.clone());
                 }
             }
         });
@@ -1024,12 +1014,7 @@ fn loading_state(ui: &gtk::Builder, val: bool) -> bool {
     val
 }
 
-fn load_more_media(
-    thread_pool: ThreadPool,
-    data: Rc<RefCell<Data>>,
-    builder: gtk::Builder,
-    backend: Sender<BKCommand>,
-) {
+fn load_more_media(thread_pool: ThreadPool, data: Rc<RefCell<Data>>, builder: gtk::Builder) {
     data.borrow_mut().loading_more_media = loading_state(&builder, true);
 
     let msg = data.borrow().media_list[data.borrow().current_media_index].clone();
@@ -1086,7 +1071,7 @@ fn load_more_media(
                 data.borrow_mut().media_list = new_media_list;
                 data.borrow_mut().prev_batch = Some(prev_batch);
                 if img_msgs_count == 0 {
-                    load_more_media(thread_pool, data, builder.clone(), backend.clone());
+                    load_more_media(thread_pool, data, builder.clone());
                 } else {
                     data.borrow_mut().current_media_index += img_msgs_count;
                     data.borrow_mut().previous_media(thread_pool);
