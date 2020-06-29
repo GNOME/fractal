@@ -11,3 +11,8 @@ vendor
 # Files configured by meson
 fractal-gtk/src/config.rs
 fractal-gtk/src/static_resources.rs
+
+# Files created by Flatpak
+.flatpak-builder/
+fractal/
+*.flatpak
