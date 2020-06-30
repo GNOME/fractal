@@ -1,4 +1,4 @@
-use crate::backend::room;
+use crate::backend::{room, ShowError};
 use crate::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
@@ -13,9 +13,7 @@ use gtk::prelude::*;
 
 use crate::actions;
 use crate::actions::{ButtonState, StateExt};
-use crate::app::dispatch_error;
 use crate::app::App;
-use crate::error::BKError;
 use crate::types::Member;
 use crate::types::Room;
 use crate::util::markup_text;
@@ -434,7 +432,7 @@ impl RoomSettings {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomAvatarError(err));
+                    err.show_error();
                 }
             },
         );
@@ -505,7 +503,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_name);
                 }
                 Err(err) => {
-                    dispatch_error(BKError::SetRoomNameError(err));
+                    err.show_error();
                 }
             },
         );
@@ -563,7 +561,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_topic);
                 }
                 Err(err) => {
-                    dispatch_error(BKError::SetRoomTopicError(err));
+                    err.show_error();
                 }
             },
         );

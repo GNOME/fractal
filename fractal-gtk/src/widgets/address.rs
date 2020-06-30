@@ -8,10 +8,9 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
-use crate::error::BKError;
+use crate::backend::ShowError;
 
 #[derive(Debug, Clone)]
 pub enum AddressType {
@@ -213,7 +212,7 @@ fn delete_address(medium: Medium, address: String, server_url: Url, access_token
                 APPOP!(get_three_pid);
             }
             Err(err) => {
-                dispatch_error(BKError::DeleteThreePIDError(err));
+                err.show_error();
             }
         }
     });
@@ -236,7 +235,7 @@ fn add_address(
                     APPOP!(get_token_phone, (sid, secret))
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetTokenPhoneError(err));
+                    err.show_error();
                 }
             }
         }
@@ -248,7 +247,7 @@ fn add_address(
                     APPOP!(get_token_email, (sid, secret));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetTokenEmailError(err));
+                    err.show_error();
                 }
             }
         }

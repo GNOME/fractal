@@ -1,3 +1,4 @@
+use super::MediaError;
 use crate::error::Error;
 use crate::globals;
 use fractal_api::identifiers::{EventId, RoomId};
@@ -21,7 +22,7 @@ pub fn get_thumb_async(
     thread_pool: ThreadPool,
     baseu: Url,
     media: String,
-    tx: Sender<Result<String, Error>>,
+    tx: Sender<Result<String, MediaError>>,
 ) {
     thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::default_thumbnail(), None);
@@ -33,7 +34,7 @@ pub fn get_media_async(
     thread_pool: ThreadPool,
     baseu: Url,
     media: String,
-    tx: Sender<Result<String, Error>>,
+    tx: Sender<Result<String, MediaError>>,
 ) {
     thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::Download, None);

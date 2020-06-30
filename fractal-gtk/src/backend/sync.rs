@@ -31,6 +31,10 @@ use std::{
     time::{self, Duration},
 };
 
+use super::{remove_matrix_access_token_if_present, ShowError};
+use crate::app::App;
+use crate::APPOP;
+
 pub enum RoomElement {
     Name(RoomId, String),
     Topic(RoomId, String),
@@ -39,17 +43,76 @@ pub enum RoomElement {
     RemoveMessage(RoomId, EventId),
 }
 
+#[derive(Debug)]
+pub struct SyncError(Error, u64);
+
+impl ShowError for SyncError {
+    fn show_error(&self) {
+        let err_str = format!("{:?}", self.0);
+        error!(
+            "SYNC Error: {}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        let new_number_tries = self.1 + 1;
+        APPOP!(sync_error, (new_number_tries));
+    }
+}
+
+#[derive(Debug)]
+pub struct RoomsError(Error);
+
+impl<T: Into<Error>> From<T> for RoomsError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for RoomsError {}
+
+#[derive(Debug)]
+pub struct UpdateRoomsError(Error);
+
+impl<T: Into<Error>> From<T> for UpdateRoomsError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for UpdateRoomsError {}
+
+#[derive(Debug)]
+pub struct RoomMessagesError(Error);
+
+impl<T: Into<Error>> From<T> for RoomMessagesError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for RoomMessagesError {}
+
+#[derive(Debug)]
+pub struct RoomElementError(Error);
+
+impl<T: Into<Error>> From<T> for RoomElementError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for RoomElementError {}
+
 pub enum SyncRet {
     NoSince {
-        rooms: Result<(Vec<Room>, Option<Room>), Error>,
+        rooms: Result<(Vec<Room>, Option<Room>), RoomsError>,
         next_batch: String,
     },
     WithSince {
-        update_rooms: Result<Vec<Room>, Error>,
-        room_messages: Result<Vec<Message>, Error>,
+        update_rooms: Result<Vec<Room>, UpdateRoomsError>,
+        room_messages: Result<Vec<Message>, RoomMessagesError>,
         room_notifications: HashMap<RoomId, UnreadNotificationsCount>,
-        update_rooms_2: Result<Vec<Room>, Error>,
-        other: Result<Vec<RoomElement>, Error>,
+        update_rooms_2: Result<Vec<Room>, UpdateRoomsError>,
+        other: Result<Vec<RoomElement>, RoomElementError>,
         next_batch: String,
     },
 }
@@ -62,7 +125,7 @@ pub fn sync(
     since: Option<String>,
     initial: bool,
     number_tries: u64,
-) -> Result<SyncRet, (Error, u64)> {
+) -> Result<SyncRet, SyncError> {
     let (timeout, filter) = if !initial {
         (time::Duration::from_secs(30), Default::default())
     } else {
@@ -294,7 +357,7 @@ pub fn sync(
             );
             thread::sleep(time::Duration::from_secs(waiting_time));
 
-            Err((err, number_tries))
+            Err(SyncError(err, number_tries))
         }
     }
 }

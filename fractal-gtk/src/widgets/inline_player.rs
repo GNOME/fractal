@@ -46,7 +46,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use fractal_api::url::Url;
 
 use crate::app::App;
-use crate::error::Error;
+use crate::backend::MediaError;
 use crate::i18n::i18n;
 
 pub trait PlayerExt {
@@ -504,8 +504,8 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
     ) {
         bx.set_opacity(0.3);
         let (tx, rx): (
-            Sender<Result<String, Error>>,
-            Receiver<Result<String, Error>>,
+            Sender<Result<String, MediaError>>,
+            Receiver<Result<String, MediaError>>,
         ) = channel();
         media::get_media_async(thread_pool, server_url.clone(), media_url.to_string(), tx);
         let local_path = player.get_local_path_access();
