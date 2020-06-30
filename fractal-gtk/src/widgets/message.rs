@@ -203,11 +203,11 @@ impl MessageBox {
         small: bool,
     ) -> gtk::Box {
         // content
-        // +------+
-        // | info |
-        // +------+
-        // | body |
-        // +------+
+        // +---------+
+        // | info    |
+        // +---------+
+        // | body_bx |
+        // +---------+
         let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
         if !small {
@@ -216,6 +216,19 @@ impl MessageBox {
             info.set_margin_bottom(3);
             content.pack_start(&info, false, false, 0);
         }
+
+        let body_bx = self.build_room_msg_body_bx(thread_pool, msg);
+        content.pack_start(&body_bx, true, true, 0);
+
+        content
+    }
+
+    fn build_room_msg_body_bx(&mut self, thread_pool: ThreadPool, msg: &Message) -> gtk::Box {
+        // body_bx
+        // +------+-----------+
+        // | body | edit_mark |
+        // +------+-----------+
+        let body_bx = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
         let body = match msg.mtype {
             RowType::Sticker => self.build_room_msg_sticker(thread_pool, msg),
@@ -227,9 +240,19 @@ impl MessageBox {
             _ => self.build_room_msg_body(msg),
         };
 
-        content.pack_start(&body, true, true, 0);
+        body_bx.pack_start(&body, true, true, 0);
 
-        content
+        if msg.msg.replace != None {
+            let edit_mark = gtk::Image::new_from_icon_name(
+                Some("document-edit-symbolic"),
+                gtk::IconSize::Button,
+            );
+            edit_mark.get_style_context().add_class("edit-mark");
+            edit_mark.set_valign(gtk::Align::End);
+
+            body_bx.pack_start(&edit_mark, false, false, 0);
+        }
+        body_bx
     }
 
     fn build_room_msg_avatar(
