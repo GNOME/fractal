@@ -208,6 +208,10 @@ row.msg-emote,
   color: @theme_selected_bg_color;
 }
 
+row .edit-mark {
+  opacity: 0.6;
+}
+
 .divider separator {
   background: @theme_selected_bg_color;
 }
