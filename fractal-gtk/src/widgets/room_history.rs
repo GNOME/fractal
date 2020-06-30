@@ -552,6 +552,10 @@ impl RoomHistory {
         user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
         mut item: MessageContent,
     ) -> Option<()> {
+        if item.msg.replace != None {
+            self.replace_message(thread_pool, user_info_cache, item);
+            return None;
+        }
         let mut rows = self.rows.borrow_mut();
         let mut day_divider = None;
         let has_header = {
