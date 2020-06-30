@@ -14,6 +14,7 @@ use std::thread;
 
 use crate::actions::AppState;
 use crate::app::dispatch_error;
+use crate::backend::ShowError;
 use crate::error::BKError;
 use crate::error::Error;
 use crate::i18n::i18n;
@@ -248,7 +249,7 @@ pub fn new(
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    dispatch_error(BKError::SentMsgRedactionError(err));
+                    err.show_error();
                 }
             });
         }

@@ -9,6 +9,7 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
+use crate::backend::ShowError;
 
 use crate::error::BKError;
 
@@ -237,7 +238,7 @@ impl AppOp {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            dispatch_error(BKError::JoinRoomError(err));
+                            err.show_error();
                         }
                     }
                 });

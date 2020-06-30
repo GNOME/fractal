@@ -4,12 +4,11 @@ use gtk::prelude::*;
 use std::thread;
 
 use crate::actions::AppState;
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::SearchType;
+use crate::backend::ShowError;
 
-use crate::error::BKError;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 impl AppOp {
@@ -38,7 +37,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::NewRoomError(err, int_id));
+                    APPOP!(remove_room, (int_id));
+                    err.show_error();
                 }
             }
         });

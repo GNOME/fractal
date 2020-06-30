@@ -6,13 +6,11 @@ use std::thread;
 
 use crate::types::Room;
 
-use crate::error::BKError;
-
 use crate::util::markup_text;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
+use crate::backend::ShowError;
 
 use crate::widgets;
 use crate::widgets::AvatarExt;
@@ -136,7 +134,7 @@ impl<'a> RoomBox<'a> {
                             APPOP!(set_join_to_room, (jtr));
                             APPOP!(reload_rooms);
                         }
-                        Err(err) => dispatch_error(BKError::JoinRoomError(err)),
+                        Err(err) => err.show_error(),
                     }
                 });
             });

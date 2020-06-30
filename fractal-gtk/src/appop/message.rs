@@ -1,4 +1,4 @@
-use crate::backend::room;
+use crate::backend::{room, ShowError};
 use crate::clone;
 use crate::types::ExtraContent;
 use comrak::{markdown_to_html, ComrakOptions};
@@ -227,7 +227,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::SentMsgError(err));
+                                err.show_error();
                             }
                         }
                     });
@@ -671,7 +671,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
                 msg.extra_content = serde_json::to_value(&extra_content).ok();
             }
             Err(err) => {
-                dispatch_error(BKError::AttachedFileError(err));
+                err.show_error();
             }
         }
 
@@ -692,7 +692,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
             APPOP!(attached_file, (msg));
         }
         Err(err) => {
-            dispatch_error(BKError::AttachedFileError(err));
+            err.show_error();
         }
     };
 }
@@ -706,7 +706,7 @@ fn send_msg_and_manage(baseu: Url, tk: AccessToken, msg: Message) {
             APPOP!(sync, (initial, number_tries));
         }
         Err(err) => {
-            dispatch_error(BKError::SentMsgError(err));
+            err.show_error();
         }
     };
 }

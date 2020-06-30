@@ -8,6 +8,7 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::AppState;
+use crate::backend::ShowError;
 
 use crate::error::BKError;
 use crate::i18n::i18n;
@@ -34,7 +35,7 @@ impl AppOp {
                     APPOP!(set_three_pid, (l));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetThreePIDError(err));
+                    err.show_error();
                 }
             }
         });
@@ -689,7 +690,7 @@ impl AppOp {
                                 APPOP!(password_changed);
                             }
                             Err(err) => {
-                                dispatch_error(BKError::ChangePasswordError(err));
+                                err.show_error();
                             }
                         }
                     });
@@ -805,7 +806,7 @@ impl AppOp {
                                 APPOP!(account_destruction_logoff);
                             }
                             Err(err) => {
-                                dispatch_error(BKError::AccountDestructionError(err));
+                                err.show_error();
                             }
                         }
                     });

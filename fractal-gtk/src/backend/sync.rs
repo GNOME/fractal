@@ -31,12 +31,31 @@ use std::{
     time::{self, Duration},
 };
 
+use super::{remove_matrix_access_token_if_present, ShowError};
+use crate::app::App;
+use crate::APPOP;
+
 pub enum RoomElement {
     Name(RoomId, String),
     Topic(RoomId, String),
     NewAvatar(RoomId),
     MemberEvent(Event),
     RemoveMessage(RoomId, EventId),
+}
+
+#[derive(Debug)]
+pub struct SyncError(Error, u64);
+
+impl ShowError for SyncError {
+    fn show_error(&self) {
+        let err_str = format!("{:?}", self.0);
+        error!(
+            "SYNC Error: {}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        let new_number_tries = self.1 + 1;
+        APPOP!(sync_error, (new_number_tries));
+    }
 }
 
 pub enum SyncRet {
@@ -62,7 +81,7 @@ pub fn sync(
     since: Option<String>,
     initial: bool,
     number_tries: u64,
-) -> Result<SyncRet, (Error, u64)> {
+) -> Result<SyncRet, SyncError> {
     let (timeout, filter) = if !initial {
         (time::Duration::from_secs(30), Default::default())
     } else {
@@ -294,7 +313,7 @@ pub fn sync(
             );
             thread::sleep(time::Duration::from_secs(waiting_time));
 
-            Err((err, number_tries))
+            Err(SyncError(err, number_tries))
         }
     }
 }

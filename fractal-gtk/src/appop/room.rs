@@ -3,7 +3,7 @@ use crate::i18n::{i18n, i18n_k, ni18n_f};
 use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
 use log::{error, warn};
-use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::fs::remove_file;
 use std::os::unix::fs;
 use std::thread;
@@ -13,6 +13,7 @@ use gtk::prelude::*;
 use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
+use crate::backend::ShowError;
 
 use crate::error::BKError;
 use crate::util::cache_dir_path;
@@ -414,7 +415,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::NewRoomError(err, int_id));
+                    APPOP!(remove_room, (int_id));
+                    err.show_error();
                 }
             }
         });
@@ -550,27 +552,34 @@ impl AppOp {
 
     pub fn join_to_room(&mut self) {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
-        let name = self
+        let try_room_id = self
             .ui
             .builder
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.")
             .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string());
+            .map_or(String::new(), |gstr| gstr.to_string())
+            .trim()
+            .try_into();
 
         thread::spawn(move || {
-            match RoomId::try_from(name.trim())
-                .map_err(Into::into)
-                .and_then(|room_id| {
-                    room::join_room(login_data.server_url, login_data.access_token, room_id)
-                }) {
+            let room_id = match try_room_id {
+                Ok(rid) => rid,
+                Err(_) => {
+                    let error = i18n("The room ID is malformed");
+                    APPOP!(show_error, (error));
+                    return;
+                }
+            };
+
+            match room::join_room(login_data.server_url, login_data.access_token, room_id) {
                 Ok(jtr) => {
                     let jtr = Some(jtr);
                     APPOP!(set_join_to_room, (jtr));
                     APPOP!(reload_rooms);
                 }
                 Err(err) => {
-                    dispatch_error(BKError::JoinRoomError(err));
+                    err.show_error();
                 }
             }
         });
