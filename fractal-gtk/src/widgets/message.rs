@@ -242,13 +242,16 @@ impl MessageBox {
 
         body_bx.pack_start(&body, true, true, 0);
 
-        if msg.msg.replace != None {
+        if let Some(replace_date) = msg.replace_date {
             let edit_mark = gtk::Image::new_from_icon_name(
                 Some("document-edit-symbolic"),
                 gtk::IconSize::Button,
             );
             edit_mark.get_style_context().add_class("edit-mark");
             edit_mark.set_valign(gtk::Align::End);
+
+            let edit_tooltip = replace_date.format(&i18n("Last edited %c")).to_string();
+            edit_mark.set_tooltip_text(Some(&edit_tooltip));
 
             body_bx.pack_start(&edit_mark, false, false, 0);
         }

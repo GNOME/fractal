@@ -475,6 +475,7 @@ impl RoomHistory {
                         return Continue(true);
                     }
                     if let Some(pos) = edits.iter().position(|edit| item.id == edit.msg.replace) {
+                        edits[pos].date = item.date;
                         item = edits.remove(pos).unwrap();
                     }
 
@@ -621,6 +622,7 @@ impl RoomHistory {
                 }
                 _ => None,
             })?;
+        item.date = msg.date;
         let msg_widget = msg.widget.clone()?;
 
         item.widget = Some(create_row(

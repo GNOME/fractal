@@ -550,6 +550,11 @@ fn create_ui_message(
         mtype: t,
         body: msg.body,
         date: msg.date,
+        replace_date: if msg.replace.is_some() {
+            Some(msg.date)
+        } else {
+            None
+        },
         thumb: msg.thumb,
         url: msg.url,
         formatted_body: msg.formatted_body,
