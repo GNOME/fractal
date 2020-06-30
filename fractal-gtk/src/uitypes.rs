@@ -15,6 +15,7 @@ pub struct MessageContent {
     pub mtype: RowType,
     pub body: String,
     pub date: DateTime<Local>,
+    pub replace_date: Option<DateTime<Local>>,
     pub thumb: Option<String>,
     pub url: Option<String>,
     pub formatted_body: Option<String>,
