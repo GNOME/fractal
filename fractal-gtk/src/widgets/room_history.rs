@@ -264,6 +264,7 @@ pub struct RoomHistory {
     server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
+    edit_buffer: Rc<RefCell<VecDeque<MessageContent>>>,
 }
 
 impl RoomHistory {
@@ -290,6 +291,7 @@ impl RoomHistory {
             server_url: op.login_data.clone()?.server_url,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
+            edit_buffer: Rc::new(RefCell::new(VecDeque::new())),
         };
 
         rh.connect_video_auto_play();
@@ -444,6 +446,7 @@ impl RoomHistory {
         user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     ) -> Option<()> {
         let queue = self.queue.clone();
+        let edit_buffer = self.edit_buffer.clone();
         let rows = self.rows.clone();
 
         /* TO-DO: we could set the listbox height the 52 * length of messages, to decrease jumps of the
@@ -453,12 +456,26 @@ impl RoomHistory {
         if self.source_id.borrow().is_some() {
             /* We don't need a new loop, just keeping the old one */
         } else {
-            /* Lacy load initial messages */
+            /* Lazy load initial messages */
             let source_id = self.source_id.clone();
             let server_url = self.server_url.clone();
             *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
                 let mut data = queue.borrow_mut();
+                let mut edits = edit_buffer.borrow_mut();
                 if let Some(mut item) = data.pop_front() {
+                    if item.msg.replace != None {
+                        if !edits
+                            .iter()
+                            .any(|edit| item.msg.replace == edit.msg.replace)
+                        {
+                            edits.push_back(item);
+                        }
+                        return Continue(true);
+                    }
+                    if let Some(pos) = edits.iter().position(|edit| item.id == edit.msg.replace) {
+                        item = edits.remove(pos).unwrap();
+                    }
+
                     let last = data.front();
                     let mut prev_day_divider = None;
                     let mut day_divider = None;
