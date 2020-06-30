@@ -37,10 +37,6 @@ macro_rules! APPOP {
     }}
 }
 
-mod backend_loop;
-
-pub use backend_loop::dispatch_error;
-
 // Our application struct for containing all the state we have to carry around.
 // TODO: subclass gtk::Application once possible
 pub struct App {

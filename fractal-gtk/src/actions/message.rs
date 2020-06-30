@@ -13,9 +13,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use crate::actions::AppState;
-use crate::app::dispatch_error;
-use crate::error::BKError;
-use crate::error::Error;
+use crate::backend::{MediaError, ShowError};
 use crate::i18n::i18n;
 use crate::types::Message;
 use crate::uibuilder::UI;
@@ -131,7 +129,7 @@ pub fn new(
                             .expect("failed to execute process");
                     }
                     Err(err) => {
-                        dispatch_error(BKError::MediaError(err));
+                        err.show_error()
                     }
                 }
             });
@@ -144,7 +142,7 @@ pub fn new(
             let name = m.body;
             let url = m.url.unwrap_or_default();
 
-            let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
+            let (tx, rx): (Sender<Result<String, MediaError>>, Receiver<Result<String, MediaError>>) = channel();
             media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
 
             let parent_weak = parent_weak.clone();
@@ -182,8 +180,8 @@ pub fn new(
             let url = m.url.unwrap_or_default();
 
             let (tx, rx): (
-                Sender<Result<String, Error>>,
-                Receiver<Result<String, Error>>,
+                Sender<Result<String, MediaError>>,
+                Receiver<Result<String, MediaError>>,
             ) = channel();
 
             media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
@@ -248,7 +246,7 @@ pub fn new(
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    dispatch_error(BKError::SentMsgRedactionError(err));
+                    err.show_error();
                 }
             });
         }
@@ -282,7 +280,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.show_error();
                 }
             }
         });
@@ -294,7 +292,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.show_error();
                 }
             }
         });
@@ -306,7 +304,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.show_error();
                 }
             },
         );

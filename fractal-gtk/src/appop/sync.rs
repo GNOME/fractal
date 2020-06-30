@@ -3,11 +3,12 @@ use std::thread;
 
 use crate::i18n::i18n;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
-use crate::backend::sync::{self, RoomElement, SyncRet};
-use crate::error::BKError;
+use crate::backend::{
+    sync::{self, RoomElement, SyncRet},
+    ShowError,
+};
 
 impl AppOp {
     pub fn initial_sync(&self, show: bool) {
@@ -51,7 +52,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                dispatch_error(BKError::RoomsError(err));
+                                err.show_error();
                             }
                         };
 
@@ -73,7 +74,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::UpdateRoomsError(err));
+                                err.show_error();
                             }
                         }
 
@@ -82,7 +83,7 @@ impl AppOp {
                                 APPOP!(show_room_messages, (msgs));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::RoomMessagesError(err));
+                                err.show_error();
                             }
                         }
 
@@ -92,7 +93,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::UpdateRoomsError(err));
+                                err.show_error();
                             }
                         }
 
@@ -128,7 +129,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                dispatch_error(BKError::RoomElementError(err));
+                                err.show_error();
                             }
                         }
 
@@ -136,8 +137,8 @@ impl AppOp {
                         let s = Some(next_batch);
                         APPOP!(synced, (s));
                     }
-                    Err((err, n_tries)) => {
-                        dispatch_error(BKError::SyncError(err, n_tries));
+                    Err(err) => {
+                        err.show_error();
                     }
                 }
             });

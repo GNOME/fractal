@@ -1,6 +1,9 @@
 use fractal_api::identifiers::{EventId, RoomId};
 use fractal_api::url::Url;
 use lazy_static::lazy_static;
+use log::error;
+use regex::Regex;
+use std::fmt::Debug;
 use std::fs::write;
 use std::io::Read;
 use std::path::Path;
@@ -111,16 +114,27 @@ pub fn get_prev_batch_from(
     Ok(prev_batch)
 }
 
+#[derive(Debug)]
+pub struct MediaError(pub(self) Error);
+
+impl<T: Into<Error>> From<T> for MediaError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for MediaError {}
+
 pub fn dw_media(
     base: Url,
     mxc: &str,
     media_type: ContentType,
     dest: Option<String>,
-) -> Result<String, Error> {
+) -> Result<String, MediaError> {
     let mxc_url = Url::parse(mxc)?;
 
     if mxc_url.scheme() != "mxc" {
-        return Err(Error::BackendError);
+        return Err(MediaError(Error::BackendError));
     }
 
     let server = mxc_url.host().ok_or(Error::BackendError)?.to_owned();
@@ -166,4 +180,33 @@ pub fn dw_media(
             .and(Ok(fname))
             .map_err(Into::into)
     }
+}
+
+pub trait ShowError: Debug {
+    fn show_error(&self) {
+        let err_str = format!("{:?}", self);
+        error!(
+            "Query error: {}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+    }
+}
+
+/// This function removes the value of the `access_token` query from a URL used for accessing the Matrix API.
+/// The primary use case is the removing of sensitive information for logging.
+/// Specifically, the URL is expected to be contained within quotes and the token is replaced with `<redacted>`.
+/// Returns `Some` on removal, otherwise `None`.
+pub fn remove_matrix_access_token_if_present(message: &str) -> Option<String> {
+    lazy_static! {
+    static ref RE: Regex =
+        Regex::new(r#""((http)|(https))://([^"]+)/_matrix/([^"]+)\?access_token=(?P<token>[^&"]+)([^"]*)""#,)
+        .expect("Malformed regular expression.");
+    }
+    // If the supplied string doesn't contain a match for the regex, we return `None`.
+    let cap = RE.captures(message)?;
+    let captured_token = cap
+        .name("token")
+        .expect("'token' capture group not present.")
+        .as_str();
+    Some(message.replace(captured_token, "<redacted>"))
 }

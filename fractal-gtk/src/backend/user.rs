@@ -2,12 +2,15 @@ use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
 use std::fs;
 
+use super::MediaError;
+use crate::actions::global::activate_action;
 use crate::backend::ThreadPool;
 use crate::backend::HTTP_CLIENT;
 use crate::cache::CacheMap;
 use crate::error::Error;
 use crate::util::cache_dir_path;
 use crate::util::ResultExpectLog;
+use log::error;
 use std::convert::TryInto;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
@@ -68,7 +71,23 @@ use fractal_api::r0::ThreePIDCredentials;
 
 use super::{dw_media, ContentType};
 
-pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
+use super::{remove_matrix_access_token_if_present, ShowError};
+use crate::app::App;
+use crate::i18n::i18n;
+use crate::APPOP;
+
+#[derive(Debug)]
+pub struct NameError(Error);
+
+impl<T: Into<Error>> From<T> for NameError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for NameError {}
+
+pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, NameError> {
     let request = get_display_name(base, &uid)?;
     let response: GetDisplayNameResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
@@ -92,12 +111,23 @@ pub fn get_username_async(base: Url, uid: UserId) -> String {
         .unwrap_or_else(|| uid.to_string())
 }
 
+#[derive(Debug)]
+pub struct SetUserNameError(Error);
+
+impl<T: Into<Error>> From<T> for SetUserNameError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for SetUserNameError {}
+
 pub fn set_username(
     base: Url,
     access_token: AccessToken,
     uid: UserId,
     username: String,
-) -> Result<String, Error> {
+) -> Result<String, SetUserNameError> {
     let params = SetDisplayNameParameters { access_token };
     let body = SetDisplayNameBody {
         displayname: Some(username.clone()),
@@ -109,10 +139,30 @@ pub fn set_username(
     Ok(username)
 }
 
+#[derive(Debug)]
+pub struct GetThreePIDError;
+
+impl<T: Into<Error>> From<T> for GetThreePIDError {
+    fn from(_: T) -> Self {
+        Self
+    }
+}
+
+impl ShowError for GetThreePIDError {
+    fn show_error(&self) {
+        let error = i18n("Sorry, account settings can’t be loaded.");
+        APPOP!(show_load_settings_error_dialog, (error));
+        let ctx = glib::MainContext::default();
+        ctx.invoke(move || {
+            activate_action("app", "back");
+        })
+    }
+}
+
 pub fn get_threepid(
     base: Url,
     access_token: AccessToken,
-) -> Result<Vec<ThirdPartyIdentifier>, Error> {
+) -> Result<Vec<ThirdPartyIdentifier>, GetThreePIDError> {
     let params = ThirdPartyIDParameters { access_token };
 
     let request = get_identifiers(base, &params)?;
@@ -121,13 +171,50 @@ pub fn get_threepid(
     Ok(response.threepids)
 }
 
+#[derive(Debug)]
+pub enum GetTokenEmailError {
+    TokenUsed,
+    Denied,
+    Other(Error),
+}
+
+impl<T: Into<Error>> From<T> for GetTokenEmailError {
+    fn from(err: T) -> Self {
+        Self::Other(err.into())
+    }
+}
+
+impl ShowError for GetTokenEmailError {
+    fn show_error(&self) {
+        match self {
+            Self::TokenUsed => {
+                let error = i18n("Email is already in use");
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::Denied => {
+                let error = i18n("Please enter a valid email address.");
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::Other(err) => {
+                let error = i18n("Couldn’t add the email address.");
+                let err_str = format!("{:?}", err);
+                error!(
+                    "{}",
+                    remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                );
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+        }
+    }
+}
+
 pub fn get_email_token(
     base: Url,
     access_token: AccessToken,
     identity: Url,
     email: String,
     client_secret: String,
-) -> Result<(String, String), Error> {
+) -> Result<(String, String), GetTokenEmailError> {
     use EmailTokenResponse::*;
 
     let params = EmailTokenParameters { access_token };
@@ -147,8 +234,47 @@ pub fn get_email_token(
         .json::<EmailTokenResponse>()?
     {
         Passed(info) => Ok((info.sid, client_secret)),
-        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(Error::TokenUsed),
-        Failed(_) => Err(Error::Denied),
+        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(GetTokenEmailError::TokenUsed),
+        Failed(_) => Err(GetTokenEmailError::Denied),
+    }
+}
+
+#[derive(Debug)]
+pub enum GetTokenPhoneError {
+    TokenUsed,
+    Denied,
+    Other(Error),
+}
+
+impl<T: Into<Error>> From<T> for GetTokenPhoneError {
+    fn from(err: T) -> Self {
+        Self::Other(err.into())
+    }
+}
+
+impl ShowError for GetTokenPhoneError {
+    fn show_error(&self) {
+        match self {
+            Self::TokenUsed => {
+                let error = i18n("Phone number is already in use");
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::Denied => {
+                let error = i18n(
+                    "Please enter your phone number in the format: \n + your country code and your phone number.",
+                );
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::Other(err) => {
+                let error = i18n("Couldn’t add the phone number.");
+                let err_str = format!("{:?}", err);
+                error!(
+                    "{}",
+                    remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+                );
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+        }
     }
 }
 
@@ -158,7 +284,7 @@ pub fn get_phone_token(
     identity: Url,
     phone: String,
     client_secret: String,
-) -> Result<(String, String), Error> {
+) -> Result<(String, String), GetTokenPhoneError> {
     use PhoneTokenResponse::*;
 
     let params = PhoneTokenParameters { access_token };
@@ -179,10 +305,21 @@ pub fn get_phone_token(
         .json::<PhoneTokenResponse>()?
     {
         Passed(info) => Ok((info.sid, client_secret)),
-        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(Error::TokenUsed),
-        Failed(_) => Err(Error::Denied),
+        Failed(info) if info.errcode == "M_THREEPID_IN_USE" => Err(GetTokenPhoneError::TokenUsed),
+        Failed(_) => Err(GetTokenPhoneError::Denied),
     }
 }
+
+#[derive(Debug)]
+pub struct AddedToFavError(Error);
+
+impl<T: Into<Error>> From<T> for AddedToFavError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for AddedToFavError {}
 
 pub fn add_threepid(
     base: Url,
@@ -190,7 +327,7 @@ pub fn add_threepid(
     identity: Url,
     client_secret: String,
     sid: String,
-) -> Result<(), Error> {
+) -> Result<(), AddedToFavError> {
     let params = AddThreePIDParameters { access_token };
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
@@ -207,12 +344,23 @@ pub fn add_threepid(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct SubmitPhoneTokenError(Error);
+
+impl<T: Into<Error>> From<T> for SubmitPhoneTokenError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for SubmitPhoneTokenError {}
+
 pub fn submit_phone_token(
     base: Url,
     client_secret: String,
     sid: String,
     token: String,
-) -> Result<(Option<String>, String), Error> {
+) -> Result<(Option<String>, String), SubmitPhoneTokenError> {
     let body = SubmitPhoneTokenBody {
         sid: sid.clone(),
         client_secret: client_secret.clone(),
@@ -225,12 +373,23 @@ pub fn submit_phone_token(
     Ok((Some(sid).filter(|_| response.success), client_secret))
 }
 
+#[derive(Debug)]
+pub struct DeleteThreePIDError(Error);
+
+impl<T: Into<Error>> From<T> for DeleteThreePIDError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for DeleteThreePIDError {}
+
 pub fn delete_three_pid(
     base: Url,
     access_token: AccessToken,
     medium: Medium,
     address: String,
-) -> Result<(), Error> {
+) -> Result<(), DeleteThreePIDError> {
     let params = DeleteThreePIDParameters { access_token };
     let body = DeleteThreePIDBody { address, medium };
 
@@ -240,13 +399,34 @@ pub fn delete_three_pid(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct ChangePasswordError(Error);
+
+impl<T: Into<Error>> From<T> for ChangePasswordError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for ChangePasswordError {
+    fn show_error(&self) {
+        let error = i18n("Couldn’t change the password");
+        let err_str = format!("{:?}", self);
+        error!(
+            "{}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        APPOP!(show_password_error_dialog, (error));
+    }
+}
+
 pub fn change_password(
     base: Url,
     access_token: AccessToken,
     user: String,
     old_password: String,
     new_password: String,
-) -> Result<(), Error> {
+) -> Result<(), ChangePasswordError> {
     let params = ChangePasswordParameters { access_token };
     let body = ChangePasswordBody {
         new_password,
@@ -263,12 +443,33 @@ pub fn change_password(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct AccountDestructionError(Error);
+
+impl<T: Into<Error>> From<T> for AccountDestructionError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for AccountDestructionError {
+    fn show_error(&self) {
+        let error = i18n("Couldn’t delete the account");
+        let err_str = format!("{:?}", self.0);
+        error!(
+            "{}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        APPOP!(show_error_dialog_in_settings, (error));
+    }
+}
+
 pub fn account_destruction(
     base: Url,
     access_token: AccessToken,
     user: String,
     password: String,
-) -> Result<(), Error> {
+) -> Result<(), AccountDestructionError> {
     let params = DeactivateParameters { access_token };
     let body = DeactivateBody {
         auth: Some(AuthenticationData::Password {
@@ -284,16 +485,46 @@ pub fn account_destruction(
     Ok(())
 }
 
-pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, Error> {
-    get_user_avatar(base, &userid).map(|(_, fname)| fname.into())
+#[derive(Debug)]
+pub struct AvatarError(Error);
+
+impl<T: Into<Error>> From<T> for AvatarError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
 }
+
+impl From<GetUserAvatarError> for AvatarError {
+    fn from(err: GetUserAvatarError) -> Self {
+        Self(err.0)
+    }
+}
+
+impl ShowError for AvatarError {}
+
+pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, AvatarError> {
+    get_user_avatar(base, &userid)
+        .map(|(_, fname)| fname.into())
+        .map_err(Into::into)
+}
+
+#[derive(Debug)]
+pub struct SetUserAvatarError(Error);
+
+impl<T: Into<Error>> From<T> for SetUserAvatarError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for SetUserAvatarError {}
 
 pub fn set_user_avatar(
     base: Url,
     access_token: AccessToken,
     uid: UserId,
     avatar: PathBuf,
-) -> Result<PathBuf, Error> {
+) -> Result<PathBuf, SetUserAvatarError> {
     let params_upload = CreateContentParameters {
         access_token: access_token.clone(),
         filename: None,
@@ -341,11 +572,22 @@ pub fn get_user_info_async(
     });
 }
 
+#[derive(Debug)]
+pub struct UserSearchError(Error);
+
+impl<T: Into<Error>> From<T> for UserSearchError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl ShowError for UserSearchError {}
+
 pub fn search(
     base: Url,
     access_token: AccessToken,
     search_term: String,
-) -> Result<Vec<Member>, Error> {
+) -> Result<Vec<Member>, UserSearchError> {
     let params = UserDirectoryParameters { access_token };
     let body = UserDirectoryBody {
         search_term,
@@ -358,7 +600,24 @@ pub fn search(
     Ok(response.results.into_iter().map(Into::into).collect())
 }
 
-pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
+pub struct GetUserAvatarError(Error);
+
+impl<T: Into<Error>> From<T> for GetUserAvatarError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl From<MediaError> for GetUserAvatarError {
+    fn from(err: MediaError) -> Self {
+        Self(err.0)
+    }
+}
+
+pub fn get_user_avatar(
+    base: Url,
+    user_id: &UserId,
+) -> Result<(String, String), GetUserAvatarError> {
     let response = get_profile(base.clone(), user_id)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
