@@ -251,6 +251,13 @@ impl MessageBox {
             edit_mark.set_valign(gtk::Align::End);
             edit_mark.set_halign(gtk::Align::End);
 
+            let edit_timestamp = msg
+                .replace_date
+                .unwrap()
+                .format(&i18n("edited %c"))
+                .to_string();
+            edit_mark.set_tooltip_text(Some(&edit_timestamp));
+
             body_bx.pack_start(&edit_mark, false, false, 0);
         }
         body_bx
