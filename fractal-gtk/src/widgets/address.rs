@@ -11,6 +11,7 @@ use std::thread;
 use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
+use crate::backend::ShowError;
 use crate::error::BKError;
 
 #[derive(Debug, Clone)]
@@ -236,7 +237,7 @@ fn add_address(
                     APPOP!(get_token_phone, (sid, secret))
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetTokenPhoneError(err));
+                    err.show_error();
                 }
             }
         }
@@ -248,7 +249,7 @@ fn add_address(
                     APPOP!(get_token_email, (sid, secret));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetTokenEmailError(err));
+                    err.show_error();
                 }
             }
         }

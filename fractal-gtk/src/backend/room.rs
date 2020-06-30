@@ -75,7 +75,10 @@ use fractal_api::r0::AccessToken;
 
 use serde_json::Value as JsonValue;
 
-use super::{dw_media, get_prev_batch_from, ContentType};
+use super::{dw_media, get_prev_batch_from, ContentType, ShowError};
+use crate::app::App;
+use crate::i18n::i18n;
+use crate::APPOP;
 
 pub fn get_room_detail(
     base: Url,
@@ -189,11 +192,21 @@ pub fn get_room_messages_from_msg(
     get_room_messages(base, access_token, room_id, from)
 }
 
+#[derive(Debug)]
+pub struct SendMsgError(String);
+
+impl ShowError for SendMsgError {
+    fn show_error(&self) {
+        error!("sending {}: retrying send", self.0);
+        APPOP!(retry_send);
+    }
+}
+
 pub fn send_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(String, Option<EventId>), Error> {
+) -> Result<(String, Option<EventId>), SendMsgError> {
     let room_id: RoomId = msg.room.clone();
 
     let params = CreateMessageEventParameters { access_token };
@@ -235,7 +248,7 @@ pub fn send_msg(
 
             Ok((txn_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgError(txn_id)))
+        .or(Err(SendMsgError(txn_id)))
 }
 
 pub fn send_typing(
@@ -253,14 +266,24 @@ pub fn send_typing(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct SendMsgRedactionError;
+
+impl ShowError for SendMsgRedactionError {
+    fn show_error(&self) {
+        let error = i18n("Error deleting message");
+        APPOP!(show_error, (error));
+    }
+}
+
 pub fn redact_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(EventId, Option<EventId>), Error> {
+) -> Result<(EventId, Option<EventId>), SendMsgRedactionError> {
     let room_id = &msg.room;
     let txn_id = msg.get_txn_id();
-    let event_id = msg.id.clone().ok_or(Error::BackendError)?;
+    let event_id = msg.id.clone().ok_or(SendMsgRedactionError)?;
 
     let params = RedactEventParameters { access_token };
 
@@ -278,7 +301,7 @@ pub fn redact_msg(
 
             Ok((event_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgRedactionError(event_id)))
+        .or(Err(SendMsgRedactionError))
 }
 
 pub fn join_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<RoomId, Error> {

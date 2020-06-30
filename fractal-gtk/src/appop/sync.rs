@@ -6,7 +6,10 @@ use crate::i18n::i18n;
 use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
-use crate::backend::sync::{self, RoomElement, SyncRet};
+use crate::backend::{
+    sync::{self, RoomElement, SyncRet},
+    ShowError,
+};
 use crate::error::BKError;
 
 impl AppOp {
@@ -136,8 +139,8 @@ impl AppOp {
                         let s = Some(next_batch);
                         APPOP!(synced, (s));
                     }
-                    Err((err, n_tries)) => {
-                        dispatch_error(BKError::SyncError(err, n_tries));
+                    Err(err) => {
+                        err.show_error();
                     }
                 }
             });

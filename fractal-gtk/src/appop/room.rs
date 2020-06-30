@@ -414,7 +414,8 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::NewRoomError(err, int_id));
+                    APPOP!(remove_room, (int_id));
+                    dispatch_error(BKError::NewRoomError(err));
                 }
             }
         });
