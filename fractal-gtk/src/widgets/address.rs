@@ -1,4 +1,4 @@
-use fractal_api::backend::user;
+use crate::backend::user;
 use fractal_api::r0::AccessToken;
 use fractal_api::r0::Medium;
 use fractal_api::url::Url;
@@ -11,7 +11,7 @@ use std::thread;
 use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 
 #[derive(Debug, Clone)]
 pub enum AddressType {
@@ -213,7 +213,7 @@ fn delete_address(medium: Medium, address: String, server_url: Url, access_token
                 APPOP!(get_three_pid);
             }
             Err(err) => {
-                dispatch_error(BKResponse::DeleteThreePIDError(err));
+                dispatch_error(BKError::DeleteThreePIDError(err));
             }
         }
     });
@@ -236,7 +236,7 @@ fn add_address(
                     APPOP!(get_token_phone, (sid, secret))
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::GetTokenPhoneError(err));
+                    dispatch_error(BKError::GetTokenPhoneError(err));
                 }
             }
         }
@@ -248,7 +248,7 @@ fn add_address(
                     APPOP!(get_token_email, (sid, secret));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::GetTokenEmailError(err));
+                    dispatch_error(BKError::GetTokenEmailError(err));
                 }
             }
         }

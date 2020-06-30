@@ -1,8 +1,7 @@
-use fractal_api::backend::{media, room, ThreadPool};
-use fractal_api::clone;
+use crate::backend::{dw_media, media, room, ContentType, ThreadPool};
+use crate::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
-use fractal_api::util::{dw_media, ContentType};
 use log::error;
 use std::cell::RefCell;
 use std::fs;
@@ -15,7 +14,7 @@ use std::thread;
 
 use crate::actions::AppState;
 use crate::app::dispatch_error;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
@@ -132,7 +131,7 @@ pub fn new(
                             .expect("failed to execute process");
                     }
                     Err(err) => {
-                        dispatch_error(BKResponse::MediaError(err));
+                        dispatch_error(BKError::MediaError(err));
                     }
                 }
             });
@@ -249,7 +248,7 @@ pub fn new(
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    dispatch_error(BKResponse::SentMsgRedactionError(err));
+                    dispatch_error(BKError::SentMsgRedactionError(err));
                 }
             });
         }
@@ -283,7 +282,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomMessagesToError(err));
+                    dispatch_error(BKError::RoomMessagesToError(err));
                 }
             }
         });
@@ -295,7 +294,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomMessagesToError(err));
+                    dispatch_error(BKError::RoomMessagesToError(err));
                 }
             }
         });
@@ -307,7 +306,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomMessagesToError(err));
+                    dispatch_error(BKError::RoomMessagesToError(err));
                 }
             },
         );

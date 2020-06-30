@@ -1,4 +1,4 @@
-use fractal_api::clone;
+use crate::clone;
 use fractal_api::identifiers::UserId;
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;

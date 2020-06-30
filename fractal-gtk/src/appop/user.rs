@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
-use fractal_api::backend::user;
-use fractal_api::clone;
+use crate::backend::user;
+use crate::clone;
 
 use std::path::PathBuf;
 use std::thread;
@@ -12,7 +12,7 @@ use crate::appop::AppOp;
 
 use crate::cache::download_to_cache;
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::widgets;
 use crate::widgets::AvatarExt;
 
@@ -28,7 +28,7 @@ impl AppOp {
                     APPOP!(set_username, (username));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::NameError(err));
+                    dispatch_error(BKError::NameError(err));
                 }
             }
         }));
@@ -39,7 +39,7 @@ impl AppOp {
                     APPOP!(set_avatar, (path));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::AvatarError(err));
+                    dispatch_error(BKError::AvatarError(err));
                 }
             }
         }));

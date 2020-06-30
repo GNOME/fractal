@@ -1,13 +1,13 @@
-use fractal_api::backend;
-use fractal_api::error;
-use fractal_api::types;
-
+mod backend;
+mod client;
 mod config;
+mod error;
 mod globals;
 mod i18n;
 #[macro_use]
 mod util;
 mod cache;
+mod model;
 mod passwd;
 mod static_resources;
 mod uibuilder;
@@ -19,6 +19,7 @@ mod widgets;
 
 mod appop;
 
+mod types;
 use std::error::Error;
 
 use crate::app::App;

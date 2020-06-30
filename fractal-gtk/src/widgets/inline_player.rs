@@ -17,8 +17,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use fractal_api::backend::{media, ThreadPool};
-use fractal_api::clone;
+use crate::backend::{media, ThreadPool};
+use crate::clone;
 
 use gst::prelude::*;
 use gst::ClockTime;

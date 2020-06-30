@@ -1,12 +1,12 @@
 use crate::i18n::i18n;
 
-use fractal_api::backend::room;
+use crate::backend::room;
 use gtk::prelude::*;
 use std::thread;
 
 use crate::types::Room;
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 
 use crate::util::markup_text;
 
@@ -136,7 +136,7 @@ impl<'a> RoomBox<'a> {
                             APPOP!(set_join_to_room, (jtr));
                             APPOP!(reload_rooms);
                         }
-                        Err(err) => dispatch_error(BKResponse::JoinRoomError(err)),
+                        Err(err) => dispatch_error(BKError::JoinRoomError(err)),
                     }
                 });
             });

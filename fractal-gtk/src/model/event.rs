@@ -1,4 +1,4 @@
-use ruma_identifiers::{EventId, RoomId, UserId};
+use fractal_api::identifiers::{EventId, RoomId, UserId};
 use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone)]

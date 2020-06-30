@@ -1,27 +1,28 @@
 use crate::client::ProxySettings;
-use crate::error::Error;
+use crate::error::{Error, StandardErrorResponse};
 use crate::globals;
-use crate::r0::filter::EventFilter;
-use crate::r0::filter::Filter;
-use crate::r0::filter::RoomEventFilter;
-use crate::r0::filter::RoomFilter;
-use crate::r0::sync::sync_events::request as sync_events;
-use crate::r0::sync::sync_events::IncludeState;
-use crate::r0::sync::sync_events::Parameters as SyncParameters;
-use crate::r0::sync::sync_events::Response as SyncResponse;
-use crate::r0::sync::sync_events::UnreadNotificationsCount;
-use crate::r0::AccessToken;
 use crate::types::Event;
 use crate::types::Member;
 use crate::types::Message;
 use crate::types::Room;
 use crate::types::RoomMembership;
 use crate::types::RoomTag;
-use crate::util::matrix_response;
+use fractal_api::r0::filter::EventFilter;
+use fractal_api::r0::filter::Filter;
+use fractal_api::r0::filter::RoomEventFilter;
+use fractal_api::r0::filter::RoomFilter;
+use fractal_api::r0::sync::sync_events::request as sync_events;
+use fractal_api::r0::sync::sync_events::IncludeState;
+use fractal_api::r0::sync::sync_events::Parameters as SyncParameters;
+use fractal_api::r0::sync::sync_events::Response as SyncResponse;
+use fractal_api::r0::sync::sync_events::UnreadNotificationsCount;
+use fractal_api::r0::AccessToken;
 
+use fractal_api::identifiers::{EventId, RoomId, UserId};
+use fractal_api::reqwest::blocking::{Client, Response};
+use fractal_api::url::Url;
 use log::error;
-use reqwest::blocking::Client;
-use ruma_identifiers::{EventId, RoomId, UserId};
+use serde::de::DeserializeOwned;
 use serde_json::value::from_value;
 use std::{
     collections::HashMap,
@@ -29,7 +30,6 @@ use std::{
     thread,
     time::{self, Duration},
 };
-use url::Url;
 
 pub enum RoomElement {
     Name(RoomId, String),
@@ -297,4 +297,17 @@ pub fn sync(
             Err((err, number_tries))
         }
     }
+}
+
+/// Returns the deserialized response to the given request. Handles Matrix errors.
+fn matrix_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
+    if !response.status().is_success() {
+        let status = response.status();
+        return match response.json::<StandardErrorResponse>() {
+            Ok(error_response) => Err(Error::from(error_response)),
+            Err(_) => Err(Error::NetworkError(status)),
+        };
+    }
+
+    response.json::<T>().map_err(Into::into)
 }

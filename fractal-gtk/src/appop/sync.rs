@@ -6,11 +6,8 @@ use crate::i18n::i18n;
 use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
-
-use crate::backend::{
-    sync::{self, RoomElement, SyncRet},
-    BKResponse,
-};
+use crate::backend::sync::{self, RoomElement, SyncRet};
+use crate::error::BKError;
 
 impl AppOp {
     pub fn initial_sync(&self, show: bool) {
@@ -54,7 +51,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::RoomsError(err));
+                                dispatch_error(BKError::RoomsError(err));
                             }
                         };
 
@@ -76,7 +73,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::UpdateRoomsError(err));
+                                dispatch_error(BKError::UpdateRoomsError(err));
                             }
                         }
 
@@ -85,7 +82,7 @@ impl AppOp {
                                 APPOP!(show_room_messages, (msgs));
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::RoomMessagesError(err));
+                                dispatch_error(BKError::RoomMessagesError(err));
                             }
                         }
 
@@ -95,7 +92,7 @@ impl AppOp {
                                 APPOP!(set_rooms, (rooms, clear_room_list));
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::UpdateRoomsError(err));
+                                dispatch_error(BKError::UpdateRoomsError(err));
                             }
                         }
 
@@ -131,7 +128,7 @@ impl AppOp {
                                 }
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::RoomElementError(err));
+                                dispatch_error(BKError::RoomElementError(err));
                             }
                         }
 
@@ -140,7 +137,7 @@ impl AppOp {
                         APPOP!(synced, (s));
                     }
                     Err((err, n_tries)) => {
-                        dispatch_error(BKResponse::SyncError(err, n_tries));
+                        dispatch_error(BKError::SyncError(err, n_tries));
                     }
                 }
             });

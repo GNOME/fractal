@@ -1,5 +1,5 @@
 use crate::appop::attach;
-use fractal_api::clone;
+use crate::clone;
 use gtk::prelude::*;
 use sourceview4::BufferExt;
 

@@ -1,22 +1,22 @@
-use ruma_identifiers::{DeviceId, UserId};
-use url::Url;
+use fractal_api::identifiers::{DeviceId, UserId};
+use fractal_api::url::Url;
 
 use crate::error::Error;
 
+use crate::backend::HTTP_CLIENT;
 use crate::globals;
-use crate::r0::account::login::request as login_req;
-use crate::r0::account::login::Auth;
-use crate::r0::account::login::Body as LoginBody;
-use crate::r0::account::login::Response as LoginResponse;
-use crate::r0::account::logout::request as logout_req;
-use crate::r0::account::logout::Parameters as LogoutParameters;
-use crate::r0::account::Identifier;
-use crate::r0::account::UserIdentifier;
-use crate::r0::server::domain_info::request as domain_info;
-use crate::r0::server::domain_info::Response as DomainInfoResponse;
-use crate::r0::AccessToken;
-use crate::r0::Medium;
-use crate::util::HTTP_CLIENT;
+use fractal_api::r0::account::login::request as login_req;
+use fractal_api::r0::account::login::Auth;
+use fractal_api::r0::account::login::Body as LoginBody;
+use fractal_api::r0::account::login::Response as LoginResponse;
+use fractal_api::r0::account::logout::request as logout_req;
+use fractal_api::r0::account::logout::Parameters as LogoutParameters;
+use fractal_api::r0::account::Identifier;
+use fractal_api::r0::account::UserIdentifier;
+use fractal_api::r0::server::domain_info::request as domain_info;
+use fractal_api::r0::server::domain_info::Response as DomainInfoResponse;
+use fractal_api::r0::AccessToken;
+use fractal_api::r0::Medium;
 
 pub fn login(
     user: String,

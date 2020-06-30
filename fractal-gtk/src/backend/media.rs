@@ -1,24 +1,21 @@
 use crate::error::Error;
 use crate::globals;
-use ruma_identifiers::{EventId, RoomId};
+use fractal_api::identifiers::{EventId, RoomId};
+use fractal_api::url::Url;
 use std::sync::mpsc::Sender;
-use url::Url;
 
-use crate::r0::AccessToken;
-use crate::util::dw_media;
-use crate::util::get_prev_batch_from;
-use crate::util::ContentType;
+use crate::backend::HTTP_CLIENT;
 use crate::util::ResultExpectLog;
-use crate::util::HTTP_CLIENT;
+use fractal_api::r0::AccessToken;
 
-use crate::r0::filter::RoomEventFilter;
-use crate::r0::message::get_message_events::request as get_messages_events_req;
-use crate::r0::message::get_message_events::Direction as GetMessagesEventsDirection;
-use crate::r0::message::get_message_events::Parameters as GetMessagesEventsParams;
-use crate::r0::message::get_message_events::Response as GetMessagesEventsResponse;
 use crate::types::Message;
+use fractal_api::r0::filter::RoomEventFilter;
+use fractal_api::r0::message::get_message_events::request as get_messages_events_req;
+use fractal_api::r0::message::get_message_events::Direction as GetMessagesEventsDirection;
+use fractal_api::r0::message::get_message_events::Parameters as GetMessagesEventsParams;
+use fractal_api::r0::message::get_message_events::Response as GetMessagesEventsResponse;
 
-use super::ThreadPool;
+use super::{dw_media, get_prev_batch_from, ContentType, ThreadPool};
 
 pub fn get_thumb_async(
     thread_pool: ThreadPool,

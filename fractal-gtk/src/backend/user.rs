@@ -1,68 +1,72 @@
-use ruma_identifiers::UserId;
+use fractal_api::identifiers::UserId;
+use fractal_api::url::Url;
 use std::fs;
-use url::Url;
 
 use crate::backend::ThreadPool;
+use crate::backend::HTTP_CLIENT;
 use crate::cache::CacheMap;
 use crate::error::Error;
-use crate::util::get_user_avatar;
+use crate::util::cache_dir_path;
 use crate::util::ResultExpectLog;
-use crate::util::HTTP_CLIENT;
 use std::convert::TryInto;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::identity::r0::association::msisdn::submit_token::request as submit_phone_token_req;
-use crate::identity::r0::association::msisdn::submit_token::Body as SubmitPhoneTokenBody;
-use crate::identity::r0::association::msisdn::submit_token::Response as SubmitPhoneTokenResponse;
-use crate::r0::account::change_password::request as change_password_req;
-use crate::r0::account::change_password::Body as ChangePasswordBody;
-use crate::r0::account::change_password::Parameters as ChangePasswordParameters;
-use crate::r0::account::deactivate::request as deactivate;
-use crate::r0::account::deactivate::Body as DeactivateBody;
-use crate::r0::account::deactivate::Parameters as DeactivateParameters;
-use crate::r0::account::AuthenticationData;
-use crate::r0::account::Identifier;
-use crate::r0::account::UserIdentifier;
-use crate::r0::contact::create::request as create_contact;
-use crate::r0::contact::create::Body as AddThreePIDBody;
-use crate::r0::contact::create::Parameters as AddThreePIDParameters;
-use crate::r0::contact::delete::request as delete_contact;
-use crate::r0::contact::delete::Body as DeleteThreePIDBody;
-use crate::r0::contact::delete::Parameters as DeleteThreePIDParameters;
-use crate::r0::contact::get_identifiers::request as get_identifiers;
-use crate::r0::contact::get_identifiers::Parameters as ThirdPartyIDParameters;
-use crate::r0::contact::get_identifiers::Response as ThirdPartyIDResponse;
-use crate::r0::contact::get_identifiers::ThirdPartyIdentifier;
-use crate::r0::contact::request_verification_token_email::request as request_contact_verification_token_email;
-use crate::r0::contact::request_verification_token_email::Body as EmailTokenBody;
-use crate::r0::contact::request_verification_token_email::Parameters as EmailTokenParameters;
-use crate::r0::contact::request_verification_token_email::Response as EmailTokenResponse;
-use crate::r0::contact::request_verification_token_msisdn::request as request_contact_verification_token_msisdn;
-use crate::r0::contact::request_verification_token_msisdn::Body as PhoneTokenBody;
-use crate::r0::contact::request_verification_token_msisdn::Parameters as PhoneTokenParameters;
-use crate::r0::contact::request_verification_token_msisdn::Response as PhoneTokenResponse;
-use crate::r0::media::create_content::request as create_content;
-use crate::r0::media::create_content::Parameters as CreateContentParameters;
-use crate::r0::media::create_content::Response as CreateContentResponse;
-use crate::r0::profile::get_display_name::request as get_display_name;
-use crate::r0::profile::get_display_name::Response as GetDisplayNameResponse;
-use crate::r0::profile::set_avatar_url::request as set_avatar_url;
-use crate::r0::profile::set_avatar_url::Body as SetAvatarUrlBody;
-use crate::r0::profile::set_avatar_url::Parameters as SetAvatarUrlParameters;
-use crate::r0::profile::set_display_name::request as set_display_name;
-use crate::r0::profile::set_display_name::Body as SetDisplayNameBody;
-use crate::r0::profile::set_display_name::Parameters as SetDisplayNameParameters;
-use crate::r0::search::user::request as user_directory;
-use crate::r0::search::user::Body as UserDirectoryBody;
-use crate::r0::search::user::Parameters as UserDirectoryParameters;
-use crate::r0::search::user::Response as UserDirectoryResponse;
-use crate::r0::AccessToken;
-use crate::r0::Medium;
-use crate::r0::ThreePIDCredentials;
 use crate::types::Member;
+use fractal_api::identity::r0::association::msisdn::submit_token::request as submit_phone_token_req;
+use fractal_api::identity::r0::association::msisdn::submit_token::Body as SubmitPhoneTokenBody;
+use fractal_api::identity::r0::association::msisdn::submit_token::Response as SubmitPhoneTokenResponse;
+use fractal_api::r0::account::change_password::request as change_password_req;
+use fractal_api::r0::account::change_password::Body as ChangePasswordBody;
+use fractal_api::r0::account::change_password::Parameters as ChangePasswordParameters;
+use fractal_api::r0::account::deactivate::request as deactivate;
+use fractal_api::r0::account::deactivate::Body as DeactivateBody;
+use fractal_api::r0::account::deactivate::Parameters as DeactivateParameters;
+use fractal_api::r0::account::AuthenticationData;
+use fractal_api::r0::account::Identifier;
+use fractal_api::r0::account::UserIdentifier;
+use fractal_api::r0::contact::create::request as create_contact;
+use fractal_api::r0::contact::create::Body as AddThreePIDBody;
+use fractal_api::r0::contact::create::Parameters as AddThreePIDParameters;
+use fractal_api::r0::contact::delete::request as delete_contact;
+use fractal_api::r0::contact::delete::Body as DeleteThreePIDBody;
+use fractal_api::r0::contact::delete::Parameters as DeleteThreePIDParameters;
+use fractal_api::r0::contact::get_identifiers::request as get_identifiers;
+use fractal_api::r0::contact::get_identifiers::Parameters as ThirdPartyIDParameters;
+use fractal_api::r0::contact::get_identifiers::Response as ThirdPartyIDResponse;
+use fractal_api::r0::contact::get_identifiers::ThirdPartyIdentifier;
+use fractal_api::r0::contact::request_verification_token_email::request as request_contact_verification_token_email;
+use fractal_api::r0::contact::request_verification_token_email::Body as EmailTokenBody;
+use fractal_api::r0::contact::request_verification_token_email::Parameters as EmailTokenParameters;
+use fractal_api::r0::contact::request_verification_token_email::Response as EmailTokenResponse;
+use fractal_api::r0::contact::request_verification_token_msisdn::request as request_contact_verification_token_msisdn;
+use fractal_api::r0::contact::request_verification_token_msisdn::Body as PhoneTokenBody;
+use fractal_api::r0::contact::request_verification_token_msisdn::Parameters as PhoneTokenParameters;
+use fractal_api::r0::contact::request_verification_token_msisdn::Response as PhoneTokenResponse;
+use fractal_api::r0::media::create_content::request as create_content;
+use fractal_api::r0::media::create_content::Parameters as CreateContentParameters;
+use fractal_api::r0::media::create_content::Response as CreateContentResponse;
+use fractal_api::r0::profile::get_display_name::request as get_display_name;
+use fractal_api::r0::profile::get_display_name::Response as GetDisplayNameResponse;
+use fractal_api::r0::profile::get_profile::request as get_profile;
+use fractal_api::r0::profile::get_profile::Response as GetProfileResponse;
+use fractal_api::r0::profile::set_avatar_url::request as set_avatar_url;
+use fractal_api::r0::profile::set_avatar_url::Body as SetAvatarUrlBody;
+use fractal_api::r0::profile::set_avatar_url::Parameters as SetAvatarUrlParameters;
+use fractal_api::r0::profile::set_display_name::request as set_display_name;
+use fractal_api::r0::profile::set_display_name::Body as SetDisplayNameBody;
+use fractal_api::r0::profile::set_display_name::Parameters as SetDisplayNameParameters;
+use fractal_api::r0::search::user::request as user_directory;
+use fractal_api::r0::search::user::Body as UserDirectoryBody;
+use fractal_api::r0::search::user::Parameters as UserDirectoryParameters;
+use fractal_api::r0::search::user::Response as UserDirectoryResponse;
+use fractal_api::r0::AccessToken;
+use fractal_api::r0::Medium;
+use fractal_api::r0::ThreePIDCredentials;
+
+use super::{dw_media, ContentType};
 
 pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
     let request = get_display_name(base, &uid)?;
@@ -352,4 +356,36 @@ pub fn search(
     let response: UserDirectoryResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
     Ok(response.results.into_iter().map(Into::into).collect())
+}
+
+pub fn get_user_avatar(base: Url, user_id: &UserId) -> Result<(String, String), Error> {
+    let response = get_profile(base.clone(), user_id)
+        .map_err::<Error, _>(Into::into)
+        .and_then(|request| {
+            HTTP_CLIENT
+                .get_client()?
+                .execute(request)?
+                .json::<GetProfileResponse>()
+                .map_err(Into::into)
+        })?;
+
+    let name = response
+        .displayname
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| user_id.to_string());
+
+    let img = response
+        .avatar_url
+        .map(|url| {
+            let dest = cache_dir_path(None, &user_id.to_string())?;
+            dw_media(
+                base,
+                url.as_str(),
+                ContentType::default_thumbnail(),
+                Some(dest),
+            )
+        })
+        .unwrap_or_else(|| Ok(Default::default()))?;
+
+    Ok((name, img))
 }

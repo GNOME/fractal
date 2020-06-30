@@ -1,5 +1,5 @@
+use crate::backend::room;
 use crate::i18n::{i18n, i18n_k, ni18n_f};
-use fractal_api::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::url::Url;
 use log::{error, warn};
@@ -14,8 +14,8 @@ use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::backend::BKResponse;
-use fractal_api::util::cache_dir_path;
+use crate::error::BKError;
+use crate::util::cache_dir_path;
 
 use crate::actions;
 use crate::actions::AppState;
@@ -86,7 +86,7 @@ impl AppOp {
                             APPOP!(set_room_members, (room, members));
                         }
                         Err(err) => {
-                            dispatch_error(BKResponse::RoomMembersError(err));
+                            dispatch_error(BKError::RoomMembersError(err));
                         }
                     }
                 });
@@ -101,7 +101,7 @@ impl AppOp {
                             APPOP!(set_room_avatar, (room, avatar));
                         }
                         Err(err) => {
-                            dispatch_error(BKResponse::RoomAvatarError(err));
+                            dispatch_error(BKError::RoomAvatarError(err));
                         }
                     },
                 );
@@ -154,7 +154,7 @@ impl AppOp {
                             APPOP!(added_to_fav, (r, tofav));
                         }
                         Err(err) => {
-                            dispatch_error(BKResponse::AddedToFavError(err));
+                            dispatch_error(BKError::AddedToFavError(err));
                         }
                     }
                 });
@@ -252,7 +252,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomAvatarError(err));
+                    dispatch_error(BKError::RoomAvatarError(err));
                 }
             },
         );
@@ -267,7 +267,7 @@ impl AppOp {
                     APPOP!(set_room_detail, (room, key, v));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomDetailError(err));
+                    dispatch_error(BKError::RoomDetailError(err));
                 }
             }
         });
@@ -333,7 +333,7 @@ impl AppOp {
         thread::spawn(move || {
             let query = room::leave_room(login_data.server_url, login_data.access_token, room_id);
             if let Err(err) = query {
-                dispatch_error(BKResponse::LeaveRoomError(err));
+                dispatch_error(BKError::LeaveRoomError(err));
             }
         });
         self.rooms.remove(&r);
@@ -414,7 +414,7 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::NewRoomError(err, int_id));
+                    dispatch_error(BKError::NewRoomError(err, int_id));
                 }
             }
         });
@@ -570,7 +570,7 @@ impl AppOp {
                     APPOP!(reload_rooms);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::JoinRoomError(err));
+                    dispatch_error(BKError::JoinRoomError(err));
                 }
             }
         });
@@ -714,7 +714,7 @@ impl AppOp {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomAvatarError(err));
+                    dispatch_error(BKError::RoomAvatarError(err));
                 }
             }
         });
@@ -768,7 +768,7 @@ impl AppOp {
                 active_room,
             );
             if let Err(err) = query {
-                dispatch_error(BKResponse::SendTypingError(err));
+                dispatch_error(BKError::SendTypingError(err));
             }
         });
     }

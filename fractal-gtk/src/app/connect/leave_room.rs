@@ -1,4 +1,4 @@
-use fractal_api::clone;
+use crate::clone;
 use gtk::prelude::*;
 
 use crate::app::App;

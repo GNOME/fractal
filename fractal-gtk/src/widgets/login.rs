@@ -11,7 +11,7 @@ use crate::globals;
 use crate::i18n::i18n;
 use crate::widgets::ErrorDialog;
 
-use fractal_api::backend::register::get_well_known;
+use crate::backend::register::get_well_known;
 
 use std::sync::{Arc, Mutex};
 

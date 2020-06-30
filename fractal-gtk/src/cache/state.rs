@@ -13,8 +13,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::types::Message;
 use crate::types::Room;
+use crate::util::cache_dir_path;
 use fractal_api::identifiers::UserId;
-use fractal_api::util::cache_dir_path;
 
 // Models
 

@@ -1,4 +1,4 @@
-use fractal_api::backend::room;
+use crate::backend::room;
 use fractal_api::identifiers::RoomId;
 use gtk::prelude::*;
 use std::thread;
@@ -9,7 +9,7 @@ use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::SearchType;
 
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::types::{Room, RoomMembership, RoomTag};
 
 impl AppOp {
@@ -38,7 +38,7 @@ impl AppOp {
                     APPOP!(new_room, (r, id));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::NewRoomError(err, int_id));
+                    dispatch_error(BKError::NewRoomError(err, int_id));
                 }
             }
         });

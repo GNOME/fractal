@@ -1,5 +1,5 @@
+use crate::backend::user;
 use crate::i18n::i18n;
-use fractal_api::backend::user;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
@@ -10,7 +10,7 @@ use std::thread;
 
 use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 
 use crate::widgets::FileDialog::open;
 
@@ -47,7 +47,7 @@ pub fn new(
                         APPOP!(show_new_avatar, (path));
                     }
                     Err(err) => {
-                        dispatch_error(BKResponse::SetUserAvatarError(err));
+                        dispatch_error(BKError::SetUserAvatarError(err));
                     }
                 }
             });

@@ -1,26 +1,26 @@
-use url::{Host, Url};
+use fractal_api::url::{Host, Url};
 
 use crate::globals;
 
 use crate::error::Error;
 
+use crate::backend::HTTP_CLIENT;
 use crate::util::cache_dir_path;
-use crate::util::dw_media;
-use crate::util::ContentType;
-use crate::util::HTTP_CLIENT;
 
-use crate::r0::directory::post_public_rooms::request as post_public_rooms;
-use crate::r0::directory::post_public_rooms::Body as PublicRoomsBody;
-use crate::r0::directory::post_public_rooms::Filter as PublicRoomsFilter;
-use crate::r0::directory::post_public_rooms::Parameters as PublicRoomsParameters;
-use crate::r0::directory::post_public_rooms::Response as PublicRoomsResponse;
-use crate::r0::directory::post_public_rooms::ThirdPartyNetworks;
-use crate::r0::thirdparty::get_supported_protocols::request as get_supported_protocols;
-use crate::r0::thirdparty::get_supported_protocols::Parameters as SupportedProtocolsParameters;
-use crate::r0::thirdparty::get_supported_protocols::ProtocolInstance;
-use crate::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
-use crate::r0::AccessToken;
 use crate::types::Room;
+use fractal_api::r0::directory::post_public_rooms::request as post_public_rooms;
+use fractal_api::r0::directory::post_public_rooms::Body as PublicRoomsBody;
+use fractal_api::r0::directory::post_public_rooms::Filter as PublicRoomsFilter;
+use fractal_api::r0::directory::post_public_rooms::Parameters as PublicRoomsParameters;
+use fractal_api::r0::directory::post_public_rooms::Response as PublicRoomsResponse;
+use fractal_api::r0::directory::post_public_rooms::ThirdPartyNetworks;
+use fractal_api::r0::thirdparty::get_supported_protocols::request as get_supported_protocols;
+use fractal_api::r0::thirdparty::get_supported_protocols::Parameters as SupportedProtocolsParameters;
+use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
+use fractal_api::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
+use fractal_api::r0::AccessToken;
+
+use super::{dw_media, ContentType};
 
 pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolInstance>, Error> {
     let params = SupportedProtocolsParameters { access_token };

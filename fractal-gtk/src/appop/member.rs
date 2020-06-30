@@ -1,5 +1,5 @@
-use fractal_api::backend::user;
-use fractal_api::clone;
+use crate::backend::user;
+use crate::clone;
 use fractal_api::identifiers::{RoomId, UserId};
 use gtk::prelude::*;
 
@@ -10,7 +10,7 @@ use std::thread;
 use crate::actions::AppState;
 use crate::app::dispatch_error;
 use crate::appop::AppOp;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::widgets;
 use crate::App;
 
@@ -197,7 +197,7 @@ impl AppOp {
                     APPOP!(user_search_finished, (users));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::UserSearchError(err));
+                    dispatch_error(BKError::UserSearchError(err));
                 }
             }
         });

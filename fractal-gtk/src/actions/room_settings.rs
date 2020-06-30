@@ -1,4 +1,4 @@
-use fractal_api::backend::room;
+use crate::backend::room;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
@@ -10,7 +10,7 @@ use std::thread;
 
 use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::i18n::i18n;
 
 use crate::widgets::ErrorDialog;
@@ -55,7 +55,7 @@ pub fn new(
                                 APPOP!(show_new_room_avatar);
                             }
                             Err(err) => {
-                                dispatch_error(BKResponse::SetRoomAvatarError(err));
+                                dispatch_error(BKError::SetRoomAvatarError(err));
                             }
                         }
                     });

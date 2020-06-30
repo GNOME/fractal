@@ -1,8 +1,7 @@
-use fractal_api::backend::user;
-use fractal_api::backend::ThreadPool;
-use fractal_api::cache::CacheMap;
+use crate::backend::user;
+use crate::backend::ThreadPool;
+use crate::util::ResultExpectLog;
 use fractal_api::url::Url;
-use fractal_api::util::ResultExpectLog;
 use glib::source::Continue;
 use gtk::LabelExt;
 use serde::{Deserialize, Serialize};
@@ -13,6 +12,8 @@ use crate::types::RoomList;
 use failure::Error;
 use fractal_api::identifiers::UserId;
 use std::collections::HashMap;
+use std::hash::Hash;
+use std::time::{Duration, Instant};
 
 use crate::globals;
 
@@ -31,6 +32,44 @@ mod state;
 pub use self::state::get;
 pub use self::state::AppState;
 pub use self::state::FCache;
+
+// user info cache, uid -> (name, avatar)
+#[derive(Clone, Debug)]
+pub struct CacheMap<K: Clone + Eq + Hash, V: Clone> {
+    map: HashMap<K, (Instant, V)>,
+    timeout: Duration,
+}
+
+impl<K: Clone + Eq + Hash, V: Clone> CacheMap<K, V> {
+    pub fn new() -> Self {
+        CacheMap {
+            map: HashMap::new(),
+            timeout: Duration::from_secs(10),
+        }
+    }
+
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    pub fn get(&self, k: &K) -> Option<&V> {
+        match self.map.get(k) {
+            Some(t) => {
+                if t.0.elapsed() >= self.timeout {
+                    return None;
+                }
+                Some(&t.1)
+            }
+            None => None,
+        }
+    }
+
+    pub fn insert(&mut self, k: K, v: V) {
+        let now = Instant::now();
+        self.map.insert(k, (now, v));
+    }
+}
 
 // TODO: remove this struct
 #[derive(Serialize, Deserialize)]

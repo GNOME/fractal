@@ -1,5 +1,5 @@
-use fractal_api::backend::room;
-use fractal_api::clone;
+use crate::backend::room;
+use crate::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
 use std::cell::RefCell;
@@ -15,13 +15,13 @@ use crate::actions;
 use crate::actions::{ButtonState, StateExt};
 use crate::app::dispatch_error;
 use crate::app::App;
-use crate::backend::BKResponse;
+use crate::error::BKError;
 use crate::types::Member;
+use crate::types::Room;
 use crate::util::markup_text;
 use crate::widgets;
 use crate::widgets::avatar::AvatarExt;
 use crate::widgets::members_list::MembersList;
-use fractal_api::types::Room;
 
 #[derive(Debug, Clone)]
 pub struct RoomSettings {
@@ -434,7 +434,7 @@ impl RoomSettings {
                     APPOP!(set_room_avatar, (room, avatar));
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::RoomAvatarError(err));
+                    dispatch_error(BKError::RoomAvatarError(err));
                 }
             },
         );
@@ -505,7 +505,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_name);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::SetRoomNameError(err));
+                    dispatch_error(BKError::SetRoomNameError(err));
                 }
             },
         );
@@ -563,7 +563,7 @@ impl RoomSettings {
                     APPOP!(show_new_room_topic);
                 }
                 Err(err) => {
-                    dispatch_error(BKResponse::SetRoomTopicError(err));
+                    dispatch_error(BKError::SetRoomTopicError(err));
                 }
             },
         );

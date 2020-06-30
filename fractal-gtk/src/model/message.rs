@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use chrono::DateTime;
 use chrono::TimeZone;
-use ruma_identifiers::{Error as IdError, EventId, RoomId, UserId};
+use fractal_api::identifiers::{Error as IdError, EventId, RoomId, UserId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::cmp::Ordering;
