@@ -465,7 +465,7 @@ impl RoomHistory {
                 if let Some(mut item) = data.pop_front() {
                     /* Since we are reading bottom-to-top, we will encounter edit events sooner than
                      * the original messages. */
-                    if item.msg.replace != None {
+                    if item.msg.replace.is_some() {
                         if !edits
                             .iter()
                             .any(|edit| item.msg.replace == edit.msg.replace)
