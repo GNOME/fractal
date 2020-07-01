@@ -550,7 +550,7 @@ fn create_ui_message(
         mtype: t,
         body: msg.body,
         date: msg.date,
-        replace_date: if msg.replace != None {
+        replace_date: if msg.replace.is_some() {
             Some(msg.date)
         } else {
             None
