@@ -31,7 +31,7 @@ impl App {
             .get_object::<gtk::ToggleButton>("private_visibility_button")
             .expect("Can't find private_visibility_button in ui file.");
 
-        private.clone().set_active(true);
+        private.set_active(true);
         cancel.connect_clicked(clone!(entry, dialog, private => move |_| {
             dialog.hide();
             entry.set_text("");
