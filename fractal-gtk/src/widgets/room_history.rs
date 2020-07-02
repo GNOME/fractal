@@ -31,8 +31,8 @@ use gtk::prelude::*;
 
 struct List {
     /* With the exception of temporary widgets, only modify the fields list and listbox
-    through the methods add_top(), add_bottom(), and remove_item() to maintain the
-    1-1 correspondence between them. */
+    through the methods add_top(), add_bottom(), remove_item() and replace_item() to
+    maintain the 1-1 correspondence between them. */
     list: VecDeque<Element>,
     new_divider_index: Option<usize>,
     playing_videos: Vec<(Rc<VideoPlayerWidget>, SignalHandlerId)>,
@@ -74,6 +74,14 @@ impl List {
     fn remove_item(&mut self, index: usize, row: &gtk::ListBoxRow) {
         self.list.remove(index);
         self.listbox.remove(row);
+    }
+
+    fn replace_item(&mut self, index: usize, row: &gtk::ListBoxRow, element: Element) {
+        /* Spinner is at position 0, so increment index by 1 */
+        self.listbox
+            .insert(element.get_listbox_row(), (self.list.len() - index) as i32);
+        self.listbox.remove(row);
+        self.list[index] = element;
     }
 
     fn create_new_message_divider(rows: Rc<RefCell<Self>>) -> widgets::NewMessageDivider {
@@ -256,6 +264,7 @@ pub struct RoomHistory {
     server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
+    edit_buffer: Rc<RefCell<VecDeque<MessageContent>>>,
 }
 
 impl RoomHistory {
@@ -282,6 +291,7 @@ impl RoomHistory {
             server_url: op.login_data.clone()?.server_url,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
+            edit_buffer: Rc::new(RefCell::new(VecDeque::new())),
         };
 
         rh.connect_video_auto_play();
@@ -436,6 +446,7 @@ impl RoomHistory {
         user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     ) -> Option<()> {
         let queue = self.queue.clone();
+        let edit_buffer = self.edit_buffer.clone();
         let rows = self.rows.clone();
 
         /* TO-DO: we could set the listbox height the 52 * length of messages, to decrease jumps of the
@@ -445,12 +456,29 @@ impl RoomHistory {
         if self.source_id.borrow().is_some() {
             /* We don't need a new loop, just keeping the old one */
         } else {
-            /* Lacy load initial messages */
+            /* Lazy load initial messages */
             let source_id = self.source_id.clone();
             let server_url = self.server_url.clone();
             *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
                 let mut data = queue.borrow_mut();
+                let mut edits = edit_buffer.borrow_mut();
                 if let Some(mut item) = data.pop_front() {
+                    /* Since we are reading bottom-to-top, we will encounter edit events sooner than
+                     * the original messages. */
+                    if item.msg.replace.is_some() {
+                        if !edits
+                            .iter()
+                            .any(|edit| item.msg.replace == edit.msg.replace)
+                        {
+                            edits.push_back(item);
+                        }
+                        return Continue(true);
+                    }
+                    if let Some(pos) = edits.iter().position(|edit| item.id == edit.msg.replace) {
+                        edits[pos].date = item.date;
+                        item = edits.remove(pos).unwrap();
+                    }
+
                     let last = data.front();
                     let mut prev_day_divider = None;
                     let mut day_divider = None;
@@ -527,6 +555,10 @@ impl RoomHistory {
         user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
         mut item: MessageContent,
     ) -> Option<()> {
+        if item.msg.replace.is_some() {
+            self.replace_message(thread_pool, user_info_cache, item);
+            return None;
+        }
         let mut rows = self.rows.borrow_mut();
         let mut day_divider = None;
         let has_header = {
@@ -566,6 +598,42 @@ impl RoomHistory {
         );
         item.widget = Some(b);
         rows.add_bottom(Element::Message(item));
+        None
+    }
+
+    pub fn replace_message(
+        &mut self,
+        thread_pool: ThreadPool,
+        user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
+        mut item: MessageContent,
+    ) -> Option<()> {
+        let mut rows = self.rows.borrow_mut();
+
+        let (i, ref mut msg) = rows
+            .list
+            .iter_mut()
+            .enumerate()
+            .find_map(|(i, e)| match e {
+                Element::Message(ref mut itermessage)
+                    if itermessage.id == item.msg.replace
+                        || itermessage.msg.replace == item.msg.replace =>
+                {
+                    Some((i, itermessage))
+                }
+                _ => None,
+            })?;
+        item.date = msg.date;
+        let msg_widget = msg.widget.clone()?;
+
+        item.widget = Some(create_row(
+            thread_pool,
+            user_info_cache,
+            item.clone(),
+            msg_widget.header,
+            self.server_url.clone(),
+            &self.rows,
+        ));
+        rows.replace_item(i, msg_widget.get_listbox_row(), Element::Message(item));
         None
     }
 

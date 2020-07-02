@@ -375,6 +375,16 @@ impl AppOp {
         let login_data = self.login_data.clone()?;
         let uid = login_data.uid;
         for msg in msgs.iter() {
+            if !msg.redacted && self.active_room.as_ref().map_or(false, |x| x == &msg.room) {
+                self.add_room_message(&msg);
+                msg_in_active = true;
+            }
+
+            if msg.replace != None {
+                /* No need to notify (and confuse the user) about edits. */
+                continue;
+            }
+
             let should_notify = msg.sender != uid
                 && (msg.body.contains(&login_data.username.clone()?)
                     || self.rooms.get(&msg.room).map_or(false, |r| r.direct));
@@ -388,11 +398,6 @@ impl AppOp {
                 if let (Some(app), Some(event_id)) = (window.get_application(), msg.id.as_ref()) {
                     self.notify(app, &msg.room, event_id);
                 }
-            }
-
-            if !msg.redacted && self.active_room.as_ref().map_or(false, |x| x == &msg.room) {
-                self.add_room_message(&msg);
-                msg_in_active = true;
             }
 
             self.roomlist.moveup(msg.room.clone());
@@ -545,6 +550,11 @@ fn create_ui_message(
         mtype: t,
         body: msg.body,
         date: msg.date,
+        replace_date: if msg.replace.is_some() {
+            Some(msg.date)
+        } else {
+            None
+        },
         thumb: msg.thumb,
         url: msg.url,
         formatted_body: msg.formatted_body,
