@@ -155,7 +155,6 @@ impl Data {
         admins: HashMap<UserId, i32>,
     ) -> Data {
         let is_fullscreen = main_window
-            .clone()
             .get_window()
             .unwrap()
             .get_state()

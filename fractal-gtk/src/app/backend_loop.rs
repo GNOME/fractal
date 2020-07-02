@@ -92,7 +92,7 @@ pub fn dispatch_error(error: BKError) {
                 "{}",
                 remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
             );
-            let error = i18n("Can’t join the room, try again.").to_string();
+            let error = i18n("Can’t join the room, try again.");
             let state = AppState::NoRoom;
             APPOP!(show_error, (error));
             APPOP!(set_state, (state));

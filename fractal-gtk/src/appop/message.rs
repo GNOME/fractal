@@ -481,7 +481,7 @@ impl AppOp {
                 /* set message type to mention if the body contains the username, we should
                  * also match for MXID */
                 let is_mention = if let Some(user) = login_data.username.clone() {
-                    msg.sender != login_data.uid.clone() && msg.body.contains(&user)
+                    msg.sender != login_data.uid && msg.body.contains(&user)
                 } else {
                     false
                 };
@@ -514,7 +514,7 @@ impl AppOp {
             .get(&login_data.uid)
             .copied()
             .unwrap_or_default();
-        let redactable = admin != 0 || login_data.uid.clone() == msg.sender;
+        let redactable = admin != 0 || login_data.uid == msg.sender;
 
         let is_last_viewed = msg.receipt.contains_key(&login_data.uid);
         Some(create_ui_message(
