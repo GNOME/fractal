@@ -140,7 +140,7 @@ impl List {
 
         let sw = self.view.get_scrolled_window();
         let visible_index = match get_rel_position(&sw, &self.list[0]) {
-            RelativePosition::InSight => Some(0),
+            RelativePosition::In => Some(0),
             _ => self.find_visible_index((0, len - 1)),
         };
         if let Some(visible) = visible_index {
@@ -168,15 +168,15 @@ impl List {
         let element = &self.list[middle_index];
         let scrolled_window = self.view.get_scrolled_window();
         match get_rel_position(&scrolled_window, element) {
-            RelativePosition::AboveSight => {
+            RelativePosition::Above => {
                 if range.0 == range.1 {
                     None
                 } else {
                     self.find_visible_index((range.0, middle_index))
                 }
             }
-            RelativePosition::InSight => Some(middle_index),
-            RelativePosition::BelowSight => {
+            RelativePosition::In => Some(middle_index),
+            RelativePosition::Below => {
                 if range.0 == range.1 {
                     None
                 } else {
@@ -193,7 +193,7 @@ impl List {
         let scrolled_window = self.view.get_scrolled_window();
         for (index, element) in iterator {
             match get_rel_position(&scrolled_window, element) {
-                RelativePosition::InSight => {
+                RelativePosition::In => {
                     indices.push(index);
                 }
                 _ => {
@@ -212,19 +212,19 @@ fn get_rel_position(scrolled_window: &gtk::ScrolledWindow, element: &Element) ->
         .expect("Both scrolled_window and widget should be realized and share a common toplevel.")
         .1;
     if rel_y <= -height_widget {
-        RelativePosition::AboveSight
+        RelativePosition::Above
     } else if rel_y < height_visible_area {
-        RelativePosition::InSight
+        RelativePosition::In
     } else {
-        RelativePosition::BelowSight
+        RelativePosition::Below
     }
 }
 
 #[derive(Clone, Debug)]
 enum RelativePosition {
-    InSight,
-    AboveSight,
-    BelowSight,
+    In,
+    Above,
+    Below,
 }
 
 /* These Enum contains all differnet types of rows the room history can have, e.g room message, new
