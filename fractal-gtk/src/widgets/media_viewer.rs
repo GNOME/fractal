@@ -1023,10 +1023,7 @@ fn load_more_media(thread_pool: ThreadPool, data: Rc<RefCell<Data>>, builder: gt
     let server_url = data.borrow().server_url.clone();
     let access_token = data.borrow().access_token.clone();
 
-    let (tx, rx): (
-        Sender<(Vec<Message>, String)>,
-        Receiver<(Vec<Message>, String)>,
-    ) = channel();
+    let (tx, rx): (Sender<media::MediaList>, Receiver<media::MediaList>) = channel();
     media::get_media_list_async(
         thread_pool.clone(),
         server_url,

@@ -144,7 +144,7 @@ pub fn new(
             let name = m.body;
             let url = m.url.unwrap_or_default();
 
-            let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
+            let (tx, rx): (Sender<media::MediaResult>, Receiver<media::MediaResult>) = channel();
             media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
 
             let parent_weak = parent_weak.clone();
@@ -182,8 +182,8 @@ pub fn new(
             let url = m.url.unwrap_or_default();
 
             let (tx, rx): (
-                Sender<Result<String, Error>>,
-                Receiver<Result<String, Error>>,
+                Sender<media::MediaResult>,
+                Receiver<media::MediaResult>,
             ) = channel();
 
             media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);

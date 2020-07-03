@@ -17,11 +17,14 @@ use fractal_api::r0::message::get_message_events::Response as GetMessagesEventsR
 
 use super::{dw_media, get_prev_batch_from, ContentType, ThreadPool};
 
+pub type MediaResult = Result<String, Error>;
+pub type MediaList = (Vec<Message>, String);
+
 pub fn get_thumb_async(
     thread_pool: ThreadPool,
     baseu: Url,
     media: String,
-    tx: Sender<Result<String, Error>>,
+    tx: Sender<MediaResult>,
 ) {
     thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::default_thumbnail(), None);
@@ -33,7 +36,7 @@ pub fn get_media_async(
     thread_pool: ThreadPool,
     baseu: Url,
     media: String,
-    tx: Sender<Result<String, Error>>,
+    tx: Sender<MediaResult>,
 ) {
     thread_pool.run(move || {
         let fname = dw_media(baseu, &media, ContentType::Download, None);
@@ -48,7 +51,7 @@ pub fn get_media_list_async(
     room_id: RoomId,
     first_media_id: EventId,
     prev_batch: Option<String>,
-    tx: Sender<(Vec<Message>, String)>,
+    tx: Sender<MediaList>,
 ) {
     thread_pool.run(move || {
         let media_list = prev_batch
@@ -74,7 +77,7 @@ fn get_room_media_list(
     room_id: &RoomId,
     limit: u64,
     prev_batch: String,
-) -> Result<(Vec<Message>, String), Error> {
+) -> Result<MediaList, Error> {
     let params = GetMessagesEventsParams {
         access_token,
         from: prev_batch,
