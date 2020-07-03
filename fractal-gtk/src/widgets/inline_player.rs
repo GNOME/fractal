@@ -46,7 +46,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use fractal_api::url::Url;
 
 use crate::app::App;
-use crate::error::Error;
 use crate::i18n::i18n;
 
 pub trait PlayerExt {

@@ -15,7 +15,6 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
-use crate::error::Error;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]

@@ -15,7 +15,6 @@ use std::thread;
 use crate::actions::AppState;
 use crate::app::dispatch_error;
 use crate::error::BKError;
-use crate::error::Error;
 use crate::i18n::i18n;
 use crate::types::Message;
 use crate::uibuilder::UI;
