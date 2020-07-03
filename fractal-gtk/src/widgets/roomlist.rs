@@ -11,6 +11,7 @@ use crate::globals;
 use crate::types::{Room, RoomTag};
 use crate::widgets::roomrow::RoomRow;
 use std::convert::TryFrom;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use chrono::prelude::*;
@@ -48,7 +49,7 @@ pub struct RoomListGroup {
     pub list: gtk::ListBox,
     rev: gtk::Revealer,
     arrow: gtk::Image,
-    expanded: Arc<Mutex<bool>>,
+    expanded: Arc<AtomicBool>,
     title: gtk::Label,
     empty: gtk::Label,
     title_eb: gtk::EventBox,
@@ -86,11 +87,11 @@ impl RoomListGroup {
         title.set_valign(gtk::Align::Start);
         let arrow =
             gtk::Image::new_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
-        let expanded = Arc::new(Mutex::new(true));
+        let expanded = Arc::new(AtomicBool::new(true));
         let title_eb = gtk::EventBox::new();
 
         title_eb.connect_button_press_event(clone!(list, arrow, rev, expanded => move |_, _| {
-            if *expanded.lock().unwrap() {
+            if expanded.load(Ordering::SeqCst) {
                 arrow.set_from_icon_name(Some("pan-end-symbolic"), gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(false);
                 list.get_style_context().add_class("collapsed");
@@ -99,8 +100,8 @@ impl RoomListGroup {
                 rev.set_reveal_child(true);
                 list.get_style_context().remove_class("collapsed");
             }
-            let exp = !(*expanded.lock().unwrap());
-            *expanded.lock().unwrap() = exp;
+            let exp = !expanded.load(Ordering::SeqCst);
+            expanded.store(exp, Ordering::SeqCst);
             glib::signal::Inhibit(true)
         }));
 
@@ -248,7 +249,7 @@ impl RoomListGroup {
 
         self.arrow
             .set_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
-        *self.expanded.lock().unwrap() = true;
+        self.expanded.store(true, Ordering::SeqCst);
         self.rev.set_reveal_child(true);
         self.list.get_style_context().remove_class("collapsed");
 

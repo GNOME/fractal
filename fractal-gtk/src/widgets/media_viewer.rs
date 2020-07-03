@@ -26,6 +26,7 @@ use crate::widgets::message_menu::MessageMenu;
 use crate::widgets::ErrorDialog;
 use crate::widgets::PlayerExt;
 use crate::widgets::{MediaPlayer, VideoPlayerWidget};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -744,21 +745,21 @@ impl MediaViewer {
             });
         self.data.borrow_mut().double_click_handler_id = Some(id);
 
-        let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
-        let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+        let header_hovered: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+        let nav_hovered: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
         let ui = self.builder.clone();
         let headerbar_revealer = ui
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
 
         headerbar_revealer.connect_enter_notify_event(clone!(header_hovered => move |_, _| {
-            *(header_hovered.lock().unwrap()) = true;
+            header_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
 
         headerbar_revealer.connect_leave_notify_event(clone!(header_hovered => move |_, _| {
-            *(header_hovered.lock().unwrap()) = false;
+            header_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -768,12 +769,12 @@ impl MediaViewer {
             .expect("Cant find previous_media_button in ui file.");
 
         previous_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = true;
+            nav_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
         previous_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = false;
+            nav_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -783,12 +784,12 @@ impl MediaViewer {
             .expect("Cant find next_media_button in ui file.");
 
         next_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = true;
+            nav_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
         next_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = false;
+            nav_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -837,13 +838,13 @@ impl MediaViewer {
                         .get_popover()
                         .filter(|p| p.get_visible())
                         .is_some();
-                            if !*header_hovered.lock().unwrap() && !menu_popover_is_visible {
+                            if !header_hovered.load(Ordering::SeqCst) && !menu_popover_is_visible {
                                 let headerbar_revealer = ui
                                     .get_object::<gtk::Revealer>("headerbar_revealer")
                                     .expect("Can't find headerbar_revealer in ui file.");
                                 headerbar_revealer.set_reveal_child(false);
                             }
-                        if !*nav_hovered.lock().unwrap() {
+                        if !nav_hovered.load(Ordering::SeqCst) {
                             let previous_media_revealer = ui
                                 .get_object::<gtk::Revealer>("previous_media_revealer")
                                 .expect("Cant find previous_media_revealer in ui file.");
