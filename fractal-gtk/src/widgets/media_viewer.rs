@@ -144,41 +144,6 @@ struct Data {
 }
 
 impl Data {
-    pub fn new(
-        server_url: Url,
-        access_token: AccessToken,
-        media_list: Vec<Message>,
-        current_media_index: usize,
-        main_window: gtk::Window,
-        builder: gtk::Builder,
-        uid: UserId,
-        admins: HashMap<UserId, i32>,
-    ) -> Data {
-        let is_fullscreen = main_window
-            .get_window()
-            .unwrap()
-            .get_state()
-            .contains(gdk::WindowState::FULLSCREEN);
-        Data {
-            media_list,
-            current_media_index,
-            prev_batch: None,
-            loading_more_media: false,
-            loading_error: false,
-            no_more_media: false,
-            widget: Widget::None,
-            builder,
-            server_url,
-            access_token,
-            uid,
-            admins,
-            main_window,
-            signal_id: None,
-            is_fullscreen,
-            double_click_handler_id: None,
-        }
-    }
-
     pub fn enter_full_screen(&mut self, thread_pool: ThreadPool) {
         self.main_window.fullscreen();
         self.is_fullscreen = true;
@@ -649,17 +614,31 @@ impl MediaViewer {
             .position(|media| media.id == current_media_msg.id)
             .unwrap_or_default();
 
+        let is_fullscreen = main_window
+            .get_window()
+            .unwrap()
+            .get_state()
+            .contains(gdk::WindowState::FULLSCREEN);
+
         MediaViewer {
-            data: Rc::new(RefCell::new(Data::new(
-                server_url,
-                access_token,
+            data: Rc::new(RefCell::new(Data {
                 media_list,
                 current_media_index,
-                main_window,
-                builder.clone(),
+                prev_batch: None,
+                loading_more_media: false,
+                loading_error: false,
+                no_more_media: false,
+                widget: Widget::None,
+                builder: builder.clone(),
+                server_url,
+                access_token,
                 uid,
-                room.admins.clone(),
-            ))),
+                admins: room.admins.clone(),
+                main_window,
+                signal_id: None,
+                is_fullscreen,
+                double_click_handler_id: None,
+            })),
             builder,
         }
     }
