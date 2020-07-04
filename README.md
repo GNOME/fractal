@@ -66,7 +66,20 @@ snap install --dangerous FILENAME.snap
 ### GNU/Linux
 
 If you decide to ignore our recommendation and build on your host system,
-outside of Flatpak or snap, you will need Meson and Ninja (as well as Rust and Cargo).
+outside of Flatpak or snap, you will need Meson and Ninja (as well as Rust and Cargo). Also some
+crates requires to have the development packages in place to complete the build, therefore additional
+packages are required. For Fedora 32 this is the list of dependencies.
+
+```sh
+$ dnf install -y rust cargo meson make gtk3-devel gspell-devel openssl-devel gmp-devel \
+            gstreamer1-devel gstreamer1-plugins-base-tools \
+            gstreamer1-plugins-base-devel \
+            gstreamer1-plugins-good gstreamer1-plugins-good-extras \
+            gstreamer1-plugins-bad-free gstreamer1-plugins-bad-free-devel \
+            gstreamer1-plugins-bad-free-extras
+```
+
+Now the build process can continue with:
 
 ```sh
 meson . _build --prefix=/usr/local
