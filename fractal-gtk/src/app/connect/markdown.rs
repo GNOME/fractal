@@ -1,3 +1,4 @@
+use glib::clone;
 use gtk::prelude::*;
 use sourceview4::prelude::*;
 
@@ -49,35 +50,37 @@ impl App {
             }
         }
 
-        markdown_switch.connect_property_active_notify(clone!(markdown_switch => move |_| {
-            op.lock().unwrap().md_enabled = markdown_switch.get_active();
+        markdown_switch.connect_property_active_notify(
+            clone!(@strong markdown_switch => move |_| {
+                op.lock().unwrap().md_enabled = markdown_switch.get_active();
 
-            if markdown_switch.get_active() {
-                md_img.set_from_icon_name(
-                    Some("format-indent-more-symbolic"),
-                    gtk::IconSize::Menu,
-                );
-                txt.get_style_context().remove_class("dim-label");
-                util::set_markdown_schema(true);
+                if markdown_switch.get_active() {
+                    md_img.set_from_icon_name(
+                        Some("format-indent-more-symbolic"),
+                        gtk::IconSize::Menu,
+                    );
+                    txt.get_style_context().remove_class("dim-label");
+                    util::set_markdown_schema(true);
 
-                if let Some(md_lang) = md_lang.clone() {
-                    buffer.set_highlight_matching_brackets(true);
-                    buffer.set_language(Some(&md_lang));
-                    buffer.set_highlight_syntax(true);
+                    if let Some(md_lang) = md_lang.clone() {
+                        buffer.set_highlight_matching_brackets(true);
+                        buffer.set_language(Some(&md_lang));
+                        buffer.set_highlight_syntax(true);
+                    }
+                } else {
+                    md_img.set_from_icon_name(
+                        Some("format-justify-left-symbolic"),
+                        gtk::IconSize::Menu,
+                    );
+                    txt.get_style_context().add_class("dim-label");
+                    util::set_markdown_schema(false);
+
+                    let lang: Option<&sourceview4::Language> = None;
+                    buffer.set_highlight_matching_brackets(false);
+                    buffer.set_language(lang);
+                    buffer.set_highlight_syntax(false);
                 }
-            } else {
-                md_img.set_from_icon_name(
-                    Some("format-justify-left-symbolic"),
-                    gtk::IconSize::Menu,
-                );
-                txt.get_style_context().add_class("dim-label");
-                util::set_markdown_schema(false);
-
-                let lang: Option<&sourceview4::Language> = None;
-                buffer.set_highlight_matching_brackets(false);
-                buffer.set_language(lang);
-                buffer.set_highlight_syntax(false);
-            }
-        }));
+            }),
+        );
     }
 }

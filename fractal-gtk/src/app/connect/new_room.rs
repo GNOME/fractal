@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -32,34 +32,40 @@ impl App {
             .expect("Can't find private_visibility_button in ui file.");
 
         private.set_active(true);
-        cancel.connect_clicked(clone!(entry, dialog, private => move |_| {
-            dialog.hide();
-            entry.set_text("");
-            private.set_active(true);
-        }));
-        dialog.connect_delete_event(clone!(entry, dialog, private => move |_, _| {
-            dialog.hide();
-            entry.set_text("");
-            private.set_active(true);
-            glib::signal::Inhibit(true)
-        }));
+        cancel.connect_clicked(
+            clone!(@strong entry, @strong dialog, @strong private => move |_| {
+                dialog.hide();
+                entry.set_text("");
+                private.set_active(true);
+            }),
+        );
+        dialog.connect_delete_event(
+            clone!(@strong entry, @strong dialog, @strong private => move |_, _| {
+                dialog.hide();
+                entry.set_text("");
+                private.set_active(true);
+                glib::signal::Inhibit(true)
+            }),
+        );
 
         let op = self.op.clone();
-        confirm.connect_clicked(clone!(entry, dialog, private => move |_| {
+        confirm.connect_clicked(
+            clone!(@strong entry, @strong dialog, @strong private => move |_| {
+                dialog.hide();
+                op.lock().unwrap().create_new_room();
+                entry.set_text("");
+                private.set_active(true);
+            }),
+        );
+
+        let op = self.op.clone();
+        entry.connect_activate(clone!(@strong dialog => move |entry| {
             dialog.hide();
             op.lock().unwrap().create_new_room();
             entry.set_text("");
             private.set_active(true);
         }));
-
-        let op = self.op.clone();
-        entry.connect_activate(clone!(dialog => move |entry| {
-            dialog.hide();
-            op.lock().unwrap().create_new_room();
-            entry.set_text("");
-            private.set_active(true);
-        }));
-        entry.connect_changed(clone!(confirm => move |entry| {
+        entry.connect_changed(clone!(@strong confirm => move |entry| {
                 confirm.set_sensitive(entry.get_buffer().get_length() > 0);
         }));
     }

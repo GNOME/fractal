@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -23,17 +23,17 @@ impl App {
             .get_object::<gtk::SearchEntry>("room_list_search")
             .expect("Can't find room_list_search in ui file.");
 
-        search_btn.connect_toggled(clone!(search_bar => move |btn| {
+        search_btn.connect_toggled(clone!(@strong search_bar => move |btn| {
             search_bar.set_search_mode(btn.get_active());
         }));
 
         search_bar.connect_property_search_mode_enabled_notify(
-            clone!(search_btn => move |headerbar| {
+            clone!(@strong search_btn => move |headerbar| {
                 search_btn.set_active(headerbar.get_search_mode());
             }),
         );
 
-        search_entry.connect_search_changed(clone!(op => move |entry| {
+        search_entry.connect_search_changed(clone!(@strong op => move |entry| {
             op.lock().unwrap().filter_rooms(
                 entry.get_text()
                     .map(|gstr| gstr.to_string())

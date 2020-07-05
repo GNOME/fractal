@@ -1,7 +1,7 @@
 use crate::backend::media;
 use crate::backend::ThreadPool;
-use crate::clone;
 use fractal_api::r0::AccessToken;
+use glib::clone;
 
 use fragile::Fragile;
 use std::cell::RefCell;
@@ -408,7 +408,7 @@ impl Data {
         let source_id: Rc<RefCell<Option<glib::source::SourceId>>> = Rc::new(RefCell::new(None));
         let first_sid = gtk::timeout_add_seconds(
             1,
-            clone!(source_id, control_revealer => move || {
+            clone!(@strong source_id, @strong control_revealer => move || {
                 control_revealer.set_reveal_child(false);
                 *source_id.borrow_mut() = None;
                 Continue(false)
@@ -422,7 +422,7 @@ impl Data {
             .expect("Cant find media_viewer_box in ui file.");
         let player_weak = Rc::downgrade(&player);
         media_viewer_box.connect_motion_notify_event(
-            clone!( control_revealer, source_id => move |_, _| {
+            clone!(@strong control_revealer, @strong source_id => move |_, _| {
                 if let Some(player) = player_weak.upgrade() {
                 control_revealer.set_reveal_child(true);
                 if let Some(sid) = source_id.borrow_mut().take() {
@@ -430,7 +430,7 @@ impl Data {
                 }
                 let new_sid = gtk::timeout_add_seconds(
                     1,
-                    clone!(source_id, control_revealer => move || {
+                    clone!(@strong source_id, @strong control_revealer => move || {
                             if player.is_playing() {
                                 control_revealer.set_reveal_child(false);
                             }
@@ -462,7 +462,7 @@ impl Data {
 
         let player_weak = Rc::downgrade(&player);
         self.main_window.connect_key_press_event(
-            clone!(control_revealer, source_id => move |_, k| {
+            clone!(@strong control_revealer, @strong source_id => move |_, k| {
             if let Some(player) = player_weak.upgrade() {
                 if player.get_video_widget().get_mapped() {
                     if let gdk::enums::key::space = k.get_keyval() {
@@ -471,7 +471,7 @@ impl Data {
                             } else {
                                 let new_sid = gtk::timeout_add_seconds(
                                     1,
-                                    clone!(source_id, control_revealer, player_weak => move || {
+                                    clone!(@strong source_id, @strong control_revealer, @strong player_weak => move || {
                                         if let Some(player) = player_weak.upgrade() {
                                             if player.is_playing() {
                                                 control_revealer.set_reveal_child(false);
@@ -497,7 +497,7 @@ impl Data {
         let player_weak = Rc::downgrade(&player);
         let click_timeout_id = Rc::new(RefCell::new(None));
         media_viewer_box.connect_button_press_event(
-            clone!(control_revealer, source_id => move |_, e| {
+            clone!(@strong control_revealer, @strong source_id => move |_, e| {
                 let source_id = source_id.clone();
                 let revealer = control_revealer.clone();
                 let pw = player_weak.clone();
@@ -510,13 +510,13 @@ impl Data {
                             } else {
                                 let sid = gtk::timeout_add(
                                     250,
-                                    clone!(player, click_timeout_id => move || {
+                                    clone!(@strong player, @strong click_timeout_id => move || {
                                         if player.is_playing() {
                                             revealer.set_reveal_child(true);
                                         } else {
                                             let new_sid = gtk::timeout_add_seconds(
                                                 1,
-                                                clone!(source_id, revealer, pw => move || {
+                                                clone!(@strong source_id, @strong revealer, @strong pw => move || {
                                                     if let Some(player) = pw.upgrade() {
                                                         if player.is_playing() {
                                                             revealer.set_reveal_child(false);
@@ -752,43 +752,51 @@ impl MediaViewer {
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
 
-        headerbar_revealer.connect_enter_notify_event(clone!(header_hovered => move |_, _| {
-            header_hovered.store(true, Ordering::SeqCst);
+        headerbar_revealer.connect_enter_notify_event(
+            clone!(@strong header_hovered => move |_, _| {
+                header_hovered.store(true, Ordering::SeqCst);
 
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
 
-        headerbar_revealer.connect_leave_notify_event(clone!(header_hovered => move |_, _| {
-            header_hovered.store(false, Ordering::SeqCst);
+        headerbar_revealer.connect_leave_notify_event(
+            clone!(@strong header_hovered => move |_, _| {
+                header_hovered.store(false, Ordering::SeqCst);
 
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
 
         let previous_media_button = ui
             .get_object::<gtk::Button>("previous_media_button")
             .expect("Cant find previous_media_button in ui file.");
 
-        previous_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-            nav_hovered.store(true, Ordering::SeqCst);
+        previous_media_button.connect_enter_notify_event(
+            clone!(@strong nav_hovered => move |_, _| {
+                nav_hovered.store(true, Ordering::SeqCst);
 
-            Inhibit(false)
-        }));
-        previous_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-            nav_hovered.store(false, Ordering::SeqCst);
+                Inhibit(false)
+            }),
+        );
+        previous_media_button.connect_leave_notify_event(
+            clone!(@strong nav_hovered => move |_, _| {
+                nav_hovered.store(false, Ordering::SeqCst);
 
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
 
         let next_media_button = ui
             .get_object::<gtk::Button>("next_media_button")
             .expect("Cant find next_media_button in ui file.");
 
-        next_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
+        next_media_button.connect_enter_notify_event(clone!(@strong nav_hovered => move |_, _| {
             nav_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
-        next_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
+        next_media_button.connect_leave_notify_event(clone!(@strong nav_hovered => move |_, _| {
             nav_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
@@ -831,7 +839,7 @@ impl MediaViewer {
 
                 let sid = gtk::timeout_add(
                     1000,
-                    clone!(ui, header_hovered, nav_hovered, source_id => move || {
+                    clone!(@strong ui, @strong header_hovered, @strong nav_hovered, @strong source_id => move || {
                         let menu_popover_is_visible = ui
                         .get_object::<gtk::MenuButton>("media_viewer_menu_button")
                         .expect("Can't find headerbar_revealer in ui file.")
