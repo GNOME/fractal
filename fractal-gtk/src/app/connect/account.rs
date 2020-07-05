@@ -1,5 +1,5 @@
-use crate::clone;
 use gio::ActionMapExt;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -109,7 +109,7 @@ impl App {
         }
 
         let button = name_btn.clone();
-        name_entry.connect_property_text_notify(clone!(op => move |w| {
+        name_entry.connect_property_text_notify(clone!(@strong op => move |w| {
             if let Some(text) = w.get_text().filter(|text| !text.is_empty()) {
                 if op.try_lock()
                     .ok()
@@ -130,7 +130,7 @@ impl App {
             let _ = button.emit("clicked", &[]);
         });
 
-        name_btn.connect_clicked(clone!(op => move |_w| {
+        name_btn.connect_clicked(clone!(@strong op => move |_w| {
             op.lock().unwrap().update_username_account_settings();
         }));
 
@@ -189,47 +189,49 @@ impl App {
         }
 
         /* Passsword dialog */
-        password_btn.connect_clicked(clone!(op => move |_| {
+        password_btn.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().show_password_dialog();
         }));
 
-        password_dialog.connect_delete_event(clone!(op => move |_, _| {
+        password_dialog.connect_delete_event(clone!(@strong op => move |_, _| {
             op.lock().unwrap().close_password_dialog();
             glib::signal::Inhibit(true)
         }));
 
         /* Headerbar */
-        cancel_password.connect_clicked(clone!(op => move |_| {
+        cancel_password.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().close_password_dialog();
         }));
 
-        confirm_password.connect_clicked(clone!(op => move |_| {
+        confirm_password.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().set_new_password();
             op.lock().unwrap().close_password_dialog();
         }));
 
         /* Body */
-        verify_password.connect_property_text_notify(clone!(builder => move |_| {
+        verify_password.connect_property_text_notify(clone!(@strong builder => move |_| {
             validate_password_input(&builder.clone());
         }));
-        new_password.connect_property_text_notify(clone!(builder => move |_| {
+        new_password.connect_property_text_notify(clone!(@strong builder => move |_| {
             validate_password_input(&builder.clone());
         }));
-        old_password.connect_property_text_notify(clone!(builder => move |_| {
+        old_password.connect_property_text_notify(clone!(@strong builder => move |_| {
             validate_password_input(&builder)
         }));
 
-        destruction_entry.connect_property_text_notify(clone!(destruction_btn => move |w| {
-            if let Some(text) = w.get_text() {
-                if text != "" {
-                    destruction_btn.set_sensitive(true);
-                    return;
+        destruction_entry.connect_property_text_notify(
+            clone!(@strong destruction_btn => move |w| {
+                if let Some(text) = w.get_text() {
+                    if text != "" {
+                        destruction_btn.set_sensitive(true);
+                        return;
+                    }
                 }
-            }
-            destruction_btn.set_sensitive(false);
-        }));
+                destruction_btn.set_sensitive(false);
+            }),
+        );
 
-        destruction_btn.connect_clicked(clone!(op => move |_| {
+        destruction_btn.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().account_destruction();
         }));
     }

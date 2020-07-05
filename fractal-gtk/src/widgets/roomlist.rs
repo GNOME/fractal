@@ -1,6 +1,6 @@
-use crate::clone;
 use crate::i18n::i18n;
 use fractal_api::identifiers::RoomId;
+use glib::clone;
 
 use fractal_api::url::Url;
 use gtk::prelude::*;
@@ -90,7 +90,12 @@ impl RoomListGroup {
         let expanded = Arc::new(AtomicBool::new(true));
         let title_eb = gtk::EventBox::new();
 
-        title_eb.connect_button_press_event(clone!(list, arrow, rev, expanded => move |_, _| {
+        title_eb.connect_button_press_event(clone!(
+        @strong list,
+        @strong arrow,
+        @strong rev,
+        @strong expanded
+        => move |_, _| {
             if expanded.load(Ordering::SeqCst) {
                 arrow.set_from_icon_name(Some("pan-end-symbolic"), gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(false);

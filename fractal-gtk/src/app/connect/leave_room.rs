@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -21,16 +21,16 @@ impl App {
             .get_object::<gtk::Button>("leave_room_confirm")
             .expect("Can't find leave_room_confirm in ui file.");
 
-        cancel.connect_clicked(clone!(dialog => move |_| {
+        cancel.connect_clicked(clone!(@strong dialog => move |_| {
             dialog.hide();
         }));
-        dialog.connect_delete_event(clone!(dialog => move |_, _| {
+        dialog.connect_delete_event(clone!(@strong dialog => move |_, _| {
             dialog.hide();
             glib::signal::Inhibit(true)
         }));
 
         let op = self.op.clone();
-        confirm.connect_clicked(clone!(dialog => move |_| {
+        confirm.connect_clicked(clone!(@strong dialog => move |_| {
             dialog.hide();
             op.lock().unwrap().really_leave_active_room();
         }));
