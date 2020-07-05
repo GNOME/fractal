@@ -1,5 +1,4 @@
 use crate::backend::{room, HandleError};
-use crate::clone;
 use crate::types::ExtraContent;
 use comrak::{markdown_to_html, ComrakOptions};
 use fractal_api::identifiers::{EventId, RoomId};
@@ -7,6 +6,7 @@ use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::FileExt;
+use glib::clone;
 use glib::source::Continue;
 use gtk::prelude::*;
 use lazy_static::lazy_static;
@@ -680,7 +680,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
 
     let query = room::upload_file(baseu.clone(), tk.clone(), &fname).map(|response| {
         msg.url = Some(response.content_uri.to_string());
-        thread::spawn(clone!(msg => move || send_msg_and_manage(baseu, tk, msg)));
+        thread::spawn(clone!(@strong msg => move || send_msg_and_manage(baseu, tk, msg)));
 
         msg
     });

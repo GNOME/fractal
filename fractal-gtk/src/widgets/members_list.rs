@@ -1,5 +1,5 @@
-use crate::clone;
 use fractal_api::identifiers::UserId;
+use glib::clone;
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::rc::Rc;
@@ -101,7 +101,7 @@ impl MembersList {
         let container = self.container.clone();
         let members = self.members.clone();
         for (index, member) in members.iter().enumerate() {
-        gtk::idle_add(clone!(index, member, container => move || {
+        gtk::idle_add(clone!(@strong index, @strong member, @strong container => move || {
         if let Some(w) = container.get_row_at_index(index as i32) {
         if w.get_child().is_none() {
         w.add(&load_row_content(member.clone()));
@@ -116,7 +116,7 @@ impl MembersList {
 
 fn create_row(member: Member, power_level: Option<i32>) -> Option<gtk::ListBoxRow> {
     let row = gtk::ListBoxRow::new();
-    row.connect_draw(clone!(member => move |w, _| {
+    row.connect_draw(clone!(@strong member => move |w, _| {
         if w.get_child().is_none() {
             w.add(&load_row_content(member.clone(), power_level));
         }

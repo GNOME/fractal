@@ -1,6 +1,6 @@
 use crate::backend::{user, HandleError};
-use crate::clone;
 use fractal_api::identifiers::{RoomId, UserId};
+use glib::clone;
 use gtk::prelude::*;
 
 use std::collections::HashMap;
@@ -175,7 +175,7 @@ impl AppOp {
                 w = mb.widget(true);
             }
 
-            w.connect_button_press_event(clone!(u => move |_, _| {
+            w.connect_button_press_event(clone!(@strong u => move |_, _| {
                 /* FIXME: Create Action */
                 let u = u.clone();
                 APPOP!(add_to_invite, (u));

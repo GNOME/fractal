@@ -1,7 +1,7 @@
 use crate::backend::{dw_media, media, room, ContentType, ThreadPool};
-use crate::clone;
 use fractal_api::identifiers::RoomId;
 use fractal_api::r0::AccessToken;
+use glib::clone;
 use log::error;
 use std::cell::RefCell;
 use std::fs;
@@ -116,7 +116,7 @@ pub fn new(
         }
     });
 
-    open_with.connect_activate(clone!(server_url => move |_, data| {
+    open_with.connect_activate(clone!(@strong server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
             let server_url = server_url.clone();
@@ -137,7 +137,7 @@ pub fn new(
     }));
 
     let parent_weak = parent.downgrade();
-    save_as.connect_activate(clone!(server_url, thread_pool => move |_, data| {
+    save_as.connect_activate(clone!(@strong server_url, @strong thread_pool => move |_, data| {
         if let Some(m) = get_message(data) {
             let name = m.body;
             let url = m.url.unwrap_or_default();
@@ -148,7 +148,7 @@ pub fn new(
             let parent_weak = parent_weak.clone();
             gtk::timeout_add(
                 50,
-                clone!(name => move || match rx.try_recv() {
+                clone!(@strong name => move || match rx.try_recv() {
                     Err(TryRecvError::Empty) => Continue(true),
                     Err(TryRecvError::Disconnected) => {
                         let msg = i18n("Could not download the file");
@@ -175,7 +175,7 @@ pub fn new(
         }
     }));
 
-    copy_image.connect_activate(clone!(server_url => move |_, data| {
+    copy_image.connect_activate(clone!(@strong server_url => move |_, data| {
         if let Some(m) = get_message(data) {
             let url = m.url.unwrap_or_default();
 
@@ -252,10 +252,12 @@ pub fn new(
         }
     });
 
-    load_more_messages.connect_activate(clone!(server_url, access_token => move |_, data| {
-        let id = get_room_id(data);
-        request_more_messages(server_url.clone(), access_token.clone(), id);
-    }));
+    load_more_messages.connect_activate(
+        clone!(@strong server_url, @strong access_token => move |_, data| {
+            let id = get_room_id(data);
+            request_more_messages(server_url.clone(), access_token.clone(), id);
+        }),
+    );
 
     actions
 }

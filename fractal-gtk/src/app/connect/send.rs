@@ -1,5 +1,5 @@
 use crate::appop::attach;
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 use sourceview4::BufferExt;
 
@@ -19,7 +19,7 @@ impl App {
         msg_entry_box.set_redraw_on_allocate(true);
 
         if let Some(adjustment) = self.ui.sventry.scroll.get_vadjustment() {
-            adjustment.connect_value_changed(clone!(msg_entry => move |adj| {
+            adjustment.connect_value_changed(clone!(@strong msg_entry => move |adj| {
                 if msg_entry.get_allocated_height() < MAX_INPUT_HEIGHT {
                     adj.set_value(0.0);
                 }
@@ -56,13 +56,13 @@ impl App {
             attach::paste(op.clone());
         });
 
-        msg_entry.connect_focus_in_event(clone!(msg_entry_box => move |_, _| {
+        msg_entry.connect_focus_in_event(clone!(@strong msg_entry_box => move |_, _| {
             msg_entry_box.get_style_context().add_class("message-input-focused");
 
             Inhibit(false)
         }));
 
-        msg_entry.connect_focus_out_event(clone!(msg_entry_box => move |_, _| {
+        msg_entry.connect_focus_out_event(clone!(@strong msg_entry_box => move |_, _| {
             msg_entry_box.get_style_context().remove_class("message-input-focused");
 
             Inhibit(false)
