@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 
 use crate::i18n::i18n;
 
@@ -123,7 +123,7 @@ impl App {
             op.search_rooms();
         });
 
-        default_matrix_server_radio.connect_toggled(clone!(directory_choice_label, default_matrix_server_radio, protocol_combo, other_homeserver_url_entry => move |_| {
+        default_matrix_server_radio.connect_toggled(clone!(@strong directory_choice_label, @strong default_matrix_server_radio, @strong protocol_combo, @strong other_homeserver_url_entry => move |_| {
             if default_matrix_server_radio.get_active() {
                 protocol_combo.set_sensitive(false);
                 other_homeserver_url_entry.set_sensitive(false);
@@ -132,7 +132,7 @@ impl App {
             directory_choice_label.set_text(&i18n("Default Matrix Server"));
         }));
 
-        other_protocol_radio.connect_toggled(clone!(directory_choice_label, other_protocol_radio, protocol_combo, protocol_model, other_homeserver_url_entry => move |_| {
+        other_protocol_radio.connect_toggled(clone!(@strong directory_choice_label, @strong other_protocol_radio, @strong protocol_combo, @strong protocol_model, @strong other_homeserver_url_entry => move |_| {
             if other_protocol_radio.get_active() {
                 protocol_combo.set_sensitive(true);
                 other_homeserver_url_entry.set_sensitive(false);
@@ -151,7 +151,7 @@ impl App {
         }));
 
         protocol_combo.connect_changed(
-            clone!(directory_choice_label, protocol_combo, protocol_model => move |_| {
+            clone!(@strong directory_choice_label, @strong protocol_combo, @strong protocol_model => move |_| {
                 let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
                 let protocol: String = match protocol_model.iter_nth_child(None, active) {
                     Some(it) => {
@@ -166,7 +166,7 @@ impl App {
         );
 
         other_homeserver_radio.connect_toggled(
-            clone!(other_homeserver_radio, protocol_combo, other_homeserver_url_entry => move |_| {
+            clone!(@strong other_homeserver_radio, @strong protocol_combo, @strong other_homeserver_url_entry => move |_| {
                 if other_homeserver_radio.get_active() {
                     protocol_combo.set_sensitive(false);
                     other_homeserver_url_entry.set_sensitive(true);
@@ -175,7 +175,7 @@ impl App {
         );
 
         other_homeserver_url_entry.connect_changed(
-            clone!(directory_choice_label, other_homeserver_url => move |_| {
+            clone!(@strong directory_choice_label, @strong other_homeserver_url => move |_| {
                 directory_choice_label.set_text(&other_homeserver_url.get_text());
             }),
         );

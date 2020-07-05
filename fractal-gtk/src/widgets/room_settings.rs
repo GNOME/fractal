@@ -1,7 +1,7 @@
 use crate::backend::room;
-use crate::clone;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
+use glib::clone;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread;
@@ -128,7 +128,7 @@ impl RoomSettings {
         let this: Rc<RefCell<RoomSettings>> = Rc::new(RefCell::new(self.clone()));
 
         let button = name_btn.clone();
-        name_entry.connect_property_text_notify(clone!(this => move |w| {
+        name_entry.connect_property_text_notify(clone!(@strong this => move |w| {
             let result = this.borrow().validate_room_name(
                 w.get_text()
                     .map(|gstr| gstr.to_string())
@@ -137,7 +137,7 @@ impl RoomSettings {
         }));
 
         let button = topic_btn.clone();
-        topic_entry.connect_property_text_notify(clone!(this => move |w| {
+        topic_entry.connect_property_text_notify(clone!(@strong this => move |w| {
             let result = this.borrow().validate_room_topic(
                 w.get_text()
                     .map(|gstr| gstr.to_string())
@@ -151,7 +151,7 @@ impl RoomSettings {
             let _ = button.emit("clicked", &[]);
         });
 
-        name_btn.connect_clicked(clone!(this => move |_| {
+        name_btn.connect_clicked(clone!(@strong this => move |_| {
             this.borrow_mut().update_room_name();
         }));
 
@@ -160,7 +160,7 @@ impl RoomSettings {
             let _ = button.emit("clicked", &[]);
         });
 
-        topic_btn.connect_clicked(clone!(this => move |_| {
+        topic_btn.connect_clicked(clone!(@strong this => move |_| {
             this.borrow_mut().update_room_topic();
         }));
 

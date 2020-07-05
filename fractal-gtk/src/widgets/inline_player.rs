@@ -18,7 +18,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::backend::{media, ThreadPool};
-use crate::clone;
+use glib::clone;
 
 use gst::prelude::*;
 use gst::ClockTime;
@@ -407,7 +407,7 @@ impl VideoPlayerWidget {
                     are bigger than they should be. */
                     gtk::timeout_add(
                         50,
-                        clone!(bx, video_width, video_height => move || {
+                        clone!(@strong bx, @strong video_width, @strong video_height => move || {
                             adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
                             Continue(false)
                         }),
@@ -511,7 +511,7 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         let local_path = player.get_local_path_access();
         gtk::timeout_add(
             50,
-            clone!(player, bx => move || {
+            clone!(@strong player, @strong bx => move || {
                 match rx.try_recv() {
                     Err(TryRecvError::Empty) => Continue(true),
                     Err(TryRecvError::Disconnected) => {
@@ -591,12 +591,12 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
             let weak = Rc::downgrade(s);
 
             // Connect the play button to the gst Player.
-            s.get_controls().unwrap().buttons.play.connect_clicked(clone!(weak => move |_| {
+            s.get_controls().unwrap().buttons.play.connect_clicked(clone!(@strong weak => move |_| {
                 if let Some(p) = weak.upgrade() { p.play() }
             }));
 
             // Connect the pause button to the gst Player.
-            s.get_controls().unwrap().buttons.pause.connect_clicked(clone!(weak => move |_| {
+            s.get_controls().unwrap().buttons.pause.connect_clicked(clone!(@strong weak => move |_| {
                 if let Some(p) = weak.upgrade() { p.pause() }
             }));
         }
@@ -608,17 +608,17 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
             let weak = Fragile::new(Rc::downgrade(s));
 
             // Update the duration label and the slider
-            s.get_player().connect_duration_changed(clone!(weak => move |_, clock| {
+            s.get_player().connect_duration_changed(clone!(@strong weak => move |_, clock| {
                 if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_duration_changed(Duration(clock)) }
             }));
 
             // Update the position label and the slider
-            s.get_player().connect_position_updated(clone!(weak => move |_, clock| {
+            s.get_player().connect_position_updated(clone!(@strong weak => move |_, clock| {
                 if let Some(p) = weak.get().upgrade() { p.get_controls().unwrap().timer.on_position_updated(Position(clock)) }
             }));
 
             // Reset the slider to 0 and show a play button
-            s.get_player().connect_end_of_stream(clone!(weak => move |_| {
+            s.get_player().connect_end_of_stream(clone!(@strong weak => move |_| {
                 if let Some(p) = weak.get().upgrade() { p.stop() }
             }));
         }
@@ -660,7 +660,7 @@ fn create_controls(player: &gst_player::Player) -> PlayerControls {
 }
 
 fn connect_update_slider(slider: &gtk::Scale, player: &gst_player::Player) -> SignalHandlerId {
-    slider.connect_value_changed(clone!(player => move |slider| {
+    slider.connect_value_changed(clone!(@strong player => move |slider| {
         let value = slider.get_value() as u64;
         player.seek(ClockTime::from_seconds(value));
     }))

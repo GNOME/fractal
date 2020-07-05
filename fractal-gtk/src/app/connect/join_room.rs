@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -26,30 +26,30 @@ impl App {
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.");
 
-        cancel.connect_clicked(clone!(entry, dialog => move |_| {
+        cancel.connect_clicked(clone!(@strong entry, @strong dialog => move |_| {
             dialog.hide();
             entry.set_text("");
         }));
-        dialog.connect_delete_event(clone!(entry, dialog => move |_, _| {
+        dialog.connect_delete_event(clone!(@strong entry, @strong dialog => move |_, _| {
             dialog.hide();
             entry.set_text("");
             glib::signal::Inhibit(true)
         }));
 
         let op = self.op.clone();
-        confirm.connect_clicked(clone!(entry, dialog => move |_| {
+        confirm.connect_clicked(clone!(@strong entry, @strong dialog => move |_| {
             dialog.hide();
             op.lock().unwrap().join_to_room();
             entry.set_text("");
         }));
 
         let op = self.op.clone();
-        entry.connect_activate(clone!(dialog => move |entry| {
+        entry.connect_activate(clone!(@strong dialog => move |entry| {
             dialog.hide();
             op.lock().unwrap().join_to_room();
             entry.set_text("");
         }));
-        entry.connect_changed(clone!(confirm => move |entry| {
+        entry.connect_changed(clone!(@strong confirm => move |entry| {
                 confirm.set_sensitive(entry.get_buffer().get_length() > 0);
         }));
     }

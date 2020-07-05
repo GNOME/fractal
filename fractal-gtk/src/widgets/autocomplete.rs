@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -278,7 +278,7 @@ impl Autocomplete {
                                     own.borrow_mut().autocomplete_show_popover(list)
                                 };
                                 for (alias, widget) in widget_list.iter() {
-                                    widget.connect_button_press_event(clone!(own, alias => move |_, ev| {
+                                    widget.connect_button_press_event(clone!(@strong own, @strong alias => move |_, ev| {
                                         own.borrow_mut().autocomplete_insert(alias.clone());
                                         if ev.is::<gdk::EventKey>() {
                                             let ev = {

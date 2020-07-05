@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::app::App;
@@ -30,7 +30,7 @@ impl App {
                 }
             };
 
-            set.connect_property_gtk_decoration_layout_notify(clone!(right_header, left_header, set => move |_| {
+            set.connect_property_gtk_decoration_layout_notify(clone!(@strong right_header, @strong left_header, @strong set => move |_| {
                 if let Some(decor) = set.get_property_gtk_decoration_layout() {
                     let decor = decor.to_string();
                     let decor_split: Vec<String> = decor.splitn(2,':').map(|s| s.to_string()).collect();

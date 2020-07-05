@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use gtk::prelude::*;
 
 use glib::source::Continue;
@@ -25,17 +25,17 @@ impl App {
             .get_object::<gtk::Button>("invite_reject")
             .expect("Can't find invite_reject in ui file.");
 
-        reject.connect_clicked(clone!(dialog, op => move |_| {
+        reject.connect_clicked(clone!(@strong dialog, @strong op => move |_| {
             op.lock().unwrap().accept_inv(false);
             dialog.hide();
         }));
-        dialog.connect_delete_event(clone!(dialog, op => move |_, _| {
+        dialog.connect_delete_event(clone!(@strong dialog, @strong op => move |_, _| {
             op.lock().unwrap().accept_inv(false);
             dialog.hide();
             glib::signal::Inhibit(true)
         }));
 
-        accept.connect_clicked(clone!(dialog, op => move |_| {
+        accept.connect_clicked(clone!(@strong dialog, @strong op => move |_| {
             op.lock().unwrap().accept_inv(true);
             dialog.hide();
         }));
@@ -88,7 +88,7 @@ impl App {
         // this is used to cancel the timeout and not search for every key input. We'll wait 500ms
         // without key release event to launch the search
         let source_id: Arc<Mutex<Option<glib::source::SourceId>>> = Arc::new(Mutex::new(None));
-        invite_entry.connect_key_release_event(clone!(op => move |entry, _| {
+        invite_entry.connect_key_release_event(clone!(@strong op => move |entry, _| {
             {
                 let mut id = source_id.lock().unwrap();
                 if let Some(sid) = id.take() {
@@ -96,7 +96,7 @@ impl App {
                 }
             }
 
-            let sid = gtk::timeout_add(500, clone!(op, entry, source_id => move || {
+            let sid = gtk::timeout_add(500, clone!(@strong op, @strong entry, @strong source_id => move || {
                 if let Some(buffer) = entry.get_buffer() {
                     let start = buffer.get_start_iter();
                     let end = buffer.get_end_iter();
@@ -114,40 +114,44 @@ impl App {
             glib::signal::Inhibit(false)
         }));
 
-        invite_entry.connect_focus_in_event(clone!(op, invite_entry_box => move |_, _| {
-            invite_entry_box.get_style_context().add_class("message-input-focused");
+        invite_entry.connect_focus_in_event(
+            clone!(@strong op, @strong invite_entry_box => move |_, _| {
+                invite_entry_box.get_style_context().add_class("message-input-focused");
 
-            op.lock().unwrap().remove_invite_user_dialog_placeholder();
+                op.lock().unwrap().remove_invite_user_dialog_placeholder();
 
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
 
-        invite_entry.connect_focus_out_event(clone!(op, invite_entry_box => move |_, _| {
-            invite_entry_box.get_style_context().remove_class("message-input-focused");
+        invite_entry.connect_focus_out_event(
+            clone!(@strong op, @strong invite_entry_box => move |_, _| {
+                invite_entry_box.get_style_context().remove_class("message-input-focused");
 
-            op.lock().unwrap().set_invite_user_dialog_placeholder();
+                op.lock().unwrap().set_invite_user_dialog_placeholder();
 
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
 
         if let Some(buffer) = invite_entry.get_buffer() {
-            buffer.connect_delete_range(clone!( op => move |_, _, _| {
-                gtk::idle_add(clone!(op => move || {
+            buffer.connect_delete_range(clone!(@strong op => move |_, _, _| {
+                gtk::idle_add(clone!(@strong op => move || {
                     op.lock().unwrap().detect_removed_invite();
                     Continue(false)
                 }));
             }));
         }
 
-        dialog.connect_delete_event(clone!(op => move |_, _| {
+        dialog.connect_delete_event(clone!(@strong op => move |_, _| {
             op.lock().unwrap().close_invite_dialog();
             glib::signal::Inhibit(true)
         }));
-        cancel.connect_clicked(clone!(op => move |_| {
+        cancel.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().close_invite_dialog();
         }));
         invite.set_sensitive(false);
-        invite.connect_clicked(clone!(op => move |_| {
+        invite.connect_clicked(clone!(@strong op => move |_| {
             op.lock().unwrap().invite();
         }));
     }
