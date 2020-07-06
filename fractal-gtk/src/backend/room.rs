@@ -86,7 +86,7 @@ pub fn get_room_detail(
     let params = GetStateEventsForKeyParameters { access_token };
 
     let request = get_state_events_for_key(base, &params, &room_id, &keys)?;
-    let response: JsonValue = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: JsonValue = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let k = keys.split('.').last().ok_or(Error::BackendError)?;
     let value = response[&k].as_str().map(Into::into).unwrap_or_default();
@@ -105,7 +105,7 @@ pub fn get_room_avatar(
         .map_err(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
+                .get_client()
                 .execute(request)?
                 .json::<JsonValue>()?;
 
@@ -136,7 +136,7 @@ pub fn get_room_members(
     let params = JoinedMembersParameters { access_token };
 
     let request = get_joined_members(base, &room_id, &params)?;
-    let response: JoinedMembersResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: JoinedMembersResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let ms = response.joined.into_iter().map(Member::from).collect();
 
@@ -165,7 +165,7 @@ pub fn get_room_messages(
     };
 
     let request = get_messages_events(base, &params, &room_id)?;
-    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let prev_batch = response.end;
     let evs = response.chunk.iter().rev();
@@ -229,7 +229,7 @@ pub fn send_msg(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
+                .get_client()
                 .execute(request)?
                 .json::<CreateMessageEventResponse>()?;
 
@@ -248,7 +248,7 @@ pub fn send_typing(
     let body = TypingNotificationBody::Typing(Duration::from_secs(4));
 
     let request = send_typing_notification(base, &room_id, &user_id, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -272,7 +272,7 @@ pub fn redact_msg(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
-                .get_client()?
+                .get_client()
                 .execute(request)?
                 .json::<RedactEventResponse>()?;
 
@@ -290,7 +290,7 @@ pub fn join_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resul
     };
 
     let request = join_room_req(base, &room_id_or_alias_id, &params)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(room_id)
 }
@@ -299,7 +299,7 @@ pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resu
     let params = LeaveRoomParameters { access_token };
 
     let request = leave_room_req(base, &room_id, &params)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -318,7 +318,7 @@ pub fn mark_as_read(
     };
 
     let request = set_read_marker(base, &params, &body, &room_id)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok((room_id, event_id))
 }
@@ -336,7 +336,7 @@ pub fn set_room_name(
     });
 
     let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.name")?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -354,7 +354,7 @@ pub fn set_room_topic(
     });
 
     let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.topic")?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -373,7 +373,7 @@ pub fn set_room_avatar(
 
     let body = json!({ "url": upload_file_response.content_uri.as_str() });
     let request = create_state_events_for_key(base, &params, &body, &room_id, "m.room.avatar")?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -392,7 +392,7 @@ pub fn upload_file(
     let request = create_content(base, &params_upload, contents)?;
 
     HTTP_CLIENT
-        .get_client()?
+        .get_client()
         .execute(request)?
         .json()
         .map_err(Into::into)
@@ -425,7 +425,7 @@ pub fn new_room(
     };
 
     let request = create_room(base, &params, &body)?;
-    let response: CreateRoomResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: CreateRoomResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok(Room {
         name: Some(name),
@@ -445,7 +445,7 @@ fn update_direct_chats(
     };
 
     let request = get_global_account_data(base.clone(), &params, &user_id, "m.direct")?;
-    let response: JsonValue = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: JsonValue = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let mut directs = response
         .as_object()
@@ -471,7 +471,7 @@ fn update_direct_chats(
     let params = SetGlobalAccountDataParameters { access_token };
 
     let request = set_global_account_data(base, &params, &json!(directs), &user_id, "m.direct")?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -501,7 +501,7 @@ pub fn direct_chat(
     };
 
     let request = create_room(base.clone(), &params, &body)?;
-    let response: CreateRoomResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: CreateRoomResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let directs = update_direct_chats(
         base,
@@ -539,7 +539,7 @@ pub fn add_to_fav(
         delete_tag(base, &user_id, &room_id, "m.favourite", &params)
     }?;
 
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok((room_id, tofav))
 }
@@ -554,7 +554,7 @@ pub fn invite(
     let body = InviteUserBody { user_id };
 
     let request = invite_user(base, &room_id, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -580,7 +580,7 @@ pub fn set_language(
     )
     .map_err(Into::into)
     .and_then(|request| {
-        let _ = HTTP_CLIENT.get_client()?.execute(request)?;
+        let _ = HTTP_CLIENT.get_client().execute(request)?;
 
         Ok(())
     });
