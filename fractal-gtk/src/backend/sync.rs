@@ -181,7 +181,7 @@ pub fn sync(
 
     let query = ProxySettings::current().and_then(|proxy_settings| {
         let client = proxy_settings
-            .apply_to_client_builder(client_builder_timeout)?
+            .apply_to_client_builder(client_builder_timeout)
             .build()?;
         let request = sync_events(base.clone(), &params)?;
         let response = client.execute(request)?;

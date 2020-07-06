@@ -48,8 +48,7 @@ pub fn protocols(
 ) -> Result<Vec<ProtocolInstance>, DirectoryProtocolsError> {
     let params = SupportedProtocolsParameters { access_token };
     let request = get_supported_protocols(base, &params)?;
-    let response: SupportedProtocolsResponse =
-        HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: SupportedProtocolsResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok(response
         .into_iter()
@@ -117,7 +116,7 @@ pub fn room_search(
     };
 
     let request = post_public_rooms(base.clone(), &params, &body)?;
-    let response: PublicRoomsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: PublicRoomsResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let since = response.next_batch;
     let rooms = response
