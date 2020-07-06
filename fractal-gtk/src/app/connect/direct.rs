@@ -62,21 +62,25 @@ impl App {
                 }
             }
 
-            let sid = gtk::timeout_add(500, clone!(@strong op, @strong entry, @strong source_id => move || {
-                if let Some(buffer) = entry.get_buffer() {
-                    let start = buffer.get_start_iter();
-                    let end = buffer.get_end_iter();
+            let sid = gtk::timeout_add(500, clone!(
+                @strong op,
+                @strong entry,
+                @strong source_id
+                => move || {
+                    if let Some(buffer) = entry.get_buffer() {
+                        let start = buffer.get_start_iter();
+                        let end = buffer.get_end_iter();
 
-                    if let Some(text) =
-                        buffer.get_text(&start, &end, false).map(|gstr| gstr.to_string())
-                    {
-                        op.lock().unwrap().search_invite_user(text);
+                        if let Some(text) =
+                            buffer.get_text(&start, &end, false).map(|gstr| gstr.to_string())
+                        {
+                            op.lock().unwrap().search_invite_user(text);
+                        }
                     }
-                }
 
-                *(source_id.lock().unwrap()) = None;
-                Continue(false)
-            }));
+                    *(source_id.lock().unwrap()) = None;
+                    Continue(false)
+                }));
 
             *(source_id.lock().unwrap()) = Some(sid);
             glib::signal::Inhibit(false)

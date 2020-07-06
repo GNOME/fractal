@@ -6,6 +6,7 @@ use crate::cache::CacheMap;
 use chrono::prelude::*;
 use fractal_api::identifiers::UserId;
 use fractal_api::url::Url;
+use glib::clone;
 use gtk::{prelude::*, ButtonExt, ContainerExt, LabelExt, Overlay, WidgetExt};
 use std::cmp::max;
 use std::rc::Rc;
@@ -680,39 +681,36 @@ impl MessageBox {
     fn connect_right_click_menu(&self, msg: &Message, label: Option<&gtk::Label>) -> Option<()> {
         let mtype = msg.mtype;
         let redactable = msg.redactable;
-        let eventbox_weak = self.eventbox.downgrade();
         let widget = if let Some(l) = label {
             l.upcast_ref::<gtk::Widget>()
         } else {
             self.eventbox.upcast_ref::<gtk::Widget>()
         };
 
-        let evbox = eventbox_weak.clone();
+        let eventbox = &self.eventbox;
         let id = msg.id.clone();
-        widget.connect_button_press_event(move |w, e| {
-            if e.get_button() == 3 {
-                let eventbox = upgrade_weak!(evbox, gtk::Inhibit(false));
-                MessageMenu::new(id.as_ref(), &mtype, &redactable, Some(&eventbox), Some(w));
-                Inhibit(true)
-            } else {
-                Inhibit(false)
-            }
-        });
+        widget.connect_button_press_event(
+            clone!(@weak eventbox => @default-return Inhibit(false), move |w, e| {
+                if e.get_button() == 3 {
+                    MessageMenu::new(id.as_ref(), &mtype, &redactable, Some(&eventbox), Some(w));
+                    Inhibit(true)
+                } else {
+                    Inhibit(false)
+                }
+            }),
+        );
 
         let id = msg.id.clone();
-        let widget_weak = widget.downgrade();
-        self.gesture.connect_pressed(move |_, _, _| {
-            let eventbox = upgrade_weak!(eventbox_weak);
-            let widget = upgrade_weak!(widget_weak);
-
-            MessageMenu::new(
-                id.as_ref(),
-                &mtype,
-                &redactable,
-                Some(&eventbox),
-                Some(&widget),
-            );
-        });
+        self.gesture
+            .connect_pressed(clone!(@weak eventbox, @weak widget => move |_, _, _| {
+                MessageMenu::new(
+                    id.as_ref(),
+                    &mtype,
+                    &redactable,
+                    Some(&eventbox),
+                    Some(&widget),
+                );
+            }));
         None
     }
 

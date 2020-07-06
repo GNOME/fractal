@@ -171,17 +171,17 @@ impl RoomSettings {
                 .builder
                 .get_object::<gtk::Spinner>("room_settings_avatar_spinner")
                 .expect("Can't find room_settings_avatar_spinner in ui file.");
-            let spinner = avatar_spinner.downgrade();
-            avatar_btn.connect_property_sensitive_notify(move |w| {
-                let spinner = upgrade_weak!(spinner);
-                if w.get_sensitive() {
-                    spinner.hide();
-                    spinner.stop();
-                } else {
-                    spinner.start();
-                    spinner.show();
-                }
-            });
+            avatar_btn.connect_property_sensitive_notify(
+                clone!(@weak avatar_spinner as spinner => move |w| {
+                    if w.get_sensitive() {
+                        spinner.hide();
+                        spinner.stop();
+                    } else {
+                        spinner.start();
+                        spinner.show();
+                    }
+                }),
+            );
         }
     }
 

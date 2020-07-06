@@ -5,6 +5,7 @@ use std::rc::Rc;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::globals;
@@ -59,10 +60,7 @@ pub fn new(
     actions.add_action(&back);
     actions.add_action(&login);
 
-    let stack_weak = stack.downgrade();
-    create_account.connect_activate(move |_, _| {
-        let stack = upgrade_weak!(stack_weak);
-
+    create_account.connect_activate(clone!(@weak stack => move |_, _| {
         let toplevel = stack
             .get_toplevel()
             .expect("Could not grab toplevel widget")
@@ -73,31 +71,24 @@ pub fn new(
         {
             warn!("Could not show {}: {}", uri, e)
         }
-    });
+    }));
 
     let back_history: Rc<RefCell<Vec<LoginState>>> = Rc::new(RefCell::new(vec![]));
 
-    let back_weak = Rc::downgrade(&back_history);
-    let stack_weak = stack.downgrade();
-    server_chooser.connect_activate(move |_, _| {
-        let stack = upgrade_weak!(stack_weak);
-        let back = upgrade_weak!(back_weak);
+    server_chooser.connect_activate(
+        clone!(@weak stack, @weak back_history as back => move |_, _| {
+            let state = LoginState::ServerChooser;
+            stack.set_visible_child_name(&state.to_string());
+            back.borrow_mut().push(state);
+        }),
+    );
 
-        let state = LoginState::ServerChooser;
-        stack.set_visible_child_name(&state.to_string());
-        back.borrow_mut().push(state);
-    });
-
-    let back_weak = Rc::downgrade(&back_history);
-    let stack_weak = stack.downgrade();
-    let server_weak = server_entry.downgrade();
-    let err_weak = err_label.downgrade();
-    credentials.connect_activate(move |_, _| {
-        let stack = upgrade_weak!(stack_weak);
-        let back = upgrade_weak!(back_weak);
-        let server_entry = upgrade_weak!(server_weak);
-        let err_label = upgrade_weak!(err_weak);
-
+    credentials.connect_activate(clone!(
+    @weak stack,
+    @weak back_history as back,
+    @weak server_entry,
+    @weak err_label
+    => move |_, _| {
         if let Some(txt) = server_entry.get_text() {
             if txt.is_empty() {
                 err_label.show();
@@ -108,11 +99,9 @@ pub fn new(
                 back.borrow_mut().push(state);
             }
         }
-    });
+    }));
 
-    let stack_weak = stack.downgrade();
-    back.connect_activate(move |_, _| {
-        let stack = upgrade_weak!(stack_weak);
+    back.connect_activate(clone!(@weak stack => move |_, _| {
         back_history.borrow_mut().pop();
         if let Some(state) = back_history.borrow().last() {
             debug!("Go back to state {}", state.to_string());
@@ -121,7 +110,7 @@ pub fn new(
             debug!("There is no state to go back to. Go back to state greeter");
             stack.set_visible_child_name(&LoginState::Greeter.to_string());
         }
-    });
+    }));
 
     gio::Application::get_default().map(|app| {
         app.downcast::<gtk::Application>().map(|gtk_app| {

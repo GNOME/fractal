@@ -1,3 +1,4 @@
+use glib::clone;
 use glib::source::Continue;
 use gtk::prelude::*;
 use gtk::RevealerTransitionType;
@@ -42,27 +43,22 @@ impl NewMessageDivider {
         /* Self destruction
          * destroy the NewMessageDivider after it's added to the History with a couple of
          * seconds delay */
-        let revealer_weak = revealer.downgrade();
-        row.connect_parent_set(move |_, _| {
-            if let Some(revealer) = revealer_weak.upgrade() {
-                let revealer_weak = revealer.downgrade();
-                gtk::timeout_add(5000, move || {
+        row.connect_parent_set(clone!(@weak revealer => move |_, _| {
+            gtk::timeout_add(5000, clone!(
+                @weak revealer as r
+                => @default-return Continue(false), move || {
                     /* when the user closes the room the divider gets destroyed and this timeout
                      * does nothing, but that's fine */
-                    if let Some(r) = revealer_weak.upgrade() {
-                        r.set_reveal_child(false);
-                    }
+                    r.set_reveal_child(false);
                     Continue(false)
-                });
-            }
-        });
-        let row_weak = row.downgrade();
-        revealer.connect_property_child_revealed_notify(move |_| {
-            if let Some(r) = row_weak.upgrade() {
-                r.destroy();
-                remove_divider();
-            }
-        });
+                }));
+        }));
+        revealer.connect_property_child_revealed_notify(clone!(
+        @weak row as r
+        => move |_| {
+            r.destroy();
+            remove_divider();
+        }));
         NewMessageDivider {
             revealer,
             widget: row,

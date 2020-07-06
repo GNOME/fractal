@@ -21,8 +21,7 @@ pub fn new(fatal: bool, text: &str) {
     dialog.connect_response(move |dialog, _| {
         dialog.destroy();
 
-        if fatal {
-            let app = upgrade_weak!(app_weak);
+        if let (Some(app), true) = (app_weak.upgrade(), fatal) {
             app.quit();
         }
     });

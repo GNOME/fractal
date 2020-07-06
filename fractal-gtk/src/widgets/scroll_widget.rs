@@ -4,6 +4,7 @@ use std::rc::Rc;
 use fractal_api::identifiers::RoomId;
 use gio::Action;
 use gio::ActionExt;
+use glib::clone;
 use glib::source::Continue;
 use gtk::prelude::*;
 
@@ -151,61 +152,47 @@ impl ScrollWidget {
     /* Keep the same position if new messages are added */
     pub fn connect(&mut self, action: Option<Action>, room_id: RoomId) -> Option<()> {
         let adj = self.widgets.view.get_vadjustment()?;
-        let upper = Rc::downgrade(&self.upper);
-        let balance = Rc::downgrade(&self.balance);
-        let autoscroll = Rc::downgrade(&self.autoscroll);
-        let view = self.widgets.view.downgrade();
-        adj.connect_property_upper_notify(move |adj| {
-            let check = || -> Option<()> {
-                let view = view.upgrade()?;
-                let upper = upper.upgrade()?;
-                let balance = balance.upgrade()?;
-                let autoscroll = autoscroll.upgrade()?;
-                let new_upper = adj.get_upper();
-                let diff = new_upper - upper.get();
-                /* Don't do anything if upper didn't change */
-                if diff != 0.0 {
-                    upper.set(new_upper);
-                    /* Stay at the end of the room history when autoscroll is on */
-                    if autoscroll.get() {
-                        adj.set_value(adj.get_upper() - adj.get_page_size());
-                    } else if balance.take().map_or(false, |x| x == Position::Top) {
-                        adj.set_value(adj.get_value() + diff);
-                        view.set_kinetic_scrolling(true);
-                    }
+        let upper = &self.upper;
+        let balance = &self.balance;
+        let autoscroll = &self.autoscroll;
+        let view = &self.widgets.view;
+        adj.connect_property_upper_notify(clone!(
+        @weak view,
+        @weak upper,
+        @weak balance,
+        @weak autoscroll
+        => move |adj| {
+            let new_upper = adj.get_upper();
+            let diff = new_upper - upper.get();
+            /* Don't do anything if upper didn't change */
+            if diff != 0.0 {
+                upper.set(new_upper);
+                /* Stay at the end of the room history when autoscroll is on */
+                if autoscroll.get() {
+                    adj.set_value(adj.get_upper() - adj.get_page_size());
+                } else if balance.take().map_or(false, |x| x == Position::Top) {
+                    adj.set_value(adj.get_value() + diff);
+                    view.set_kinetic_scrolling(true);
                 }
-                Some(())
-            }();
-            debug_assert!(
-                check.is_some(),
-                "Upper notify callback couldn't acquire a strong pointer"
-            );
-        });
+            }
+        }));
 
-        let autoscroll = Rc::downgrade(&self.autoscroll);
+        let revealer = &self.widgets.btn_revealer;
         let request_sent = Rc::downgrade(&self.request_sent);
-        let revealer = self.widgets.btn_revealer.downgrade();
         let spinner = self.widgets.spinner.downgrade();
         let action_weak = action.map(|a| a.downgrade());
-        adj.connect_value_changed(move |adj| {
-            let check = || -> Option<()> {
-                let autoscroll = autoscroll.upgrade()?;
-                let r = revealer.upgrade()?;
-
-                let bottom = adj.get_upper() - adj.get_page_size();
-                if (adj.get_value() - bottom).abs() < std::f64::EPSILON {
-                    r.set_reveal_child(false);
-                    autoscroll.set(true);
-                } else {
-                    r.set_reveal_child(true);
-                    autoscroll.set(false);
-                }
-                Some(())
-            }();
-            debug_assert!(
-                check.is_some(),
-                "Value changed callback couldn't acquire a strong pointer"
-            );
+        adj.connect_value_changed(clone!(
+        @weak autoscroll,
+        @weak revealer as r
+        => move |adj| {
+            let bottom = adj.get_upper() - adj.get_page_size();
+            if (adj.get_value() - bottom).abs() < std::f64::EPSILON {
+                r.set_reveal_child(false);
+                autoscroll.set(true);
+            } else {
+                r.set_reveal_child(true);
+                autoscroll.set(false);
+            }
 
             let action_weak = action_weak.clone();
             let check = || -> Option<()> {
@@ -226,26 +213,17 @@ impl ScrollWidget {
                 Some(())
             }();
             debug_assert!(check.is_some(), "Can't request more messages");
-        });
+        }));
 
-        let autoscroll = Rc::downgrade(&self.autoscroll);
-        let revealer = self.widgets.btn_revealer.downgrade();
-        let scroll = self.widgets.view.downgrade();
-        self.widgets.button.connect_clicked(move |_| {
-            let check = || -> Option<()> {
-                let autoscroll = autoscroll.upgrade()?;
-                let r = revealer.upgrade()?;
-                let s = scroll.upgrade()?;
-                r.set_reveal_child(false);
-                autoscroll.set(true);
-                scroll_down(&s, true);
-                Some(())
-            }();
-            debug_assert!(
-                check.is_some(),
-                "Scroll down button onclick callback couldn't acquire a strong pointer"
-            );
-        });
+        self.widgets.button.connect_clicked(clone!(
+        @weak autoscroll,
+        @weak revealer as r,
+        @weak view as s
+        => move |_| {
+            r.set_reveal_child(false);
+            autoscroll.set(true);
+            scroll_down(&s, true);
+        }));
 
         None
     }
