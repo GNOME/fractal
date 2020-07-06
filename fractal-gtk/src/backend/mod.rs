@@ -105,7 +105,7 @@ pub fn get_prev_batch_from(
     };
 
     let request = get_context(base, &params, room_id, event_id)?;
-    let response: GetContextResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: GetContextResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
     let prev_batch = response.start.unwrap_or_default();
 
     Ok(prev_batch)
@@ -158,7 +158,7 @@ pub fn dw_media(
         Ok(fname)
     } else {
         HTTP_CLIENT
-            .get_client()?
+            .get_client()
             .execute(request)?
             .bytes()
             .collect::<Result<Vec<u8>, std::io::Error>>()

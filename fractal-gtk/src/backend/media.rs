@@ -92,7 +92,7 @@ fn get_room_media_list(
     };
 
     let request = get_messages_events_req(baseu, &params, room_id)?;
-    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: GetMessagesEventsResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let prev_batch = response.end.unwrap_or_default();
     let evs = response.chunk.iter().rev();
