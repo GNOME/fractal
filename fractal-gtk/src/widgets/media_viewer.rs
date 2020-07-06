@@ -26,6 +26,7 @@ use crate::widgets::message_menu::MessageMenu;
 use crate::widgets::ErrorDialog;
 use crate::widgets::PlayerExt;
 use crate::widgets::{MediaPlayer, VideoPlayerWidget};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
@@ -144,42 +145,6 @@ struct Data {
 }
 
 impl Data {
-    pub fn new(
-        server_url: Url,
-        access_token: AccessToken,
-        media_list: Vec<Message>,
-        current_media_index: usize,
-        main_window: gtk::Window,
-        builder: gtk::Builder,
-        uid: UserId,
-        admins: HashMap<UserId, i32>,
-    ) -> Data {
-        let is_fullscreen = main_window
-            .clone()
-            .get_window()
-            .unwrap()
-            .get_state()
-            .contains(gdk::WindowState::FULLSCREEN);
-        Data {
-            media_list,
-            current_media_index,
-            prev_batch: None,
-            loading_more_media: false,
-            loading_error: false,
-            no_more_media: false,
-            widget: Widget::None,
-            builder,
-            server_url,
-            access_token,
-            uid,
-            admins,
-            main_window,
-            signal_id: None,
-            is_fullscreen,
-            double_click_handler_id: None,
-        }
-    }
-
     pub fn enter_full_screen(&mut self, thread_pool: ThreadPool) {
         self.main_window.fullscreen();
         self.is_fullscreen = true;
@@ -650,17 +615,31 @@ impl MediaViewer {
             .position(|media| media.id == current_media_msg.id)
             .unwrap_or_default();
 
+        let is_fullscreen = main_window
+            .get_window()
+            .unwrap()
+            .get_state()
+            .contains(gdk::WindowState::FULLSCREEN);
+
         MediaViewer {
-            data: Rc::new(RefCell::new(Data::new(
-                server_url,
-                access_token,
+            data: Rc::new(RefCell::new(Data {
                 media_list,
                 current_media_index,
-                main_window,
-                builder.clone(),
+                prev_batch: None,
+                loading_more_media: false,
+                loading_error: false,
+                no_more_media: false,
+                widget: Widget::None,
+                builder: builder.clone(),
+                server_url,
+                access_token,
                 uid,
-                room.admins.clone(),
-            ))),
+                admins: room.admins.clone(),
+                main_window,
+                signal_id: None,
+                is_fullscreen,
+                double_click_handler_id: None,
+            })),
             builder,
         }
     }
@@ -766,21 +745,21 @@ impl MediaViewer {
             });
         self.data.borrow_mut().double_click_handler_id = Some(id);
 
-        let header_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
-        let nav_hovered: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+        let header_hovered: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+        let nav_hovered: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
         let ui = self.builder.clone();
         let headerbar_revealer = ui
             .get_object::<gtk::Revealer>("headerbar_revealer")
             .expect("Can't find headerbar_revealer in ui file.");
 
         headerbar_revealer.connect_enter_notify_event(clone!(header_hovered => move |_, _| {
-            *(header_hovered.lock().unwrap()) = true;
+            header_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
 
         headerbar_revealer.connect_leave_notify_event(clone!(header_hovered => move |_, _| {
-            *(header_hovered.lock().unwrap()) = false;
+            header_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -790,12 +769,12 @@ impl MediaViewer {
             .expect("Cant find previous_media_button in ui file.");
 
         previous_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = true;
+            nav_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
         previous_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = false;
+            nav_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -805,12 +784,12 @@ impl MediaViewer {
             .expect("Cant find next_media_button in ui file.");
 
         next_media_button.connect_enter_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = true;
+            nav_hovered.store(true, Ordering::SeqCst);
 
             Inhibit(false)
         }));
         next_media_button.connect_leave_notify_event(clone!(nav_hovered => move |_, _| {
-            *(nav_hovered.lock().unwrap()) = false;
+            nav_hovered.store(false, Ordering::SeqCst);
 
             Inhibit(false)
         }));
@@ -859,13 +838,13 @@ impl MediaViewer {
                         .get_popover()
                         .filter(|p| p.get_visible())
                         .is_some();
-                            if !*header_hovered.lock().unwrap() && !menu_popover_is_visible {
+                            if !header_hovered.load(Ordering::SeqCst) && !menu_popover_is_visible {
                                 let headerbar_revealer = ui
                                     .get_object::<gtk::Revealer>("headerbar_revealer")
                                     .expect("Can't find headerbar_revealer in ui file.");
                                 headerbar_revealer.set_reveal_child(false);
                             }
-                        if !*nav_hovered.lock().unwrap() {
+                        if !nav_hovered.load(Ordering::SeqCst) {
                             let previous_media_revealer = ui
                                 .get_object::<gtk::Revealer>("previous_media_revealer")
                                 .expect("Cant find previous_media_revealer in ui file.");
@@ -1024,10 +1003,7 @@ fn load_more_media(thread_pool: ThreadPool, data: Rc<RefCell<Data>>, builder: gt
     let server_url = data.borrow().server_url.clone();
     let access_token = data.borrow().access_token.clone();
 
-    let (tx, rx): (
-        Sender<(Vec<Message>, String)>,
-        Receiver<(Vec<Message>, String)>,
-    ) = channel();
+    let (tx, rx): (Sender<media::MediaList>, Receiver<media::MediaList>) = channel();
     media::get_media_list_async(
         thread_pool.clone(),
         server_url,

@@ -15,7 +15,6 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
-use crate::error::Error;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]
@@ -260,10 +259,7 @@ impl Image {
     pub fn load_async(&self, thread_pool: ThreadPool) {
         if self.path.starts_with("mxc:") {
             // asyn load
-            let (tx, rx): (
-                Sender<Result<String, Error>>,
-                Receiver<Result<String, Error>>,
-            ) = channel();
+            let (tx, rx): (Sender<media::MediaResult>, Receiver<media::MediaResult>) = channel();
             let command = if self.thumb {
                 media::get_thumb_async
             } else {

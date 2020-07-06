@@ -61,7 +61,7 @@ impl AppOp {
             String::new()
         };
 
-        let (tx, rx): (Sender<(String, String)>, Receiver<(String, String)>) = channel();
+        let (tx, rx): (Sender<user::UserInfo>, Receiver<user::UserInfo>) = channel();
         user::get_user_info_async(
             self.thread_pool.clone(),
             self.user_info_cache.clone(),

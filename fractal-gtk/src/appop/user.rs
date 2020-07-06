@@ -104,7 +104,7 @@ impl AppOp {
         }
 
         let eb = gtk::EventBox::new();
-        match login_data.avatar.clone() {
+        match login_data.avatar {
             Some(_) => {
                 let w = widgets::Avatar::avatar_new(Some(24));
                 let data = w.circle(
@@ -118,7 +118,7 @@ impl AppOp {
                     self.thread_pool.clone(),
                     self.user_info_cache.clone(),
                     login_data.server_url.clone(),
-                    login_data.uid.clone(),
+                    login_data.uid,
                     data,
                 );
 

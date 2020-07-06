@@ -68,6 +68,8 @@ use fractal_api::r0::ThreePIDCredentials;
 
 use super::{dw_media, ContentType};
 
+pub type UserInfo = (String, String);
+
 pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, Error> {
     let request = get_display_name(base, &uid)?;
     let response: GetDisplayNameResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
@@ -320,7 +322,7 @@ pub fn get_user_info_async(
     user_info_cache: Arc<Mutex<CacheMap<UserId, (String, String)>>>,
     baseu: Url,
     uid: UserId,
-    tx: Sender<(String, String)>,
+    tx: Sender<UserInfo>,
 ) {
     if let Some(info) = user_info_cache.lock().unwrap().get(&uid).cloned() {
         thread::spawn(move || {

@@ -31,7 +31,7 @@ impl RoomRow {
             gtk::Image::new_from_icon_name(Some("avatar-default-symbolic"), gtk::IconSize::Menu);
         direct.get_style_context().add_class("direct-chat");
 
-        let text = gtk::Label::new(Some(name.clone().as_str()));
+        let text = gtk::Label::new(Some(name.as_str()));
         text.set_valign(gtk::Align::Start);
         text.set_halign(gtk::Align::Start);
         text.set_ellipsize(pango::EllipsizeMode::End);
