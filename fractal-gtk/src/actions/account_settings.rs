@@ -1,4 +1,4 @@
-use crate::backend::user;
+use crate::backend::{user, HandleError};
 use crate::i18n::i18n;
 use fractal_api::identifiers::UserId;
 use fractal_api::r0::AccessToken;
@@ -8,9 +8,7 @@ use gio::SimpleAction;
 use gio::SimpleActionGroup;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
-use crate::error::BKError;
 
 use crate::widgets::FileDialog::open;
 
@@ -47,7 +45,7 @@ pub fn new(
                         APPOP!(show_new_avatar, (path));
                     }
                     Err(err) => {
-                        dispatch_error(BKError::SetUserAvatarError(err));
+                        err.handle_error();
                     }
                 }
             });

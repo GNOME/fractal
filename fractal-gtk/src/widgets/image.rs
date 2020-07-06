@@ -1,5 +1,4 @@
-use crate::backend::media;
-use crate::backend::ThreadPool;
+use crate::backend::{media, ThreadPool};
 use fractal_api::url::Url;
 use gdk::prelude::GdkContextExt;
 use gdk_pixbuf::Pixbuf;
@@ -12,10 +11,9 @@ use gtk::DrawingArea;
 use log::error;
 use std::path::Path;
 use std::sync::mpsc::channel;
+use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
-
-use std::sync::mpsc::TryRecvError;
 
 #[derive(Clone, Debug)]
 pub struct Image {

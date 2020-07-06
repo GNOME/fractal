@@ -12,6 +12,7 @@ use std::time::Duration;
 use crate::error::Error;
 use crate::globals;
 
+use crate::actions::AppState;
 use crate::backend::HTTP_CLIENT;
 use crate::util::cache_dir_path;
 
@@ -75,14 +76,30 @@ use fractal_api::r0::AccessToken;
 
 use serde_json::Value as JsonValue;
 
-use super::{dw_media, get_prev_batch_from, ContentType};
+use super::{
+    dw_media, get_prev_batch_from, remove_matrix_access_token_if_present, ContentType, HandleError,
+};
+use crate::app::App;
+use crate::i18n::i18n;
+use crate::APPOP;
+
+#[derive(Debug)]
+pub struct RoomDetailError(Error);
+
+impl<T: Into<Error>> From<T> for RoomDetailError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for RoomDetailError {}
 
 pub fn get_room_detail(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     keys: String,
-) -> Result<(RoomId, String, String), Error> {
+) -> Result<(RoomId, String, String), RoomDetailError> {
     let params = GetStateEventsForKeyParameters { access_token };
 
     let request = get_state_events_for_key(base, &params, &room_id, &keys)?;
@@ -94,11 +111,22 @@ pub fn get_room_detail(
     Ok((room_id, keys, value))
 }
 
+#[derive(Debug)]
+pub struct RoomAvatarError(Error);
+
+impl<T: Into<Error>> From<T> for RoomAvatarError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for RoomAvatarError {}
+
 pub fn get_room_avatar(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
-) -> Result<(RoomId, Option<Url>), Error> {
+) -> Result<(RoomId, Option<Url>), RoomAvatarError> {
     let params = GetStateEventsForKeyParameters { access_token };
 
     get_state_events_for_key(base.clone(), &params, &room_id, "m.room.avatar")
@@ -126,13 +154,25 @@ pub fn get_room_avatar(
             Error::MatrixError(errcode, _) if errcode == "M_NOT_FOUND" => Ok((room_id, None)),
             error => Err(error),
         })
+        .map_err(Into::into)
 }
+
+#[derive(Debug)]
+pub struct RoomMembersError(Error);
+
+impl<T: Into<Error>> From<T> for RoomMembersError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for RoomMembersError {}
 
 pub fn get_room_members(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
-) -> Result<(RoomId, Vec<Member>), Error> {
+) -> Result<(RoomId, Vec<Member>), RoomMembersError> {
     let params = JoinedMembersParameters { access_token };
 
     let request = get_joined_members(base, &room_id, &params)?;
@@ -143,6 +183,17 @@ pub fn get_room_members(
     Ok((room_id, ms))
 }
 
+#[derive(Debug)]
+pub struct RoomMessagesToError(Error);
+
+impl<T: Into<Error>> From<T> for RoomMessagesToError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for RoomMessagesToError {}
+
 /* Load older messages starting by prev_batch
  * https://matrix.org/docs/spec/client_server/latest.html#get-matrix-client-r0-rooms-roomid-messages
  */
@@ -151,7 +202,7 @@ pub fn get_room_messages(
     access_token: AccessToken,
     room_id: RoomId,
     from: String,
-) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
+) -> Result<(Vec<Message>, RoomId, Option<String>), RoomMessagesToError> {
     let params = GetMessagesEventsParams {
         access_token,
         from,
@@ -179,7 +230,7 @@ pub fn get_room_messages_from_msg(
     access_token: AccessToken,
     room_id: RoomId,
     msg: Message,
-) -> Result<(Vec<Message>, RoomId, Option<String>), Error> {
+) -> Result<(Vec<Message>, RoomId, Option<String>), RoomMessagesToError> {
     let event_id = msg.id.as_ref().ok_or(Error::BackendError)?;
 
     // first of all, we calculate the from param using the context api, then we call the
@@ -189,11 +240,21 @@ pub fn get_room_messages_from_msg(
     get_room_messages(base, access_token, room_id, from)
 }
 
+#[derive(Debug)]
+pub struct SendMsgError(String);
+
+impl HandleError for SendMsgError {
+    fn handle_error(&self) {
+        error!("sending {}: retrying send", self.0);
+        APPOP!(retry_send);
+    }
+}
+
 pub fn send_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(String, Option<EventId>), Error> {
+) -> Result<(String, Option<EventId>), SendMsgError> {
     let room_id: RoomId = msg.room.clone();
 
     let params = CreateMessageEventParameters { access_token };
@@ -235,15 +296,26 @@ pub fn send_msg(
 
             Ok((txn_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgError(txn_id)))
+        .or(Err(SendMsgError(txn_id)))
 }
+
+#[derive(Debug)]
+pub struct SendTypingError(Error);
+
+impl<T: Into<Error>> From<T> for SendTypingError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for SendTypingError {}
 
 pub fn send_typing(
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
     room_id: RoomId,
-) -> Result<(), Error> {
+) -> Result<(), SendTypingError> {
     let params = TypingNotificationParameters { access_token };
     let body = TypingNotificationBody::Typing(Duration::from_secs(4));
 
@@ -253,14 +325,24 @@ pub fn send_typing(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct SendMsgRedactionError;
+
+impl HandleError for SendMsgRedactionError {
+    fn handle_error(&self) {
+        let error = i18n("Error deleting message");
+        APPOP!(show_error, (error));
+    }
+}
+
 pub fn redact_msg(
     base: Url,
     access_token: AccessToken,
     msg: Message,
-) -> Result<(EventId, Option<EventId>), Error> {
+) -> Result<(EventId, Option<EventId>), SendMsgRedactionError> {
     let room_id = &msg.room;
     let txn_id = msg.get_txn_id();
-    let event_id = msg.id.clone().ok_or(Error::BackendError)?;
+    let event_id = msg.id.clone().ok_or(SendMsgRedactionError)?;
 
     let params = RedactEventParameters { access_token };
 
@@ -278,10 +360,37 @@ pub fn redact_msg(
 
             Ok((event_id.clone(), response.event_id))
         })
-        .or(Err(Error::SendMsgRedactionError(event_id)))
+        .or(Err(SendMsgRedactionError))
 }
 
-pub fn join_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<RoomId, Error> {
+#[derive(Debug)]
+pub struct JoinRoomError(Error);
+
+impl<T: Into<Error>> From<T> for JoinRoomError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for JoinRoomError {
+    fn handle_error(&self) {
+        let err_str = format!("{:?}", self);
+        error!(
+            "{}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        let error = i18n("Can’t join the room, try again.").to_string();
+        let state = AppState::NoRoom;
+        APPOP!(show_error, (error));
+        APPOP!(set_state, (state));
+    }
+}
+
+pub fn join_room(
+    base: Url,
+    access_token: AccessToken,
+    room_id: RoomId,
+) -> Result<RoomId, JoinRoomError> {
     let room_id_or_alias_id = room_id.clone().into();
 
     let params = JoinRoomParameters {
@@ -295,7 +404,22 @@ pub fn join_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resul
     Ok(room_id)
 }
 
-pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Result<(), Error> {
+#[derive(Debug)]
+pub struct LeaveRoomError(Error);
+
+impl<T: Into<Error>> From<T> for LeaveRoomError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for LeaveRoomError {}
+
+pub fn leave_room(
+    base: Url,
+    access_token: AccessToken,
+    room_id: RoomId,
+) -> Result<(), LeaveRoomError> {
     let params = LeaveRoomParameters { access_token };
 
     let request = leave_room_req(base, &room_id, &params)?;
@@ -304,12 +428,23 @@ pub fn leave_room(base: Url, access_token: AccessToken, room_id: RoomId) -> Resu
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct MarkedAsReadError(Error);
+
+impl<T: Into<Error>> From<T> for MarkedAsReadError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for MarkedAsReadError {}
+
 pub fn mark_as_read(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     event_id: EventId,
-) -> Result<(RoomId, EventId), Error> {
+) -> Result<(RoomId, EventId), MarkedAsReadError> {
     let params = SetReadMarkerParameters { access_token };
 
     let body = SetReadMarkerBody {
@@ -322,13 +457,23 @@ pub fn mark_as_read(
 
     Ok((room_id, event_id))
 }
+#[derive(Debug)]
+pub struct SetRoomNameError(Error);
+
+impl<T: Into<Error>> From<T> for SetRoomNameError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for SetRoomNameError {}
 
 pub fn set_room_name(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     name: String,
-) -> Result<(), Error> {
+) -> Result<(), SetRoomNameError> {
     let params = CreateStateEventsForKeyParameters { access_token };
 
     let body = json!({
@@ -341,12 +486,23 @@ pub fn set_room_name(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct SetRoomTopicError(Error);
+
+impl<T: Into<Error>> From<T> for SetRoomTopicError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for SetRoomTopicError {}
+
 pub fn set_room_topic(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     topic: String,
-) -> Result<(), Error> {
+) -> Result<(), SetRoomTopicError> {
     let params = CreateStateEventsForKeyParameters { access_token };
 
     let body = json!({
@@ -359,12 +515,29 @@ pub fn set_room_topic(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct SetRoomAvatarError(Error);
+
+impl<T: Into<Error>> From<T> for SetRoomAvatarError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl From<AttachedFileError> for SetRoomAvatarError {
+    fn from(err: AttachedFileError) -> Self {
+        Self(err.0)
+    }
+}
+
+impl HandleError for SetRoomAvatarError {}
+
 pub fn set_room_avatar(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     avatar: String,
-) -> Result<(), Error> {
+) -> Result<(), SetRoomAvatarError> {
     let params = CreateStateEventsForKeyParameters {
         access_token: access_token.clone(),
     };
@@ -378,11 +551,31 @@ pub fn set_room_avatar(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct AttachedFileError(Error);
+
+impl<T: Into<Error>> From<T> for AttachedFileError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for AttachedFileError {
+    fn handle_error(&self) {
+        let err_str = format!("{:?}", self);
+        error!(
+            "attaching {}: retrying send",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+        APPOP!(retry_send);
+    }
+}
+
 pub fn upload_file(
     base: Url,
     access_token: AccessToken,
     fname: &str,
-) -> Result<CreateContentResponse, Error> {
+) -> Result<CreateContentResponse, AttachedFileError> {
     let params_upload = CreateContentParameters {
         access_token,
         filename: None,
@@ -404,12 +597,36 @@ pub enum RoomType {
     Private,
 }
 
+#[derive(Debug)]
+pub struct NewRoomError(Error);
+
+impl<T: Into<Error>> From<T> for NewRoomError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for NewRoomError {
+    fn handle_error(&self) {
+        let err_str = format!("{:?}", self);
+        error!(
+            "{}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+
+        let error = i18n("Can’t create the room, try again");
+        let state = AppState::NoRoom;
+        APPOP!(show_error, (error));
+        APPOP!(set_state, (state));
+    }
+}
+
 pub fn new_room(
     base: Url,
     access_token: AccessToken,
     name: String,
     privacy: RoomType,
-) -> Result<Room, Error> {
+) -> Result<Room, NewRoomError> {
     let params = CreateRoomParameters { access_token };
 
     let (visibility, preset) = match privacy {
@@ -481,7 +698,7 @@ pub fn direct_chat(
     access_token: AccessToken,
     user_id: UserId,
     user: Member,
-) -> Result<Room, Error> {
+) -> Result<Room, NewRoomError> {
     let params = CreateRoomParameters {
         access_token: access_token.clone(),
     };
@@ -513,7 +730,7 @@ pub fn direct_chat(
 
     if let Err(err) = directs {
         error!("Can't set m.direct: {:?}", err);
-        return Err(err);
+        return Err(NewRoomError(err));
     }
 
     Ok(Room {
@@ -523,13 +740,24 @@ pub fn direct_chat(
     })
 }
 
+#[derive(Debug)]
+pub struct AddedToFavError(Error);
+
+impl<T: Into<Error>> From<T> for AddedToFavError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for AddedToFavError {}
+
 pub fn add_to_fav(
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
     room_id: RoomId,
     tofav: bool,
-) -> Result<(RoomId, bool), Error> {
+) -> Result<(RoomId, bool), AddedToFavError> {
     let request = if tofav {
         let params = CreateTagParameters { access_token };
         let body = CreateTagBody { order: Some(0.5) };
@@ -544,12 +772,23 @@ pub fn add_to_fav(
     Ok((room_id, tofav))
 }
 
+#[derive(Debug)]
+pub struct InviteError(Error);
+
+impl<T: Into<Error>> From<T> for InviteError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for InviteError {}
+
 pub fn invite(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
     user_id: UserId,
-) -> Result<(), Error> {
+) -> Result<(), InviteError> {
     let params = InviteUserParameters { access_token };
     let body = InviteUserBody { user_id };
 
@@ -559,13 +798,32 @@ pub fn invite(
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct ChangeLanguageError(Error);
+
+impl<T: Into<Error>> From<T> for ChangeLanguageError {
+    fn from(err: T) -> Self {
+        Self(err.into())
+    }
+}
+
+impl HandleError for ChangeLanguageError {
+    fn handle_error(&self) {
+        let err_str = format!("{:?}", self);
+        error!(
+            "Error forming url to set room language: {}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+    }
+}
+
 pub fn set_language(
     access_token: AccessToken,
     base: Url,
     user_id: UserId,
     room_id: RoomId,
     input_language: String,
-) -> Result<(), Error> {
+) -> Result<(), ChangeLanguageError> {
     let params = SetRoomAccountDataParameters { access_token };
 
     let body = json!(Language { input_language });

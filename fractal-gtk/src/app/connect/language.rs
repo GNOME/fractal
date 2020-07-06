@@ -1,8 +1,5 @@
-use crate::app::dispatch_error;
 use crate::app::App;
-use crate::error::BKError;
-
-use crate::backend::room;
+use crate::backend::{room, HandleError};
 use glib::object::Cast;
 use gtk::prelude::*;
 use std::thread;
@@ -37,7 +34,7 @@ impl App {
                             thread::spawn(move || {
                                 let query = room::set_language(access_token, server, uid, room_id, lang_code);
                                 if let Err(err) = query {
-                                    dispatch_error(BKError::ChangeLanguageError(err));
+                                    err.handle_error();
                                 }
                             });
                         }

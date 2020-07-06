@@ -13,8 +13,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use crate::actions::AppState;
-use crate::app::dispatch_error;
-use crate::error::BKError;
+use crate::backend::HandleError;
 use crate::i18n::i18n;
 use crate::types::Message;
 use crate::uibuilder::UI;
@@ -130,7 +129,7 @@ pub fn new(
                             .expect("failed to execute process");
                     }
                     Err(err) => {
-                        dispatch_error(BKError::MediaError(err));
+                        err.handle_error()
                     }
                 }
             });
@@ -247,7 +246,7 @@ pub fn new(
             thread::spawn(move || {
                 let query = room::redact_msg(server, access_token, msg);
                 if let Err(err) = query {
-                    dispatch_error(BKError::SentMsgRedactionError(err));
+                    err.handle_error();
                 }
             });
         }
@@ -281,7 +280,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.handle_error();
                 }
             }
         });
@@ -293,7 +292,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.handle_error();
                 }
             }
         });
@@ -305,7 +304,7 @@ fn request_more_messages(
                     APPOP!(show_room_messages_top, (msgs, room, prev_batch));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::RoomMessagesToError(err));
+                    err.handle_error();
                 }
             },
         );

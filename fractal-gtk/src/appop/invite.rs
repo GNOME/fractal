@@ -5,12 +5,10 @@ use fractal_api::identifiers::{RoomId, UserId};
 use gtk::prelude::*;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::member::SearchType;
 use crate::appop::AppOp;
-
-use crate::error::BKError;
+use crate::backend::HandleError;
 
 use crate::globals;
 
@@ -174,7 +172,7 @@ impl AppOp {
                 thread::spawn(move || {
                     let query = room::invite(server, access_token, room_id, user_id);
                     if let Err(err) = query {
-                        dispatch_error(BKError::InviteError(err));
+                        err.handle_error();
                     }
                 });
             }
@@ -237,7 +235,7 @@ impl AppOp {
                             APPOP!(reload_rooms);
                         }
                         Err(err) => {
-                            dispatch_error(BKError::JoinRoomError(err));
+                            err.handle_error();
                         }
                     }
                 });
@@ -246,7 +244,7 @@ impl AppOp {
                     let query =
                         room::leave_room(login_data.server_url, login_data.access_token, room_id);
                     if let Err(err) = query {
-                        dispatch_error(BKError::LeaveRoomError(err));
+                        err.handle_error();
                     }
                 });
             }

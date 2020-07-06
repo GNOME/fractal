@@ -6,12 +6,11 @@ use fractal_api::r0::AccessToken;
 
 use fractal_api::url::Url;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
+use crate::backend::HandleError;
 use crate::cache;
-use crate::error::BKError;
 
 use std::thread;
 
@@ -85,7 +84,7 @@ impl AppOp {
                     APPOP!(bk_login, (uid, tk, dev, server, identity));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::LoginError(err));
+                    err.handle_error();
                 }
             },
         );
@@ -103,7 +102,7 @@ impl AppOp {
                     APPOP!(bk_logout);
                 }
                 Err(err) => {
-                    dispatch_error(BKError::LogoutError(err));
+                    err.handle_error();
                 }
             }
         });

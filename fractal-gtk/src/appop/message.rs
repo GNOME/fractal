@@ -1,4 +1,4 @@
-use crate::backend::room;
+use crate::backend::{room, HandleError};
 use crate::clone;
 use crate::types::ExtraContent;
 use comrak::{markdown_to_html, ComrakOptions};
@@ -19,12 +19,10 @@ use std::fs;
 use std::path::PathBuf;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::appop::room::Force;
 use crate::appop::AppOp;
 use crate::App;
 
-use crate::error::BKError;
 use crate::uitypes::MessageContent;
 use crate::uitypes::RowType;
 use crate::widgets;
@@ -169,7 +167,7 @@ impl AppOp {
                         APPOP!(clear_room_notifications, (r));
                     }
                     Err(err) => {
-                        dispatch_error(BKError::MarkedAsReadError(err));
+                        err.handle_error();
                     }
                 }
             });
@@ -227,7 +225,7 @@ impl AppOp {
                                 APPOP!(sync, (initial, number_tries));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::SentMsgError(err));
+                                err.handle_error();
                             }
                         }
                     });
@@ -671,7 +669,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
                 msg.extra_content = serde_json::to_value(&extra_content).ok();
             }
             Err(err) => {
-                dispatch_error(BKError::AttachedFileError(err));
+                err.handle_error();
             }
         }
 
@@ -692,7 +690,7 @@ fn attach_file(baseu: Url, tk: AccessToken, mut msg: Message) {
             APPOP!(attached_file, (msg));
         }
         Err(err) => {
-            dispatch_error(BKError::AttachedFileError(err));
+            err.handle_error();
         }
     };
 }
@@ -706,7 +704,7 @@ fn send_msg_and_manage(baseu: Url, tk: AccessToken, msg: Message) {
             APPOP!(sync, (initial, number_tries));
         }
         Err(err) => {
-            dispatch_error(BKError::SentMsgError(err));
+            err.handle_error();
         }
     };
 }

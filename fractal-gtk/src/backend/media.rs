@@ -1,3 +1,4 @@
+use super::MediaError;
 use crate::error::Error;
 use crate::globals;
 use fractal_api::identifiers::{EventId, RoomId};
@@ -17,7 +18,7 @@ use fractal_api::r0::message::get_message_events::Response as GetMessagesEventsR
 
 use super::{dw_media, get_prev_batch_from, ContentType, ThreadPool};
 
-pub type MediaResult = Result<String, Error>;
+pub type MediaResult = Result<String, MediaError>;
 pub type MediaList = (Vec<Message>, String);
 
 pub fn get_thumb_async(

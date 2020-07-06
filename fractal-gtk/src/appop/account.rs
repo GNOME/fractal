@@ -4,12 +4,11 @@ use log::info;
 use std::path::PathBuf;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 use crate::appop::AppState;
+use crate::backend::HandleError;
 
-use crate::error::BKError;
 use crate::i18n::i18n;
 use crate::widgets;
 use crate::widgets::AvatarExt;
@@ -34,7 +33,7 @@ impl AppOp {
                     APPOP!(set_three_pid, (l));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::GetThreePIDError(err));
+                    err.handle_error();
                 }
             }
         });
@@ -60,7 +59,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            dispatch_error(BKError::AddThreePIDError(err));
+                            err.handle_error();
                         }
                     }
                 });
@@ -127,7 +126,7 @@ impl AppOp {
                                 APPOP!(valid_phone_token, (sid, secret));
                             }
                             Err(err) => {
-                                dispatch_error(BKError::SubmitPhoneTokenError(err));
+                                err.handle_error();
                             }
                         }
                     });
@@ -175,7 +174,7 @@ impl AppOp {
                             APPOP!(added_three_pid);
                         }
                         Err(err) => {
-                            dispatch_error(BKError::AddThreePIDError(err));
+                            err.handle_error();
                         }
                     }
                 });
@@ -618,7 +617,7 @@ impl AppOp {
                         APPOP!(show_new_username, (u));
                     }
                     Err(err) => {
-                        dispatch_error(BKError::SetUserNameError(err));
+                        err.handle_error();
                     }
                 }
             });
@@ -689,7 +688,7 @@ impl AppOp {
                                 APPOP!(password_changed);
                             }
                             Err(err) => {
-                                dispatch_error(BKError::ChangePasswordError(err));
+                                err.handle_error();
                             }
                         }
                     });
@@ -805,7 +804,7 @@ impl AppOp {
                                 APPOP!(account_destruction_logoff);
                             }
                             Err(err) => {
-                                dispatch_error(BKError::AccountDestructionError(err));
+                                err.handle_error();
                             }
                         }
                     });

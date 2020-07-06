@@ -20,9 +20,32 @@ use fractal_api::r0::thirdparty::get_supported_protocols::ProtocolInstance;
 use fractal_api::r0::thirdparty::get_supported_protocols::Response as SupportedProtocolsResponse;
 use fractal_api::r0::AccessToken;
 
-use super::{dw_media, ContentType};
+use super::{dw_media, ContentType, HandleError};
+use crate::app::App;
+use crate::i18n::i18n;
+use crate::APPOP;
 
-pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolInstance>, Error> {
+#[derive(Debug)]
+pub struct DirectoryProtocolsError;
+
+impl<T: Into<Error>> From<T> for DirectoryProtocolsError {
+    fn from(_: T) -> Self {
+        Self
+    }
+}
+
+impl HandleError for DirectoryProtocolsError {
+    fn handle_error(&self) {
+        let error = i18n("Error searching for rooms");
+        APPOP!(reset_directory_state);
+        APPOP!(show_error, (error));
+    }
+}
+
+pub fn protocols(
+    base: Url,
+    access_token: AccessToken,
+) -> Result<Vec<ProtocolInstance>, DirectoryProtocolsError> {
     let params = SupportedProtocolsParameters { access_token };
     let request = get_supported_protocols(base, &params)?;
     let response: SupportedProtocolsResponse =
@@ -34,6 +57,23 @@ pub fn protocols(base: Url, access_token: AccessToken) -> Result<Vec<ProtocolIns
         .collect())
 }
 
+#[derive(Debug)]
+pub struct DirectorySearchError;
+
+impl<T: Into<Error>> From<T> for DirectorySearchError {
+    fn from(_: T) -> Self {
+        Self
+    }
+}
+
+impl HandleError for DirectorySearchError {
+    fn handle_error(&self) {
+        let error = i18n("Error searching for rooms");
+        APPOP!(reset_directory_state);
+        APPOP!(show_error, (error));
+    }
+}
+
 pub fn room_search(
     base: Url,
     access_token: AccessToken,
@@ -41,7 +81,7 @@ pub fn room_search(
     generic_search_term: String,
     third_party: String,
     rooms_since: Option<String>,
-) -> Result<(Vec<Room>, Option<String>), Error> {
+) -> Result<(Vec<Room>, Option<String>), DirectorySearchError> {
     let homeserver = Some(homeserver).filter(|hs| !hs.is_empty());
     let generic_search_term = Some(generic_search_term).filter(|q| !q.is_empty());
     let third_party = Some(third_party).filter(|tp| !tp.is_empty());

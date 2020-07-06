@@ -8,9 +8,8 @@ use gio::SimpleActionGroup;
 use std::convert::TryFrom;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
-use crate::error::BKError;
+use crate::backend::HandleError;
 use crate::i18n::i18n;
 
 use crate::widgets::ErrorDialog;
@@ -55,7 +54,7 @@ pub fn new(
                                 APPOP!(show_new_room_avatar);
                             }
                             Err(err) => {
-                                dispatch_error(BKError::SetRoomAvatarError(err));
+                                err.handle_error();
                             }
                         }
                     });

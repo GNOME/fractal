@@ -2,13 +2,11 @@ use gtk::prelude::*;
 use libhandy::Column;
 use std::thread;
 
-use crate::backend::directory;
+use crate::backend::{directory, HandleError};
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
-use crate::error::BKError;
 use crate::widgets;
 
 use super::RoomSearchPagination;
@@ -24,7 +22,7 @@ impl AppOp {
                     APPOP!(set_protocols, (protocols));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::DirectoryProtocolsError(err));
+                    err.handle_error();
                 }
             }
         });
@@ -152,7 +150,7 @@ impl AppOp {
                     APPOP!(append_directory_rooms, (rooms, rooms_since));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::DirectorySearchError(err));
+                    err.handle_error();
                 }
             }
         });

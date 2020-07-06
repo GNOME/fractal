@@ -1,18 +1,16 @@
 use gtk::prelude::*;
 
-use crate::backend::user;
+use crate::backend::{user, HandleError};
 use crate::clone;
 
 use std::path::PathBuf;
 use std::thread;
 
-use crate::app::dispatch_error;
 use crate::app::App;
 use crate::appop::AppOp;
 
 use crate::cache::download_to_cache;
 
-use crate::error::BKError;
 use crate::widgets;
 use crate::widgets::AvatarExt;
 
@@ -28,7 +26,7 @@ impl AppOp {
                     APPOP!(set_username, (username));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::NameError(err));
+                    err.handle_error();
                 }
             }
         }));
@@ -39,7 +37,7 @@ impl AppOp {
                     APPOP!(set_avatar, (path));
                 }
                 Err(err) => {
-                    dispatch_error(BKError::AvatarError(err));
+                    err.handle_error();
                 }
             }
         }));
