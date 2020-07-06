@@ -91,7 +91,7 @@ impl HandleError for NameError {}
 
 pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, NameError> {
     let request = get_display_name(base, &uid)?;
-    let response: GetDisplayNameResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: GetDisplayNameResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok(response.displayname)
 }
@@ -103,7 +103,7 @@ pub fn get_username_async(base: Url, uid: UserId) -> String {
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
+                .get_client()
                 .execute(request)?
                 .json::<GetDisplayNameResponse>()
                 .map_err(Into::into)
@@ -136,7 +136,7 @@ pub fn set_username(
     };
 
     let request = set_display_name(base, &params, &body, &uid)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(username)
 }
@@ -168,7 +168,7 @@ pub fn get_threepid(
     let params = ThirdPartyIDParameters { access_token };
 
     let request = get_identifiers(base, &params)?;
-    let response: ThirdPartyIDResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: ThirdPartyIDResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok(response.threepids)
 }
@@ -231,7 +231,7 @@ pub fn get_email_token(
     let request = request_contact_verification_token_email(base, &params, &body)?;
 
     match HTTP_CLIENT
-        .get_client()?
+        .get_client()
         .execute(request)?
         .json::<EmailTokenResponse>()?
     {
@@ -302,7 +302,7 @@ pub fn get_phone_token(
     let request = request_contact_verification_token_msisdn(base, &params, &body)?;
 
     match HTTP_CLIENT
-        .get_client()?
+        .get_client()
         .execute(request)?
         .json::<PhoneTokenResponse>()?
     {
@@ -341,7 +341,7 @@ pub fn add_threepid(
     };
 
     let request = create_contact(base, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -370,7 +370,7 @@ pub fn submit_phone_token(
     };
 
     let request = submit_phone_token_req(base, &body)?;
-    let response: SubmitPhoneTokenResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: SubmitPhoneTokenResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok((Some(sid).filter(|_| response.success), client_secret))
 }
@@ -396,7 +396,7 @@ pub fn delete_three_pid(
     let body = DeleteThreePIDBody { address, medium };
 
     let request = delete_contact(base, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -440,7 +440,7 @@ pub fn change_password(
     };
 
     let request = change_password_req(base, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -482,7 +482,7 @@ pub fn account_destruction(
     };
 
     let request = deactivate(base, &params, &body)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -535,7 +535,7 @@ pub fn set_user_avatar(
     let contents = fs::read(&avatar)?;
     let request = create_content(base.clone(), &params_upload, contents)?;
     let upload_response: CreateContentResponse =
-        HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+        HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let params_avatar = SetAvatarUrlParameters { access_token };
     let body = SetAvatarUrlBody {
@@ -543,7 +543,7 @@ pub fn set_user_avatar(
     };
 
     let request = set_avatar_url(base, &params_avatar, &body, &uid)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(avatar)
 }
@@ -597,7 +597,7 @@ pub fn search(
     };
 
     let request = user_directory(base, &params, &body)?;
-    let response: UserDirectoryResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: UserDirectoryResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     Ok(response.results.into_iter().map(Into::into).collect())
 }
@@ -624,7 +624,7 @@ pub fn get_user_avatar(
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
-                .get_client()?
+                .get_client()
                 .execute(request)?
                 .json::<GetProfileResponse>()
                 .map_err(Into::into)
