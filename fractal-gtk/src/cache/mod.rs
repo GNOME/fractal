@@ -1,6 +1,7 @@
 use crate::backend::user;
 use crate::backend::ThreadPool;
 use crate::util::ResultExpectLog;
+use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use glib::source::Continue;
 use gtk::LabelExt;
@@ -165,13 +166,14 @@ pub fn download_to_cache(
 /* Get username based on the MXID, we should cache the username */
 pub fn download_to_cache_username(
     server_url: Url,
+    access_token: AccessToken,
     uid: UserId,
     label: gtk::Label,
     avatar: Option<Rc<RefCell<AvatarData>>>,
 ) {
     let (ctx, rx): (Sender<String>, Receiver<String>) = channel();
     thread::spawn(move || {
-        let query = user::get_username_async(server_url, uid);
+        let query = user::get_username_async(server_url, access_token, uid);
         ctx.send(query).expect_log("Connection closed");
     });
     gtk::timeout_add(50, move || match rx.try_recv() {
@@ -193,6 +195,7 @@ pub fn download_to_cache_username(
  * FIXME: We should cache this request and do it before we need to display the username in an emote*/
 pub fn download_to_cache_username_emote(
     server_url: Url,
+    access_token: AccessToken,
     uid: UserId,
     text: &str,
     label: gtk::Label,
@@ -200,7 +203,7 @@ pub fn download_to_cache_username_emote(
 ) {
     let (ctx, rx): (Sender<String>, Receiver<String>) = channel();
     thread::spawn(move || {
-        let query = user::get_username_async(server_url, uid);
+        let query = user::get_username_async(server_url, access_token, uid);
         ctx.send(query).expect_log("Connection closed");
     });
     let text = text.to_string();

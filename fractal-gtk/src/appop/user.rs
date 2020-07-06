@@ -21,7 +21,7 @@ impl AppOp {
         let login_data = unwrap_or_unit_return!(self.login_data.clone());
 
         thread::spawn(clone!(login_data => move || {
-            match user::get_username(login_data.server_url, login_data.uid) {
+            match user::get_username(login_data.server_url, login_data.access_token, login_data.uid) {
                 Ok(username) => {
                     APPOP!(set_username, (username));
                 }
