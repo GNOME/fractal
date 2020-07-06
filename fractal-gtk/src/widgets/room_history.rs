@@ -23,6 +23,7 @@ use fractal_api::identifiers::{RoomId, UserId};
 use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
+use glib::clone;
 use glib::source;
 use glib::source::Continue;
 use glib::SignalHandlerId;
@@ -85,17 +86,14 @@ impl List {
     }
 
     fn create_new_message_divider(rows: Rc<RefCell<Self>>) -> widgets::NewMessageDivider {
-        let rows_weak = Rc::downgrade(&rows);
-        let remove_divider = move || {
-            if let Some(rows) = rows_weak.upgrade() {
-                let new_divider_index = rows
-                    .borrow_mut()
-                    .new_divider_index
-                    .take()
-                    .expect("The new divider index must exist, since there is a new divider");
-                rows.borrow_mut().list.remove(new_divider_index);
-            }
-        };
+        let remove_divider = clone!(@weak rows => move || {
+            let new_divider_index = rows
+                .borrow_mut()
+                .new_divider_index
+                .take()
+                .expect("The new divider index must exist, since there is a new divider");
+            rows.borrow_mut().list.remove(new_divider_index);
+        });
         widgets::NewMessageDivider::new(i18n("New Messages").as_str(), remove_divider)
     }
     fn update_videos(&mut self) {
@@ -319,13 +317,16 @@ impl RoomHistory {
         /* Add the rest of the messages after the new message divider */
         self.add_new_messages_in_batch(thread_pool, user_info_cache, bottom);
 
-        let weak_rows = Rc::downgrade(&self.rows);
-        let id = timeout_add(250, move || {
-            if let Some(rows) = weak_rows.upgrade() {
+        let rows = &self.rows;
+        let id = timeout_add(
+            250,
+            clone!(
+            @weak rows
+            => @default-return Continue(false), move || {
                 rows.borrow_mut().update_videos();
-            }
-            Continue(false)
-        });
+                Continue(false)
+            }),
+        );
         self.rows.borrow_mut().video_scroll_debounce = Some(id);
 
         None
@@ -341,103 +342,93 @@ impl RoomHistory {
             .expect("The scrolled window must have a vertical scrollbar.")
             .downcast::<gtk::Scrollbar>()
             .unwrap();
-        let weak_rows = Rc::downgrade(&self.rows);
-        scrollbar.connect_value_changed(move |sb| {
+        let rows = &self.rows;
+        scrollbar.connect_value_changed(clone!(@weak rows => move |sb| {
             if !sb.get_state_flags().contains(gtk::StateFlags::BACKDROP) {
                 /* Fractal is focused */
-                if let Some(rows) = weak_rows.upgrade() {
-                    let weak_rows_inner = weak_rows.clone();
-                    let new_id = timeout_add(250, move || {
-                        if let Some(rows) = weak_rows_inner.upgrade() {
-                            rows.borrow_mut().update_videos();
-                            rows.borrow_mut().video_scroll_debounce = None;
-                        }
+                let new_id = timeout_add(250, clone!(
+                    @weak rows
+                    => @default-return Continue(false), move || {
+                        rows.borrow_mut().update_videos();
+                        rows.borrow_mut().video_scroll_debounce = None;
                         Continue(false)
-                    });
-                    if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
-                        let _ = Source::remove(old_id);
-                    }
+                    }));
+                if let Some(old_id) = rows.borrow_mut().video_scroll_debounce.replace(new_id) {
+                    let _ = Source::remove(old_id);
                 }
             }
-        });
+        }));
     }
 
     fn connect_video_focus(&mut self) {
+        let rows = &self.rows;
+
         let scrolled_window = self.rows.borrow().view.get_scrolled_window();
-        let weak_rows = Rc::downgrade(&self.rows);
-        scrolled_window.connect_map(move |_| {
+        scrolled_window.connect_map(clone!(@weak rows => move |_| {
             /* The user has navigated back into the room history */
-            if let Some(rows) = weak_rows.upgrade() {
-                let len = rows.borrow().playing_videos.len();
-                if len != 0 {
-                    warn!(
-                        "{:?} videos were playing while the room history was not displayed.",
-                        len
-                    );
-                    for (player, hander_id) in rows.borrow_mut().playing_videos.drain(..) {
-                        player.stop_loop(hander_id);
-                    }
+            let len = rows.borrow().playing_videos.len();
+            if len != 0 {
+                warn!(
+                    "{:?} videos were playing while the room history was not displayed.",
+                    len
+                );
+                for (player, hander_id) in rows.borrow_mut().playing_videos.drain(..) {
+                    player.stop_loop(hander_id);
                 }
-                let visible_videos = rows.borrow().find_visible_videos();
-                let mut videos = Vec::with_capacity(visible_videos.len());
-                for player in visible_videos {
-                    let handler_id = player.play_in_loop();
-                    videos.push((player, handler_id));
-                }
-                rows.borrow_mut().playing_videos = videos;
             }
-        });
+            let visible_videos = rows.borrow().find_visible_videos();
+            let mut videos = Vec::with_capacity(visible_videos.len());
+            for player in visible_videos {
+                let handler_id = player.play_in_loop();
+                videos.push((player, handler_id));
+            }
+            rows.borrow_mut().playing_videos = videos;
+        }));
 
-        let weak_rows = Rc::downgrade(&self.rows);
-        scrolled_window.connect_unmap(move |_| {
+        scrolled_window.connect_unmap(clone!(@weak rows => move |_| {
             /* The user has navigated out of the room history */
-            if let Some(rows) = weak_rows.upgrade() {
-                if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
-                    let _ = Source::remove(id);
-                }
-                for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
-                    player.stop_loop(handler_id);
-                }
+            if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
+                let _ = Source::remove(id);
             }
-        });
+            for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
+                player.stop_loop(handler_id);
+            }
+        }));
 
-        let weak_rows = Rc::downgrade(&self.rows);
-        scrolled_window.connect_state_flags_changed(move |window, flag| {
+        scrolled_window.connect_state_flags_changed(clone!(@weak rows => move |window, flag| {
             if window.get_mapped() {
                 /* The room history is being displayed */
-                if let Some(rows) = weak_rows.upgrade() {
-                    let focused = gtk::StateFlags::BACKDROP;
-                    if flag.contains(focused) {
-                        /* Fractal has been focused */
-                        let len = rows.borrow().playing_videos.len();
-                        if len != 0 {
-                            warn!(
-                                "{:?} videos were playing while Fractal was focused out.",
-                                len
-                            );
-                            for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
-                                player.stop_loop(handler_id);
-                            }
-                        }
-                        let visible_videos = rows.borrow().find_visible_videos();
-                        let mut videos = Vec::with_capacity(visible_videos.len());
-                        for player in visible_videos {
-                            let handler_id = player.play_in_loop();
-                            videos.push((player, handler_id));
-                        }
-                        rows.borrow_mut().playing_videos = videos;
-                    } else {
-                        /* Fractal has been unfocused */
-                        if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
-                            let _ = Source::remove(id);
-                        }
+                let focused = gtk::StateFlags::BACKDROP;
+                if flag.contains(focused) {
+                    /* Fractal has been focused */
+                    let len = rows.borrow().playing_videos.len();
+                    if len != 0 {
+                        warn!(
+                            "{:?} videos were playing while Fractal was focused out.",
+                            len
+                        );
                         for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
                             player.stop_loop(handler_id);
                         }
                     }
+                    let visible_videos = rows.borrow().find_visible_videos();
+                    let mut videos = Vec::with_capacity(visible_videos.len());
+                    for player in visible_videos {
+                        let handler_id = player.play_in_loop();
+                        videos.push((player, handler_id));
+                    }
+                    rows.borrow_mut().playing_videos = videos;
+                } else {
+                    /* Fractal has been unfocused */
+                    if let Some(id) = rows.borrow_mut().video_scroll_debounce.take() {
+                        let _ = Source::remove(id);
+                    }
+                    for (player, handler_id) in rows.borrow_mut().playing_videos.drain(..) {
+                        player.stop_loop(handler_id);
+                    }
                 }
             }
-        });
+        }));
     }
 
     fn run_queue(

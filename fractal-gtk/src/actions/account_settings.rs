@@ -6,6 +6,7 @@ use fractal_api::url::Url;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
+use glib::clone;
 use std::thread;
 
 use crate::app::dispatch_error;
@@ -30,9 +31,7 @@ pub fn new(
 
     actions.add_action(&change_avatar);
 
-    let window_weak = window.downgrade();
-    change_avatar.connect_activate(move |a, _| {
-        let window = upgrade_weak!(window_weak);
+    change_avatar.connect_activate(clone!(@weak window => move |a, _| {
         let filter = gtk::FileFilter::new();
         filter.add_mime_type("image/*");
         filter.set_name(Some(i18n("Images").as_str()));
@@ -52,7 +51,7 @@ pub fn new(
                 }
             });
         }
-    });
+    }));
 
     actions
 }

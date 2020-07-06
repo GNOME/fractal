@@ -93,21 +93,6 @@ pub fn set_markdown_schema(md: bool) {
     }
 }
 
-/* Macro for upgrading a weak reference or returning the given value
- *
- * This works for glib/gtk objects as well as anything else providing an upgrade method */
-macro_rules! upgrade_weak {
-    ($x:expr, $r:expr) => {{
-        match $x.upgrade() {
-            Some(o) => o,
-            None => return $r,
-        }
-    }};
-    ($x:expr) => {
-        upgrade_weak!($x, ())
-    };
-}
-
 macro_rules! unwrap_or_unit_return {
     ($x:expr) => {
         match $x {
