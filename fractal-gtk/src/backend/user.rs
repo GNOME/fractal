@@ -52,6 +52,7 @@ use fractal_api::r0::media::create_content::request as create_content;
 use fractal_api::r0::media::create_content::Parameters as CreateContentParameters;
 use fractal_api::r0::media::create_content::Response as CreateContentResponse;
 use fractal_api::r0::profile::get_display_name::request as get_display_name;
+use fractal_api::r0::profile::get_display_name::Parameters as GetDisplayNameParameters;
 use fractal_api::r0::profile::get_display_name::Response as GetDisplayNameResponse;
 use fractal_api::r0::profile::get_profile::request as get_profile;
 use fractal_api::r0::profile::get_profile::Response as GetProfileResponse;
@@ -89,8 +90,13 @@ impl<T: Into<Error>> From<T> for NameError {
 
 impl HandleError for NameError {}
 
-pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, NameError> {
-    let request = get_display_name(base, &uid)?;
+pub fn get_username(
+    base: Url,
+    access_token: AccessToken,
+    uid: UserId,
+) -> Result<Option<String>, NameError> {
+    let params = GetDisplayNameParameters { access_token };
+    let request = get_display_name(base, &params, &uid)?;
     let response: GetDisplayNameResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
 
     Ok(response.displayname)
@@ -98,8 +104,10 @@ pub fn get_username(base: Url, uid: UserId) -> Result<Option<String>, NameError>
 
 // FIXME: This function manages errors *really* wrong and isn't more async
 // than the normal function. It should be removed.
-pub fn get_username_async(base: Url, uid: UserId) -> String {
-    get_display_name(base, &uid)
+pub fn get_username_async(base: Url, access_token: AccessToken, uid: UserId) -> String {
+    let params = GetDisplayNameParameters { access_token };
+
+    get_display_name(base, &params, &uid)
         .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
