@@ -5,6 +5,7 @@ use crate::backend::ThreadPool;
 use crate::cache::CacheMap;
 use chrono::prelude::*;
 use fractal_api::identifiers::UserId;
+use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use glib::clone;
 use gtk::{prelude::*, ButtonExt, ContainerExt, LabelExt, Overlay, WidgetExt};
@@ -29,6 +30,7 @@ use crate::widgets::{AudioPlayerWidget, PlayerExt, VideoPlayerWidget};
 /* A message row in the room history */
 #[derive(Clone, Debug)]
 pub struct MessageBox {
+    access_token: AccessToken,
     server_url: Url,
     username: gtk::Label,
     pub username_event_box: gtk::EventBox,
@@ -41,7 +43,7 @@ pub struct MessageBox {
 }
 
 impl MessageBox {
-    pub fn new(server_url: Url) -> MessageBox {
+    pub fn new(server_url: Url, access_token: AccessToken) -> MessageBox {
         let username = gtk::Label::new(None);
         let eb = gtk::EventBox::new();
         let eventbox = gtk::EventBox::new();
@@ -53,6 +55,7 @@ impl MessageBox {
         gesture.set_touch_only(true);
 
         MessageBox {
+            access_token,
             server_url,
             username,
             username_event_box: eb,
@@ -291,6 +294,7 @@ impl MessageBox {
         );
         download_to_cache_username(
             self.server_url.clone(),
+            self.access_token.clone(),
             uid,
             self.username.clone(),
             Some(data),
@@ -664,6 +668,7 @@ impl MessageBox {
 
         download_to_cache_username_emote(
             self.server_url.clone(),
+            self.access_token.clone(),
             msg.sender.clone(),
             &markup,
             msg_label.clone(),

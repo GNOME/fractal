@@ -20,6 +20,7 @@ use crate::globals;
 use crate::widgets;
 use crate::widgets::{PlayerExt, VideoPlayerWidget};
 use fractal_api::identifiers::{RoomId, UserId};
+use fractal_api::r0::AccessToken;
 use fractal_api::url::Url;
 use gio::ActionMapExt;
 use gio::SimpleActionGroup;
@@ -259,6 +260,7 @@ impl Element {
 pub struct RoomHistory {
     /* Contains a list of msg ids to keep track of the displayed messages */
     rows: Rc<RefCell<List>>,
+    access_token: AccessToken,
     server_url: Url,
     source_id: Rc<RefCell<Option<source::SourceId>>>,
     queue: Rc<RefCell<VecDeque<MessageContent>>>,
@@ -284,9 +286,11 @@ impl RoomHistory {
 
         /* Add the action groupe to the room_history */
         listbox.insert_action_group("message", Some(&actions));
+        let login_data = op.login_data.clone()?;
         let mut rh = RoomHistory {
             rows: Rc::new(RefCell::new(List::new(scroll, listbox))),
-            server_url: op.login_data.clone()?.server_url,
+            access_token: login_data.access_token,
+            server_url: login_data.server_url,
             source_id: Rc::new(RefCell::new(None)),
             queue: Rc::new(RefCell::new(VecDeque::new())),
             edit_buffer: Rc::new(RefCell::new(VecDeque::new())),
@@ -450,6 +454,7 @@ impl RoomHistory {
             /* Lazy load initial messages */
             let source_id = self.source_id.clone();
             let server_url = self.server_url.clone();
+            let access_token = self.access_token.clone();
             *self.source_id.borrow_mut() = Some(gtk::idle_add(move || {
                 let mut data = queue.borrow_mut();
                 let mut edits = edit_buffer.borrow_mut();
@@ -510,6 +515,7 @@ impl RoomHistory {
                         item.clone(),
                         has_header,
                         server_url.clone(),
+                        access_token.clone(),
                         &rows,
                     ));
                     rows.borrow_mut().add_top(Element::Message(item));
@@ -585,6 +591,7 @@ impl RoomHistory {
             item.clone(),
             has_header,
             self.server_url.clone(),
+            self.access_token.clone(),
             &self.rows,
         );
         item.widget = Some(b);
@@ -622,6 +629,7 @@ impl RoomHistory {
             item.clone(),
             msg_widget.header,
             self.server_url.clone(),
+            self.access_token.clone(),
             &self.rows,
         ));
         rows.replace_item(i, msg_widget.get_listbox_row(), Element::Message(item));
@@ -733,11 +741,12 @@ fn create_row(
     row: MessageContent,
     has_header: bool,
     server_url: Url,
+    access_token: AccessToken,
     rows: &Rc<RefCell<List>>,
 ) -> widgets::MessageBox {
     /* we need to create a message with the username, so that we don't have to pass
      * all information to the widget creating each row */
-    let mut mb = widgets::MessageBox::new(server_url);
+    let mut mb = widgets::MessageBox::new(server_url, access_token);
     mb.create(
         thread_pool,
         user_info_cache,
