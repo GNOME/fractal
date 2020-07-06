@@ -5,6 +5,7 @@ use fractal_api::url::Url;
 use gio::prelude::*;
 use gio::SimpleAction;
 use gio::SimpleActionGroup;
+use glib::clone;
 use std::convert::TryFrom;
 use std::thread;
 
@@ -34,13 +35,11 @@ pub fn new(
 
     actions.add_action(&change_avatar);
 
-    let window_weak = window.downgrade();
-    change_avatar.connect_activate(move |a, data| {
+    change_avatar.connect_activate(clone!(@weak window => move |a, data| {
         if let Some(room_id) = data
             .and_then(|x| x.get_str())
             .and_then(|rid| RoomId::try_from(rid).ok())
         {
-            let window = upgrade_weak!(window_weak);
             let filter = gtk::FileFilter::new();
             filter.set_name(Some(i18n("Images").as_str()));
             filter.add_mime_type("image/*");
@@ -64,7 +63,7 @@ pub fn new(
                 }
             }
         }
-    });
+    }));
 
     actions
 }

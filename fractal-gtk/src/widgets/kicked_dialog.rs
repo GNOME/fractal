@@ -1,4 +1,5 @@
 use crate::i18n::i18n_f;
+use glib::clone;
 use gtk::prelude::*;
 
 struct Widgets {
@@ -62,12 +63,12 @@ impl KickedDialog {
     }
 
     fn connect(&self) {
-        let msg_kicked_window = self.widgets.msg_kicked_window.downgrade();
-        self.widgets
-            .confirm_kicked_button
-            .connect_clicked(move |_| {
-                upgrade_weak!(msg_kicked_window).close();
-            });
+        let msg_kicked_window = &self.widgets.msg_kicked_window;
+        self.widgets.confirm_kicked_button.connect_clicked(
+            clone!(@weak msg_kicked_window => move |_| {
+                msg_kicked_window.close();
+            }),
+        );
 
         /* Close the window when the user preses ESC */
         self.widgets

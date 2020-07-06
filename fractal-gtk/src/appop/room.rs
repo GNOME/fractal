@@ -368,8 +368,6 @@ impl AppOp {
             .builder
             .get_object("main_window")
             .expect("Can't find main_window in ui file.");
-        let parent_weak = parent.downgrade();
-        let parent = upgrade_weak!(parent_weak);
         let viewer = widgets::KickedDialog::new();
         viewer.set_parent_window(&parent);
         viewer.show(&room_name, &reason, &kicker);

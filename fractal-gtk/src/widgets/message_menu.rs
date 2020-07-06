@@ -174,12 +174,13 @@ impl MessageMenu {
         let s = get_selected_text(label)?;
         self.widgets.copy_selected_button.show();
         self.widgets.copy_selected_button.connect_clicked(move |_| {
-            let widget = upgrade_weak!(&s.widget);
-            let atom = gdk::Atom::intern("CLIPBOARD");
-            let clipboard = gtk::Clipboard::get(&atom);
-            clipboard.set_text(&s.text);
-            /* FIXME: for some reason we have to set the selection again */
-            widget.select_region(s.start, s.end);
+            if let Some(widget) = s.widget.upgrade() {
+                let atom = gdk::Atom::intern("CLIPBOARD");
+                let clipboard = gtk::Clipboard::get(&atom);
+                clipboard.set_text(&s.text);
+                /* FIXME: for some reason we have to set the selection again */
+                widget.select_region(s.start, s.end);
+            }
         });
         None
     }

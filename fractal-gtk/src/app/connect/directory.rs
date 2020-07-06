@@ -123,7 +123,12 @@ impl App {
             op.search_rooms();
         });
 
-        default_matrix_server_radio.connect_toggled(clone!(@strong directory_choice_label, @strong default_matrix_server_radio, @strong protocol_combo, @strong other_homeserver_url_entry => move |_| {
+        default_matrix_server_radio.connect_toggled(clone!(
+        @strong directory_choice_label,
+        @strong default_matrix_server_radio,
+        @strong protocol_combo,
+        @strong other_homeserver_url_entry
+        => move |_| {
             if default_matrix_server_radio.get_active() {
                 protocol_combo.set_sensitive(false);
                 other_homeserver_url_entry.set_sensitive(false);
@@ -132,7 +137,13 @@ impl App {
             directory_choice_label.set_text(&i18n("Default Matrix Server"));
         }));
 
-        other_protocol_radio.connect_toggled(clone!(@strong directory_choice_label, @strong other_protocol_radio, @strong protocol_combo, @strong protocol_model, @strong other_homeserver_url_entry => move |_| {
+        other_protocol_radio.connect_toggled(clone!(
+        @strong directory_choice_label,
+        @strong other_protocol_radio,
+        @strong protocol_combo,
+        @strong protocol_model,
+        @strong other_homeserver_url_entry
+        => move |_| {
             if other_protocol_radio.get_active() {
                 protocol_combo.set_sensitive(true);
                 other_homeserver_url_entry.set_sensitive(false);
@@ -150,34 +161,39 @@ impl App {
             directory_choice_label.set_text(&protocol);
         }));
 
-        protocol_combo.connect_changed(
-            clone!(@strong directory_choice_label, @strong protocol_combo, @strong protocol_model => move |_| {
-                let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
-                let protocol: String = match protocol_model.iter_nth_child(None, active) {
-                    Some(it) => {
-                        let v = protocol_model.get_value(&it, 0);
-                        v.get().unwrap().unwrap()
-                    }
-                    None => String::new(),
-                };
-
-                directory_choice_label.set_text(&protocol);
-            }),
-        );
-
-        other_homeserver_radio.connect_toggled(
-            clone!(@strong other_homeserver_radio, @strong protocol_combo, @strong other_homeserver_url_entry => move |_| {
-                if other_homeserver_radio.get_active() {
-                    protocol_combo.set_sensitive(false);
-                    other_homeserver_url_entry.set_sensitive(true);
+        protocol_combo.connect_changed(clone!(
+        @strong directory_choice_label,
+        @strong protocol_combo,
+        @strong protocol_model
+        => move |_| {
+            let active = protocol_combo.get_active().map_or(-1, |uint| uint as i32);
+            let protocol: String = match protocol_model.iter_nth_child(None, active) {
+                Some(it) => {
+                    let v = protocol_model.get_value(&it, 0);
+                    v.get().unwrap().unwrap()
                 }
-            }),
-        );
+                None => String::new(),
+            };
 
-        other_homeserver_url_entry.connect_changed(
-            clone!(@strong directory_choice_label, @strong other_homeserver_url => move |_| {
-                directory_choice_label.set_text(&other_homeserver_url.get_text());
-            }),
-        );
+            directory_choice_label.set_text(&protocol);
+        }));
+
+        other_homeserver_radio.connect_toggled(clone!(
+        @strong other_homeserver_radio,
+        @strong protocol_combo,
+        @strong other_homeserver_url_entry
+        => move |_| {
+            if other_homeserver_radio.get_active() {
+                protocol_combo.set_sensitive(false);
+                other_homeserver_url_entry.set_sensitive(true);
+            }
+        }));
+
+        other_homeserver_url_entry.connect_changed(clone!(
+        @strong directory_choice_label,
+        @strong other_homeserver_url
+        => move |_| {
+            directory_choice_label.set_text(&other_homeserver_url.get_text());
+        }));
     }
 }

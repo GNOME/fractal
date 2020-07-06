@@ -1,6 +1,6 @@
 use gio::SimpleAction;
+use glib::clone;
 use glib::Cast;
-use glib::ObjectExt;
 use glib::ToVariant;
 use gtk::WidgetExt;
 
@@ -60,15 +60,13 @@ pub trait StateExt {
 // FIXME: workaround till we get GPropertyAction
 impl StateExt for gio::Action {
     fn bind_button_state(&self, button: &gtk::Button) {
-        let button = button.downgrade();
         if let Some(action) = self.downcast_ref::<SimpleAction>() {
-            action.connect_change_state(move |_, data| {
+            action.connect_change_state(clone!(@weak button => move |_, data| {
                 if let Some(data) = data {
                     let state: ButtonState = data.into();
-                    let button = upgrade_weak!(button);
                     button.set_sensitive(state.into());
                 }
-            });
+            }));
         }
     }
 }

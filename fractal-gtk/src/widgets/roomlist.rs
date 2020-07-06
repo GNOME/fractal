@@ -89,7 +89,12 @@ impl RoomListGroup {
         let expanded = Arc::new(Mutex::new(true));
         let title_eb = gtk::EventBox::new();
 
-        title_eb.connect_button_press_event(clone!(@strong list, @strong arrow, @strong rev, @strong expanded => move |_, _| {
+        title_eb.connect_button_press_event(clone!(
+        @strong list,
+        @strong arrow,
+        @strong rev,
+        @strong expanded
+        => move |_, _| {
             if *expanded.lock().unwrap() {
                 arrow.set_from_icon_name(Some("pan-end-symbolic"), gtk::IconSize::SmallToolbar);
                 rev.set_reveal_child(false);
@@ -705,32 +710,30 @@ impl RoomList {
 
     // Connect handlers for unselecting rooms from other categories when a room is selected
     pub fn connect_select(&self) {
-        let fav = self.fav.get().list.downgrade();
-        let rooms = self.rooms.get().list.downgrade();
-        self.inv.get().list.connect_row_selected(move |_, row| {
-            if row.is_some() {
-                upgrade_weak!(fav).unselect_all();
-                upgrade_weak!(rooms).unselect_all();
-            }
-        });
+        let inv = &self.inv.get().list;
+        let fav = &self.fav.get().list;
+        let rooms = &self.rooms.get().list;
 
-        let inv = self.inv.get().list.downgrade();
-        let rooms = self.rooms.get().list.downgrade();
-        self.fav.get().list.connect_row_selected(move |_, row| {
+        inv.connect_row_selected(clone!(@weak fav, @weak rooms => move |_, row| {
             if row.is_some() {
-                upgrade_weak!(inv).unselect_all();
-                upgrade_weak!(rooms).unselect_all();
+                fav.unselect_all();
+                rooms.unselect_all();
             }
-        });
+        }));
 
-        let inv = self.inv.get().list.downgrade();
-        let fav = self.fav.get().list.downgrade();
-        self.rooms.get().list.connect_row_selected(move |_, row| {
+        fav.connect_row_selected(clone!(@weak inv, @weak rooms => move |_, row| {
             if row.is_some() {
-                upgrade_weak!(inv).unselect_all();
-                upgrade_weak!(fav).unselect_all();
+                inv.unselect_all();
+                rooms.unselect_all();
             }
-        });
+        }));
+
+        rooms.connect_row_selected(clone!(@weak inv, @weak fav => move |_, row| {
+            if row.is_some() {
+                inv.unselect_all();
+                fav.unselect_all();
+            }
+        }));
     }
 
     pub fn connect_drop<F: Fn(RoomId) + 'static>(&self, widget: gtk::EventBox, cb: F) {
@@ -759,44 +762,36 @@ impl RoomList {
     }
 
     pub fn connect_keynav(&self) {
-        let weak_inv_lb = self.inv.get().list.downgrade();
-        let weak_fav_lb = self.fav.get().list.downgrade();
-        let weak_room_lb = self.rooms.get().list.downgrade();
-        let adj = self.adj.clone();
-        let type_ = RoomListType::Invites;
-        self.inv.get().list.connect_keynav_failed(move |_, d| {
-            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
-            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
-            let room_lb = upgrade_weak!(weak_room_lb, gtk::Inhibit(false));
+        let inv_lb = &self.inv.get().list;
+        let fav_lb = &self.fav.get().list;
+        let rooms_lb = &self.rooms.get().list;
 
-            keynav_cb(d, &inv_lb, &fav_lb, &room_lb, adj.clone(), type_)
-        });
+        inv_lb.connect_keynav_failed(clone!(
+        @strong self.adj as adj,
+        @weak inv_lb,
+        @weak fav_lb,
+        @weak rooms_lb
+        => @default-return gtk::Inhibit(false), move |_, d| {
+            keynav_cb(d, &inv_lb, &fav_lb, &rooms_lb, adj.clone(), RoomListType::Invites)
+        }));
 
-        let weak_fav_lb = self.fav.get().list.downgrade();
-        let weak_inv_lb = self.inv.get().list.downgrade();
-        let weak_room_lb = self.rooms.get().list.downgrade();
-        let adj = self.adj.clone();
-        let type_ = RoomListType::Favorites;
-        self.fav.get().list.connect_keynav_failed(move |_, d| {
-            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
-            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
-            let room_lb = upgrade_weak!(weak_room_lb, gtk::Inhibit(false));
+        fav_lb.connect_keynav_failed(clone!(
+        @strong self.adj as adj,
+        @weak fav_lb,
+        @weak inv_lb,
+        @weak rooms_lb
+        => @default-return gtk::Inhibit(false), move |_, d| {
+            keynav_cb(d, &inv_lb, &fav_lb, &rooms_lb, adj.clone(), RoomListType::Favorites)
+        }));
 
-            keynav_cb(d, &inv_lb, &fav_lb, &room_lb, adj.clone(), type_)
-        });
-
-        let weak_rooms_lb = self.rooms.get().list.downgrade();
-        let weak_inv_lb = self.inv.get().list.downgrade();
-        let weak_fav_lb = self.fav.get().list.downgrade();
-        let adj = self.adj.clone();
-        let type_ = RoomListType::Rooms;
-        self.rooms.get().list.connect_keynav_failed(move |_, d| {
-            let rooms_lb = upgrade_weak!(weak_rooms_lb, gtk::Inhibit(false));
-            let inv_lb = upgrade_weak!(weak_inv_lb, gtk::Inhibit(false));
-            let fav_lb = upgrade_weak!(weak_fav_lb, gtk::Inhibit(false));
-
-            keynav_cb(d, &inv_lb, &fav_lb, &rooms_lb, adj.clone(), type_)
-        });
+        rooms_lb.connect_keynav_failed(clone!(
+        @strong self.adj as adj,
+        @weak rooms_lb,
+        @weak inv_lb,
+        @weak fav_lb
+        => @default-return gtk::Inhibit(false), move |_, d| {
+            keynav_cb(d, &inv_lb, &fav_lb, &rooms_lb, adj.clone(), RoomListType::Rooms)
+        }));
     }
 
     pub fn filter_rooms(&self, term: Option<String>) {

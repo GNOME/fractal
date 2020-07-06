@@ -69,9 +69,7 @@ pub fn new(
         .builder
         .get_object("main_window")
         .expect("Can't find main_window in ui file.");
-    let parent_weak = parent.downgrade();
-    show_source.connect_activate(move |_, data| {
-        let parent = upgrade_weak!(parent_weak);
+    show_source.connect_activate(clone!(@weak parent => move |_, data| {
         let viewer = SourceDialog::new();
         viewer.set_parent_window(&parent);
         if let Some(m) = get_message(data) {
@@ -80,27 +78,25 @@ pub fn new(
 
             viewer.show(source);
         }
-    });
+    }));
 
-    let msg_entry = ui.sventry.view.downgrade();
-    let back_weak = Rc::downgrade(&back_history);
-    let window_weak = ui
+    let window = ui
         .builder
         .get_object::<gtk::ApplicationWindow>("main_window")
-        .expect("Couldn't find main_window in ui file.")
-        .downgrade();
-    reply.connect_activate(move |_, data| {
-        let back_history = upgrade_weak!(back_weak);
+        .expect("Couldn't find main_window in ui file.");
+    reply.connect_activate(clone!(
+    @weak back_history,
+    @weak window,
+    @weak ui.sventry.view as msg_entry
+    => move |_, data| {
         let state = back_history.borrow().last().cloned();
         if let Some(AppState::MediaViewer) = state {
-            let window = upgrade_weak!(window_weak);
             if let Some(action_group) = window.get_action_group("app") {
                 action_group.activate_action("back", None);
             } else {
                 error!("The action group app is not attached to the main window.");
             }
         }
-        let msg_entry = upgrade_weak!(msg_entry);
         if let Some(buffer) = msg_entry.get_buffer() {
             let mut start = buffer.get_start_iter();
             if let Some(m) = get_message(data) {
@@ -116,7 +112,7 @@ pub fn new(
                 msg_entry.grab_focus();
             }
         }
-    });
+    }));
 
     open_with.connect_activate(clone!(@strong server_url => move |_, data| {
         if let Some(m) = get_message(data) {
@@ -138,44 +134,48 @@ pub fn new(
         }
     }));
 
-    let parent_weak = parent.downgrade();
-    save_as.connect_activate(clone!(@strong server_url, @strong thread_pool => move |_, data| {
-        if let Some(m) = get_message(data) {
-            let name = m.body;
-            let url = m.url.unwrap_or_default();
+    save_as.connect_activate(clone!(
+        @strong server_url,
+        @strong thread_pool,
+        @weak parent as window
+        => move |_, data| {
+            if let Some(m) = get_message(data) {
+                let name = m.body;
+                let url = m.url.unwrap_or_default();
 
-            let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
-            media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
+                let (tx, rx): (Sender<Result<String, Error>>, Receiver<Result<String, Error>>) = channel();
+                media::get_media_async(thread_pool.clone(), server_url.clone(), url, tx);
 
-            let parent_weak = parent_weak.clone();
-            gtk::timeout_add(
-                50,
-                clone!(@strong name => move || match rx.try_recv() {
-                    Err(TryRecvError::Empty) => Continue(true),
-                    Err(TryRecvError::Disconnected) => {
-                        let msg = i18n("Could not download the file");
-                        ErrorDialog::new(false, &msg);
+                gtk::timeout_add(
+                    50,
+                    clone!(
+                        @strong name,
+                        @weak window
+                        => @default-return Continue(true), move || match rx.try_recv() {
+                            Err(TryRecvError::Empty) => Continue(true),
+                            Err(TryRecvError::Disconnected) => {
+                                let msg = i18n("Could not download the file");
+                                ErrorDialog::new(false, &msg);
 
-                        Continue(true)
-                    },
-                    Ok(Ok(fname)) => {
-                        let window = upgrade_weak!(parent_weak, Continue(true));
-                        if let Some(path) = save(&window, &name, &[]) {
-                            // TODO use glib to copy file
-                            if fs::copy(fname, path).is_err() {
-                                ErrorDialog::new(false, &i18n("Couldn’t save file"));
+                                Continue(true)
+                            },
+                            Ok(Ok(fname)) => {
+                                if let Some(path) = save(&window, &name, &[]) {
+                                    // TODO use glib to copy file
+                                    if fs::copy(fname, path).is_err() {
+                                        ErrorDialog::new(false, &i18n("Couldn’t save file"));
+                                    }
+                                }
+                                Continue(false)
                             }
-                        }
-                        Continue(false)
-                    }
-                    Ok(Err(err)) => {
-                        error!("Media path could not be found due to error: {:?}", err);
-                        Continue(false)
-                    }
-                }),
-            );
-        }
-    }));
+                            Ok(Err(err)) => {
+                                error!("Media path could not be found due to error: {:?}", err);
+                                Continue(false)
+                            }
+                        }),
+                );
+            }
+        }));
 
     copy_image.connect_activate(clone!(@strong server_url => move |_, data| {
         if let Some(m) = get_message(data) {
@@ -225,17 +225,12 @@ pub fn new(
 
     let s = server_url.clone();
     let tk = access_token.clone();
-    let back_weak = Rc::downgrade(&back_history);
-    let window_weak = ui
-        .builder
-        .get_object::<gtk::ApplicationWindow>("main_window")
-        .expect("Couldn't find main_window in ui file.")
-        .downgrade();
-    delete.connect_activate(move |_, data| {
-        let back_history = upgrade_weak!(back_weak);
+    delete.connect_activate(clone!(
+    @weak back_history,
+    @weak window
+    => move |_, data| {
         let state = back_history.borrow().last().cloned();
         if let Some(AppState::MediaViewer) = state {
-            let window = upgrade_weak!(window_weak);
             if let Some(action_group) = window.get_action_group("app") {
                 action_group.activate_action("back", None);
             } else {
@@ -252,14 +247,15 @@ pub fn new(
                 }
             });
         }
-    });
+    }));
 
-    load_more_messages.connect_activate(
-        clone!(@strong server_url, @strong access_token => move |_, data| {
-            let id = get_room_id(data);
-            request_more_messages(server_url.clone(), access_token.clone(), id);
-        }),
-    );
+    load_more_messages.connect_activate(clone!(
+    @strong server_url,
+    @strong access_token
+    => move |_, data| {
+        let id = get_room_id(data);
+        request_more_messages(server_url.clone(), access_token.clone(), id);
+    }));
 
     actions
 }

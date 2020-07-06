@@ -30,21 +30,25 @@ impl App {
                 }
             };
 
-            set.connect_property_gtk_decoration_layout_notify(clone!(@strong right_header, @strong left_header, @strong set => move |_| {
-                if let Some(decor) = set.get_property_gtk_decoration_layout() {
-                    let decor = decor.to_string();
-                    let decor_split: Vec<String> = decor.splitn(2,':').map(|s| s.to_string()).collect();
-                    // Change the headerbar controls depending on position
-                    // of close
-                    if decor_split.len() > 1 && decor_split[1].contains("close") {
-                        left_header.set_show_close_button(false);
-                        right_header.set_show_close_button(true);
-                    } else {
-                        right_header.set_show_close_button(false);
-                        left_header.set_show_close_button(true);
-                    }
-                };
-            }));
+            set.connect_property_gtk_decoration_layout_notify(clone!(
+                @strong right_header,
+                @strong left_header,
+                @strong set
+                => move |_| {
+                    if let Some(decor) = set.get_property_gtk_decoration_layout() {
+                        let decor = decor.to_string();
+                        let decor_split: Vec<String> = decor.splitn(2,':').map(|s| s.to_string()).collect();
+                        // Change the headerbar controls depending on position
+                        // of close
+                        if decor_split.len() > 1 && decor_split[1].contains("close") {
+                            left_header.set_show_close_button(false);
+                            right_header.set_show_close_button(true);
+                        } else {
+                            right_header.set_show_close_button(false);
+                            left_header.set_show_close_button(true);
+                        }
+                    };
+                }));
         };
     }
 }

@@ -1,5 +1,6 @@
 use gettextrs::{bindtextdomain, setlocale, textdomain, LocaleCategory};
 use gio::prelude::*;
+use glib::clone;
 use gtk::prelude::*;
 use libhandy::prelude::*;
 use std::cell::RefCell;
@@ -117,10 +118,7 @@ impl App {
             popover.get_style_context().add_class("narrow");
         }
 
-        let weak_container = container.downgrade();
-        leaflet.connect_property_fold_notify(move |leaflet| {
-            let container = upgrade_weak!(weak_container);
-
+        leaflet.connect_property_fold_notify(clone!(@weak container => move |leaflet| {
             match leaflet.get_fold() {
                 libhandy::Fold::Folded => {
                     container.get_style_context().add_class("folded-history");
@@ -132,7 +130,7 @@ impl App {
                 }
                 _ => (),
             }
-        });
+        }));
 
         let stack = ui
             .builder
@@ -185,18 +183,14 @@ impl App {
         // Create application
         let app = App::new(gtk_app);
 
-        let app_weak = AppRef::downgrade(&app);
-        gtk_app.connect_activate(move |_| {
-            let app = upgrade_weak!(app_weak);
+        gtk_app.connect_activate(clone!(@weak app => move |_| {
             app.on_activate();
-        });
+        }));
 
-        let app_weak = AppRef::downgrade(&app);
         app.main_window
-            .connect_property_has_toplevel_focus_notify(move |_| {
-                let app = upgrade_weak!(app_weak);
+            .connect_property_has_toplevel_focus_notify(clone!(@weak app => move |_| {
                 app.op.lock().unwrap().mark_active_room_messages();
-            });
+            }));
 
         app.main_window.connect_delete_event(move |window, _| {
             let settings: gio::Settings = gio::Settings::new("org.gnome.Fractal");

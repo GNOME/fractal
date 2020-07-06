@@ -365,15 +365,17 @@ impl VideoPlayerWidget {
             });
 
         /* Sometimes, set_size_request() doesn't get captured visually. The following timeout takes care of that. */
-        let player_weak = Rc::downgrade(&player_widget);
-        gtk::timeout_add_seconds(1, move || {
-            if let Some(player) = player_weak.upgrade() {
+        gtk::timeout_add_seconds(
+            1,
+            clone!(
+            @weak player_widget as player
+            => @default-return Continue(true), move || {
                 let (_, height) = player.get_video_widget().get_size_request();
                 player.get_video_widget().set_size_request(-1, height - 1);
                 player.get_video_widget().set_size_request(-1, height);
-            }
-            Continue(true)
-        });
+                Continue(true)
+            }),
+        );
     }
 
     pub fn auto_adjust_box_size_to_video_dimensions(
@@ -407,7 +409,11 @@ impl VideoPlayerWidget {
                     are bigger than they should be. */
                     gtk::timeout_add(
                         50,
-                        clone!(@strong bx, @strong video_width, @strong video_height => move || {
+                        clone!(
+                        @strong bx,
+                        @strong video_width,
+                        @strong video_height
+                        => move || {
                             adjust_box_margins_to_video_dimensions(&bx, video_width, video_height);
                             Continue(false)
                         }),
@@ -586,18 +592,16 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
     }
     #[rustfmt::skip]
     /// Connect the `PlayerControls` buttons to the `PlayerEssentials` methods.
-    fn connect_control_buttons(s: &Rc<Self>) {
-        if s.get_controls().is_some() {
-            let weak = Rc::downgrade(s);
-
+    fn connect_control_buttons(p: &Rc<Self>) {
+        if let Some(controls) = p.get_controls() {
             // Connect the play button to the gst Player.
-            s.get_controls().unwrap().buttons.play.connect_clicked(clone!(@strong weak => move |_| {
-                if let Some(p) = weak.upgrade() { p.play() }
+            controls.buttons.play.connect_clicked(clone!(@strong p => move |_| {
+                p.play();
             }));
 
             // Connect the pause button to the gst Player.
-            s.get_controls().unwrap().buttons.pause.connect_clicked(clone!(@strong weak => move |_| {
-                if let Some(p) = weak.upgrade() { p.pause() }
+            controls.buttons.pause.connect_clicked(clone!(@strong p => move |_| {
+                p.pause();
             }));
         }
     }
