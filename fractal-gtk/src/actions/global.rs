@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use log::{debug, info};
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -135,69 +135,75 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.add_action(&newer_messages);
 
     // When activated, shuts down the application
-    let app_weak = app.downgrade();
-    quit.connect_activate(move |_action, _parameter| {
-        let app = upgrade_weak!(app_weak);
+    quit.connect_activate(clone!(@weak app => move |_action, _parameter| {
         app.quit();
-    });
+    }));
 
-    about.connect_activate(clone!(op => move |_, _| op.lock().unwrap().about_dialog() ));
-    main_menu.connect_activate(clone!(op => move |_, _| op.lock().unwrap().main_menu() ));
+    about.connect_activate(clone!(@strong op => move |_, _| op.lock().unwrap().about_dialog() ));
+    main_menu.connect_activate(clone!(@strong op => move |_, _| op.lock().unwrap().main_menu() ));
 
     settings.connect_activate(move |_, _| {
         info!("SETTINGS");
     });
     settings.set_enabled(false);
 
-    logout.connect_activate(clone!(op => move |_, _| op.lock().unwrap().logout() ));
-    inv.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_invite_user_dialog() ));
-    chat.connect_activate(clone!(op => move |_, _| op.lock().unwrap().show_direct_chat_dialog() ));
-    leave.connect_activate(clone!(op => move |_, _| op.lock().unwrap().leave_active_room() ));
-    newr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().new_room_dialog() ));
-    joinr.connect_activate(clone!(op => move |_, _| op.lock().unwrap().join_to_room_dialog() ));
+    logout.connect_activate(clone!(@strong op => move |_, _| op.lock().unwrap().logout() ));
+    inv.connect_activate(
+        clone!(@strong op => move |_, _| op.lock().unwrap().show_invite_user_dialog() ),
+    );
+    chat.connect_activate(
+        clone!(@strong op => move |_, _| op.lock().unwrap().show_direct_chat_dialog() ),
+    );
+    leave.connect_activate(
+        clone!(@strong op => move |_, _| op.lock().unwrap().leave_active_room() ),
+    );
+    newr.connect_activate(clone!(@strong op => move |_, _| op.lock().unwrap().new_room_dialog() ));
+    joinr.connect_activate(
+        clone!(@strong op => move |_, _| op.lock().unwrap().join_to_room_dialog() ),
+    );
 
-    previous_room.connect_activate(clone!(op => move |_, _| {
+    previous_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.prev_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    next_room.connect_activate(clone!(op => move |_, _| {
+    next_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.next_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    prev_unread_room.connect_activate(clone!(op => move |_, _| {
+    prev_unread_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.prev_unread_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    next_unread_room.connect_activate(clone!(op => move |_, _| {
+    next_unread_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.next_unread_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    first_room.connect_activate(clone!(op => move |_, _| {
+    first_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.first_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    last_room.connect_activate(clone!(op => move |_, _| {
+    last_room.connect_activate(clone!(@strong op => move |_, _| {
         let mut op = op.lock().unwrap();
         if let Some(id) = op.roomlist.last_id() {
             op.set_active_room_by_id(id);
         }
     }));
-    older_messages.connect_activate(clone!(op => move |_, _| {
+    older_messages.connect_activate(clone!(@strong op => move |_, _| {
         if let Some(ref mut hist) = op.lock().unwrap().history {
             hist.page_up();
         }
     }));
-    newer_messages.connect_activate(clone!(op => move |_, _| {
+    newer_messages.connect_activate(clone!(@strong op => move |_, _| {
         if let Some(ref mut hist) = op.lock().unwrap().history {
             hist.page_down();
         }
@@ -205,32 +211,33 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
 
     let back_history = op.lock().unwrap().room_back_history.clone();
 
-    let back_weak = Rc::downgrade(&back_history);
-    account.connect_activate(clone!(op => move |_, _| {
+    account.connect_activate(clone!(
+    @strong op,
+    @weak back_history as back
+    => move |_, _| {
         op.lock().unwrap().show_account_settings_dialog();
-
-        let back = upgrade_weak!(back_weak);
         back.borrow_mut().push(AppState::AccountSettings);
     }));
 
-    let back_weak = Rc::downgrade(&back_history);
-    directory.connect_activate(clone!(op => move |_, _| {
+    directory.connect_activate(clone!(
+    @strong op,
+    @weak back_history as back
+    => move |_, _| {
         op.lock().unwrap().set_state(AppState::Directory);
-
-    let back = upgrade_weak!(back_weak);
-    back.borrow_mut().push(AppState::Directory);
+        back.borrow_mut().push(AppState::Directory);
     }));
 
     /* TODO: We could pass a message to this to highlight it in the room history, might be
      * handy when opening the room from a notification */
-    let back_weak = Rc::downgrade(&back_history);
-    open_room.connect_activate(clone!(op => move |_, data| {
+    open_room.connect_activate(clone!(
+    @strong op,
+    @weak back_history as back
+    => move |_, data| {
         if let Some(id) = get_room_id(data) {
             op.lock().unwrap().set_active_room_by_id(id);
            /* This does nothing if fractal is already in focus */
             op.lock().unwrap().activate();
         }
-        let back = upgrade_weak!(back_weak);
         // Push a new state only if the current state is not already Room
         let push = if let Some(last) = back.borrow().last() {
             last != &AppState::Room
@@ -242,26 +249,24 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
         }
     }));
 
-    let back_weak = Rc::downgrade(&back_history);
-    room_settings.connect_activate(clone!(op => move |_, _| {
+    room_settings.connect_activate(clone!(
+    @strong op,
+    @weak back_history as back
+    => move |_, _| {
         op.lock().unwrap().create_room_settings();
-
-        let back = upgrade_weak!(back_weak);
         back.borrow_mut().push(AppState::RoomSettings);
     }));
 
-    let back_weak = Rc::downgrade(&back_history);
-    media_viewer.connect_activate(move |_, data| {
+    media_viewer.connect_activate(clone!(
+    @weak back_history as back
+    => move |_, data| {
         open_viewer(data);
-
-        let back = upgrade_weak!(back_weak);
         back.borrow_mut().push(AppState::MediaViewer);
-    });
+    }));
 
-    let mv_weak = Rc::downgrade(&op.lock().unwrap().media_viewer);
+    let mv = op.lock().unwrap().media_viewer.clone();
     let back_weak = Rc::downgrade(&back_history);
-    back.connect_activate(move |_, _| {
-        let mv = upgrade_weak!(mv_weak);
+    back.connect_activate(clone!(@weak mv => move |_, _| {
         if let Some(mut mv) = mv.borrow_mut().take() {
             mv.disconnect_signal_id();
         }
@@ -286,19 +291,17 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
                 }
             }
         }
-    });
+    }));
 
-    let app_weak = app.downgrade();
-    send_file.connect_activate(move |_, _| {
-        let app = upgrade_weak!(app_weak);
+    send_file.connect_activate(clone!(@weak app => move |_, _| {
         if let Some(window) = app.get_active_window() {
             if let Some(path) = open(&window, i18n("Select a file").as_str(), &[]) {
                 APPOP!(attach_message, (path));
             }
         }
-    });
+    }));
 
-    send_message.connect_activate(clone!(op => move |_, _| {
+    send_message.connect_activate(clone!(@strong op => move |_, _| {
         let msg_entry = op.lock().unwrap().ui.sventry.view.clone();
         if let Some(buffer) = msg_entry.get_buffer() {
             let start = buffer.get_start_iter();
@@ -336,20 +339,19 @@ pub fn new(app: &gtk::Application, op: &Arc<Mutex<AppOp>>) {
     app.set_accels_for_action("app.main_menu", &["F10"]);
 
     // connect mouse back button to app.back action
-    let app_weak = app.downgrade();
     if let Some(window) = app.get_active_window() {
-        window.connect_button_press_event(move |_, e| {
+        window.connect_button_press_event(clone!(
+        @weak app
+        => @default-return Inhibit(false), move |_, e| {
             if e.get_button() == 8 {
-                if let Some(app) = app_weak.upgrade() {
-                    app.lookup_action("back")
-                        .expect("App did not have back action.")
-                        .activate(None);
-                    return Inhibit(true);
-                }
+                app.lookup_action("back")
+                    .expect("App did not have back action.")
+                    .activate(None);
+                return Inhibit(true);
             }
 
             Inhibit(false)
-        });
+        }));
     }
 
     // TODO: Mark active room as read when window gets focus

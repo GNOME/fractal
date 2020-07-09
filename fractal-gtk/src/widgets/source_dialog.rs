@@ -1,3 +1,4 @@
+use glib::clone;
 use gtk::prelude::*;
 use sourceview4::prelude::*;
 
@@ -64,24 +65,27 @@ impl SourceDialog {
     }
 
     fn connect(&self) {
-        let source_buffer = self.widgets.source_buffer.downgrade();
-        self.widgets.copy_src_button.connect_clicked(move |_| {
-            let source_buffer = upgrade_weak!(source_buffer);
-            let atom = gdk::Atom::intern("CLIPBOARD");
-            let clipboard = gtk::Clipboard::get(&atom);
+        let source_buffer = &self.widgets.source_buffer;
+        self.widgets
+            .copy_src_button
+            .connect_clicked(clone!(@weak source_buffer => move |_| {
+                let atom = gdk::Atom::intern("CLIPBOARD");
+                let clipboard = gtk::Clipboard::get(&atom);
 
-            let start_iter = source_buffer.get_start_iter();
-            let end_iter = source_buffer.get_end_iter();
+                let start_iter = source_buffer.get_start_iter();
+                let end_iter = source_buffer.get_end_iter();
 
-            if let Some(src) = source_buffer.get_text(&start_iter, &end_iter, false) {
-                clipboard.set_text(&src);
-            }
-        });
+                if let Some(src) = source_buffer.get_text(&start_iter, &end_iter, false) {
+                    clipboard.set_text(&src);
+                }
+            }));
 
-        let msg_src_window = self.widgets.msg_src_window.downgrade();
-        self.widgets.close_src_button.connect_clicked(move |_| {
-            upgrade_weak!(msg_src_window).close();
-        });
+        let msg_src_window = &self.widgets.msg_src_window;
+        self.widgets
+            .close_src_button
+            .connect_clicked(clone!(@weak msg_src_window => move |_| {
+                msg_src_window.close();
+            }));
 
         /* Close the window when the user preses ESC */
         self.widgets.msg_src_window.connect_key_press_event(|w, k| {

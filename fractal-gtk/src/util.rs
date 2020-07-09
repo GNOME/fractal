@@ -41,25 +41,6 @@ macro_rules! glib_thread {
     }};
 }
 
-// from https://stackoverflow.com/a/43992218/1592377
-#[macro_export]
-macro_rules! clone {
-    (@param _) => ( _ );
-    (@param $x:ident) => ( $x );
-    ($($n:ident),+ => move || $body:expr) => (
-        {
-            $( let $n = $n.clone(); )+
-            move || $body
-        }
-    );
-    ($($n:ident),+ => move |$($p:tt),+| $body:expr) => (
-        {
-            $( let $n = $n.clone(); )+
-            move |$(clone!(@param $p),)+| $body
-        }
-    );
-}
-
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
     let path = CACHE_PATH.join(dir.unwrap_or_default());
 
@@ -110,21 +91,6 @@ pub fn set_markdown_schema(md: bool) {
             error!("Can't save markdown active state: {:?}", err);
         }
     }
-}
-
-/* Macro for upgrading a weak reference or returning the given value
- *
- * This works for glib/gtk objects as well as anything else providing an upgrade method */
-macro_rules! upgrade_weak {
-    ($x:expr, $r:expr) => {{
-        match $x.upgrade() {
-            Some(o) => o,
-            None => return $r,
-        }
-    }};
-    ($x:expr) => {
-        upgrade_weak!($x, ())
-    };
 }
 
 macro_rules! unwrap_or_unit_return {

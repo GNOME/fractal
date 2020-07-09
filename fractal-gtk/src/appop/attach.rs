@@ -1,6 +1,6 @@
-use crate::clone;
 use crate::i18n::i18n;
 
+use glib::clone;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -58,11 +58,11 @@ impl AppOp {
                 headerbar.pack_end(&okbtn);
                 headerbar.show_all();
 
-                closebtn.connect_clicked(clone!(dialog => move |_| {
+                closebtn.connect_clicked(clone!(@strong dialog => move |_| {
                     dialog.destroy();
                 }));
                 /* FIXME: make this a action */
-                okbtn.connect_clicked(clone!(pixb, dialog => move |_| {
+                okbtn.connect_clicked(clone!(@strong pixb, @strong dialog => move |_| {
                     if let Ok(path) = store_pixbuf(&pixb) {
                         APPOP!(attach_message, (path))
                     }

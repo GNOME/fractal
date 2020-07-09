@@ -1,5 +1,6 @@
 use fractal_api::url::Url;
 use gio::prelude::*;
+use glib::clone;
 use gtk::prelude::*;
 use log::info;
 
@@ -31,19 +32,18 @@ impl LoginWidget {
     pub fn new(op: &Arc<Mutex<AppOp>>) -> Self {
         let widget = Self::default();
 
-        let weak_server = widget.server_entry.downgrade();
-        let weak_username = widget.username_entry.downgrade();
-        let weak_password = widget.password_entry.downgrade();
-        let weak_err = widget.credentials_err_label.downgrade();
+        let server_entry = &widget.server_entry;
+        let username_entry = &widget.username_entry;
+        let password_entry = &widget.password_entry;
+        let err_label = &widget.credentials_err_label;
 
         // Grab the focus for each state
-        let weak_user = weak_username.clone();
         widget
             .container
-            .connect_property_visible_child_name_notify(move |container| {
-                let server = upgrade_weak!(weak_server);
-                let username = upgrade_weak!(weak_user);
-
+            .connect_property_visible_child_name_notify(clone!(
+            @weak server_entry as server,
+            @weak username_entry as username
+            => move |container| {
                 let state: LoginState = container
                     .get_visible_child_name()
                     .unwrap()
@@ -55,10 +55,9 @@ impl LoginWidget {
                     LoginState::Credentials => username.grab_focus(),
                     _ => (),
                 }
-            });
+            }));
 
         let op = op.clone();
-        let weak_server = widget.server_entry.downgrade();
 
         let login = widget
             .actions
@@ -67,13 +66,12 @@ impl LoginWidget {
             .downcast::<gio::SimpleAction>()
             .expect("Could not cast action 'login' to SimpleAction");
 
-        let weak_pass = weak_password.clone();
-        login.connect_activate(move |_, _| {
-            let server_entry = upgrade_weak!(weak_server);
-            let username_entry = upgrade_weak!(weak_username);
-            let password_entry = upgrade_weak!(weak_pass);
-            let err_label = upgrade_weak!(weak_err);
-
+        login.connect_activate(clone!(
+        @weak server_entry,
+        @weak username_entry,
+        @weak password_entry,
+        @weak err_label
+        => move |_, _| {
             if let Some(txt) = server_entry.get_text() {
                 let username = username_entry
                     .get_text()
@@ -125,7 +123,7 @@ impl LoginWidget {
                     err_label.show();
                 }
             }
-        });
+        }));
 
         let credentials = widget
             .actions
@@ -137,10 +135,11 @@ impl LoginWidget {
             .server_entry
             .connect_activate(move |_| credentials.activate(None));
 
-        widget.username_entry.connect_activate(move |_| {
-            let password_entry = upgrade_weak!(weak_password);
-            password_entry.grab_focus();
-        });
+        widget
+            .username_entry
+            .connect_activate(clone!(@weak password_entry => move |_| {
+                password_entry.grab_focus();
+            }));
 
         widget
             .password_entry

@@ -3,6 +3,7 @@ use fractal_api::identifiers::{EventId, RoomId};
 use gio::ApplicationExt;
 use gio::FileExt;
 use gio::Notification;
+use glib::clone;
 use glib::source::Continue;
 use gtk::prelude::*;
 use log::info;
@@ -72,18 +73,19 @@ impl AppOp {
 
         let room_id = room_id.to_string();
         let id = id.to_string();
-        let app_weak = app.downgrade();
-        gtk::timeout_add(50, move || match rx.try_recv() {
-            Err(TryRecvError::Empty) => Continue(true),
-            Err(TryRecvError::Disconnected) => Continue(false),
-            Ok((name, avatar_path)) => {
-                let title = format!("{}{}", name, title);
-                let app = upgrade_weak!(app_weak, Continue(false));
-                let n = create_notification(&room_id, &title, &short_body, &avatar_path);
-                app.send_notification(Some(id.as_str()), &n);
-                Continue(false)
-            }
-        });
+        gtk::timeout_add(
+            50,
+            clone!(@weak app => @default-return Continue(false), move || match rx.try_recv() {
+                Err(TryRecvError::Empty) => Continue(true),
+                Err(TryRecvError::Disconnected) => Continue(false),
+                Ok((name, avatar_path)) => {
+                    let title = format!("{}{}", name, title);
+                    let n = create_notification(&room_id, &title, &short_body, &avatar_path);
+                    app.send_notification(Some(id.as_str()), &n);
+                    Continue(false)
+                }
+            }),
+        );
 
         None
     }

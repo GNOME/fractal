@@ -1,4 +1,4 @@
-use crate::clone;
+use glib::clone;
 use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -68,14 +68,15 @@ impl Autocomplete {
             }
         }
 
-        let window_weak = this.borrow().window.downgrade();
-        this.borrow().popover.connect_closed(move |_| {
-            let window = upgrade_weak!(window_weak);
-            // Reenable Escape to change state
-            if let Some(app) = window.get_application() {
-                app.set_accels_for_action("app.back", &["Escape"]);
-            }
-        });
+        let window = &this.borrow().window;
+        this.borrow()
+            .popover
+            .connect_closed(clone!(@weak window => move |_| {
+                // Reenable Escape to change state
+                if let Some(app) = window.get_application() {
+                    app.set_accels_for_action("app.back", &["Escape"]);
+                }
+            }));
 
         let own = this.clone();
         this.borrow()
@@ -217,7 +218,8 @@ impl Autocomplete {
 
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
-                let text = buffer.get_text(&start, &end, false)
+                let text = buffer
+                    .get_text(&start, &end, false)
                     .map(|gstr| gstr.to_string());
 
                 /* when closing popover with tab */
@@ -240,65 +242,74 @@ impl Autocomplete {
                 }
                 /* update the popover when closed and tab is released
                  * don't update the popover the arrow keys are pressed */
-                if (is_tab && own.borrow().popover_position.is_none()) ||
-                    (ev.get_keyval() != gdk::enums::key::Up && ev.get_keyval() != gdk::enums::key::Down) {
-                        own.borrow_mut().popover_search = text.clone();
-                        if let Some(buffer) = e.get_buffer() {
-                            let pos = buffer.get_property_cursor_position();
+                if (is_tab && own.borrow().popover_position.is_none())
+                    || (ev.get_keyval() != gdk::enums::key::Up
+                        && ev.get_keyval() != gdk::enums::key::Down)
+                {
+                    own.borrow_mut().popover_search = text.clone();
+                    if let Some(buffer) = e.get_buffer() {
+                        let pos = buffer.get_property_cursor_position();
 
-                            if let Some(text) = text.clone() {
-                                let graphs = text.chars().collect::<Vec<char>>();
+                        if let Some(text) = text.clone() {
+                            let graphs = text.chars().collect::<Vec<char>>();
 
-                                if pos as usize > graphs.len() {
-                                    return Inhibit(false);
-                                }
-
-                                let (p1, _) = graphs.split_at(pos as usize);
-                                let first = p1.iter().collect::<String>();
-                                if own.borrow().popover_position.is_none() {
-                                    if !is_tab {
-                                        if let Some(at_pos) = first.rfind('@') {
-                                            own.borrow_mut().popover_position = Some(at_pos as i32);
-                                        }
-                                    }
-                                    else if let Some(space_pos) = first.rfind(|c: char| c.is_whitespace()) {
-                                            own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
-                                        }
-                                        else {
-                                            own.borrow_mut().popover_position = Some(0);
-                                        }
-                                }
+                            if pos as usize > graphs.len() {
+                                return Inhibit(false);
                             }
 
-                            if own.borrow().popover_position.is_some() {
-                                let list = {
-                                    own.borrow().autocomplete(text, buffer.get_property_cursor_position())
-                                };
-                                let widget_list = {
-                                    own.borrow_mut().autocomplete_show_popover(list)
-                                };
-                                for (alias, widget) in widget_list.iter() {
-                                    widget.connect_button_press_event(clone!(own, alias => move |_, ev| {
-                                        own.borrow_mut().autocomplete_insert(alias.clone());
-                                        if ev.is::<gdk::EventKey>() {
-                                            let ev = {
-                                                let ev: &gdk::Event = ev;
-                                                ev.clone().downcast::<gdk::EventKey>().unwrap()
-                                            };
-                                            /* Submit on enter */
-                                            if ev.get_keyval() == gdk::enums::key::Return || ev.get_keyval() == gdk::enums::key::Tab  {
-                                                own.borrow_mut().autocomplete_enter();
-                                            }
-                                        }
-                                        else if ev.is::<gdk::EventButton>() {
-                                            own.borrow_mut().autocomplete_enter();
-                                        }
-                                        Inhibit(true)
-                                    }));
+                            let (p1, _) = graphs.split_at(pos as usize);
+                            let first = p1.iter().collect::<String>();
+                            if own.borrow().popover_position.is_none() {
+                                if !is_tab {
+                                    if let Some(at_pos) = first.rfind('@') {
+                                        own.borrow_mut().popover_position = Some(at_pos as i32);
+                                    }
+                                } else if let Some(space_pos) =
+                                    first.rfind(|c: char| c.is_whitespace())
+                                {
+                                    own.borrow_mut().popover_position = Some(space_pos as i32 + 1);
+                                } else {
+                                    own.borrow_mut().popover_position = Some(0);
                                 }
                             }
                         }
+
+                        if own.borrow().popover_position.is_some() {
+                            let list = {
+                                own.borrow()
+                                    .autocomplete(text, buffer.get_property_cursor_position())
+                            };
+                            let widget_list = { own.borrow_mut().autocomplete_show_popover(list) };
+                            for (alias, widget) in widget_list.iter() {
+                                widget.connect_button_press_event(clone!(
+                                @strong own,
+                                @strong alias
+                                => move |_, ev| {
+                                    own.borrow_mut().autocomplete_insert(alias.clone());
+                                    if ev.is::<gdk::EventKey>() {
+                                        let ev = {
+                                            let ev: &gdk::Event = ev;
+
+                                            ev.clone()
+                                                .downcast::<gdk::EventKey>()
+                                                .unwrap()
+                                        };
+                                        /* Submit on enter */
+                                        if ev.get_keyval() == gdk::enums::key::Return
+                                            || ev.get_keyval() == gdk::enums::key::Tab
+                                        {
+                                            own.borrow_mut().autocomplete_enter();
+                                        }
+                                    }
+                                    else if ev.is::<gdk::EventButton>() {
+                                        own.borrow_mut().autocomplete_enter();
+                                    }
+                                    Inhibit(true)
+                                }));
+                            }
+                        }
                     }
+                }
             }
 
             Inhibit(false)
