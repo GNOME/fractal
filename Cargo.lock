@@ -592,13 +592,11 @@ dependencies = [
  "fragile",
  "gdk",
  "gdk-pixbuf",
- "gdk-pixbuf-sys",
  "gettext-rs",
  "gio",
  "glib",
  "gspell",
  "gstreamer",
- "gstreamer-editing-services",
  "gstreamer-pbutils",
  "gstreamer-player",
  "gtk",
@@ -612,7 +610,6 @@ dependencies = [
  "md5",
  "mdl",
  "pango",
- "pangocairo",
  "rand 0.7.3",
  "regex",
  "secret-service",
@@ -626,7 +623,6 @@ name = "fractal-matrix-api"
 version = "4.2.2"
 dependencies = [
  "gio",
- "regex",
  "reqwest",
  "ruma-identifiers",
  "serde",
@@ -1026,42 +1022,6 @@ checksum = "ba384f52174b3c586593fca32642680a9e67961fea9f4cd8419f678965023bed"
 dependencies = [
  "glib-sys",
  "gobject-sys",
- "gstreamer-sys",
- "libc",
- "pkg-config",
-]
-
-[[package]]
-name = "gstreamer-editing-services"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87fe5604d99b2d9294e4db3399f11d2229b7e3017ded05d5ca6f7144a6a8565d"
-dependencies = [
- "bitflags",
- "gio",
- "gio-sys",
- "glib",
- "glib-sys",
- "gobject-sys",
- "gstreamer",
- "gstreamer-base",
- "gstreamer-editing-services-sys",
- "gstreamer-pbutils",
- "gstreamer-sys",
- "libc",
-]
-
-[[package]]
-name = "gstreamer-editing-services-sys"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94a684a9b0b704e1a8953e32aaca61242c1e9e28a102968c63bec974fc00f11f"
-dependencies = [
- "gio-sys",
- "glib-sys",
- "gobject-sys",
- "gstreamer-base-sys",
- "gstreamer-pbutils-sys",
  "gstreamer-sys",
  "libc",
  "pkg-config",

@@ -10,37 +10,6 @@ use log::error;
 use std::fs::create_dir_all;
 use std::sync::mpsc::SendError;
 
-pub mod glib_thread_prelude {
-    pub use crate::error::Error;
-    pub use std::sync::mpsc::channel;
-    pub use std::sync::mpsc::TryRecvError;
-    pub use std::sync::mpsc::{Receiver, Sender};
-    pub use std::thread;
-}
-
-#[macro_export]
-macro_rules! glib_thread {
-    ($type: ty, $thread: expr, $glib_code: expr) => {{
-        let (tx, rx): (Sender<$type>, Receiver<$type>) = channel();
-        thread::spawn(move || {
-            let output = $thread();
-            tx.send(output).unwrap();
-        });
-
-        gtk::timeout_add(50, move || match rx.try_recv() {
-            Err(TryRecvError::Empty) => Continue(true),
-            Err(TryRecvError::Disconnected) => {
-                error!("glib_thread error");
-                Continue(false)
-            }
-            Ok(output) => {
-                $glib_code(output);
-                Continue(false)
-            }
-        });
-    }};
-}
-
 pub fn cache_dir_path(dir: Option<&str>, name: &str) -> Result<String, Error> {
     let path = CACHE_PATH.join(dir.unwrap_or_default());
 
