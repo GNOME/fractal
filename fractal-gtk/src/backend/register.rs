@@ -68,7 +68,7 @@ pub fn login(
     };
 
     let request = login_req(server, &body)?;
-    let response: LoginResponse = HTTP_CLIENT.get_client()?.execute(request)?.json()?;
+    let response: LoginResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     if let (Some(tk), Some(uid)) = (response.access_token, response.user_id) {
         Ok((uid, tk, response.device_id))
@@ -92,7 +92,7 @@ pub fn logout(server: Url, access_token: AccessToken) -> Result<(), LogoutError>
     let params = LogoutParameters { access_token };
 
     let request = logout_req(server, &params)?;
-    HTTP_CLIENT.get_client()?.execute(request)?;
+    HTTP_CLIENT.get_client().execute(request)?;
 
     Ok(())
 }
@@ -101,7 +101,7 @@ pub fn get_well_known(domain: Url) -> Result<DomainInfoResponse, Error> {
     let request = domain_info(domain)?;
 
     HTTP_CLIENT
-        .get_client()?
+        .get_client()
         .execute(request)?
         .json()
         .map_err(Into::into)
