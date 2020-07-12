@@ -1,14 +1,16 @@
 use fractal_api::identifiers::{EventId, RoomId};
-use fractal_api::url::Url;
+use fractal_api::reqwest::Error as ReqwestError;
+use fractal_api::url::{ParseError as UrlError, Url};
 use lazy_static::lazy_static;
 use log::error;
 use regex::Regex;
 use std::fmt::Debug;
 use std::fs::write;
-use std::io::Read;
+use std::io::{Error as IoError, Read};
 use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use std::time::SystemTimeError;
 
 use crate::client::Client;
 use crate::error::Error;
@@ -100,7 +102,7 @@ pub fn get_prev_batch_from(
     access_token: AccessToken,
     room_id: &RoomId,
     event_id: &EventId,
-) -> Result<String, Error> {
+) -> Result<String, ReqwestError> {
     let params = GetContextParameters {
         access_token,
         limit: 0,
@@ -115,11 +117,29 @@ pub fn get_prev_batch_from(
 }
 
 #[derive(Debug)]
-pub struct MediaError(pub(self) Error);
+pub enum MediaError {
+    InvalidMxcUrl(Option<UrlError>),
+    InvalidDownloadPath(Error),
+    Reqwest(ReqwestError),
+    Io(IoError),
+    SystemTime(SystemTimeError),
+}
 
-impl<T: Into<Error>> From<T> for MediaError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for MediaError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
+    }
+}
+
+impl From<IoError> for MediaError {
+    fn from(err: IoError) -> Self {
+        Self::Io(err)
+    }
+}
+
+impl From<SystemTimeError> for MediaError {
+    fn from(err: SystemTimeError) -> Self {
+        Self::SystemTime(err)
     }
 }
 
@@ -131,18 +151,21 @@ pub fn dw_media(
     media_type: ContentType,
     dest: Option<String>,
 ) -> Result<String, MediaError> {
-    let mxc_url = Url::parse(mxc)?;
+    let mxc_url = Url::parse(mxc).map_err(|url_err| MediaError::InvalidMxcUrl(Some(url_err)))?;
 
     if mxc_url.scheme() != "mxc" {
-        return Err(MediaError(Error::BackendError));
+        return Err(MediaError::InvalidMxcUrl(None));
     }
 
-    let server = mxc_url.host().ok_or(Error::BackendError)?.to_owned();
+    let server = mxc_url
+        .host()
+        .ok_or(MediaError::InvalidMxcUrl(None))?
+        .to_owned();
     let media_id = mxc_url
         .path_segments()
         .and_then(|mut ps| ps.next())
         .filter(|s| !s.is_empty())
-        .ok_or(Error::BackendError)?;
+        .ok_or(MediaError::InvalidMxcUrl(None))?;
 
     let request = if let ContentType::Thumbnail(width, height) = media_type {
         let params = GetContentThumbnailParameters {
@@ -158,10 +181,11 @@ pub fn dw_media(
     }?;
 
     let fname = match dest {
-        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media_id)?,
-        None => cache_dir_path(Some("medias"), &media_id)?,
-        Some(ref d) => d.clone(),
-    };
+        None if media_type.is_thumbnail() => cache_dir_path(Some("thumbs"), &media_id),
+        None => cache_dir_path(Some("medias"), &media_id),
+        Some(ref d) => Ok(d.clone()),
+    }
+    .map_err(MediaError::InvalidDownloadPath)?;
 
     let fpath = Path::new(&fname);
 
@@ -175,7 +199,7 @@ pub fn dw_media(
             .get_client()
             .execute(request)?
             .bytes()
-            .collect::<Result<Vec<u8>, std::io::Error>>()
+            .collect::<Result<Vec<u8>, IoError>>()
             .and_then(|media| write(&fname, media))
             .and(Ok(fname))
             .map_err(Into::into)

@@ -1,7 +1,7 @@
 use super::MediaError;
-use crate::error::Error;
 use crate::globals;
-use fractal_api::identifiers::{EventId, RoomId};
+use fractal_api::identifiers::{Error as IdError, EventId, RoomId};
+use fractal_api::reqwest::Error as ReqwestError;
 use fractal_api::url::Url;
 use std::sync::mpsc::Sender;
 
@@ -72,13 +72,24 @@ pub fn get_media_list_async(
     });
 }
 
+enum GetRoomMediaListError {
+    Reqwest(ReqwestError),
+    EventsDeserialization(IdError),
+}
+
+impl From<ReqwestError> for GetRoomMediaListError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
+    }
+}
+
 fn get_room_media_list(
     baseu: Url,
     access_token: AccessToken,
     room_id: &RoomId,
     limit: u64,
     prev_batch: String,
-) -> Result<MediaList, Error> {
+) -> Result<MediaList, GetRoomMediaListError> {
     let params = GetMessagesEventsParams {
         access_token,
         from: prev_batch,
@@ -97,7 +108,8 @@ fn get_room_media_list(
 
     let prev_batch = response.end.unwrap_or_default();
     let evs = response.chunk.iter().rev();
-    let media_list = Message::from_json_events_iter(room_id, evs)?;
+    let media_list = Message::from_json_events_iter(room_id, evs)
+        .map_err(GetRoomMediaListError::EventsDeserialization)?;
 
     Ok((media_list, prev_batch))
 }

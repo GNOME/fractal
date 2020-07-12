@@ -1,7 +1,5 @@
-use std::io;
-use std::time::SystemTimeError;
-
 use serde::Deserialize;
+use std::io;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct StandardErrorResponse {
@@ -47,5 +45,4 @@ derror!(fractal_api::url::ParseError, Error::BackendError);
 derror!(io::Error, Error::BackendError);
 derror!(glib::error::Error, Error::BackendError);
 derror!(fractal_api::identifiers::Error, Error::BackendError);
-derror!(SystemTimeError, Error::BackendError);
 derror!(serde_json::Error, Error::CacheError);
