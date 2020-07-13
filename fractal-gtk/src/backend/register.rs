@@ -1,7 +1,6 @@
 use fractal_api::identifiers::{DeviceId, UserId};
+use fractal_api::reqwest::Error as ReqwestError;
 use fractal_api::url::Url;
-
-use crate::error::Error;
 
 use crate::actions::AppState;
 use crate::backend::HTTP_CLIENT;
@@ -27,8 +26,8 @@ use crate::APPOP;
 #[derive(Debug)]
 pub struct LoginError;
 
-impl<T: Into<Error>> From<T> for LoginError {
-    fn from(_: T) -> Self {
+impl From<ReqwestError> for LoginError {
+    fn from(_: ReqwestError) -> Self {
         Self
     }
 }
@@ -78,11 +77,11 @@ pub fn login(
 }
 
 #[derive(Debug)]
-pub struct LogoutError(Error);
+pub struct LogoutError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for LogoutError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for LogoutError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -97,12 +96,8 @@ pub fn logout(server: Url, access_token: AccessToken) -> Result<(), LogoutError>
     Ok(())
 }
 
-pub fn get_well_known(domain: Url) -> Result<DomainInfoResponse, Error> {
+pub fn get_well_known(domain: Url) -> Result<DomainInfoResponse, ReqwestError> {
     let request = domain_info(domain)?;
 
-    HTTP_CLIENT
-        .get_client()
-        .execute(request)?
-        .json()
-        .map_err(Into::into)
+    HTTP_CLIENT.get_client().execute(request)?.json()
 }

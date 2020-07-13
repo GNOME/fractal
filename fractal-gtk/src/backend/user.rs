@@ -1,13 +1,14 @@
 use fractal_api::identifiers::UserId;
-use fractal_api::url::Url;
+use fractal_api::reqwest::Error as ReqwestError;
+use fractal_api::url::{ParseError as UrlError, Url};
 use std::fs;
+use std::io::Error as IoError;
 
 use super::MediaError;
 use crate::actions::global::activate_action;
 use crate::backend::ThreadPool;
 use crate::backend::HTTP_CLIENT;
 use crate::cache::CacheMap;
-use crate::error::Error;
 use crate::util::cache_dir_path;
 use crate::util::ResultExpectLog;
 use log::error;
@@ -80,11 +81,11 @@ use crate::APPOP;
 pub type UserInfo = (String, String);
 
 #[derive(Debug)]
-pub struct NameError(Error);
+pub struct NameError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for NameError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for NameError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -108,13 +109,11 @@ pub fn get_username_async(base: Url, access_token: AccessToken, uid: UserId) -> 
     let params = GetDisplayNameParameters { access_token };
 
     get_display_name(base, &params, &uid)
-        .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             HTTP_CLIENT
                 .get_client()
                 .execute(request)?
                 .json::<GetDisplayNameResponse>()
-                .map_err(Into::into)
         })
         .ok()
         .and_then(|response| response.displayname)
@@ -122,11 +121,11 @@ pub fn get_username_async(base: Url, access_token: AccessToken, uid: UserId) -> 
 }
 
 #[derive(Debug)]
-pub struct SetUserNameError(Error);
+pub struct SetUserNameError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for SetUserNameError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SetUserNameError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -152,8 +151,8 @@ pub fn set_username(
 #[derive(Debug)]
 pub struct GetThreePIDError;
 
-impl<T: Into<Error>> From<T> for GetThreePIDError {
-    fn from(_: T) -> Self {
+impl From<ReqwestError> for GetThreePIDError {
+    fn from(_: ReqwestError) -> Self {
         Self
     }
 }
@@ -183,14 +182,15 @@ pub fn get_threepid(
 
 #[derive(Debug)]
 pub enum GetTokenEmailError {
+    IdentityServerUrl(UrlError),
+    Reqwest(ReqwestError),
     TokenUsed,
     Denied,
-    Other(Error),
 }
 
-impl<T: Into<Error>> From<T> for GetTokenEmailError {
-    fn from(err: T) -> Self {
-        Self::Other(err.into())
+impl From<ReqwestError> for GetTokenEmailError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -205,13 +205,18 @@ impl HandleError for GetTokenEmailError {
                 let error = i18n("Please enter a valid email address.");
                 APPOP!(show_error_dialog_in_settings, (error));
             }
-            Self::Other(err) => {
+            Self::Reqwest(err) => {
                 let error = i18n("Couldn’t add the email address.");
                 let err_str = format!("{:?}", err);
                 error!(
                     "{}",
                     remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
                 );
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::IdentityServerUrl(err) => {
+                let error = i18n("The identity server is invalid.");
+                error!("The identity server is invalid: {:?}", err);
                 APPOP!(show_error_dialog_in_settings, (error));
             }
         }
@@ -229,7 +234,9 @@ pub fn get_email_token(
 
     let params = EmailTokenParameters { access_token };
     let body = EmailTokenBody {
-        id_server: identity.try_into()?,
+        id_server: identity
+            .try_into()
+            .map_err(GetTokenEmailError::IdentityServerUrl)?,
         client_secret: client_secret.clone(),
         email,
         send_attempt: 1,
@@ -251,14 +258,15 @@ pub fn get_email_token(
 
 #[derive(Debug)]
 pub enum GetTokenPhoneError {
+    IdentityServerUrl(UrlError),
+    Reqwest(ReqwestError),
     TokenUsed,
     Denied,
-    Other(Error),
 }
 
-impl<T: Into<Error>> From<T> for GetTokenPhoneError {
-    fn from(err: T) -> Self {
-        Self::Other(err.into())
+impl From<ReqwestError> for GetTokenPhoneError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -275,13 +283,18 @@ impl HandleError for GetTokenPhoneError {
                 );
                 APPOP!(show_error_dialog_in_settings, (error));
             }
-            Self::Other(err) => {
+            Self::Reqwest(err) => {
                 let error = i18n("Couldn’t add the phone number.");
                 let err_str = format!("{:?}", err);
                 error!(
                     "{}",
                     remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
                 );
+                APPOP!(show_error_dialog_in_settings, (error));
+            }
+            Self::IdentityServerUrl(err) => {
+                let error = i18n("The identity server is invalid.");
+                error!("The identity server is invalid: {:?}", err);
                 APPOP!(show_error_dialog_in_settings, (error));
             }
         }
@@ -292,16 +305,18 @@ pub fn get_phone_token(
     base: Url,
     access_token: AccessToken,
     identity: Url,
-    phone: String,
+    phone_number: String,
     client_secret: String,
 ) -> Result<(String, String), GetTokenPhoneError> {
     use PhoneTokenResponse::*;
 
     let params = PhoneTokenParameters { access_token };
     let body = PhoneTokenBody {
-        id_server: identity.try_into()?,
+        id_server: identity
+            .try_into()
+            .map_err(GetTokenPhoneError::IdentityServerUrl)?,
         client_secret: client_secret.clone(),
-        phone_number: phone,
+        phone_number,
         country: String::new(),
         send_attempt: 1,
         next_link: None,
@@ -321,11 +336,14 @@ pub fn get_phone_token(
 }
 
 #[derive(Debug)]
-pub struct AddedToFavError(Error);
+pub enum AddedToFavError {
+    IdentityServerUrl(UrlError),
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for AddedToFavError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for AddedToFavError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -341,7 +359,9 @@ pub fn add_threepid(
     let params = AddThreePIDParameters { access_token };
     let body = AddThreePIDBody {
         three_pid_creds: ThreePIDCredentials {
-            id_server: identity.try_into()?,
+            id_server: identity
+                .try_into()
+                .map_err(AddedToFavError::IdentityServerUrl)?,
             sid,
             client_secret,
         },
@@ -355,11 +375,11 @@ pub fn add_threepid(
 }
 
 #[derive(Debug)]
-pub struct SubmitPhoneTokenError(Error);
+pub struct SubmitPhoneTokenError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for SubmitPhoneTokenError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SubmitPhoneTokenError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -384,11 +404,11 @@ pub fn submit_phone_token(
 }
 
 #[derive(Debug)]
-pub struct DeleteThreePIDError(Error);
+pub struct DeleteThreePIDError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for DeleteThreePIDError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for DeleteThreePIDError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -410,11 +430,11 @@ pub fn delete_three_pid(
 }
 
 #[derive(Debug)]
-pub struct ChangePasswordError(Error);
+pub struct ChangePasswordError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for ChangePasswordError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for ChangePasswordError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -454,11 +474,11 @@ pub fn change_password(
 }
 
 #[derive(Debug)]
-pub struct AccountDestructionError(Error);
+pub struct AccountDestructionError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for AccountDestructionError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for AccountDestructionError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -496,34 +516,20 @@ pub fn account_destruction(
 }
 
 #[derive(Debug)]
-pub struct AvatarError(Error);
+pub enum SetUserAvatarError {
+    Io(IoError),
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for AvatarError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<IoError> for SetUserAvatarError {
+    fn from(err: IoError) -> Self {
+        Self::Io(err)
     }
 }
 
-impl From<GetUserAvatarError> for AvatarError {
-    fn from(err: GetUserAvatarError) -> Self {
-        Self(err.0)
-    }
-}
-
-impl HandleError for AvatarError {}
-
-pub fn get_avatar(base: Url, userid: UserId) -> Result<PathBuf, AvatarError> {
-    get_user_avatar(base, &userid)
-        .map(|(_, fname)| fname.into())
-        .map_err(Into::into)
-}
-
-#[derive(Debug)]
-pub struct SetUserAvatarError(Error);
-
-impl<T: Into<Error>> From<T> for SetUserAvatarError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SetUserAvatarError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -583,11 +589,11 @@ pub fn get_user_info_async(
 }
 
 #[derive(Debug)]
-pub struct UserSearchError(Error);
+pub struct UserSearchError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for UserSearchError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for UserSearchError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -610,33 +616,26 @@ pub fn search(
     Ok(response.results.into_iter().map(Into::into).collect())
 }
 
-pub struct GetUserAvatarError(Error);
+#[derive(Debug)]
+pub enum GetUserAvatarError {
+    Reqwest(ReqwestError),
+    Download(MediaError),
+}
 
-impl<T: Into<Error>> From<T> for GetUserAvatarError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for GetUserAvatarError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
-impl From<MediaError> for GetUserAvatarError {
-    fn from(err: MediaError) -> Self {
-        Self(err.0)
-    }
-}
+impl HandleError for GetUserAvatarError {}
 
 pub fn get_user_avatar(
     base: Url,
     user_id: &UserId,
 ) -> Result<(String, String), GetUserAvatarError> {
-    let response = get_profile(base.clone(), user_id)
-        .map_err::<Error, _>(Into::into)
-        .and_then(|request| {
-            HTTP_CLIENT
-                .get_client()
-                .execute(request)?
-                .json::<GetProfileResponse>()
-                .map_err(Into::into)
-        })?;
+    let request = get_profile(base.clone(), user_id)?;
+    let response: GetProfileResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
     let name = response
         .displayname
@@ -646,7 +645,8 @@ pub fn get_user_avatar(
     let img = response
         .avatar_url
         .map(|url| {
-            let dest = cache_dir_path(None, &user_id.to_string())?;
+            let dest = cache_dir_path(None, &user_id.to_string())
+                .map_err(MediaError::InvalidDownloadPath)?;
             dw_media(
                 base,
                 url.as_str(),
@@ -654,7 +654,8 @@ pub fn get_user_avatar(
                 Some(dest),
             )
         })
-        .unwrap_or_else(|| Ok(Default::default()))?;
+        .unwrap_or_else(|| Ok(Default::default()))
+        .map_err(GetUserAvatarError::Download)?;
 
     Ok((name, img))
 }

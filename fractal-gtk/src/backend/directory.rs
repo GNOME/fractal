@@ -1,8 +1,7 @@
-use fractal_api::url::{Host, Url};
+use fractal_api::reqwest::Error as ReqwestError;
+use fractal_api::url::{Host, ParseError as UrlError, Url};
 
 use crate::globals;
-
-use crate::error::Error;
 
 use crate::backend::HTTP_CLIENT;
 use crate::util::cache_dir_path;
@@ -28,8 +27,8 @@ use crate::APPOP;
 #[derive(Debug)]
 pub struct DirectoryProtocolsError;
 
-impl<T: Into<Error>> From<T> for DirectoryProtocolsError {
-    fn from(_: T) -> Self {
+impl From<ReqwestError> for DirectoryProtocolsError {
+    fn from(_: ReqwestError) -> Self {
         Self
     }
 }
@@ -57,11 +56,14 @@ pub fn protocols(
 }
 
 #[derive(Debug)]
-pub struct DirectorySearchError;
+pub enum DirectorySearchError {
+    InvalidHomeserverUrl(UrlError),
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for DirectorySearchError {
-    fn from(_: T) -> Self {
-        Self
+impl From<ReqwestError> for DirectorySearchError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -97,7 +99,8 @@ pub fn room_search(
                 .unwrap_or_else(|| Host::parse(&hs))
                 .map(Some)
         })
-        .unwrap_or(Ok(None))?;
+        .unwrap_or(Ok(None))
+        .map_err(DirectorySearchError::InvalidHomeserverUrl)?;
 
     let params = PublicRoomsParameters {
         access_token,

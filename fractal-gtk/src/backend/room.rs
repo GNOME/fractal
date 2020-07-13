@@ -2,14 +2,15 @@ use log::error;
 use serde_json::json;
 
 use fractal_api::identifiers::{Error as IdError, EventId, RoomId, UserId};
+use fractal_api::reqwest::Error as ReqwestError;
 use fractal_api::url::Url;
 use std::fs;
+use std::io::Error as IoError;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-use crate::error::Error;
 use crate::globals;
 
 use crate::actions::AppState;
@@ -84,11 +85,14 @@ use crate::i18n::i18n;
 use crate::APPOP;
 
 #[derive(Debug)]
-pub struct RoomDetailError(Error);
+pub enum RoomDetailError {
+    MalformedKey,
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for RoomDetailError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for RoomDetailError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -98,25 +102,25 @@ pub fn get_room_detail(
     base: Url,
     access_token: AccessToken,
     room_id: RoomId,
-    keys: String,
+    key: String,
 ) -> Result<(RoomId, String, String), RoomDetailError> {
+    let k = key.split('.').last().ok_or(RoomDetailError::MalformedKey)?;
     let params = GetStateEventsForKeyParameters { access_token };
 
-    let request = get_state_events_for_key(base, &params, &room_id, &keys)?;
+    let request = get_state_events_for_key(base, &params, &room_id, &key)?;
     let response: JsonValue = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
-    let k = keys.split('.').last().ok_or(Error::BackendError)?;
     let value = response[&k].as_str().map(Into::into).unwrap_or_default();
 
-    Ok((room_id, keys, value))
+    Ok((room_id, key, value))
 }
 
 #[derive(Debug)]
-pub struct RoomAvatarError(Error);
+pub struct RoomAvatarError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for RoomAvatarError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for RoomAvatarError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -129,40 +133,29 @@ pub fn get_room_avatar(
 ) -> Result<(RoomId, Option<Url>), RoomAvatarError> {
     let params = GetStateEventsForKeyParameters { access_token };
 
-    get_state_events_for_key(base.clone(), &params, &room_id, "m.room.avatar")
-        .map_err(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()
-                .execute(request)?
-                .json::<JsonValue>()?;
+    let request = get_state_events_for_key(base.clone(), &params, &room_id, "m.room.avatar")?;
+    let response: JsonValue = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
-            let avatar = response["url"].as_str().and_then(|s| Url::parse(s).ok());
-            let dest = cache_dir_path(None, &room_id.to_string()).ok();
-            if let Some(ref avatar) = avatar {
-                let _ = dw_media(
-                    base,
-                    avatar.as_str(),
-                    ContentType::default_thumbnail(),
-                    dest,
-                );
-            }
+    let avatar = response["url"].as_str().and_then(|s| Url::parse(s).ok());
+    let dest = cache_dir_path(None, &room_id.to_string()).ok();
+    if let Some(ref avatar) = avatar {
+        let _ = dw_media(
+            base,
+            avatar.as_str(),
+            ContentType::default_thumbnail(),
+            dest,
+        );
+    }
 
-            Ok((room_id.clone(), avatar))
-        })
-        .or_else(|err| match err {
-            Error::MatrixError(errcode, _) if errcode == "M_NOT_FOUND" => Ok((room_id, None)),
-            error => Err(error),
-        })
-        .map_err(Into::into)
+    Ok((room_id, avatar))
 }
 
 #[derive(Debug)]
-pub struct RoomMembersError(Error);
+pub struct RoomMembersError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for RoomMembersError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for RoomMembersError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -184,11 +177,15 @@ pub fn get_room_members(
 }
 
 #[derive(Debug)]
-pub struct RoomMessagesToError(Error);
+pub enum RoomMessagesToError {
+    MessageNotSent,
+    Reqwest(ReqwestError),
+    EventsDeserialization(IdError),
+}
 
-impl<T: Into<Error>> From<T> for RoomMessagesToError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for RoomMessagesToError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
@@ -220,7 +217,8 @@ pub fn get_room_messages(
 
     let prev_batch = response.end;
     let evs = response.chunk.iter().rev();
-    let list = Message::from_json_events_iter(&room_id, evs)?;
+    let list = Message::from_json_events_iter(&room_id, evs)
+        .map_err(RoomMessagesToError::EventsDeserialization)?;
 
     Ok((list, room_id, prev_batch))
 }
@@ -231,7 +229,7 @@ pub fn get_room_messages_from_msg(
     room_id: RoomId,
     msg: Message,
 ) -> Result<(Vec<Message>, RoomId, Option<String>), RoomMessagesToError> {
-    let event_id = msg.id.as_ref().ok_or(Error::BackendError)?;
+    let event_id = msg.id.as_ref().ok_or(RoomMessagesToError::MessageNotSent)?;
 
     // first of all, we calculate the from param using the context api, then we call the
     // normal get_room_messages
@@ -287,7 +285,6 @@ pub fn send_msg(
     let txn_id = msg.get_txn_id();
 
     create_message_event(base, &params, &body, &room_id, "m.room.message", &txn_id)
-        .map_err::<Error, _>(Into::into)
         .and_then(|request| {
             let response = HTTP_CLIENT
                 .get_client()
@@ -300,11 +297,11 @@ pub fn send_msg(
 }
 
 #[derive(Debug)]
-pub struct SendTypingError(Error);
+pub struct SendTypingError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for SendTypingError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SendTypingError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -326,10 +323,20 @@ pub fn send_typing(
 }
 
 #[derive(Debug)]
-pub struct SendMsgRedactionError;
+pub enum SendMsgRedactionError {
+    MessageNotSent,
+    Reqwest(ReqwestError),
+}
+
+impl From<ReqwestError> for SendMsgRedactionError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
+    }
+}
 
 impl HandleError for SendMsgRedactionError {
     fn handle_error(&self) {
+        error!("Error deleting message: {:?}", self);
         let error = i18n("Error deleting message");
         APPOP!(show_error, (error));
     }
@@ -342,7 +349,10 @@ pub fn redact_msg(
 ) -> Result<(EventId, Option<EventId>), SendMsgRedactionError> {
     let room_id = &msg.room;
     let txn_id = msg.get_txn_id();
-    let event_id = msg.id.clone().ok_or(SendMsgRedactionError)?;
+    let event_id = msg
+        .id
+        .as_ref()
+        .ok_or(SendMsgRedactionError::MessageNotSent)?;
 
     let params = RedactEventParameters { access_token };
 
@@ -350,25 +360,18 @@ pub fn redact_msg(
         reason: "Deletion requested by the sender".into(),
     };
 
-    redact_event(base, &params, &body, room_id, &event_id, &txn_id)
-        .map_err::<Error, _>(Into::into)
-        .and_then(|request| {
-            let response = HTTP_CLIENT
-                .get_client()
-                .execute(request)?
-                .json::<RedactEventResponse>()?;
+    let request = redact_event(base, &params, &body, room_id, event_id, &txn_id)?;
+    let response: RedactEventResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
-            Ok((event_id.clone(), response.event_id))
-        })
-        .or(Err(SendMsgRedactionError))
+    Ok((event_id.clone(), response.event_id))
 }
 
 #[derive(Debug)]
-pub struct JoinRoomError(Error);
+pub struct JoinRoomError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for JoinRoomError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for JoinRoomError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -405,11 +408,11 @@ pub fn join_room(
 }
 
 #[derive(Debug)]
-pub struct LeaveRoomError(Error);
+pub struct LeaveRoomError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for LeaveRoomError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for LeaveRoomError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -429,11 +432,11 @@ pub fn leave_room(
 }
 
 #[derive(Debug)]
-pub struct MarkedAsReadError(Error);
+pub struct MarkedAsReadError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for MarkedAsReadError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for MarkedAsReadError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -458,11 +461,11 @@ pub fn mark_as_read(
     Ok((room_id, event_id))
 }
 #[derive(Debug)]
-pub struct SetRoomNameError(Error);
+pub struct SetRoomNameError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for SetRoomNameError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SetRoomNameError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -487,11 +490,11 @@ pub fn set_room_name(
 }
 
 #[derive(Debug)]
-pub struct SetRoomTopicError(Error);
+pub struct SetRoomTopicError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for SetRoomTopicError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SetRoomTopicError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -516,17 +519,23 @@ pub fn set_room_topic(
 }
 
 #[derive(Debug)]
-pub struct SetRoomAvatarError(Error);
+pub enum SetRoomAvatarError {
+    Io(IoError),
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for SetRoomAvatarError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for SetRoomAvatarError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
     }
 }
 
 impl From<AttachedFileError> for SetRoomAvatarError {
     fn from(err: AttachedFileError) -> Self {
-        Self(err.0)
+        match err {
+            AttachedFileError::Io(err) => Self::Io(err),
+            AttachedFileError::Reqwest(err) => Self::Reqwest(err),
+        }
     }
 }
 
@@ -552,11 +561,20 @@ pub fn set_room_avatar(
 }
 
 #[derive(Debug)]
-pub struct AttachedFileError(Error);
+pub enum AttachedFileError {
+    Io(IoError),
+    Reqwest(ReqwestError),
+}
 
-impl<T: Into<Error>> From<T> for AttachedFileError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for AttachedFileError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
+    }
+}
+
+impl From<IoError> for AttachedFileError {
+    fn from(err: IoError) -> Self {
+        Self::Io(err)
     }
 }
 
@@ -598,11 +616,11 @@ pub enum RoomType {
 }
 
 #[derive(Debug)]
-pub struct NewRoomError(Error);
+pub struct NewRoomError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for NewRoomError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for NewRoomError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -650,13 +668,41 @@ pub fn new_room(
     })
 }
 
+#[derive(Debug)]
+pub enum DirectChatError {
+    Reqwest(ReqwestError),
+    EventsDeserialization(IdError),
+}
+
+impl From<ReqwestError> for DirectChatError {
+    fn from(err: ReqwestError) -> Self {
+        Self::Reqwest(err)
+    }
+}
+
+impl HandleError for DirectChatError {
+    fn handle_error(&self) {
+        error!("Can't set m.direct: {:?}", self);
+        let err_str = format!("{:?}", self);
+        error!(
+            "{}",
+            remove_matrix_access_token_if_present(&err_str).unwrap_or(err_str)
+        );
+
+        let error = i18n("Can’t create the room, try again");
+        let state = AppState::NoRoom;
+        APPOP!(show_error, (error));
+        APPOP!(set_state, (state));
+    }
+}
+
 fn update_direct_chats(
     base: Url,
     access_token: AccessToken,
     user_id: UserId,
     room_id: RoomId,
     user: Member,
-) -> Result<(), Error> {
+) -> Result<(), DirectChatError> {
     let params = GetGlobalAccountDataParameters {
         access_token: access_token.clone(),
     };
@@ -677,7 +723,8 @@ fn update_direct_chats(
                 .collect::<Result<Vec<RoomId>, IdError>>()?;
             Ok((UserId::try_from(uid.as_str())?, roomlist))
         })
-        .collect::<Result<HashMap<UserId, Vec<RoomId>>, IdError>>()?;
+        .collect::<Result<HashMap<UserId, Vec<RoomId>>, IdError>>()
+        .map_err(DirectChatError::EventsDeserialization)?;
 
     if let Some(v) = directs.get_mut(&user.uid) {
         v.push(room_id);
@@ -698,7 +745,7 @@ pub fn direct_chat(
     access_token: AccessToken,
     user_id: UserId,
     user: Member,
-) -> Result<Room, NewRoomError> {
+) -> Result<Room, DirectChatError> {
     let params = CreateRoomParameters {
         access_token: access_token.clone(),
     };
@@ -720,18 +767,13 @@ pub fn direct_chat(
     let request = create_room(base.clone(), &params, &body)?;
     let response: CreateRoomResponse = HTTP_CLIENT.get_client().execute(request)?.json()?;
 
-    let directs = update_direct_chats(
+    update_direct_chats(
         base,
         access_token,
         user_id,
         response.room_id.clone(),
         user.clone(),
-    );
-
-    if let Err(err) = directs {
-        error!("Can't set m.direct: {:?}", err);
-        return Err(NewRoomError(err));
-    }
+    )?;
 
     Ok(Room {
         name: user.alias,
@@ -741,11 +783,11 @@ pub fn direct_chat(
 }
 
 #[derive(Debug)]
-pub struct AddedToFavError(Error);
+pub struct AddedToFavError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for AddedToFavError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for AddedToFavError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -773,11 +815,11 @@ pub fn add_to_fav(
 }
 
 #[derive(Debug)]
-pub struct InviteError(Error);
+pub struct InviteError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for InviteError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for InviteError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -799,11 +841,11 @@ pub fn invite(
 }
 
 #[derive(Debug)]
-pub struct ChangeLanguageError(Error);
+pub struct ChangeLanguageError(ReqwestError);
 
-impl<T: Into<Error>> From<T> for ChangeLanguageError {
-    fn from(err: T) -> Self {
-        Self(err.into())
+impl From<ReqwestError> for ChangeLanguageError {
+    fn from(err: ReqwestError) -> Self {
+        Self(err)
     }
 }
 
@@ -828,28 +870,16 @@ pub fn set_language(
 
     let body = json!(Language { input_language });
 
-    let response = set_room_account_data(
+    let request = set_room_account_data(
         base,
         &params,
         &body,
         &user_id,
         &room_id,
         "org.gnome.fractal.language",
-    )
-    .map_err(Into::into)
-    .and_then(|request| {
-        let _ = HTTP_CLIENT.get_client().execute(request)?;
+    )?;
 
-        Ok(())
-    });
+    HTTP_CLIENT.get_client().execute(request)?;
 
-    // FIXME: Manage errors in the AppOp loop
-    if let Err(ref err) = response {
-        error!(
-            "Matrix failed to set room language with error code: {:?}",
-            err
-        );
-    }
-
-    response
+    Ok(())
 }
