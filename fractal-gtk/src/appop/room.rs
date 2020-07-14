@@ -1,9 +1,10 @@
 use crate::backend::room;
 use crate::i18n::{i18n, i18n_k, ni18n_f};
-use fractal_api::identifiers::RoomId;
+use fractal_api::identifiers::{RoomId, ServerName};
+use fractal_api::r0::HostAndPort;
 use fractal_api::url::Url;
 use log::{error, warn};
-use std::convert::TryInto;
+use std::convert::{TryInto, TryFrom};
 use std::fs::remove_file;
 use std::os::unix::fs;
 use std::thread;
@@ -395,8 +396,12 @@ impl AppOp {
             room::RoomType::Public
         };
 
-        let internal_id = RoomId::new(&login_data.server_url.to_string())
-            .expect("The server domain should have been validated");
+        let server_name: Box<ServerName> = HostAndPort::try_from(&login_data.server_url)
+            .expect("The server domain should have been validated")
+            .to_string()
+            .try_into()
+            .expect("A host with an optional port should always be a valid Matrix server name");
+        let internal_id = RoomId::new(&server_name);
         let int_id = internal_id.clone();
         let name = n.clone();
         thread::spawn(move || {

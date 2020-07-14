@@ -15,7 +15,7 @@ pub struct Body {
     #[serde(flatten)]
     pub auth: Auth,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<DeviceId>,
+    pub device_id: Option<Box<DeviceId>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub initial_device_display_name: Option<String>,
 }
@@ -33,7 +33,7 @@ pub enum Auth {
 pub struct Response {
     pub access_token: Option<AccessToken>,
     pub user_id: Option<UserId>,
-    pub device_id: Option<DeviceId>,
+    pub device_id: Option<Box<DeviceId>>,
 }
 
 pub fn request(base: Url, body: &Body) -> Result<Request, Error> {

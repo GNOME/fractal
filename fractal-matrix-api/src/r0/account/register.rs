@@ -46,7 +46,7 @@ pub struct Body {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<DeviceId>,
+    pub device_id: Option<Box<DeviceId>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub initial_device_display_name: Option<String>,
     #[serde(skip_serializing_if = "Not::not")]
@@ -57,7 +57,7 @@ pub struct Body {
 pub struct Response {
     pub user_id: UserId,
     pub access_token: Option<AccessToken>,
-    pub device_id: Option<DeviceId>,
+    pub device_id: Option<Box<DeviceId>>,
 }
 
 pub fn request(base: Url, params: &Parameters, body: &Body) -> Result<Request, Error> {

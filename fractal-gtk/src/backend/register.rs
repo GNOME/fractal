@@ -46,7 +46,7 @@ pub fn login(
     user: String,
     password: String,
     server: Url,
-) -> Result<(UserId, AccessToken, Option<DeviceId>), LoginError> {
+) -> Result<(UserId, AccessToken, Option<Box<DeviceId>>), LoginError> {
     let body = if globals::EMAIL_RE.is_match(&user) {
         LoginBody {
             auth: Auth::Password { password },

@@ -46,10 +46,10 @@ pub struct HostAndPort<T> {
     pub port: Option<u16>,
 }
 
-impl TryFrom<Url> for HostAndPort<String> {
+impl TryFrom<&Url> for HostAndPort<String> {
     type Error = ParseError;
 
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
+    fn try_from(url: &Url) -> Result<Self, Self::Error> {
         Ok(Self {
             host: url
                 .host()
@@ -57,6 +57,14 @@ impl TryFrom<Url> for HostAndPort<String> {
                 .to_owned(),
             port: url.port(),
         })
+    }
+}
+
+impl TryFrom<Url> for HostAndPort<String> {
+    type Error = ParseError;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        Self::try_from(&url)
     }
 }
 
