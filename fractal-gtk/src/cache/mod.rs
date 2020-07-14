@@ -11,7 +11,7 @@ use std::thread;
 use crate::types::Room;
 use crate::types::RoomList;
 use failure::Error;
-use fractal_api::identifiers::UserId;
+use fractal_api::identifiers::{DeviceId, UserId};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::time::{Duration, Instant};
@@ -79,7 +79,7 @@ pub struct CacheData {
     pub rooms: RoomList,
     pub username: String,
     pub uid: UserId,
-    pub device_id: String,
+    pub device_id: Box<DeviceId>,
 }
 
 pub fn store(
@@ -87,7 +87,7 @@ pub fn store(
     since: Option<String>,
     username: String,
     uid: UserId,
-    device_id: String,
+    device_id: Box<DeviceId>,
 ) -> Result<(), Error> {
     // don't store all messages in the cache
     let mut cacherooms: Vec<Room> = vec![];

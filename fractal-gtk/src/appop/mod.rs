@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use fractal_api::identifiers::{RoomId, UserId};
+use fractal_api::identifiers::{DeviceId, RoomId, UserId};
 use fractal_api::r0::AccessToken;
 
 use gtk::prelude::*;
@@ -88,7 +88,7 @@ pub struct AppOp {
     pub sending_message: bool,
 
     pub login_data: Option<LoginData>,
-    pub device_id: Option<String>,
+    pub device_id: Option<Box<DeviceId>>,
 
     pub active_room: Option<RoomId>,
     pub join_to_room: Option<RoomId>,

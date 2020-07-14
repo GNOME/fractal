@@ -1,7 +1,7 @@
 use log::error;
 
 use crate::backend::register;
-use fractal_api::identifiers::UserId;
+use fractal_api::identifiers::{DeviceId, UserId};
 use fractal_api::r0::AccessToken;
 
 use fractal_api::url::Url;
@@ -25,7 +25,7 @@ impl AppOp {
         &mut self,
         uid: UserId,
         access_token: AccessToken,
-        device: Option<String>,
+        device: Option<Box<DeviceId>>,
         server_url: Url,
         identity_url: Url,
     ) {
