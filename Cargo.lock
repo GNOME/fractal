@@ -604,6 +604,7 @@ dependencies = [
  "html2pango",
  "itertools 0.8.2",
  "lazy_static",
+ "letter-avatar",
  "libhandy",
  "log",
  "loggerv",
@@ -1444,6 +1445,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "letter-avatar"
+version = "1.2.1"
+source = "git+https://gitlab.gnome.org/bilelmoussaoui/letter-avatar.git?branch=bump-gtk-rs#6df533cefc1f543c9bff2dee818030bf94730e19"
+dependencies = [
+ "cairo-rs",
+ "pango",
+ "pangocairo",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1885,6 +1897,37 @@ dependencies = [
  "glib-sys",
  "gobject-sys",
  "libc",
+ "system-deps",
+]
+
+[[package]]
+name = "pangocairo"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00f5ae67a05a5e023f09f64e9a71c845274d4b82dedee237b70425811885e883"
+dependencies = [
+ "bitflags",
+ "cairo-rs",
+ "cairo-sys-rs",
+ "glib",
+ "glib-sys",
+ "gobject-sys",
+ "libc",
+ "pango",
+ "pango-sys",
+ "pangocairo-sys",
+]
+
+[[package]]
+name = "pangocairo-sys"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94ccc97f698c2f0233b84e5ca676893a1e676785b60eec700b9c0e6dcd0feb98"
+dependencies = [
+ "cairo-sys-rs",
+ "glib-sys",
+ "libc",
+ "pango-sys",
  "system-deps",
 ]
 

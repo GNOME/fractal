@@ -29,6 +29,10 @@ regex = "1.3.4"
 secret-service = "1.0.0"
 serde_json = "1.0.48"
 
+[dependencies.letter-avatar]
+git = "https://gitlab.gnome.org/bilelmoussaoui/letter-avatar.git"
+branch = "bump-gtk-rs"
+
 [dependencies.sourceview4]
 git = "https://gitlab.gnome.org/World/Rust/sourceview4-rs.git"
 rev = "275d8beb8a41b2a10321b0fd890a31de4700ed59"
