@@ -103,11 +103,9 @@ impl AppOp {
         });
 
         entry.connect_property_text_notify(move |w| {
-            if let Some(text) = w.get_text() {
-                if text != "" {
-                    button.set_sensitive(true);
-                    return;
-                }
+            if w.get_text() != "" {
+                button.set_sensitive(true);
+                return;
             }
             button.set_sensitive(false);
         });
@@ -115,22 +113,22 @@ impl AppOp {
         let value = entry;
         dialog.connect_response(move |w, r| {
             if let gtk::ResponseType::Ok = r {
-                if let Some(token) = value.get_text().map(|gstr| gstr.to_string()) {
-                    let server_url = login_data.server_url.clone();
-                    let secret = secret.clone();
-                    let sid = sid.clone();
-                    thread::spawn(move || {
-                        match user::submit_phone_token(server_url, secret, sid, token) {
-                            Ok((sid, secret)) => {
-                                let secret = Some(secret);
-                                APPOP!(valid_phone_token, (sid, secret));
-                            }
-                            Err(err) => {
-                                err.handle_error();
-                            }
+                let token = value.get_text().to_string();
+
+                let server_url = login_data.server_url.clone();
+                let secret = secret.clone();
+                let sid = sid.clone();
+                thread::spawn(move || {
+                    match user::submit_phone_token(server_url, secret, sid, token) {
+                        Ok((sid, secret)) => {
+                            let secret = Some(secret);
+                            APPOP!(valid_phone_token, (sid, secret));
                         }
-                    });
-                }
+                        Err(err) => {
+                            err.handle_error();
+                        }
+                    }
+                });
             }
             w.destroy();
         });
@@ -594,9 +592,7 @@ impl AppOp {
             .expect("Can't find account_settings_name_button in ui file.");
 
         let old_username = login_data.username.clone().unwrap_or_default();
-        let username = name
-            .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string());
+        let username = name.get_text().to_string();
 
         if old_username != username {
             let spinner = gtk::Spinner::new();
@@ -670,29 +666,27 @@ impl AppOp {
             .get_object::<gtk::Stack>("account_settings_password_stack")
             .expect("Can't find account_settings_password_stack in ui file.");
 
-        if let Some(old) = old_password.get_text() {
-            if let Some(new) = new_password.get_text() {
-                if old != "" && new != "" {
-                    password_btn.set_sensitive(false);
-                    password_btn_stack.set_visible_child_name("spinner");
-                    thread::spawn(move || {
-                        match user::change_password(
-                            login_data.server_url,
-                            login_data.access_token,
-                            login_data.uid.localpart().into(),
-                            old.to_string(),
-                            new.to_string(),
-                        ) {
-                            Ok(_) => {
-                                APPOP!(password_changed);
-                            }
-                            Err(err) => {
-                                err.handle_error();
-                            }
-                        }
-                    });
+        let old = old_password.get_text();
+        let new = new_password.get_text();
+        if old != "" && new != "" {
+            password_btn.set_sensitive(false);
+            password_btn_stack.set_visible_child_name("spinner");
+            thread::spawn(move || {
+                match user::change_password(
+                    login_data.server_url,
+                    login_data.access_token,
+                    login_data.uid.localpart().into(),
+                    old.to_string(),
+                    new.to_string(),
+                ) {
+                    Ok(_) => {
+                        APPOP!(password_changed);
+                    }
+                    Err(err) => {
+                        err.handle_error();
+                    }
                 }
-            }
+            });
         }
     }
 
@@ -787,31 +781,30 @@ impl AppOp {
         dialog.add_button("Cancel", gtk::ResponseType::Cancel);
 
         let _flag = mark.get_active(); // TODO: This is not used, remove from UI?
-        if let Some(password) = entry.get_text().map(|gstr| gstr.to_string()) {
-            dialog.connect_response(move |w, r| {
-                if let gtk::ResponseType::Ok = r {
-                    let password = password.clone();
-                    let login_data = login_data.clone();
-                    thread::spawn(move || {
-                        match user::account_destruction(
-                            login_data.server_url.clone(),
-                            login_data.access_token.clone(),
-                            login_data.uid.localpart().into(),
-                            password,
-                        ) {
-                            Ok(_) => {
-                                APPOP!(account_destruction_logoff);
-                            }
-                            Err(err) => {
-                                err.handle_error();
-                            }
+        let password = entry.get_text().to_string();
+        dialog.connect_response(move |w, r| {
+            if let gtk::ResponseType::Ok = r {
+                let password = password.clone();
+                let login_data = login_data.clone();
+                thread::spawn(move || {
+                    match user::account_destruction(
+                        login_data.server_url.clone(),
+                        login_data.access_token.clone(),
+                        login_data.uid.localpart().into(),
+                        password,
+                    ) {
+                        Ok(_) => {
+                            APPOP!(account_destruction_logoff);
                         }
-                    });
-                }
-                w.destroy();
-            });
-            dialog.show_all();
-        }
+                        Err(err) => {
+                            err.handle_error();
+                        }
+                    }
+                });
+            }
+            w.destroy();
+        });
+        dialog.show_all();
     }
     pub fn account_destruction_logoff(&self) {
         /* Do logout */

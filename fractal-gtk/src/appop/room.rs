@@ -385,9 +385,7 @@ impl AppOp {
             .get_object::<gtk::ToggleButton>("private_visibility_button")
             .expect("Can't find private_visibility_button in ui file.");
 
-        let n = name
-            .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string());
+        let n = name.get_text().to_string();
         // Since the switcher
         let privacy = if private.get_active() {
             room::RoomType::Private
@@ -554,7 +552,7 @@ impl AppOp {
             .get_object::<gtk::Entry>("join_room_name")
             .expect("Can't find join_room_name in ui file.")
             .get_text()
-            .map_or(String::new(), |gstr| gstr.to_string())
+            .to_string()
             .trim()
             .try_into();
 

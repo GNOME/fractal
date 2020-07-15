@@ -110,12 +110,13 @@ impl App {
 
         let button = name_btn.clone();
         name_entry.connect_property_text_notify(clone!(@strong op => move |w| {
-            if let Some(text) = w.get_text().filter(|text| !text.is_empty()) {
+            let username = w.get_text();
+            if username != "" {
                 if op.try_lock()
                     .ok()
                     .and_then(|guard| guard.login_data.clone())
                     .and_then(|login_data| login_data.username)
-                    .filter(|username| *username != text)
+                    .filter(|u| *u != username)
                     .is_some()
                 {
                     button.show();
@@ -167,18 +168,17 @@ impl App {
 
             let mut empty = true;
             let mut matching = true;
-            if let Some(new) = new.get_text() {
-                if let Some(verify) = verify.get_text() {
-                    if let Some(old) = old.get_text() {
-                        if new != verify {
-                            matching = false;
-                        }
-                        if new != "" && verify != "" && old != "" {
-                            empty = false;
-                        }
-                    }
-                }
+            let old_p = old.get_text();
+            let new_p = new.get_text();
+            let verify_p = verify.get_text();
+
+            if new_p != verify_p {
+                matching = false;
             }
+            if new_p != "" && verify_p != "" && old_p != "" {
+                empty = false;
+            }
+
             if matching {
                 hint.hide();
             } else {
@@ -221,11 +221,9 @@ impl App {
 
         destruction_entry.connect_property_text_notify(
             clone!(@strong destruction_btn => move |w| {
-                if let Some(text) = w.get_text() {
-                    if text != "" {
-                        destruction_btn.set_sensitive(true);
-                        return;
-                    }
+                if w.get_text() != "" {
+                    destruction_btn.set_sensitive(true);
+                    return;
                 }
                 destruction_btn.set_sensitive(false);
             }),

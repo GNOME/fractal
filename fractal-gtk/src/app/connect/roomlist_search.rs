@@ -35,8 +35,7 @@ impl App {
 
         search_entry.connect_search_changed(clone!(@strong op => move |entry| {
             op.lock().unwrap().filter_rooms(
-                entry.get_text()
-                    .map(|gstr| gstr.to_string())
+                Some(entry.get_text().to_string())
             );
         }));
 

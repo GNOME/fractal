@@ -89,15 +89,13 @@ pub fn new(
     @weak server_entry,
     @weak err_label
     => move |_, _| {
-        if let Some(txt) = server_entry.get_text() {
-            if txt.is_empty() {
-                err_label.show();
-            } else {
-                err_label.hide();
-                let state = LoginState::Credentials;
-                stack.set_visible_child_name(&state.to_string());
-                back.borrow_mut().push(state);
-            }
+        if server_entry.get_text().is_empty() {
+            err_label.show();
+        } else {
+            err_label.hide();
+            let state = LoginState::Credentials;
+            stack.set_visible_child_name(&state.to_string());
+            back.borrow_mut().push(state);
         }
     }));
 

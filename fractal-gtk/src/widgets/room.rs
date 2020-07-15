@@ -102,11 +102,7 @@ impl<'a> RoomBox<'a> {
             alias_label.set_xalign(0.0);
 
             details_box.add(&name_label);
-            if !topic_label
-                .get_text()
-                .map_or(String::new(), |gstr| gstr.to_string())
-                .is_empty()
-            {
+            if !topic_label.get_text().to_string().is_empty() {
                 details_box.add(&topic_label);
             }
             details_box.add(&alias_label);

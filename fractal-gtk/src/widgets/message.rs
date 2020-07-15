@@ -340,33 +340,27 @@ impl MessageBox {
             for part in msg_parts.iter() {
                 let highlights = msg.highlights.clone();
                 part.connect_property_cursor_position_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        let attr = pango::AttrList::new();
-                        for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.to_string());
-                        }
-                        w.set_attributes(Some(&attr));
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, w.get_text().to_string());
                     }
+                    w.set_attributes(Some(&attr));
                 });
 
                 let highlights = msg.highlights.clone();
                 part.connect_property_selection_bound_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        let attr = pango::AttrList::new();
-                        for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.to_string());
-                        }
-                        w.set_attributes(Some(&attr));
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, w.get_text().to_string());
                     }
+                    w.set_attributes(Some(&attr));
                 });
 
-                if let Some(text) = part.get_text() {
-                    let attr = pango::AttrList::new();
-                    for light in msg.highlights.clone() {
-                        highlight_username(part.clone(), &attr, &light, text.to_string());
-                    }
-                    part.set_attributes(Some(&attr));
+                let attr = pango::AttrList::new();
+                for light in msg.highlights.clone() {
+                    highlight_username(part.clone(), &attr, &light, part.get_text().to_string());
                 }
+                part.set_attributes(Some(&attr));
             }
         }
 

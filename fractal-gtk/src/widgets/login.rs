@@ -72,56 +72,54 @@ impl LoginWidget {
         @weak password_entry,
         @weak err_label
         => move |_, _| {
-            if let Some(txt) = server_entry.get_text() {
-                let username = username_entry
-                    .get_text()
-                    .map_or(String::new(), |gstr| gstr.to_string());
+            let username = username_entry
+                .get_text()
+                .to_string();
 
-                let password = password_entry
-                    .get_text()
-                    .map_or(String::new(), |gstr| gstr.to_string());
+            let password = password_entry
+                .get_text()
+                .to_string();
 
-                let txt = String::from(txt).trim().to_string();
-                let txt = if txt.starts_with("http://") || txt.starts_with("https://") {
-                    txt
+            let txt = server_entry.get_text().to_string().trim().to_string();
+            let txt = if txt.starts_with("http://") || txt.starts_with("https://") {
+                txt
+            } else {
+                format!("https://{}", &txt)
+            };
+            let txt = if !txt.ends_with('/') { txt + "/" } else { txt };
+
+            if !password.is_empty() && !username.is_empty() {
+                // take the user's homeserver value if the
+                // well-known request fails
+                let mut homeserver_url = if let Ok(hs_url) = Url::parse(&txt) {
+                    hs_url
                 } else {
-                    format!("https://{}", &txt)
+                    let msg = i18n("Malformed server URL");
+                    ErrorDialog::new(false, &msg);
+                    return;
                 };
-                let txt = if !txt.ends_with('/') { txt + "/" } else { txt };
 
-                if !password.is_empty() && !username.is_empty() {
-                    // take the user's homeserver value if the
-                    // well-known request fails
-                    let mut homeserver_url = if let Ok(hs_url) = Url::parse(&txt) {
-                        hs_url
-                    } else {
-                        let msg = i18n("Malformed server URL");
-                        ErrorDialog::new(false, &msg);
-                        return;
-                    };
+                let mut idserver = globals::DEFAULT_IDENTITYSERVER.clone();
+                match get_well_known(homeserver_url.clone()) {
+                    Ok(response) => {
+                        info!("Got well-known response from {}: {:#?}", &txt, response);
+                        homeserver_url = response.homeserver.base_url;
+                        idserver = response
+                            .identity_server
+                            .map(|ids| ids.base_url)
+                            .unwrap_or(idserver);
+                    }
+                    Err(e) => info!("Failed to .well-known request: {:#?}", e),
+                };
 
-                    let mut idserver = globals::DEFAULT_IDENTITYSERVER.clone();
-                    match get_well_known(homeserver_url.clone()) {
-                        Ok(response) => {
-                            info!("Got well-known response from {}: {:#?}", &txt, response);
-                            homeserver_url = response.homeserver.base_url;
-                            idserver = response
-                                .identity_server
-                                .map(|ids| ids.base_url)
-                                .unwrap_or(idserver);
-                        }
-                        Err(e) => info!("Failed to .well-known request: {:#?}", e),
-                    };
-
-                    err_label.hide();
-                    op.lock().unwrap().set_state(AppState::Loading);
-                    op.lock().unwrap().since = None;
-                    op.lock()
-                        .unwrap()
-                        .connect(username, password, homeserver_url, idserver);
-                } else {
-                    err_label.show();
-                }
+                err_label.hide();
+                op.lock().unwrap().set_state(AppState::Loading);
+                op.lock().unwrap().since = None;
+                op.lock()
+                    .unwrap()
+                    .connect(username, password, homeserver_url, idserver);
+            } else {
+                err_label.show();
             }
         }));
 
