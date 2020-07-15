@@ -331,7 +331,7 @@ impl AppOp {
 
         name_btn.hide();
         name.set_editable(true);
-        let image = gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+        let image = gtk::Image::from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
         name_btn.set_image(Some(&image));
         name_btn.set_sensitive(true);
 
@@ -568,8 +568,7 @@ impl AppOp {
             .expect("Can't find account_settings_name_button in ui file.");
         if let Some(name) = name.clone() {
             button.hide();
-            let image =
-                gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+            let image = gtk::Image::from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
             button.set_image(Some(&image));
             button.set_sensitive(true);
             entry.set_editable(true);

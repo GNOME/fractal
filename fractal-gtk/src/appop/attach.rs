@@ -33,7 +33,7 @@ impl AppOp {
                 .get_object("main_window")
                 .expect("Can't find main_window in ui file.");
             let img = gtk::Image::new();
-            let dialog = gtk::Dialog::new_with_buttons(
+            let dialog = gtk::Dialog::with_buttons(
                 Some(i18n("Image from Clipboard").as_str()),
                 Some(&window),
                 gtk::DialogFlags::MODAL
@@ -49,8 +49,8 @@ impl AppOp {
 
             if let Some(hbar) = dialog.get_header_bar() {
                 let headerbar = hbar.downcast::<gtk::HeaderBar>().unwrap();
-                let closebtn = gtk::Button::new_with_label(i18n("Cancel").as_str());
-                let okbtn = gtk::Button::new_with_label(i18n("Send").as_str());
+                let closebtn = gtk::Button::with_label(i18n("Cancel").as_str());
+                let okbtn = gtk::Button::with_label(i18n("Send").as_str());
                 okbtn.get_style_context().add_class("suggested-action");
 
                 headerbar.set_show_close_button(false);

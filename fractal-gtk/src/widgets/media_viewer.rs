@@ -378,15 +378,13 @@ impl Data {
         let control_box = PlayerExt::get_controls_container(&player).unwrap();
         full_control_box.pack_start(&control_box, false, true, 0);
 
-        let mute_button = gtk::Button::new_from_icon_name(
-            Some("audio-volume-high-symbolic"),
-            gtk::IconSize::Button,
-        );
+        let mute_button =
+            gtk::Button::from_icon_name(Some("audio-volume-high-symbolic"), gtk::IconSize::Button);
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let button = Fragile::new(mute_button.clone());
         PlayerExt::get_player(&player).connect_state_changed(move |player, state| match state {
             gst_player::PlayerState::Playing if player.get_mute() => {
-                let image = gtk::Image::new_from_icon_name(
+                let image = gtk::Image::from_icon_name(
                     Some("audio-volume-muted-symbolic"),
                     gtk::IconSize::Button,
                 );

@@ -277,7 +277,7 @@ impl RoomSettings {
     }
 
     pub fn reset_action_button(&self, button: gtk::Button) {
-        let image = gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+        let image = gtk::Image::from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
         button.set_image(Some(&image));
         button.set_sensitive(true);
     }

@@ -86,7 +86,7 @@ impl RoomListGroup {
         title.set_halign(gtk::Align::Start);
         title.set_valign(gtk::Align::Start);
         let arrow =
-            gtk::Image::new_from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
+            gtk::Image::from_icon_name(Some("pan-down-symbolic"), gtk::IconSize::SmallToolbar);
         let expanded = Arc::new(AtomicBool::new(true));
         let title_eb = gtk::EventBox::new();
 

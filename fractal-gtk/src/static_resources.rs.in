@@ -11,7 +11,7 @@ pub fn init() -> Result<(), Error> {
 
     // Create Resource, it will live as long the value lives.
     let gbytes = Bytes::from(res_bytes.as_ref());
-    let resource = Resource::new_from_data(&gbytes)?;
+    let resource = Resource::from_data(&gbytes)?;
 
     // Register the resource so It wont be dropped and will continue to live in memory.
     resources_register(&resource);

@@ -115,13 +115,13 @@ impl<'a> RoomBox<'a> {
             membership_grid.set_column_spacing(6);
 
             let members_icon =
-                gtk::Image::new_from_icon_name(Some("system-users-symbolic"), gtk::IconSize::Menu);
+                gtk::Image::from_icon_name(Some("system-users-symbolic"), gtk::IconSize::Menu);
             members_icon.get_style_context().add_class("dim-label");
 
             let members_count = gtk::Label::new(Some(&format!("{}", room.n_members)[..]));
             members_count.get_style_context().add_class("dim-label");
 
-            let join_button = gtk::Button::new_with_label(i18n("Join").as_str());
+            let join_button = gtk::Button::with_label(i18n("Join").as_str());
             let room_id = room.id.clone();
             join_button.connect_clicked(move |_| {
                 let server_url = login_data.server_url.clone();

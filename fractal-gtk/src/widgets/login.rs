@@ -151,7 +151,7 @@ impl LoginWidget {
 
 impl Default for LoginWidget {
     fn default() -> Self {
-        let builder = gtk::Builder::new_from_resource("/org/gnome/Fractal/ui/login_flow.ui");
+        let builder = gtk::Builder::from_resource("/org/gnome/Fractal/ui/login_flow.ui");
 
         let container: gtk::Stack = builder.get_object("login_flow_stack").unwrap();
         let headers: gtk::Stack = builder.get_object("login_flow_headers").unwrap();

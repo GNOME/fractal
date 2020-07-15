@@ -28,7 +28,7 @@ impl RoomRow {
 
         let icon = widgets::Avatar::avatar_new(Some(ICON_SIZE));
         let direct =
-            gtk::Image::new_from_icon_name(Some("avatar-default-symbolic"), gtk::IconSize::Menu);
+            gtk::Image::from_icon_name(Some("avatar-default-symbolic"), gtk::IconSize::Menu);
         direct.get_style_context().add_class("direct-chat");
 
         let text = gtk::Label::new(Some(name.as_str()));

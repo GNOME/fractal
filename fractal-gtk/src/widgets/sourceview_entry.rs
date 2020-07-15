@@ -34,7 +34,7 @@ impl Default for SVEntry {
 
         let size = gtk::IconSize::Button;
         let attach = gtk::Button::new();
-        let attach_img = gtk::Image::new_from_icon_name(Some("mail-attachment-symbolic"), size);
+        let attach_img = gtk::Image::from_icon_name(Some("mail-attachment-symbolic"), size);
         attach.set_image(Some(&attach_img));
         attach.set_valign(gtk::Align::End);
         attach.set_receives_default(true);
@@ -47,8 +47,7 @@ impl Default for SVEntry {
         */
 
         let markdown = gtk::MenuButton::new();
-        let markdown_img =
-            gtk::Image::new_from_icon_name(Some("format-justify-left-symbolic"), size);
+        let markdown_img = gtk::Image::from_icon_name(Some("format-justify-left-symbolic"), size);
         markdown.set_image(Some(&markdown_img));
         markdown.set_valign(gtk::Align::End);
         markdown.set_receives_default(true);
@@ -68,7 +67,7 @@ impl Default for SVEntry {
 
         let tag_table: Option<&gtk::TextTagTable> = None;
         let buffer = sourceview4::Buffer::new(tag_table);
-        let view = sourceview4::View::new_with_buffer(&buffer);
+        let view = sourceview4::View::with_buffer(&buffer);
         view.set_wrap_mode(gtk::WrapMode::WordChar);
         view.set_indent_on_tab(false);
 
@@ -85,7 +84,7 @@ impl Default for SVEntry {
         entry_box.add(&scroll);
 
         let send = gtk::Button::new();
-        let send_img = gtk::Image::new_from_icon_name(Some("send-symbolic"), size);
+        let send_img = gtk::Image::from_icon_name(Some("send-symbolic"), size);
         send.set_image(Some(&send_img));
         send.set_valign(gtk::Align::End);
         send.set_receives_default(true);
