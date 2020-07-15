@@ -130,7 +130,7 @@ impl AppOp {
                     }
                 });
             }
-            w.destroy();
+            w.close();
         });
         self.get_three_pid();
         dialog.show_all();
@@ -177,7 +177,7 @@ impl AppOp {
                     }
                 });
             }
-            w.destroy();
+            w.close();
         });
         self.get_three_pid();
         dialog.show_all();
@@ -185,14 +185,14 @@ impl AppOp {
 
     pub fn show_error_dialog_in_settings(&self, error: String) {
         let dialog = self.create_error_dialog(error);
-        dialog.connect_response(move |w, _| w.destroy());
+        dialog.connect_response(move |w, _| w.close());
         self.get_three_pid();
         dialog.show_all();
     }
 
     pub fn show_load_settings_error_dialog(&self, error: String) {
         let dialog = self.create_error_dialog(error);
-        dialog.connect_response(move |w, _| w.destroy());
+        dialog.connect_response(move |w, _| w.close());
         dialog.show_all();
     }
 
@@ -802,7 +802,7 @@ impl AppOp {
                     }
                 });
             }
-            w.destroy();
+            w.close();
         });
         dialog.show_all();
     }

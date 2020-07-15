@@ -101,7 +101,9 @@ impl AppOp {
     pub fn clear_tmp_msgs(&mut self) {
         for t in self.msg_queue.iter_mut() {
             if let Some(ref w) = t.widget {
-                w.destroy();
+                unsafe {
+                    w.destroy();
+                }
             }
             t.widget = None;
         }
@@ -183,7 +185,9 @@ impl AppOp {
     pub fn msg_sent(&mut self, _txid: String, evid: Option<EventId>) {
         if let Some(ref mut m) = self.msg_queue.pop() {
             if let Some(ref w) = m.widget {
-                w.destroy();
+                unsafe {
+                    w.destroy();
+                }
             }
             m.widget = None;
             m.msg.id = evid;
@@ -355,7 +359,7 @@ impl AppOp {
         if let Some(i) = p {
             let w = self.msg_queue.remove(i);
             if let Some(w) = w.widget {
-                w.destroy()
+                unsafe { w.destroy() }
             }
         }
         self.add_tmp_room_message(msg);

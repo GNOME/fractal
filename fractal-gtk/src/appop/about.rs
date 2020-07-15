@@ -44,7 +44,7 @@ impl AppOp {
 
         dialog.add_credit_section(i18n("Name by").as_str(), &["Regina Bíró"]);
         dialog.connect_response(move |d, _| {
-            d.destroy();
+            d.close();
         });
 
         dialog.show();

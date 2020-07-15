@@ -19,7 +19,7 @@ pub fn new(fatal: bool, text: &str) {
 
     let app_weak = app.downgrade();
     dialog.connect_response(move |dialog, _| {
-        dialog.destroy();
+        dialog.close();
 
         if let (Some(app), true) = (app_weak.upgrade(), fatal) {
             app.quit();

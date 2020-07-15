@@ -59,14 +59,14 @@ impl AppOp {
                 headerbar.show_all();
 
                 closebtn.connect_clicked(clone!(@strong dialog => move |_| {
-                    dialog.destroy();
+                    dialog.close();
                 }));
                 /* FIXME: make this a action */
                 okbtn.connect_clicked(clone!(@strong pixb, @strong dialog => move |_| {
                     if let Ok(path) = store_pixbuf(&pixb) {
                         APPOP!(attach_message, (path))
                     }
-                    dialog.destroy();
+                    dialog.close();
                 }));
 
                 okbtn.grab_focus();
