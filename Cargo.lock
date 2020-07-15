@@ -2341,8 +2341,7 @@ dependencies = [
 [[package]]
 name = "ruma-identifiers"
 version = "0.17.0-pre.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b06b7b21399f355f0df1d1b9f72fbf0f7079cce6b8afb93e4a26e19f375d1b3"
+source = "git+https://github.com/ruma/ruma?rev=60238bbb8568bb85ff80b6d490f23ab868d53190#60238bbb8568bb85ff80b6d490f23ab868d53190"
 dependencies = [
  "rand 0.7.3",
  "serde",
