@@ -108,7 +108,6 @@ impl AvatarExt for gtk::Overlay {
         /* This function should never fail */
         let fallback = letter_avatar::generate::new(id.clone(), username, size as f64)
             .expect("this function should never fail");
-
         // Power level badge setup
         let has_badge = badge_color.is_some();
         let badge_size = badge_size.unwrap_or(size / 3);
