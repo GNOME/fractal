@@ -23,10 +23,6 @@ impl Default for SVEntry {
         let column = Column::new();
         column.set_maximum_width(800);
         column.set_linear_growth_width(600);
-        /* For some reason the Column is not seen as a gtk::container
-         * and therefore we can't call add() without the cast */
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<gtk::Container>().unwrap();
         column.set_vexpand(false);
 
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
@@ -98,9 +94,6 @@ impl Default for SVEntry {
 
         column.add(&container);
         column.show_all();
-
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<Column>().unwrap();
 
         SVEntry {
             column,
