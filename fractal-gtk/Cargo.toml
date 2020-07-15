@@ -12,20 +12,18 @@ directories = "2.0.2"
 dirs = "2.0.2"
 failure = "0.1.6"
 fragile = "1.0.0"
-gspell = "0.4.0"
-gdk = "0.12.1"
-gdk-pixbuf = "0.8.0"
-gstreamer-pbutils = "0.15.1"
-glib = "0.9.3"
+gdk = "0.13.0"
+gdk-pixbuf = "0.9.0"
+gstreamer-pbutils = "0.16.0"
+glib = "0.10.1"
 html2pango = "0.3.2"
 itertools = "0.8.2"
 lazy_static = "1.4.0"
-letter-avatar = "1.2.1"
 log = "0.4.8"
 loggerv = "0.7.2"
 md5 = "0.7.0"
 mdl = "1.0.4"
-pango = "0.8.0"
+pango = "0.9.0"
 rand = "0.7.3"
 regex = "1.3.4"
 secret-service = "1.0.0"
@@ -33,18 +31,22 @@ serde_json = "1.0.48"
 
 [dependencies.sourceview4]
 git = "https://gitlab.gnome.org/World/Rust/sourceview4-rs.git"
-rev = "fa8819fa7ecbe56f44d951656d3825f468915754"
+rev = "275d8beb8a41b2a10321b0fd890a31de4700ed59"
+
+[dependencies.gspell]
+git = "https://gitlab.gnome.org/World/Rust/gspell-rs.git"
+rev = "e4caf899ae387fa431bfa112cb3e40358b4b68ea"
 
 [dependencies.gst]
-version = "0.15.3"
+version = "0.16.1"
 package = "gstreamer"
 
 [dependencies.gst_player]
-version = "0.15.3"
+version = "0.16.0"
 package = "gstreamer-player"
 
 [dependencies.cairo-rs]
-version = "0.8.1"
+version = "0.9.1"
 features = ["png"]
 
 [dependencies.chrono]
@@ -56,7 +58,7 @@ path = "../fractal-matrix-api"
 package = "fractal-matrix-api"
 
 [dependencies.libhandy]
-version = "0.5.0"
+version = "0.6.0"
 features = ["v0_0_10"]
 
 [dependencies.gettext-rs]
@@ -65,7 +67,7 @@ branch = "no-gettext"
 features = ["gettext-system"]
 
 [dependencies.gtk]
-version = "0.8.1"
+version = "0.9.0"
 features = ["v3_22"]
 
 [dependencies.serde]
@@ -73,5 +75,5 @@ version = "1.0.104"
 features = ["derive"]
 
 [dependencies.gio]
-version = "0.8.1"
+version = "0.9.0"
 features = ["v2_56"]
