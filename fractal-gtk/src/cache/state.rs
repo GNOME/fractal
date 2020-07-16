@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::types::Message;
 use crate::types::Room;
 use crate::util::cache_dir_path;
-use fractal_api::identifiers::UserId;
+use fractal_api::identifiers::{DeviceId, UserId};
 
 // Models
 
@@ -26,7 +26,7 @@ pub struct AppState {
     pub since: Option<String>,
     pub username: String,
     pub uid: UserId,
-    pub device_id: String,
+    pub device_id: Box<DeviceId>,
 }
 
 /// Backend Room model but without the list of messages
