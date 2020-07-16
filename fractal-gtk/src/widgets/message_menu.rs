@@ -194,8 +194,12 @@ fn get_selected_text(event_widget: Option<&gtk::Label>) -> Option<SelectedText> 
     let w = event_widget?;
     match w.get_selection_bounds() {
         Some((s, e)) => {
-            let text = w.get_text()?;
-            let slice: String = text.chars().take(e as usize).skip(s as usize).collect();
+            let slice: String = w
+                .get_text()
+                .chars()
+                .take(e as usize)
+                .skip(s as usize)
+                .collect();
             Some(SelectedText {
                 widget: w.downgrade(),
                 text: slice,

@@ -378,15 +378,13 @@ impl Data {
         let control_box = PlayerExt::get_controls_container(&player).unwrap();
         full_control_box.pack_start(&control_box, false, true, 0);
 
-        let mute_button = gtk::Button::new_from_icon_name(
-            Some("audio-volume-high-symbolic"),
-            gtk::IconSize::Button,
-        );
+        let mute_button =
+            gtk::Button::from_icon_name(Some("audio-volume-high-symbolic"), gtk::IconSize::Button);
         /* The followign callback requires `Send` but is handled by the gtk main loop */
         let button = Fragile::new(mute_button.clone());
         PlayerExt::get_player(&player).connect_state_changed(move |player, state| match state {
             gst_player::PlayerState::Playing if player.get_mute() => {
-                let image = gtk::Image::new_from_icon_name(
+                let image = gtk::Image::from_icon_name(
                     Some("audio-volume-muted-symbolic"),
                     gtk::IconSize::Button,
                 );
@@ -463,7 +461,7 @@ impl Data {
         @weak player
         => @default-return Inhibit(false), move |_, k| {
             if player.get_video_widget().get_mapped() {
-                if let gdk::enums::key::space = k.get_keyval() {
+                if let gdk::keys::constants::space = k.get_keyval() {
                     if player.is_playing() {
                         control_revealer.set_reveal_child(true);
                     } else {
@@ -906,7 +904,7 @@ impl MediaViewer {
             .main_window
             .connect_key_press_event(move |w, k| {
                 match k.get_keyval() {
-                    gdk::enums::key::Escape => {
+                    gdk::keys::constants::Escape => {
                         // leave full screen only if we're currently in fullscreen
                         if let Some(win) = w.get_window() {
                             if win.get_state().contains(gdk::WindowState::FULLSCREEN) {
@@ -917,11 +915,11 @@ impl MediaViewer {
 
                         Inhibit(false)
                     }
-                    gdk::enums::key::Left => {
+                    gdk::keys::constants::Left => {
                         previous_media_button.clicked();
                         Inhibit(true)
                     }
-                    gdk::enums::key::Right => {
+                    gdk::keys::constants::Right => {
                         next_media_button.clicked();
                         Inhibit(true)
                     }

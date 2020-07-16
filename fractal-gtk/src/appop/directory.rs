@@ -128,7 +128,7 @@ impl AppOp {
             q.set_sensitive(false);
         }
 
-        let search_term = q.get_text().unwrap().to_string();
+        let search_term = q.get_text().to_string();
         if let RoomSearchPagination::NoMorePages = self.directory_pagination {
             // there are no more rooms. We don't need to request for more
             return;

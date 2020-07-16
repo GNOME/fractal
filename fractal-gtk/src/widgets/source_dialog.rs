@@ -89,7 +89,7 @@ impl SourceDialog {
 
         /* Close the window when the user preses ESC */
         self.widgets.msg_src_window.connect_key_press_event(|w, k| {
-            if k.get_keyval() == gdk::enums::key::Escape {
+            if k.get_keyval() == gdk::keys::constants::Escape {
                 w.close();
             }
 

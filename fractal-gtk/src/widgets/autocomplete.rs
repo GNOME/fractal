@@ -136,7 +136,7 @@ impl Autocomplete {
 
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |_, k| {
-            if let gdk::enums::key::Escape = k.get_keyval() {
+            if let gdk::keys::constants::Escape = k.get_keyval() {
                 if own.borrow().popover_position.is_some() {
                     own.borrow_mut().autocomplete_enter();
                     return Inhibit(true);
@@ -148,7 +148,7 @@ impl Autocomplete {
         let own = this.clone();
         this.borrow().entry.connect_key_press_event(move |w, ev| {
             match ev.get_keyval() {
-                gdk::enums::key::BackSpace => {
+                gdk::keys::constants::BackSpace => {
                     if let Some(buffer) = w.get_buffer() {
                         let start = buffer.get_start_iter();
                         let end = buffer.get_end_iter();
@@ -167,7 +167,7 @@ impl Autocomplete {
                     return glib::signal::Inhibit(false);
                 }
                 /* Tab and Enter key */
-                gdk::enums::key::Tab | gdk::enums::key::Return => {
+                gdk::keys::constants::Tab | gdk::keys::constants::Return => {
                     if own.borrow().popover_position.is_some() {
                         let widget = {
                             own.borrow_mut().popover_closing = true;
@@ -177,12 +177,12 @@ impl Autocomplete {
                             let ev: &gdk::Event = ev;
                             let _ = w.emit("button-press-event", &[ev]);
                         }
-                    } else if ev.get_keyval() != gdk::enums::key::Tab {
+                    } else if ev.get_keyval() != gdk::keys::constants::Tab {
                         return glib::signal::Inhibit(false);
                     }
                 }
                 /* Arrow key */
-                gdk::enums::key::Up => {
+                gdk::keys::constants::Up => {
                     if own.borrow().popover_position.is_none() {
                         return glib::signal::Inhibit(false);
                     }
@@ -194,7 +194,7 @@ impl Autocomplete {
                     }
                 }
                 /* Arrow key */
-                gdk::enums::key::Down => {
+                gdk::keys::constants::Down => {
                     if own.borrow().popover_position.is_none() {
                         return glib::signal::Inhibit(false);
                     }
@@ -214,7 +214,7 @@ impl Autocomplete {
         let own = this.clone();
         this.borrow().entry.connect_key_release_event(move |e, ev| {
             if let Some(buffer) = e.get_buffer() {
-                let is_tab = ev.get_keyval() == gdk::enums::key::Tab;
+                let is_tab = ev.get_keyval() == gdk::keys::constants::Tab;
 
                 let start = buffer.get_start_iter();
                 let end = buffer.get_end_iter();
@@ -243,8 +243,8 @@ impl Autocomplete {
                 /* update the popover when closed and tab is released
                  * don't update the popover the arrow keys are pressed */
                 if (is_tab && own.borrow().popover_position.is_none())
-                    || (ev.get_keyval() != gdk::enums::key::Up
-                        && ev.get_keyval() != gdk::enums::key::Down)
+                    || (ev.get_keyval() != gdk::keys::constants::Up
+                        && ev.get_keyval() != gdk::keys::constants::Down)
                 {
                     own.borrow_mut().popover_search = text.clone();
                     if let Some(buffer) = e.get_buffer() {
@@ -295,8 +295,8 @@ impl Autocomplete {
                                                 .unwrap()
                                         };
                                         /* Submit on enter */
-                                        if ev.get_keyval() == gdk::enums::key::Return
-                                            || ev.get_keyval() == gdk::enums::key::Tab
+                                        if ev.get_keyval() == gdk::keys::constants::Return
+                                            || ev.get_keyval() == gdk::keys::constants::Tab
                                         {
                                             own.borrow_mut().autocomplete_enter();
                                         }

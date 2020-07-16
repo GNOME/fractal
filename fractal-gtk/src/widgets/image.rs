@@ -311,7 +311,7 @@ pub fn load_pixbuf(
         return;
     }
 
-    match Pixbuf::new_from_file(fname) {
+    match Pixbuf::from_file(fname) {
         Ok(px) => {
             *pix.lock().unwrap() = Some(px);
             *scaled.lock().unwrap() = None;
@@ -340,7 +340,7 @@ pub fn load_animation(
     widget: DrawingArea,
     fname: &str,
 ) {
-    let res = PixbufAnimation::new_from_file(fname);
+    let res = PixbufAnimation::from_file(fname);
     if res.is_err() {
         return;
     }

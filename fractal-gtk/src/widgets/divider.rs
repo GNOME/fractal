@@ -56,7 +56,7 @@ impl NewMessageDivider {
         revealer.connect_property_child_revealed_notify(clone!(
         @weak row as r
         => move |_| {
-            r.destroy();
+            unsafe { r.destroy(); }
             remove_divider();
         }));
         NewMessageDivider {

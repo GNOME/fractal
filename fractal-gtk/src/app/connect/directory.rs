@@ -26,10 +26,6 @@ impl App {
         let listbox = gtk::ListBox::new();
 
         column.set_maximum_width(800);
-        /* For some reason the Column is not seen as a gtk::container
-         * and therefore we can't call add() without the cast */
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<gtk::Container>().unwrap();
         column.set_hexpand(true);
         column.set_vexpand(true);
         column.set_margin_top(24);
@@ -46,8 +42,6 @@ impl App {
         column.show();
         directory_stack.add_named(&column, "directory_column");
 
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<Column>().unwrap();
         self.ui
             .builder
             .expose_object::<gtk::ListBox>("directory_room_list", &listbox);

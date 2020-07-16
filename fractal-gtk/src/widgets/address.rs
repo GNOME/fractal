@@ -61,7 +61,7 @@ impl<'a> Address<'a> {
 
             self.action = Some(AddressAction::Delete);
             let label =
-                gtk::Image::new_from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
+                gtk::Image::from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
             self.button.set_image(Some(&label));
             self.button.show();
         } else {
@@ -72,8 +72,7 @@ impl<'a> Address<'a> {
 
             self.entry.set_placeholder_text(Some(text));
             self.action = Some(AddressAction::Add);
-            let label =
-                gtk::Image::new_from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
+            let label = gtk::Image::from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
             self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
@@ -102,7 +101,7 @@ impl<'a> Address<'a> {
 
             self.action = Some(AddressAction::Delete);
             let label =
-                gtk::Image::new_from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
+                gtk::Image::from_icon_name(Some("user-trash-symbolic"), gtk::IconSize::Menu);
             self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
@@ -110,8 +109,7 @@ impl<'a> Address<'a> {
             self.button.show();
         } else {
             self.action = Some(AddressAction::Add);
-            let label =
-                gtk::Image::new_from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
+            let label = gtk::Image::from_icon_name(Some("list-add-symbolic"), gtk::IconSize::Menu);
             self.button.set_image(Some(&label));
             self.button
                 .get_style_context()
@@ -136,19 +134,18 @@ impl<'a> Address<'a> {
         let button = self.button.clone();
         let medium = self.medium.clone();
         self.entry.connect_property_text_notify(move |w| {
-            if let Some(text) = w.get_text() {
-                if text != "" {
-                    /* FIXME: use better validation */
-                    match medium {
-                        AddressType::Email => {
-                            button.set_sensitive(text.contains('@') && text.contains('.'));
-                        }
-                        AddressType::Phone => {}
-                    };
-                    button.show();
-                } else {
-                    button.hide();
-                }
+            let username = w.get_text();
+            if username != "" {
+                /* FIXME: use better validation */
+                match medium {
+                    AddressType::Email => {
+                        button.set_sensitive(username.contains('@') && username.contains('.'));
+                    }
+                    AddressType::Phone => {}
+                };
+                button.show();
+            } else {
+                button.hide();
             }
         });
 
@@ -189,15 +186,14 @@ impl<'a> Address<'a> {
                     }
                 }
                 Some(AddressAction::Add) => {
-                    if let Some(address) = entry.get_text().map(|gstr| gstr.to_string()) {
-                        add_address(
-                            medium,
-                            id_server.clone(),
-                            address,
-                            server_url.clone(),
-                            access_token.clone(),
-                        );
-                    }
+                    let address = entry.get_text().to_string();
+                    add_address(
+                        medium,
+                        id_server.clone(),
+                        address,
+                        server_url.clone(),
+                        access_token.clone(),
+                    );
                 }
                 _ => {}
             }

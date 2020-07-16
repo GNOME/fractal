@@ -247,7 +247,7 @@ impl Default for VideoPlayerWidget {
         let dispatcher = gst_player::PlayerGMainContextSignalDispatcher::new(None);
         let sink = gst::ElementFactory::make("gtksink", None)
             .expect("Missing dependency: element gtksink is needed (usually, in gstreamer-plugins-good or in gst-plugin-gtk).");
-        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::new_with_sink(&sink).upcast();
+        let renderer = gst_player::PlayerVideoOverlayVideoRenderer::with_sink(&sink).upcast();
         let player = gst_player::Player::new(
             Some(&renderer),
             // Use the gtk main thread
@@ -564,14 +564,14 @@ impl<T: MediaPlayer + 'static> PlayerExt for T {
         let player = player_widget.get_player();
         if player.get_mute() {
             player.set_mute(false);
-            let image = gtk::Image::new_from_icon_name(
+            let image = gtk::Image::from_icon_name(
                 Some("audio-volume-high-symbolic"),
                 gtk::IconSize::Button,
             );
             button.set_image(Some(&image));
         } else {
             player.set_mute(true);
-            let image = gtk::Image::new_from_icon_name(
+            let image = gtk::Image::from_icon_name(
                 Some("audio-volume-muted-symbolic"),
                 gtk::IconSize::Button,
             );
@@ -626,7 +626,7 @@ impl<T: MediaPlayer + 'static> ControlsConnection for T {
 }
 
 fn create_controls(player: &gst_player::Player) -> PlayerControls {
-    let builder = gtk::Builder::new_from_resource("/org/gnome/Fractal/ui/audio_player.ui");
+    let builder = gtk::Builder::from_resource("/org/gnome/Fractal/ui/audio_player.ui");
     let container = builder.get_object("container").unwrap();
 
     let buttons_container = builder.get_object("buttons").unwrap();

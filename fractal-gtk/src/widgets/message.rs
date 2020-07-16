@@ -159,7 +159,9 @@ impl MessageBox {
             self.small_widget(thread_pool, &msg)
         };
         if let Some(eb) = self.eventbox.get_child() {
-            eb.destroy(); // clean the eventbox
+            unsafe {
+                eb.destroy();
+            } // clean the eventbox
         }
         self.eventbox.add(&w);
         self.row.show_all();
@@ -247,10 +249,8 @@ impl MessageBox {
         body_bx.pack_start(&body, true, true, 0);
 
         if let Some(replace_date) = msg.replace_date {
-            let edit_mark = gtk::Image::new_from_icon_name(
-                Some("document-edit-symbolic"),
-                gtk::IconSize::Button,
-            );
+            let edit_mark =
+                gtk::Image::from_icon_name(Some("document-edit-symbolic"), gtk::IconSize::Button);
             edit_mark.get_style_context().add_class("edit-mark");
             edit_mark.set_valign(gtk::Align::End);
 
@@ -342,33 +342,27 @@ impl MessageBox {
             for part in msg_parts.iter() {
                 let highlights = msg.highlights.clone();
                 part.connect_property_cursor_position_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        let attr = pango::AttrList::new();
-                        for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.to_string());
-                        }
-                        w.set_attributes(Some(&attr));
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, w.get_text().to_string());
                     }
+                    w.set_attributes(Some(&attr));
                 });
 
                 let highlights = msg.highlights.clone();
                 part.connect_property_selection_bound_notify(move |w| {
-                    if let Some(text) = w.get_text() {
-                        let attr = pango::AttrList::new();
-                        for light in highlights.clone() {
-                            highlight_username(w.clone(), &attr, &light, text.to_string());
-                        }
-                        w.set_attributes(Some(&attr));
+                    let attr = pango::AttrList::new();
+                    for light in highlights.clone() {
+                        highlight_username(w.clone(), &attr, &light, w.get_text().to_string());
                     }
+                    w.set_attributes(Some(&attr));
                 });
 
-                if let Some(text) = part.get_text() {
-                    let attr = pango::AttrList::new();
-                    for light in msg.highlights.clone() {
-                        highlight_username(part.clone(), &attr, &light, text.to_string());
-                    }
-                    part.set_attributes(Some(&attr));
+                let attr = pango::AttrList::new();
+                for light in msg.highlights.clone() {
+                    highlight_username(part.clone(), &attr, &light, part.get_text().to_string());
                 }
+                part.set_attributes(Some(&attr));
             }
         }
 
@@ -464,7 +458,7 @@ impl MessageBox {
         );
 
         let download_btn =
-            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
+            gtk::Button::from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -514,7 +508,7 @@ impl MessageBox {
         overlay.add(&video_widget);
 
         let play_button = gtk::Button::new();
-        let play_icon = gtk::Image::new_from_icon_name(
+        let play_icon = gtk::Image::from_icon_name(
             Some("media-playback-start-symbolic"),
             gtk::IconSize::Dialog,
         );
@@ -536,7 +530,7 @@ impl MessageBox {
 
         let menu_button = gtk::MenuButton::new();
         let three_dot_icon =
-            gtk::Image::new_from_icon_name(Some("view-more-symbolic"), gtk::IconSize::Button);
+            gtk::Image::from_icon_name(Some("view-more-symbolic"), gtk::IconSize::Button);
         menu_button.set_image(Some(&three_dot_icon));
         menu_button.get_style_context().add_class("osd");
         menu_button.get_style_context().add_class("round-button");
@@ -579,7 +573,7 @@ impl MessageBox {
         name_lbl.get_style_context().add_class("msg-highlighted");
 
         let download_btn =
-            gtk::Button::new_from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
+            gtk::Button::from_icon_name(Some("document-save-symbolic"), gtk::IconSize::Button);
         download_btn.set_tooltip_text(Some(i18n("Save").as_str()));
 
         let evid = msg
@@ -593,7 +587,7 @@ impl MessageBox {
         download_btn.set_action_name(Some("message.save_as"));
 
         let open_btn =
-            gtk::Button::new_from_icon_name(Some("document-open-symbolic"), gtk::IconSize::Button);
+            gtk::Button::from_icon_name(Some("document-open-symbolic"), gtk::IconSize::Button);
         open_btn.set_tooltip_text(Some(i18n("Open").as_str()));
 
         let data = glib::Variant::from(&evid);

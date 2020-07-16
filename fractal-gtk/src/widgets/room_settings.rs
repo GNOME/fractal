@@ -128,8 +128,7 @@ impl RoomSettings {
         let button = name_btn.clone();
         name_entry.connect_property_text_notify(clone!(@strong this => move |w| {
             let result = this.borrow().validate_room_name(
-                w.get_text()
-                    .map(|gstr| gstr.to_string())
+                Some(w.get_text().to_string())
             );
             button.set_visible(result.is_some());
         }));
@@ -137,8 +136,7 @@ impl RoomSettings {
         let button = topic_btn.clone();
         topic_entry.connect_property_text_notify(clone!(@strong this => move |w| {
             let result = this.borrow().validate_room_topic(
-                w.get_text()
-                    .map(|gstr| gstr.to_string())
+                Some(w.get_text().to_string())
             );
             button.set_visible(result.is_some());
         }));
@@ -277,7 +275,7 @@ impl RoomSettings {
     }
 
     pub fn reset_action_button(&self, button: gtk::Button) {
-        let image = gtk::Image::new_from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
+        let image = gtk::Image::from_icon_name(Some("emblem-ok-symbolic"), gtk::IconSize::Menu);
         button.set_image(Some(&image));
         button.set_sensitive(true);
     }
@@ -485,7 +483,7 @@ impl RoomSettings {
             .get_object::<gtk::Button>("room_settings_room_name_button")
             .expect("Can't find room_settings_name_button in ui file.");
 
-        let new_name = entry.get_text()?.to_string();
+        let new_name = entry.get_text().to_string();
         let room = &self.room;
 
         let spinner = gtk::Spinner::new();
@@ -542,7 +540,7 @@ impl RoomSettings {
             .builder
             .get_object::<gtk::Button>("room_settings_room_topic_button")
             .expect("Can't find room_settings_topic_button in ui file.");
-        let topic = name.get_text()?.to_string();
+        let topic = name.get_text().to_string();
 
         let room = &self.room;
 

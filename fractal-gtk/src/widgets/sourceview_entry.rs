@@ -23,10 +23,6 @@ impl Default for SVEntry {
         let column = Column::new();
         column.set_maximum_width(800);
         column.set_linear_growth_width(600);
-        /* For some reason the Column is not seen as a gtk::container
-         * and therefore we can't call add() without the cast */
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<gtk::Container>().unwrap();
         column.set_vexpand(false);
 
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
@@ -34,7 +30,7 @@ impl Default for SVEntry {
 
         let size = gtk::IconSize::Button;
         let attach = gtk::Button::new();
-        let attach_img = gtk::Image::new_from_icon_name(Some("mail-attachment-symbolic"), size);
+        let attach_img = gtk::Image::from_icon_name(Some("mail-attachment-symbolic"), size);
         attach.set_image(Some(&attach_img));
         attach.set_valign(gtk::Align::End);
         attach.set_receives_default(true);
@@ -47,8 +43,7 @@ impl Default for SVEntry {
         */
 
         let markdown = gtk::MenuButton::new();
-        let markdown_img =
-            gtk::Image::new_from_icon_name(Some("format-justify-left-symbolic"), size);
+        let markdown_img = gtk::Image::from_icon_name(Some("format-justify-left-symbolic"), size);
         markdown.set_image(Some(&markdown_img));
         markdown.set_valign(gtk::Align::End);
         markdown.set_receives_default(true);
@@ -68,7 +63,7 @@ impl Default for SVEntry {
 
         let tag_table: Option<&gtk::TextTagTable> = None;
         let buffer = sourceview4::Buffer::new(tag_table);
-        let view = sourceview4::View::new_with_buffer(&buffer);
+        let view = sourceview4::View::with_buffer(&buffer);
         view.set_wrap_mode(gtk::WrapMode::WordChar);
         view.set_indent_on_tab(false);
 
@@ -85,7 +80,7 @@ impl Default for SVEntry {
         entry_box.add(&scroll);
 
         let send = gtk::Button::new();
-        let send_img = gtk::Image::new_from_icon_name(Some("send-symbolic"), size);
+        let send_img = gtk::Image::from_icon_name(Some("send-symbolic"), size);
         send.set_image(Some(&send_img));
         send.set_valign(gtk::Align::End);
         send.set_receives_default(true);
@@ -99,9 +94,6 @@ impl Default for SVEntry {
 
         column.add(&container);
         column.show_all();
-
-        let column = column.upcast::<gtk::Widget>();
-        let column = column.downcast::<Column>().unwrap();
 
         SVEntry {
             column,

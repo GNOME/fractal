@@ -33,7 +33,7 @@ impl App {
             .expect("Can't find autocomplete_popover in ui file.");
 
         msg_entry.connect_key_press_event(move |_, key| match key.get_keyval() {
-            gdk::enums::key::Return | gdk::enums::key::KP_Enter
+            gdk::keys::constants::Return | gdk::keys::constants::KP_Enter
                 if !key.get_state().contains(gdk::ModifierType::SHIFT_MASK)
                     && !autocomplete_popover.is_visible() =>
             {
@@ -45,7 +45,7 @@ impl App {
 
         let mut op = self.op.clone();
         msg_entry.connect_key_release_event(move |_, ev| {
-            if gdk::keyval_to_unicode(ev.get_keyval()).is_some() {
+            if gdk::keyval_to_unicode(*ev.get_keyval()).is_some() {
                 op.lock().unwrap().send_typing();
             }
             Inhibit(false)
