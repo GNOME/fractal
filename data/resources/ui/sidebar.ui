@@ -25,18 +25,21 @@
         <property name="orientation">vertical</property>
         <child>
           <object class="AdwHeaderBar" id="headerbar">
+            <property name="title-widget">
+              <object class="AdwWindowTitle"></object>
+            </property>
             <property name="show-end-title-buttons" bind-source="Sidebar" bind-property="compact" bind-flags="sync-create"/>
-            <child type="start">
-              <object class="GtkToggleButton" id="search_button">
-                <property name="icon-name">system-search-symbolic</property>
-                <property name="active" bind-source="room_search" bind-property="search-mode-enabled" bind-flags="sync-create"/>
-                <property name="action-name">win.toggle-room-search</property>
-              </object>
-            </child>
             <child type="end">
               <object class="GtkMenuButton" id="appmenu_button">
                 <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">primary_menu</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkToggleButton" id="search_button">
+                <property name="icon-name">system-search-symbolic</property>
+                <property name="active" bind-source="room_search" bind-property="search-mode-enabled" bind-flags="sync-create"/>
+                <property name="action-name">win.toggle-room-search</property>
               </object>
             </child>
           </object>
