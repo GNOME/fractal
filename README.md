@@ -13,22 +13,8 @@ We are working on rewriting Fractal from scratch using [GTK4](https://www.gtk.or
 We already talked several times in the past about rewriting the application, but for different reasons we didn't do it. Now that the [matrix-rust-sdk](https://github.com/matrix-org/matrix-rust-sdk) exists, which does a lot of the heavy lifting for us, we have a good starting point to build Fractal without the need to implement every single feature from the Matrix API. Finally with the release of GTK4 we would need to rework most of Fractal's code anyways. Therefore, it just makes sense to start over and build Fractal with all features (e.g end-to-end encryption) we have in mind.
 
 The main development branch is [fractal-next](https://gitlab.gnome.org/GNOME/fractal/-/tree/fractal-next). Issues that target fractal-next should be labeled accordingly as "fractal-next".
+The [current milestone](https://gitlab.gnome.org/GNOME/fractal/-/milestones/18) we try to complete is to support all features the current Fractal has so that we can switch from Fractal to Fractal-next as the main codebase.
 
-### Milestones
-The [main milestone](https://gitlab.gnome.org/GNOME/fractal/-/milestones/18) we try to achieve is to support all features the current Fractal has so that we can switch from Fractal to Fractal-next as the main codebase. In more details we need to implement the following features:
-- [ ] **Base functionality**: Fractal-next allows an user to login into there account and view rooms and the room history.
-- [ ] **Room details**: The user can view and change room settings (room visibility, roles and permissions, etc.) and view room members.
-- [ ] **Room management**: The user can create, join and leave rooms.
-- [ ] **Room categories**: The user can group rooms into different categories.
-- [ ] **Room history search**: Allow users to search the room history.
-- [ ] **Notification settings**: The user can set global notification preferences and per-room notification preferences.
-- [ ] **Account settings**: The user can view and change it's own profile and manage logged-in devices.
-- [ ] **Support different message types**: The room history shows different message types e.g. emotes, stickers, images, videos.
-- [ ] **End-to-end encryption**: Fractal-next can manage encryption keys and read/write encrypted messages.
-- [ ] **Room discovery**: The user can search for public rooms and join them.
-- [ ] **Notification Viewer**: Fractal-next has a viewer for all important notifications collected in one area.
-- [ ] **Multi-account support**: Support multiple Matrix accounts.
-- [ ] **Third-party identifiers**: The user can login via e-mail address or phone-number.
 
 ## Installation instructions
 
