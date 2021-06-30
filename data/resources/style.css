@@ -90,7 +90,8 @@ headerbar.flat {
 }
 
 .sidebar .room .highlight {
-  background-color: @accent_bg_color;
+  /* TODO: use correct color variable */
+  background-color: @theme_selected_bg_color;
 }
 
 /* Content */
@@ -146,7 +147,7 @@ headerbar.flat {
 }
 
 .message-entry > .view:focus {
-  border: 2px solid @accent_bg_color;
+  border: 2px solid @theme_selected_bg_color;
   padding: 5px;
 }
 

@@ -46,7 +46,6 @@
             </child>
             <child>
               <object class="AdwLeaflet" id="content">
-                <property name="fold-threshold-policy">minimum</property>
                 <child>
                   <object class="Sidebar" id="sidebar">
                     <property name="compact" bind-source="content" bind-property="folded" bind-flags="sync-create"/>
