@@ -1,4 +1,4 @@
-/// FIXME: This should be addressed in ruma direclty
+/// FIXME: This should be addressed in ruma directly
 #[macro_export]
 macro_rules! fn_event {
     ( $event:ident, $fun:ident ) => {
@@ -11,7 +11,7 @@ macro_rules! fn_event {
     };
 }
 
-/// FIXME: This should be addressed in ruma direclty
+/// FIXME: This should be addressed in ruma directly
 #[macro_export]
 macro_rules! event_from_sync_event {
     ( $event:ident, $room_id:ident) => {
@@ -35,7 +35,7 @@ macro_rules! event_from_sync_event {
 use crate::RUNTIME;
 use gtk::glib;
 use std::future::Future;
-/// Exexcute a future on a tokio runtime and spawn a future on the local thread to handle the result
+/// Execute a future on a tokio runtime and spawn a future on the local thread to handle the result
 pub fn do_async<
     R: Send + 'static,
     F1: Future<Output = R> + Send + 'static,

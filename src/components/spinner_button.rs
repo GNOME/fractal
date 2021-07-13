@@ -49,7 +49,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "loading",
                         "Loading",
-                        "Wheter to display the loading spinner or the content",
+                        "Whether to display the loading spinner or the content",
                         false,
                         glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
                     ),

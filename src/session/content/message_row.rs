@@ -65,7 +65,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "show-header",
                         "Show Header",
-                        "Whether this item should show a header or not. This does do nothing if this event doesn't have a header. ",
+                        "Whether this item should show a header. This does nothing if this event doesn’t have a header. ",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -224,7 +224,7 @@ impl MessageRow {
                     AnyMessageEventContent::RoomRedaction(RedactionEventContent::new())
                 }
             }
-            _ => panic!("This event isn't a room message event or redacted event"),
+            _ => panic!("This event isn’t a room message event or redacted event"),
         }
     }
 

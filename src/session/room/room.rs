@@ -55,7 +55,7 @@ mod imp {
         pub category: Cell<RoomType>,
         pub timeline: OnceCell<Timeline>,
         pub room_members: RefCell<HashMap<UserId, User>>,
-        /// The user who send the invite to this room. This is only set when this room is an invitiation.
+        /// The user who sent the invite to this room. This is only set when this room is an invitiation.
         pub inviter: RefCell<Option<User>>,
     }
 
@@ -94,7 +94,7 @@ mod imp {
                     glib::ParamSpec::new_object(
                         "inviter",
                         "Inviter",
-                        "The user who send the invite to this room, this is only set when this room rapresents an invite",
+                        "The user who sent the invite to this room, this is only set when this room represents an invite",
                         User::static_type(),
                         glib::ParamFlags::READABLE,
                     ),
@@ -295,7 +295,7 @@ impl Room {
         }
 
         if category == RoomType::Invited {
-            warn!("Rooms can't be moved to the invite Category");
+            warn!("Rooms can’t be moved to the invite Category");
             return;
         }
 
@@ -360,7 +360,7 @@ impl Room {
                 match result {
                         Ok(_) => {},
                         Err(error) => {
-                                error!("Couldn't set the room category: {}", error);
+                                error!("Couldn’t set the room category: {}", error);
                                 let error = Error::new(
                                         error,
                                         clone!(@weak obj => @default-return None, move |_| {
@@ -467,7 +467,7 @@ impl Room {
                 // FIXME: We should retry to if the request failed
                 match display_name {
                         Ok(display_name) => obj.set_display_name(Some(display_name)),
-                        Err(error) => error!("Couldn't fetch display name: {}", error),
+                        Err(error) => error!("Couldn’t fetch display name: {}", error),
                 };
             }),
         );
@@ -504,7 +504,7 @@ impl Room {
 
     /// Handle stripped state events.
     ///
-    /// Events passed to this function arn't added to the timeline.
+    /// Events passed to this function aren't added to the timeline.
     pub fn handle_invite_events(&self, events: Vec<AnyStrippedStateEvent>) {
         let priv_ = imp::Room::from_instance(self);
         let invite_event = events
@@ -554,7 +554,7 @@ impl Room {
                     self.avatar().set_url(event.content.url.to_owned());
                 }
                 AnyRoomEvent::State(AnyStateEvent::RoomName(_)) => {
-                    // FIXME: this doesn't take in account changes in the calculated name
+                    // FIXME: this doesn't take into account changes in the calculated name
                     self.load_display_name()
                 }
                 AnyRoomEvent::State(AnyStateEvent::RoomTopic(_)) => {
@@ -567,7 +567,7 @@ impl Room {
         priv_.timeline.get().unwrap().append(batch);
     }
 
-    /// Add an initial set of members needed to diplay room events
+    /// Add an initial set of members needed to display room events
     ///
     /// The `Timeline` makes sure to update the members when a member state event arrives
     fn add_members(&self, members: Vec<RoomMember>) {
@@ -602,14 +602,14 @@ impl Room {
                 // FIXME: We should retry to load the room members if the request failed
                 match members {
                         Ok(members) => obj.add_members(members),
-                        Err(error) => error!("Couldn't load room members: {}", error),
+                        Err(error) => error!("Couldn’t load room members: {}", error),
                 };
             }),
         );
     }
 
     pub fn load_previous_events(&self) {
-        warn!("Loading previous evetns is not yet implemented");
+        warn!("Loading previous events is not yet implemented");
         /*
         let matrix_room = priv_.matrix_room.get().unwrap().clone();
         do_async(
@@ -618,7 +618,7 @@ impl Room {
                 // FIXME: We should retry to load the room members if the request failed
                 match events {
                         Ok(events) => obj.prepend(events),
-                        Err(error) => error!("Couldn't load room members: {}", error),
+                        Err(error) => error!("Couldn’t load room members: {}", error),
                 };
             }),
         );
@@ -680,7 +680,7 @@ impl Room {
                                     let priv_ = imp::Room::from_instance(&obj);
                                     priv_.timeline.get().unwrap().set_event_id_for_pending(pending_id, result.event_id)
                             },
-                            Err(error) => error!("Couldn't send message: {}", error),
+                            Err(error) => error!("Couldn’t send message: {}", error),
                     };
                 }),
             );
@@ -712,7 +712,7 @@ impl Room {
                 }
             }
         } else {
-            error!("Can't accept invite, because this room isn't an invited room");
+            error!("Can’t accept invite, because this room isn’t an invited room");
             Ok(())
         }
     }
@@ -742,7 +742,7 @@ impl Room {
                 }
             }
         } else {
-            error!("Can't reject invite, because this room isn't an invited room");
+            error!("Can’t reject invite, because this room isn’t an invited room");
             Ok(())
         }
     }
@@ -761,7 +761,7 @@ impl Room {
                     if let Ok(event) = raw_event.event.deserialize() {
                         Some((event, raw_event.event))
                     } else {
-                        error!("Couldn't deserialize event: {:?}", raw_event);
+                        error!("Couldn’t deserialize event: {:?}", raw_event);
                         None
                     }
                 })
@@ -793,7 +793,7 @@ impl Room {
                     if let Ok(event) = raw_event.event.deserialize() {
                         Some((event, raw_event.event))
                     } else {
-                        error!("Couldn't deserialize event: {:?}", raw_event);
+                        error!("Couldn’t deserialize event: {:?}", raw_event);
                         None
                     }
                 })
@@ -814,7 +814,7 @@ impl Room {
                     if let Ok(event) = event.deserialize() {
                         Some(event)
                     } else {
-                        error!("Couldn't deserialize event: {:?}", event);
+                        error!("Couldn’t deserialize event: {:?}", event);
                         None
                     }
                 })

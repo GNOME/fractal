@@ -347,7 +347,7 @@ impl Session {
                 .sync_with_callback(sync_settings, |response| {
                     let sender = sender.clone();
                     async move {
-                        // Using the event hanlder doesn't make a lot of sense for us since we want every room event
+                        // Using the event handler doesn't make a lot of sense for us since we want every room event
                         // Eventually we should contribute a better EventHandler interface so that it makes sense to use it.
                         send!(sender, response);
 
@@ -411,7 +411,7 @@ impl Session {
 
     /// Returns and consumes the `error` that was generated when the session failed to login,
     /// on a successful login this will be `None`.
-    /// Unfortunatly it's not possible to connect the Error direclty to the `prepared` signals.
+    /// Unfortunately it's not possible to connect the Error directly to the `prepared` signals.
     pub fn get_error(&self) -> Option<matrix_sdk::Error> {
         let priv_ = &imp::Session::from_instance(self);
         priv_.error.take()

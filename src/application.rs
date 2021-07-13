@@ -81,7 +81,7 @@ impl Application {
             ("application-id", &Some(config::APP_ID)),
             ("flags", &ApplicationFlags::default()),
         ])
-        .expect("Application initialization failed...")
+        .expect("Application initialization failed…")
     }
 
     fn get_main_window(&self) -> Window {
@@ -150,7 +150,7 @@ impl Application {
             .version(config::VERSION)
             .transient_for(&self.get_main_window())
             .modal(true)
-            .comments(gettext("A Matrix.org client for GNOME").as_str())
+            .comments(gettext("A Matrix client for GNOME").as_str())
             .copyright(gettext("© 2017-2021 The Fractal Team").as_str())
             .authors(vec![
                 "Alejandro Domínguez".to_string(),

@@ -125,7 +125,7 @@ impl StateRow {
                                 if state.state_key() == state.sender() {
                                     Some(gettext!("{} rejected the invite.", display_name))
                                 } else {
-                                    Some(gettext!("{}'s invite was revoked'.", display_name))
+                                    Some(gettext!("{}’s invite was revoked'.", display_name))
                                 }
                             }
                             Some(AnyStateEventContent::RoomMember(prev))
@@ -140,7 +140,7 @@ impl StateRow {
                             if state.state_key() == state.sender() {
                                 gettext!("{} left the room.", display_name)
                             } else {
-                                gettext!("{} was kicked of the room.", display_name)
+                                gettext!("{} was kicked out of the room.", display_name)
                             }
                         })
                     }
@@ -160,7 +160,7 @@ impl StateRow {
             }
             AnyStateEventContent::RoomTombstone(event) => {
                 gettext!("The room was upgraded: {}", event.body)
-                // Todo: add button for new room with acction session.show_room::room_id
+                // Todo: add button for new room with action session.show_room::room_id
             }
             _ => {
                 warn!("Unsupported state event: {}", state.event_type());

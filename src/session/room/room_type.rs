@@ -1,7 +1,7 @@
 use gettextrs::gettext;
 use gtk::glib;
 
-// TODO: do we also want the categorie `People` and a custom categorie support?
+// TODO: do we also want the category `People` and a custom category support?
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, glib::GEnum)]
 #[repr(u32)]
 #[genum(type_name = "RoomType")]

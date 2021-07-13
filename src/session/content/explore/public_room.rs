@@ -40,7 +40,7 @@ mod imp {
                     glib::ParamSpec::new_object(
                         "room",
                         "Room",
-                        "The room, this is only set if the user is alerady a member",
+                        "The room, this is only set if the user is already a member",
                         Room::static_type(),
                         glib::ParamFlags::READABLE,
                     ),

@@ -34,7 +34,7 @@ pub mod imp {
                 vec![glib::ParamSpec::new_boolean(
                     "markdown-enabled",
                     "Markdown enabled",
-                    "Whether or not to do markdown formatting when sending messages",
+                    "Whether outgoing messages should be interpreted as markdown",
                     false,
                     glib::ParamFlags::READWRITE,
                 )]

@@ -45,7 +45,7 @@ mod imp {
                     glib::ParamSpec::new_object(
                         "needed",
                         "Needed",
-                        "Whether the user defnied image should be loaded or it's not needed",
+                        "Whether the user defined image needs to be loaded",
                         gdk::Paintable::static_type(),
                         glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
                     ),
@@ -170,7 +170,7 @@ impl Avatar {
                     // FIXME: We should retry if the request failed
                     match result {
                         Ok(data) => obj.set_image_data(Some(data)),
-                        Err(error) => error!("Couldn't fetch avatar: {}", error),
+                        Err(error) => error!("Couldn’t fetch avatar: {}", error),
                     };
                 }),
             );

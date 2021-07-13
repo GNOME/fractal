@@ -15,7 +15,7 @@ pub struct StoredSession {
     pub device_id: DeviceIdBox,
 }
 
-/// Retrives all sessions stored to the `SecretService`
+/// Retrieves all sessions stored to the `SecretService`
 pub fn restore_sessions() -> Result<Vec<StoredSession>, secret_service::Error> {
     let ss = SecretService::new(EncryptionType::Dh)?;
     let collection = ss.get_default_collection()?;
@@ -75,13 +75,13 @@ pub fn restore_sessions() -> Result<Vec<StoredSession>, secret_service::Error> {
     Ok(res)
 }
 
-/// Writes a sessions to the `SecretService`, overwriting any previously stored session with the
+/// Writes a session to the `SecretService`, overwriting any previously stored session with the
 /// same `homeserver`, `username` and `device-id`.
 pub fn store_session(session: StoredSession) -> Result<(), secret_service::Error> {
     let ss = SecretService::new(EncryptionType::Dh)?;
     let collection = ss.get_default_collection()?;
 
-    // Store the infromation for the login
+    // Store the information for the login
     let attributes: HashMap<&str, &str> = [
         ("user-id", session.user_id.as_str()),
         ("homeserver", session.homeserver.as_str()),
@@ -99,7 +99,7 @@ pub fn store_session(session: StoredSession) -> Result<(), secret_service::Error
         "text/plain",
     )?;
 
-    // Store the infromation for the crypto store
+    // Store the information for the crypto store
     let attributes: HashMap<&str, &str> = [
         ("path", session.path.to_str().unwrap()),
         ("user-id", session.user_id.as_str()),

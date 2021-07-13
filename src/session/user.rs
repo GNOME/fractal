@@ -114,7 +114,7 @@ glib::wrapper! {
     pub struct User(ObjectSubclass<imp::User>);
 }
 
-/// This is a `glib::Object` rapresentation of matrix users.
+/// This is a `glib::Object` representation of matrix users.
 impl User {
     pub fn new(session: &Session, user_id: &UserId) -> Self {
         glib::Object::new(&[("session", session), ("user-id", &user_id.to_string())])

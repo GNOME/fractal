@@ -77,7 +77,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "compact",
                         "Compact",
-                        "Wheter a compact view is used or not",
+                        "Whether a compact view is used",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -98,7 +98,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "markdown-enabled",
                         "Markdown enabled",
-                        "Whether or not to do markdown formatting when sending messages",
+                        "Whether outgoing messages should be interpreted as markdown",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -318,8 +318,8 @@ impl RoomHistory {
     }
 
     fn load_more_messages(&self, adj: &gtk::Adjustment) {
-        // Load more message when the user gets close to the end of the known room history
-        // Use the page size twice to detect if the user gets close the end
+        // Load more messages when the user gets close to the end of the known room history
+        // Use the page size twice to detect if the user gets close to the end
         if adj.value() < adj.page_size() * 2.0 || adj.upper() <= adj.page_size() * 2.0 {
             if let Some(room) = self.room() {
                 room.load_previous_events();

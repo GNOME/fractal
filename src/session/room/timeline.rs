@@ -18,11 +18,11 @@ mod imp {
     #[derive(Debug, Default)]
     pub struct Timeline {
         pub room: OnceCell<Room>,
-        /// A store to keep track of related events that arn't known
+        /// A store to keep track of related events that aren't known
         pub relates_to_events: RefCell<HashMap<EventId, Vec<EventId>>>,
-        /// All events Tilshown in the room history
+        /// All events shown in the room history
         pub list: RefCell<VecDeque<Item>>,
-        /// A Hashmap linking `EventId` to correspondenting `Event`
+        /// A Hashmap linking `EventId` to corresponding `Event`
         pub event_map: RefCell<HashMap<EventId, Event>>,
         /// Maps the temporary `EventId` of the pending Event to the real `EventId`
         pub pending_events: RefCell<HashMap<EventId, EventId>>,
@@ -50,7 +50,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "empty",
                         "Empty",
-                        "Whether the timeline is empty or not",
+                        "Whether the timeline is empty",
                         false,
                         glib::ParamFlags::READABLE,
                     ),
@@ -267,7 +267,7 @@ impl Timeline {
     }
 
     /// Append the new events
-    // TODO: This should be lazy, for isperation see: https://blogs.gnome.org/ebassi/documentation/lazy-loading/
+    // TODO: This should be lazy, for inspiration see: https://blogs.gnome.org/ebassi/documentation/lazy-loading/
     pub fn append<T: DeserializeOwned>(&self, batch: Vec<(AnyRoomEvent, Raw<T>)>) {
         let priv_ = imp::Timeline::from_instance(self);
 
@@ -279,7 +279,7 @@ impl Timeline {
         let index = {
             let index = {
                 let mut list = priv_.list.borrow_mut();
-                // Extened the size of the list so that rust doesn't need to realocate memory multiple times
+                // Extend the size of the list so that rust doesn't need to reallocate memory multiple times
                 list.reserve(batch.len());
                 list.len()
             };
@@ -319,7 +319,7 @@ impl Timeline {
         self.items_changed(index as u32, 0, added as u32);
     }
 
-    /// Append an event that wasn't yet fully send and received via a sync
+    /// Append an event that wasn't yet fully sent and received via a sync
     pub fn append_pending(&self, event: AnyRoomEvent) {
         let priv_ = imp::Timeline::from_instance(self);
 
@@ -368,7 +368,7 @@ impl Timeline {
         let mut added = batch.len();
 
         {
-            // Extened the size of the list so that rust doesn't need to realocate memory multiple times
+            // Extend the size of the list so that rust doesn't need to reallocate memory multiple times
             priv_.list.borrow_mut().reserve(added);
 
             for (event, raw) in batch {

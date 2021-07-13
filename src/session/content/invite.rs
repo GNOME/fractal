@@ -65,7 +65,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "compact",
                         "Compact",
-                        "Wheter a compact view is used or not",
+                        "Whether a compact view is used",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -165,7 +165,7 @@ impl Invite {
             }
         }
 
-        // FIXME: remove clousure when room changes
+        // FIXME: remove closure when room changes
         if let Some(ref room) = room {
             let handler_id = room.connect_notify_local(
                 Some("category"),

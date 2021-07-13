@@ -66,7 +66,7 @@ mod imp {
                     glib::ParamSpec::new_boolean(
                         "show-header",
                         "Show Header",
-                        "Whether this event should show a header or not. This does do nothing if this event doesn't have a header. ",
+                        "Whether this event should show a header. This does nothing if this event doesn’t have a header. ",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -147,7 +147,7 @@ glib::wrapper! {
 // TODO:
 // - [ ] implement operations for events: forward, reply, delete...
 
-/// This is the GObject represatation of a matrix room event
+/// This is the GObject representation of a matrix room event
 impl Event {
     pub fn new(event: &AnyRoomEvent, source: &String, sender: &User) -> Self {
         let event = BoxedAnyRoomEvent(event.to_owned());
