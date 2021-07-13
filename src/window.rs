@@ -105,6 +105,7 @@ impl Window {
 
     fn add_session(&self, session: &Session) {
         let priv_ = &imp::Window::from_instance(self);
+        session.set_logged_in_users(&priv_.sessions.pages());
         priv_.sessions.add_child(session);
         priv_.sessions.set_visible_child(session);
         self.install_session_actions(session);

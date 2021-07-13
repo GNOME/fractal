@@ -29,6 +29,14 @@
               <object class="AdwWindowTitle"></object>
             </property>
             <property name="show-end-title-buttons" bind-source="Sidebar" bind-property="compact" bind-flags="sync-create"/>
+            <child type="start">
+              <object class="GtkMenuButton" id="accounts_button">
+                <property name="icon-name">system-users-symbolic</property>
+                <property name="popover">
+                  <object class="AccountSwitcher" id="account_switcher"></object>
+                </property>
+              </object>
+            </child>
             <child type="end">
               <object class="GtkMenuButton" id="appmenu_button">
                 <property name="icon-name">open-menu-symbolic</property>

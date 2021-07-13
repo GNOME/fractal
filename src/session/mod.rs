@@ -25,7 +25,7 @@ use adw;
 use adw::subclass::prelude::BinImpl;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
-use gtk::{gio, glib, glib::clone, glib::SyncSender, CompositeTemplate};
+use gtk::{gio, glib, glib::clone, glib::SyncSender, CompositeTemplate, SelectionModel};
 use gtk_macros::send;
 use log::error;
 use matrix_sdk::ruma::{
@@ -430,5 +430,10 @@ impl Session {
 
     fn handle_sync_response(&self, response: SyncResponse) {
         self.room_list().handle_response_rooms(response.rooms);
+    }
+
+    pub fn set_logged_in_users(&self, main_stack_pages: &SelectionModel) {
+        let priv_ = &imp::Session::from_instance(self);
+        priv_.sidebar.set_logged_in_users(main_stack_pages);
     }
 }

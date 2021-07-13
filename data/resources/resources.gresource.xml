@@ -18,6 +18,8 @@
     <file compressed="true" preprocess="xml-stripblanks" alias="login.ui">ui/login.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="session.ui">ui/session.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="sidebar.ui">ui/sidebar.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="sidebar-account-switcher.ui">ui/sidebar-account-switcher.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="sidebar-account-switcher-item.ui">ui/sidebar-account-switcher-item.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="sidebar-item.ui">ui/sidebar-item.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="sidebar-category-row.ui">ui/sidebar-category-row.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="sidebar-entry-row.ui">ui/sidebar-entry-row.ui</file>

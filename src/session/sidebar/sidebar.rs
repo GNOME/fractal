@@ -1,5 +1,5 @@
 use adw::subclass::prelude::BinImpl;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate, SelectionModel};
 
 use crate::session::{
     content::ContentType,
@@ -7,6 +7,8 @@ use crate::session::{
     sidebar::{Category, Entry, ItemList, RoomRow, Row, Selection},
     RoomList,
 };
+
+use super::account_switcher::AccountSwitcher;
 
 mod imp {
     use super::*;
@@ -22,6 +24,8 @@ mod imp {
         pub selected_type: Cell<ContentType>,
         #[template_child]
         pub headerbar: TemplateChild<adw::HeaderBar>,
+        #[template_child]
+        pub account_switcher: TemplateChild<AccountSwitcher>,
         #[template_child]
         pub listview: TemplateChild<gtk::ListView>,
         #[template_child]
@@ -253,5 +257,11 @@ impl Sidebar {
 
         priv_.selected_room.replace(selected_room);
         self.notify("selected-room");
+    }
+
+    pub fn set_logged_in_users(&self, main_stack_pages: &SelectionModel) {
+        let priv_ = imp::Sidebar::from_instance(self);
+
+        priv_.account_switcher.set_logged_in_users(main_stack_pages);
     }
 }

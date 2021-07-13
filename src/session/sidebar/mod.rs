@@ -1,3 +1,4 @@
+mod account_switcher;
 mod category;
 mod category_row;
 mod entry;

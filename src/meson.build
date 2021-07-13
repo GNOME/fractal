@@ -61,6 +61,7 @@ sources = files(
   'session/room/room_type.rs',
   'session/room_list.rs',
   'session/room/timeline.rs',
+  'session/sidebar/account_switcher.rs',
   'session/sidebar/item_list.rs',
   'session/sidebar/category.rs',
   'session/sidebar/category_row.rs',
