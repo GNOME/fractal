@@ -23,6 +23,8 @@ mod imp {
         pub main_stack: TemplateChild<gtk::Stack>,
         #[template_child]
         pub login: TemplateChild<Login>,
+        #[template_child]
+        pub sessions: TemplateChild<gtk::Stack>,
     }
 
     #[glib::object_subclass]
@@ -35,6 +37,7 @@ mod imp {
             Self {
                 main_stack: TemplateChild::default(),
                 login: TemplateChild::default(),
+                sessions: TemplateChild::default(),
             }
         }
 
@@ -102,8 +105,8 @@ impl Window {
 
     fn add_session(&self, session: &Session) {
         let priv_ = &imp::Window::from_instance(self);
-        priv_.main_stack.add_child(session);
-        priv_.main_stack.set_visible_child(session);
+        priv_.sessions.add_child(session);
+        priv_.sessions.set_visible_child(session);
         self.install_session_actions(session);
     }
 
@@ -132,6 +135,8 @@ impl Window {
                     session.login_with_previous_session(stored_session);
                     self.add_session(&session);
                 }
+
+                self.switch_to_sessions_page();
             }
             Err(error) => warn!("Failed to restore previous sessions: {:?}", error),
         }
@@ -170,5 +175,10 @@ impl Window {
         } else {
             self.set_default_widget(gtk::NONE_WIDGET);
         }
+    }
+
+    fn switch_to_sessions_page(&self) {
+        let priv_ = imp::Window::from_instance(self);
+        priv_.main_stack.set_visible_child(&priv_.sessions.get());
     }
 }

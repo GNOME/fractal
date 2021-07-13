@@ -10,6 +10,11 @@
         <child>
           <object class="Login" id="login" />
         </child>
+        <child>
+          <object class="GtkStack" id="sessions">
+            <property name="transition-type">crossfade</property>
+          </object>
+        </child>
       </object>
     </child>
   </template>
