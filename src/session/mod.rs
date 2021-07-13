@@ -118,7 +118,7 @@ mod imp {
                         "User",
                         "The user of this session",
                         User::static_type(),
-                        glib::ParamFlags::READABLE,
+                        glib::ParamFlags::READABLE | glib::ParamFlags::CONSTRUCT,
                     ),
                 ]
             });

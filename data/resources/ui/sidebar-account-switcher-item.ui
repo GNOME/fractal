@@ -5,7 +5,15 @@
       <object class="GtkBox">
         <child>
           <object class="GtkLabel">
-            <property name="label">User</property>
+            <binding name="label">
+              <lookup name="display-name" type="User">
+                <lookup name="user" type="Session">
+                  <lookup name="child" type="GtkStackPage">
+                    <lookup name="item">GtkListItem</lookup>
+                  </lookup>
+                </lookup>
+              </lookup>
+            </binding>
           </object>
         </child>
       </object>
