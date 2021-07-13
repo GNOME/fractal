@@ -81,7 +81,7 @@ impl Application {
             ("application-id", &Some(config::APP_ID)),
             ("flags", &ApplicationFlags::default()),
         ])
-        .expect("Application initialization failed…")
+        .expect("Application initialization failed")
     }
 
     fn get_main_window(&self) -> Window {
