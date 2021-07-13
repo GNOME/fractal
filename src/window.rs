@@ -182,4 +182,9 @@ impl Window {
         let priv_ = imp::Window::from_instance(self);
         priv_.main_stack.set_visible_child(&priv_.sessions.get());
     }
+
+    pub fn switch_to_login_page(&self) {
+        let priv_ = imp::Window::from_instance(self);
+        priv_.main_stack.set_visible_child(&priv_.login.get());
+    }
 }

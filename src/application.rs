@@ -118,6 +118,14 @@ impl Application {
                 app.show_about_dialog();
             })
         );
+
+        action!(
+            self,
+            "new-login",
+            clone!(@weak self as app => move |_, _| {
+                app.get_main_window().switch_to_login_page();
+            })
+        );
     }
 
     /// Sets up keyboard shortcuts for application and window actions.
